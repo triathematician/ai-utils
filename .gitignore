@@ -1,1 +1,47 @@
-.gradle
+# ── Kotlin / Gradle ──────────────────────────────────────────────────────────
+.gradle/
+build/
+out/
+*.class
+*.jar
+!gradle/wrapper/gradle-wrapper.jar
+
+# AI
+.claude/worktrees/
+.claude/settings.local.json
+
+# IntelliJ IDEA
+.idea/
+*.iml
+*.ipr
+*.iws
+
+# Kotlin incremental compilation
+/kotlin/
+**/.kotlin/
+
+# ── Node / JS tooling ─────────────────────────────────────────────────────────
+node_modules/
+npm-debug.log*
+yarn-error.log
+yarn-debug.log*
+.pnp/
+.pnp.js
+.yarn/cache
+.yarn/unplugged
+.yarn/build-state.yml
+.yarn/install-state.gz
+
+# ── Browser build artifacts ───────────────────────────────────────────────────
+dist/
+.cache/
+.parcel-cache/
+.next/
+.nuxt/
+.vite/
+
+# ── General ───────────────────────────────────────────────────────────────────
+.DS_Store
+*.env
+*.env.local
+*.log
