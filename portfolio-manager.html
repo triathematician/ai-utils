@@ -1,0 +1,3045 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PORTFOLIO // SIGNAL DESK</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@300;400;500;600&family=IBM+Plex+Sans:wght@300;400;500;600&display=swap');
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg: #080c10;
+  --bg1: #0d1219;
+  --bg2: #111820;
+  --bg3: #161e28;
+  --border: #1e2d3d;
+  --border2: #243344;
+  --text: #c8d8e8;
+  --muted: #4a6070;
+  --dim: #2a3a4a;
+  --green: #00e5a0;
+  --green2: #007a55;
+  --red: #ff4455;
+  --red2: #7a1020;
+  --amber: #f0a030;
+  --amber2: #7a5010;
+  --blue: #3090ff;
+  --blue2: #103070;
+  --violet: #a060ff;
+  --cyan: #20d0e0;
+  --mono: 'IBM Plex Mono', monospace;
+  --sans: 'IBM Plex Sans', sans-serif;
+}
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--mono);
+  font-size: 12px;
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+/* SCANLINE OVERLAY */
+body::before {
+  content: '';
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,0.03) 2px, rgba(0,0,0,0.03) 4px);
+  pointer-events: none;
+  z-index: 1000;
+}
+
+/* HEADER */
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 20px;
+  border-bottom: 1px solid var(--border);
+  background: var(--bg1);
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+
+.header-left {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+}
+
+.logo {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--cyan);
+  letter-spacing: 0.15em;
+}
+
+.logo span { color: var(--muted); font-weight: 300; }
+
+.header-time {
+  font-size: 10px;
+  color: var(--muted);
+  letter-spacing: 0.08em;
+}
+
+.header-actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+#headerTicker {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 11px;
+  min-width: 180px;
+  opacity: 1;
+  transform: translateY(0);
+  transition: opacity 0.2s ease, transform 0.2s ease;
+}
+#headerTicker.fading { opacity: 0; transform: translateY(-5px); }
+#headerTicker .ht-label { color: var(--muted); letter-spacing: .08em; font-size: 10px; }
+#headerTicker .ht-price { color: var(--text); font-weight: 500; }
+#headerTicker .ht-chg   { font-size: 10px; }
+#headerTicker .ht-dots  { display: flex; gap: 4px; align-items: center; }
+#headerTicker .ht-dot   { width: 4px; height: 4px; border-radius: 50%; background: var(--border); transition: background 0.2s; }
+#headerTicker .ht-dot.active { background: var(--cyan); }
+
+/* TABS */
+.tabs {
+  display: flex;
+  gap: 0;
+  border-bottom: 1px solid var(--border);
+  background: var(--bg1);
+  padding: 0 20px;
+}
+
+.tab {
+  padding: 8px 16px;
+  font-family: var(--mono);
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--muted);
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  transition: all 0.15s;
+  background: none;
+  border-top: none;
+  border-left: none;
+  border-right: none;
+}
+
+.tab:hover { color: var(--text); }
+.tab.active { color: var(--cyan); border-bottom-color: var(--cyan); }
+
+/* VIEWS */
+.view { display: none; padding: 16px 20px; }
+.view.active { display: block; }
+
+/* BUTTONS */
+.btn {
+  font-family: var(--mono);
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  padding: 6px 12px;
+  border-radius: 3px;
+  cursor: pointer;
+  transition: all 0.15s;
+  border: 1px solid;
+}
+
+.btn-cyan { background: transparent; border-color: var(--cyan); color: var(--cyan); }
+.btn-cyan:hover { background: var(--cyan); color: var(--bg); }
+.btn-green { background: transparent; border-color: var(--green); color: var(--green); }
+.btn-green:hover { background: var(--green); color: var(--bg); }
+.btn-amber { background: transparent; border-color: var(--amber); color: var(--amber); }
+.btn-amber:hover { background: var(--amber); color: var(--bg); }
+.btn-red { background: transparent; border-color: var(--red); color: var(--red); }
+.btn-red:hover { background: var(--red); color: var(--bg); }
+.btn-dim { background: transparent; border-color: var(--dim); color: var(--muted); }
+.btn-dim:hover { border-color: var(--muted); color: var(--text); }
+
+/* PORTFOLIO TABLE */
+.table-wrap { overflow-x: auto; }
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 11px;
+}
+
+thead th {
+  padding: 8px 10px;
+  text-align: left;
+  font-size: 9px;
+  font-weight: 500;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--muted);
+  border-bottom: 1px solid var(--border);
+  white-space: nowrap;
+  cursor: pointer;
+  user-select: none;
+}
+
+thead th:hover { color: var(--text); }
+thead th.sort-asc::after { content: ' ▲'; color: var(--cyan); }
+thead th.sort-desc::after { content: ' ▼'; color: var(--cyan); }
+
+tbody tr {
+  border-bottom: 1px solid var(--border);
+  cursor: pointer;
+  transition: background 0.1s;
+}
+
+tbody tr:hover { background: var(--bg2); }
+tbody tr.selected { background: var(--bg3); border-left: 2px solid var(--cyan); }
+
+tbody td {
+  padding: 9px 10px;
+  vertical-align: middle;
+  white-space: nowrap;
+}
+
+.ticker { font-weight: 600; font-size: 13px; color: var(--cyan); letter-spacing: 0.05em; }
+.price { font-weight: 500; font-size: 12px; }
+
+.up { color: var(--green); }
+.down { color: var(--red); }
+.neutral { color: var(--muted); }
+.warn { color: var(--amber); }
+
+.cat-badge {
+  display: inline-block;
+  padding: 2px 6px;
+  border-radius: 2px;
+  font-size: 9px;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.cat-long { background: rgba(0,229,160,0.1); color: var(--green); border: 1px solid var(--green2); }
+.cat-spec { background: rgba(240,160,48,0.1); color: var(--amber); border: 1px solid var(--amber2); }
+.cat-watch { background: rgba(255,80,140,0.1); color: #ff508c; border: 1px solid #6a1535; }
+.cat-closed { background: rgba(74,96,112,0.15); color: var(--muted); border: 1px solid var(--dim); }
+.cat-unsure { background: rgba(160,96,255,0.1); color: var(--violet); border: 1px solid #4a2080; }
+.cat-bullish { background: rgba(255,80,200,0.1); color: #ff50c8; border: 1px solid #6a1550; }
+.cat-exit { background: rgba(255,68,85,0.1); color: var(--red); border: 1px solid var(--red2); }
+
+/* MINI SPARKLINE */
+.spark { display: inline-block; vertical-align: middle; }
+
+/* DECLINE BARS */
+.decline-bar-wrap { display: flex; align-items: center; gap: 6px; min-width: 100px; }
+.decline-bar-bg { flex: 1; height: 4px; background: var(--bg3); border-radius: 2px; overflow: hidden; }
+.decline-bar-fill { height: 100%; border-radius: 2px; transition: width 0.3s; }
+
+/* DETAIL PANEL */
+.detail-panel {
+  display: none;
+  position: fixed;
+  right: 0; top: 0; bottom: 0;
+  width: 420px;
+  background: var(--bg1);
+  border-left: 1px solid var(--border);
+  z-index: 200;
+  overflow-y: auto;
+  padding: 16px;
+  animation: slideIn 0.2s ease;
+}
+
+.detail-panel.open { display: block; }
+
+@keyframes slideIn {
+  from { transform: translateX(30px); opacity: 0; }
+  to { transform: translateX(0); opacity: 1; }
+}
+
+.detail-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 16px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--border);
+}
+
+.detail-ticker {
+  font-size: 28px;
+  font-weight: 600;
+  color: var(--cyan);
+  letter-spacing: 0.05em;
+}
+
+.detail-price { font-size: 20px; font-weight: 500; margin-top: 4px; }
+
+.section-label {
+  font-size: 9px;
+  font-weight: 500;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin: 14px 0 8px;
+  padding-bottom: 4px;
+  border-bottom: 1px solid var(--border);
+}
+
+.windows-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 6px;
+  margin-bottom: 8px;
+}
+
+.window-cell {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  padding: 8px;
+}
+
+.window-label { font-size: 9px; color: var(--muted); letter-spacing: 0.1em; text-transform: uppercase; }
+.window-val { font-size: 12px; font-weight: 500; margin-top: 3px; }
+.window-chg { font-size: 10px; margin-top: 2px; }
+
+/* FORM STYLES */
+.form-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.form-group { display: flex; flex-direction: column; gap: 4px; }
+.form-group.full { grid-column: 1 / -1; }
+
+label {
+  font-size: 9px;
+  font-weight: 500;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+input, select, textarea {
+  font-family: var(--mono);
+  font-size: 11px;
+  background: var(--bg2);
+  border: 1px solid var(--border2);
+  color: var(--text);
+  padding: 7px 9px;
+  border-radius: 3px;
+  outline: none;
+  transition: border-color 0.15s;
+  width: 100%;
+}
+
+input:focus, select:focus, textarea:focus {
+  border-color: var(--cyan);
+}
+
+textarea { resize: vertical; min-height: 60px; line-height: 1.5; }
+
+select option { background: var(--bg2); }
+
+/* SUMMARY CARDS */
+.summary-row {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
+.summary-card {
+  background: var(--bg1);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 12px;
+}
+
+.summary-card-label { font-size: 9px; color: var(--muted); letter-spacing: 0.1em; text-transform: uppercase; }
+.summary-card-val { font-size: 18px; font-weight: 500; margin-top: 6px; }
+.summary-card-sub { font-size: 10px; color: var(--muted); margin-top: 3px; }
+
+/* DRY POWDER */
+.powder-tiers { display: flex; flex-direction: column; gap: 8px; margin-top: 10px; }
+
+.powder-tier {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 10px 14px;
+  transition: border-color 0.2s;
+}
+
+.powder-tier.triggered { border-color: var(--amber); }
+.powder-tier.deployed-full { border-color: var(--green2); opacity: 0.6; }
+
+.powder-tier-label { font-size: 10px; color: var(--muted); width: 80px; flex-shrink: 0; }
+.powder-tier-trigger { font-size: 13px; font-weight: 500; width: 60px; flex-shrink: 0; }
+.powder-tier-amt { font-size: 13px; font-weight: 600; color: var(--amber); width: 70px; flex-shrink: 0; }
+.powder-tier-bar-wrap { flex: 1; height: 6px; background: var(--bg3); border-radius: 3px; overflow: hidden; }
+.powder-tier-bar { height: 100%; border-radius: 3px; background: var(--amber); transition: width 0.4s; }
+.powder-tier-status { font-size: 9px; letter-spacing: 0.08em; text-transform: uppercase; width: 70px; text-align: right; flex-shrink: 0; }
+
+/* MODAL */
+.modal-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.7);
+  z-index: 500;
+  align-items: center;
+  justify-content: center;
+}
+
+.modal-overlay.open { display: flex; }
+
+.modal {
+  background: var(--bg1);
+  border: 1px solid var(--border2);
+  border-radius: 6px;
+  padding: 20px;
+  width: 580px;
+  max-width: 95vw;
+  max-height: 90vh;
+  overflow-y: auto;
+  animation: fadeUp 0.2s ease;
+}
+
+@keyframes fadeUp {
+  from { transform: translateY(16px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+
+.modal-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--cyan);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  margin-bottom: 16px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--border);
+}
+
+.modal-actions {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+  margin-top: 16px;
+  padding-top: 12px;
+  border-top: 1px solid var(--border);
+}
+
+/* REFRESH STATUS */
+.refresh-dot {
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  margin-right: 5px;
+}
+
+.dot-live { background: var(--green); box-shadow: 0 0 4px var(--green); animation: pulse 2s infinite; }
+.dot-stale { background: var(--amber); }
+.dot-error { background: var(--red); }
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
+}
+
+/* MISC */
+.divider { border: none; border-top: 1px solid var(--border); margin: 12px 0; }
+
+.tag {
+  display: inline-block;
+  padding: 1px 5px;
+  border-radius: 2px;
+  font-size: 9px;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  background: var(--bg3);
+  color: var(--muted);
+  border: 1px solid var(--border);
+}
+
+.entry-chips { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 4px; }
+.entry-chip {
+  font-size: 10px;
+  padding: 2px 7px;
+  border-radius: 2px;
+  background: rgba(48,144,255,0.1);
+  border: 1px solid var(--blue2);
+  color: var(--blue);
+}
+.exit-chip {
+  font-size: 10px;
+  padding: 2px 7px;
+  border-radius: 2px;
+  background: rgba(255,68,85,0.08);
+  border: 1px solid var(--red2);
+  color: var(--red);
+}
+
+.thesis-block {
+  font-size: 11px;
+  line-height: 1.6;
+  color: var(--text);
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  padding: 10px;
+  margin-top: 4px;
+}
+
+.rule-block {
+  font-size: 11px;
+  line-height: 1.6;
+  color: var(--amber);
+  background: rgba(240,160,48,0.05);
+  border: 1px solid var(--amber2);
+  border-radius: 3px;
+  padding: 10px;
+  margin-top: 4px;
+}
+
+.no-data {
+  text-align: center;
+  padding: 60px 20px;
+  color: var(--muted);
+  font-size: 11px;
+  letter-spacing: 0.05em;
+}
+
+.sp-rel { font-size: 10px; }
+
+/* ALERTS */
+.alert-bar {
+  display: none;
+  padding: 8px 20px;
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.05em;
+}
+
+.alert-bar.success { display: block; background: rgba(0,229,160,0.1); color: var(--green); border-bottom: 1px solid var(--green2); }
+.alert-bar.error { display: block; background: rgba(255,68,85,0.1); color: var(--red); border-bottom: 1px solid var(--red2); }
+
+input[type=number]::-webkit-inner-spin-button,
+input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+input[type=number] { -moz-appearance: textfield; }
+
+input[type=range] {
+  -webkit-appearance: none;
+  height: 4px;
+  background: var(--bg3);
+  border-radius: 2px;
+  border: none;
+  padding: 0;
+}
+
+input[type=range]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: var(--cyan);
+  cursor: pointer;
+}
+</style>
+</head>
+<body>
+
+<!-- ALERT BAR -->
+<div class="alert-bar" id="alertBar"></div>
+
+<!-- HEADER -->
+<div class="header">
+  <div class="header-left">
+    <div class="logo">SIGNAL<span>//</span>DESK</div>
+    <div class="header-time" id="headerTime"></div>
+  </div>
+  <div id="headerTicker">
+    <div class="ht-dots">
+      <div class="ht-dot active" id="htDot0"></div>
+      <div class="ht-dot" id="htDot1"></div>
+      <div class="ht-dot" id="htDot2"></div>
+      <div class="ht-dot" id="htDot3"></div>
+    </div>
+    <span class="ht-label" id="htLabel">SPY</span>
+    <span class="ht-price" id="htPrice">—</span>
+    <span class="ht-chg"   id="htChg"></span>
+  </div>
+
+  <div class="header-actions">
+    <span id="refreshStatus" style="font-size:10px;color:var(--muted)">
+      <span class="refresh-dot dot-stale"></span>prices not loaded
+    </span>
+    <button class="btn btn-cyan" onclick="refreshPrices()">↻ Refresh</button>
+    <button class="btn btn-green" onclick="openAddModal()">+ Position</button>
+    <button class="btn btn-dim" onclick="exportJSON()">↓ Export</button>
+    <button class="btn btn-dim" onclick="document.getElementById('importFile').click()">↑ Import</button>
+    <input type="file" id="importFile" accept=".json" style="display:none" onchange="importJSON(event)">
+    <button class="btn btn-dim" onclick="document.getElementById('importTxFile').click()">↑ Transactions</button>
+    <input type="file" id="importTxFile" accept=".csv" style="display:none" onchange="importTransactionsCSV(event)">
+  </div>
+</div>
+
+<!-- TABS -->
+<div class="tabs">
+  <button class="tab active" onclick="switchTab('dashboard')">Dashboard</button>
+  <button class="tab" onclick="switchTab('deepdive')">Deep Dive</button>
+  <button class="tab" onclick="switchTab('summary')">Summary</button>
+  <button class="tab" onclick="switchTab('research')">Research</button>
+  <button class="tab" onclick="switchTab('powder')">Dry Powder</button>
+</div>
+
+<!-- ============ DASHBOARD VIEW ============ -->
+<div class="view active" id="view-dashboard">
+  <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
+    <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:0.1em">
+      <input type="checkbox" id="showExited" onchange="renderDashboard()" style="width:auto;accent-color:var(--cyan)">
+      Show exited positions
+    </label>
+  </div>
+  <div class="table-wrap">
+    <table id="posTable">
+      <thead>
+        <tr>
+          <th onclick="sortBy('ticker')">Ticker</th>
+          <th onclick="sortBy('price')">Price</th>
+          <th onclick="sortBy('cost')">Avg Cost</th>
+          <th onclick="sortBy('pnl')">P&L %</th>
+          <th onclick="sortBy('sp_rel')">vs S&P</th>
+          <th onclick="sortBy('ath_pct')">↓ ATH</th>
+          <th onclick="sortBy('yr1_pct')">↓ 1yr</th>
+          <th onclick="sortBy('mo6_pct')">↓ 6mo</th>
+          <th onclick="sortBy('mo3_pct')">↓ 3mo</th>
+          <th onclick="sortBy('mo1_pct')">↓ 1mo</th>
+          <th onclick="sortBy('wk1_pct')">↓ 1wk</th>
+          <th onclick="sortBy('category')">Category</th>
+          <th>Entries</th>
+          <th>Rule</th>
+        </tr>
+      </thead>
+      <tbody id="posTableBody"></tbody>
+    </table>
+    <div class="no-data" id="noData" style="display:none">
+      No positions yet. Click <strong style="color:var(--cyan)">+ Position</strong> to add your first.
+    </div>
+  </div>
+</div>
+
+<!-- ============ DEEP DIVE VIEW ============ -->
+<div class="view" id="view-deepdive">
+  <div style="display:flex;gap:12px;margin-bottom:14px;align-items:center">
+    <select id="deepDiveSelect" onchange="renderDeepDive()" style="width:140px">
+      <option value="">— Select ticker —</option>
+    </select>
+    <span id="ddCatBadge" style="margin-left:4px"></span>
+  </div>
+  <div id="deepDiveContent">
+    <div class="no-data">Select a position to analyze</div>
+  </div>
+</div>
+
+<!-- ============ DRY POWDER VIEW ============ -->
+<div class="view" id="view-powder">
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:48px;align-items:start">
+
+    <!-- LEFT: summary + notes + trigger status -->
+    <div>
+      <div class="summary-row" style="grid-template-columns:repeat(5,1fr);margin-bottom:8px">
+        <div class="summary-card">
+          <div class="summary-card-label">Ceiling</div>
+          <div class="summary-card-val" id="pwdCeiling" style="color:var(--cyan)">—</div>
+          <div class="summary-card-sub">max to invest</div>
+        </div>
+        <div class="summary-card">
+          <div class="summary-card-label">Invested</div>
+          <div class="summary-card-val" id="pwdInvested" style="color:var(--text)">—</div>
+          <div class="summary-card-sub">active cost basis</div>
+        </div>
+        <div class="summary-card">
+          <div class="summary-card-label">Headroom</div>
+          <div class="summary-card-val" id="pwdHeadroom" style="color:var(--muted)">—</div>
+          <div class="summary-card-sub">ceiling − invested</div>
+        </div>
+        <div class="summary-card">
+          <div class="summary-card-label">Triggered</div>
+          <div class="summary-card-val" id="pwdTriggered" style="color:var(--amber)">$0</div>
+          <div class="summary-card-sub">tier budget unlocked</div>
+        </div>
+        <div class="summary-card">
+          <div class="summary-card-label">Left to Deploy</div>
+          <div class="summary-card-val" id="pwdRemaining" style="color:var(--green)">$0</div>
+          <div class="summary-card-sub">triggered &amp; undeployed</div>
+        </div>
+      </div>
+
+      <div id="pwdTriggerNotes" style="margin-bottom:12px"></div>
+
+      <div class="section-label">Trigger Status</div>
+      <div class="powder-tiers" id="powderTierDisplay"></div>
+    </div>
+
+    <!-- RIGHT: config + tiers (toggleable) -->
+    <div>
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+        <div class="section-label" style="margin:0">Configuration</div>
+        <button id="pwdConfigToggle" onclick="togglePowderConfig()"
+          style="font-size:9px;padding:2px 9px;border:1px solid var(--border);border-radius:3px;
+                 background:var(--bg3);color:var(--muted);cursor:pointer;letter-spacing:.05em">
+          SHOW
+        </button>
+      </div>
+      <div id="pwdConfigPanel" style="display:none">
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:20px">
+          <div class="form-group" style="margin:0">
+            <label>SPY ATH</label>
+            <input type="number" id="spATH" placeholder="auto" step="0.01"
+              oninput="savePowderConfig();renderPowderResults()" style="width:100%">
+          </div>
+          <div class="form-group" style="margin:0">
+            <label>SPY Current</label>
+            <input type="number" id="spCurrent" placeholder="auto" step="0.01"
+              oninput="savePowderConfig();renderPowderResults()" style="width:100%">
+          </div>
+          <div class="form-group" style="margin:0">
+            <label>Ceiling ($)</label>
+            <input type="number" id="pwdCeilingInput" placeholder="e.g. 50000" step="500" min="0"
+              oninput="savePowderConfig();renderPowderResults()" style="width:100%">
+          </div>
+        </div>
+
+        <div class="section-label">Deployment Tiers</div>
+        <div id="powderTiersConfig" style="margin-bottom:8px"></div>
+        <button class="btn btn-dim" onclick="addPowderTier()" style="margin-bottom:16px">+ Add Tier</button>
+
+        <div style="padding:10px;background:var(--bg2);border:1px solid var(--border);border-radius:4px;font-size:10px;color:var(--muted);line-height:1.7">
+          <strong style="color:var(--text)">How it works:</strong> Each tier fires when the S&P drops X% from ATH. Deploy the configured amount into pre-selected positions. Mark "deployed" to track usage. Keep this reserve in SNSXX or short T-bills until triggered.
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ============ SUMMARY VIEW ============ -->
+<div class="view" id="view-summary">
+  <div class="summary-row" id="summaryCards" style="grid-template-columns:repeat(8,1fr)"></div>
+
+  <div style="display:flex;gap:16px;margin-top:16px;align-items:flex-start">
+    <div style="width:380px;flex-shrink:0">
+      <div class="section-label">By Category</div>
+      <div id="catBreakdown"></div>
+    </div>
+    <div style="flex:1;min-width:0">
+      <div class="section-label">Buy / Sell Activity</div>
+      <div id="activityChart"></div>
+    </div>
+  </div>
+
+  <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;margin-top:16px">
+    <div>
+      <div class="section-label">Days Held</div>
+      <div id="daysHeldDist"></div>
+    </div>
+    <div>
+      <div class="section-label">Drawdown from Entry High</div>
+      <div id="entryDrawdowns"></div>
+    </div>
+    <div>
+      <div class="section-label">Cost Basis Concentration</div>
+      <div id="concentrationChart"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ============ RESEARCH VIEW ============ -->
+<div class="view" id="view-research">
+  <!-- Row 1: Percentile + Momentum, same sort order -->
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:24px;margin-bottom:20px">
+    <div>
+      <div class="section-label">Price Percentile — 1yr range</div>
+      <div id="percentileRank"></div>
+    </div>
+    <div>
+      <div class="section-label">Momentum Scorecard</div>
+      <div id="momentumScorecard"></div>
+    </div>
+  </div>
+
+  <!-- Row 2: Risk/Reward (left) + Furthest from Highs (right) -->
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:24px;margin-bottom:20px">
+    <div>
+      <div class="section-label">Risk / Reward — 2yr drawdown vs 1yr return</div>
+      <div id="riskRewardScatter"></div>
+    </div>
+    <div>
+      <div class="section-label">Furthest from Highs</div>
+      <div id="opportunityRadar" style="overflow-y:auto;max-height:360px"></div>
+    </div>
+  </div>
+
+  <!-- Row 3: Heatmap (left) + Biggest Movers (right) -->
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:24px">
+    <div>
+      <div class="section-label">Correlation Heatmap — clustered</div>
+      <div id="corrHeatmap"></div>
+    </div>
+    <div>
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+        <div class="section-label" style="margin:0">Biggest Movers</div>
+        <div id="moversPeriodBtns" style="display:flex;gap:4px"></div>
+      </div>
+      <div id="moversBreakdown"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ============ DETAIL PANEL ============ -->
+<div class="detail-panel" id="detailPanel">
+  <div id="detailContent"></div>
+</div>
+
+<!-- ============ ADD/EDIT MODAL ============ -->
+<div class="modal-overlay" id="modalOverlay">
+  <div class="modal">
+    <div class="modal-title" id="modalTitle">Add Position</div>
+    <div class="form-grid" id="modalForm">
+
+      <div class="form-group">
+        <label>Ticker *</label>
+        <input type="text" id="fTicker" placeholder="e.g. AAPL" style="text-transform:uppercase">
+      </div>
+      <div class="form-group">
+        <label>Category</label>
+        <select id="fCategory">
+          <option value="long">Long-Term Hold</option>
+          <option value="spec">Speculative</option>
+          <option value="closed">Closed</option>
+          <option value="unsure">Unsure</option>
+          <option value="bullish">Bullish</option>
+          <option value="watch">Watchlist</option>
+          <option value="exit">Exit Target</option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label>Entry Points (e.g. 2026-02-17:50.12x3,51.26x4)</label>
+        <input type="text" id="fEntries" placeholder="YYYY-MM-DD:price[xshares] or price[xshares]">
+      </div>
+      <div class="form-group">
+        <label>Exit Points (e.g. 2026-03-01:55.00x2)</label>
+        <input type="text" id="fExits" placeholder="YYYY-MM-DD:price[xshares] or price[xshares]">
+      </div>
+
+      <div class="form-group full">
+        <label>Thesis</label>
+        <textarea id="fThesis" placeholder="Why you own this..."></textarea>
+      </div>
+
+      <div class="form-group full">
+        <label>Rule / Trigger Criteria</label>
+        <textarea id="fRule" placeholder="e.g. Add $300 at -10%, sell half at $45, stop at $18..."></textarea>
+      </div>
+
+      <div class="form-group full">
+        <label>Manual Highs (leave blank to auto-fetch) — ATH, 5yr, 2yr, 1yr, 6mo, 3mo (comma-separated)</label>
+        <input type="text" id="fHighs" placeholder="e.g. 220.50,195.00,185.00,180.00,165.00,155.00">
+      </div>
+
+      <div class="form-group">
+        <label>Current Price (manual override)</label>
+        <input type="number" id="fPrice" placeholder="auto from refresh" step="0.01">
+      </div>
+
+      <div class="form-group">
+        <label>Notes</label>
+        <input type="text" id="fNotes" placeholder="optional">
+      </div>
+
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-dim" onclick="closeModal()">Cancel</button>
+      <button class="btn btn-red" id="deleteBtn" onclick="deletePosition()" style="display:none">Delete</button>
+      <button class="btn btn-green" onclick="savePosition()">Save Position</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ═══════════════════════════════════════════
+// DATA LAYER
+// ═══════════════════════════════════════════
+
+const STORE_KEY = 'signaldesk_v1';
+const POWDER_KEY = 'signaldesk_powder_v1';
+
+let state = {
+  positions: [],
+  prices: {},        // ticker -> {price, ath, yr5, yr2, yr1, mo6, mo3, spChg}
+  lastRefresh: null,
+  editId: null,
+  sortCol: 'ticker',
+  sortDir: 1
+};
+
+let ddChartRange = '1Y';
+
+let powderConfig = {
+  spATH: null,
+  spCurrent: null,
+  ceiling: null,
+  tiers: [
+    { id: 1, label: 'Tier 1', dropPct: 5, amount: 1500, deployed: 0, note: 'Minor pullback — add to conviction names' },
+    { id: 2, label: 'Tier 2', dropPct: 10, amount: 2000, deployed: 0, note: 'Correction territory — opportunistic adds' },
+    { id: 3, label: 'Tier 3', dropPct: 15, amount: 1500, deployed: 0, note: 'Dislocation — something broke, execute list' }
+  ]
+};
+
+function load() {
+  const raw = localStorage.getItem(STORE_KEY);
+  if (raw) {
+    try {
+      const d = JSON.parse(raw);
+      state.positions = d.positions || [];
+      state.prices = d.prices || {};
+      state.lastRefresh = d.lastRefresh || null;
+    } catch(e) {}
+  }
+  const pr = localStorage.getItem(POWDER_KEY);
+  if (pr) {
+    try { powderConfig = { ...powderConfig, ...JSON.parse(pr) }; } catch(e) {}
+  }
+}
+
+function save() {
+  localStorage.setItem(STORE_KEY, JSON.stringify({
+    positions: state.positions,
+    prices: state.prices,
+    lastRefresh: state.lastRefresh
+  }));
+}
+
+// Only called when SPY/ceiling inputs change — never from tier edits
+function savePowderConfig() {
+  const ath  = document.getElementById('spATH').value;
+  powderConfig.spATH = ath ? parseFloat(ath) : null;
+  const cur  = document.getElementById('spCurrent').value;
+  powderConfig.spCurrent = cur ? parseFloat(cur) : null;
+  const ceil = document.getElementById('pwdCeilingInput').value;
+  powderConfig.ceiling = ceil ? parseFloat(ceil) : null;
+  localStorage.setItem(POWDER_KEY, JSON.stringify(powderConfig));
+}
+
+// Tier-only save — never reads SPY inputs so they can't be clobbered
+function saveTiers() {
+  localStorage.setItem(POWDER_KEY, JSON.stringify(powderConfig));
+}
+
+// ═══════════════════════════════════════════
+// PRICE FETCHING
+// ═══════════════════════════════════════════
+
+const SP_TICKER  = 'SPY';
+const VIX_TICKER = '^VIX';
+const TNX_TICKER = '^TNX';
+const OIL_TICKER = 'CL=F';
+
+async function fetchQuote(ticker) {
+  // Uses Yahoo Finance v8 API (unofficial but widely used)
+  const url = `http://localhost:8081/quote/${ticker}?range=5y`
+  
+  try {
+    const r = await fetch(url, { headers: { 'Accept': 'application/json' } });
+    if (!r.ok) throw new Error('HTTP ' + r.status);
+    const d = await r.json();
+    const result = d.chart?.result?.[0];
+    if (!result) throw new Error('no result');
+
+    const closes = result.indicators?.quote?.[0]?.close || [];
+    const timestamps = result.timestamp || [];
+    const meta = result.meta || {};
+
+    const price = meta.regularMarketPrice || closes[closes.length - 1];
+    const validCloses = closes.filter(c => c !== null && c !== undefined);
+
+    // compute highs over windows
+    const now = Date.now() / 1000;
+    const windows = { ath: 0, yr5: 0, yr2: 0, yr1: 0, mo6: 0, mo3: 0, mo1: 0, wk1: 0 };
+    const cutoffs = {
+      ath: 0,
+      yr5: now - 5 * 365.25 * 86400,
+      yr2: now - 2 * 365.25 * 86400,
+      yr1: now - 365.25 * 86400,
+      mo6: now - 182.5 * 86400,
+      mo3: now - 91.25 * 86400,
+      mo1: now - 30.4 * 86400,
+      wk1: now - 7 * 86400
+    };
+
+    timestamps.forEach((ts, i) => {
+      const c = closes[i];
+      if (!c) return;
+      Object.entries(cutoffs).forEach(([k, cut]) => {
+        if (ts >= cut && c > windows[k]) windows[k] = c;
+      });
+    });
+
+    const history = {};
+    timestamps.forEach((ts, i) => {
+      if (closes[i]) {
+        const key = new Date(ts * 1000).toISOString().split('T')[0];
+        history[key] = closes[i];
+      }
+    });
+
+    return { price, ...windows, history, ok: true };
+  } catch(e) {
+    return { ok: false, error: e.message };
+  }
+}
+
+async function refreshPrices() {
+  setRefreshStatus('loading');
+  const tickers = [...new Set(state.positions.map(p => p.ticker))];
+  if (!tickers.length) { setRefreshStatus('ok'); return; }
+
+  // also fetch SPY, VIX, TNX for dashboard rows + relative performance
+  const allTickers = [...tickers, SP_TICKER, VIX_TICKER, TNX_TICKER, OIL_TICKER];
+
+  const results = await Promise.allSettled(allTickers.map(t => fetchQuote(t)));
+
+  let spyData = null, vixData = null, tnxData = null, oilData = null;
+  results.forEach((r, i) => {
+    if (r.status === 'fulfilled' && r.value.ok) {
+      const data = r.value;
+      const ticker = allTickers[i];
+      if (ticker === SP_TICKER)  { spyData = data; return; }
+      if (ticker === VIX_TICKER) { vixData = data; return; }
+      if (ticker === TNX_TICKER) { tnxData = data; return; }
+      if (ticker === OIL_TICKER) { oilData = data; return; }
+      // merge with manual highs if set
+      const pos = state.positions.find(p => p.ticker === ticker);
+      const manualHighs = parseManualHighs(pos?.manualHighs);
+      state.prices[ticker] = {
+        price: pos?.manualPrice || data.price,
+        ath: manualHighs.ath || data.ath,
+        yr5: manualHighs.yr5 || data.yr5,
+        yr2: manualHighs.yr2 || data.yr2,
+        yr1: manualHighs.yr1 || data.yr1,
+        mo6: manualHighs.mo6 || data.mo6,
+        mo3: manualHighs.mo3 || data.mo3,
+        mo1: manualHighs.mo1 || data.mo1,
+        raw: data
+      };
+    }
+  });
+
+  // compute S&P % change from 1yr high for relative perf
+  if (spyData) {
+    const spYr1 = spyData.yr1;
+    const spPrice = spyData.price;
+    const spChg = spYr1 ? ((spPrice - spYr1) / spYr1) * 100 : 0;
+    Object.keys(state.prices).forEach(t => {
+      state.prices[t].spChg = spChg;
+      state.prices[t].spPrice = spyData.price;
+      state.prices[t].spATH = spyData.ath;
+    });
+    // store full SPY data for the pinned row + history for dollar-weighted vs S&P
+    state.prices['__SPY__'] = {
+      price: spyData.price,
+      ath: spyData.ath,
+      yr5: spyData.yr5,
+      yr2: spyData.yr2,
+      yr1: spyData.yr1,
+      mo6: spyData.mo6,
+      mo3: spyData.mo3,
+      mo1: spyData.mo1,
+      history: spyData.history
+    };
+    // update powder inputs with latest SPY data if user has no manual override
+    if (!powderConfig.spATH) {
+      document.getElementById('spATH').value = spyData.ath.toFixed(2);
+    }
+    if (!powderConfig.spCurrent) {
+      document.getElementById('spCurrent').value = spyData.price.toFixed(2);
+    }
+  }
+
+  if (vixData) {
+    state.prices['__VIX__'] = {
+      price: vixData.price, ath: vixData.ath, yr5: vixData.yr5, yr2: vixData.yr2,
+      yr1: vixData.yr1, mo6: vixData.mo6, mo3: vixData.mo3, mo1: vixData.mo1
+    };
+  }
+  if (tnxData) {
+    state.prices['__TNX__'] = {
+      price: tnxData.price, ath: tnxData.ath, yr5: tnxData.yr5, yr2: tnxData.yr2,
+      yr1: tnxData.yr1, mo6: tnxData.mo6, mo3: tnxData.mo3, mo1: tnxData.mo1
+    };
+  }
+  if (oilData) {
+    state.prices['__OIL__'] = {
+      price: oilData.price, ath: oilData.ath, yr5: oilData.yr5, yr2: oilData.yr2,
+      yr1: oilData.yr1, mo6: oilData.mo6, mo3: oilData.mo3, mo1: oilData.mo1
+    };
+  }
+
+  state.lastRefresh = new Date().toISOString();
+  save();
+  setRefreshStatus('ok');
+  renderAll();
+  renderHeaderTicker();
+  showAlert('Prices refreshed', 'success');
+}
+
+function setRefreshStatus(s) {
+  const el = document.getElementById('refreshStatus');
+  if (s === 'loading') {
+    el.innerHTML = '<span class="refresh-dot" style="background:var(--cyan);animation:pulse 1s infinite"></span>fetching...';
+  } else if (s === 'ok') {
+    const t = state.lastRefresh ? new Date(state.lastRefresh).toLocaleTimeString() : '—';
+    el.innerHTML = `<span class="refresh-dot dot-live"></span>${t}`;
+  } else {
+    el.innerHTML = '<span class="refresh-dot dot-error"></span>error';
+  }
+}
+
+function parseManualHighs(str) {
+  if (!str) return {};
+  const parts = str.split(',').map(s => parseFloat(s.trim()));
+  const keys = ['ath','yr5','yr2','yr1','mo6','mo3'];
+  const out = {};
+  keys.forEach((k, i) => { if (parts[i] && !isNaN(parts[i])) out[k] = parts[i]; });
+  return out;
+}
+
+// ═══════════════════════════════════════════
+// ENTRY PARSING
+// ═══════════════════════════════════════════
+
+function parseEntries(str) {
+  if (!str) return [];
+  return str.split(',').map(s => {
+    s = s.trim();
+    // supports: price[xshares]  OR  YYYY-MM-DD:price[xshares]
+    const m = s.match(/^(?:(\d{4}-\d{2}-\d{2}):)?([\d.]+)(?:x(\d+))?$/i);
+    if (!m) return null;
+    return { date: m[1] || null, price: parseFloat(m[2]), shares: parseInt(m[3] || '1') };
+  }).filter(Boolean);
+}
+
+function avgCost(entries) {
+  if (!entries.length) return null;
+  const totalShares = entries.reduce((a, e) => a + e.shares, 0);
+  const totalCost = entries.reduce((a, e) => a + e.price * e.shares, 0);
+  return totalShares > 0 ? totalCost / totalShares : null;
+}
+
+function totalCost(entries) {
+  return entries.reduce((a, e) => a + e.price * e.shares, 0);
+}
+
+function totalShares(entries) {
+  return entries.reduce((a, e) => a + e.shares, 0);
+}
+
+// ═══════════════════════════════════════════
+// VS S&P HELPERS
+// ═══════════════════════════════════════════
+
+function gradeColor(val) {
+  if (val === null) return 'var(--muted)';
+  if (val >=  50) return '#00cc55';
+  if (val >=  25) return '#00e5a0';
+  if (val >=  10) return '#40c878';
+  if (val >=   0) return '#80b090';
+  if (val >= -10) return '#ff8899';
+  if (val >= -25) return '#ff4455';
+  if (val >= -50) return '#cc1122';
+  return '#880011';
+}
+
+function spyPriceOnDate(dateStr) {
+  const history = state.prices['__SPY__']?.history;
+  if (!history || !dateStr) return null;
+  if (history[dateStr]) return history[dateStr];
+  // fall back up to 5 days earlier (weekends/holidays)
+  const d = new Date(dateStr + 'T12:00:00Z');
+  for (let i = 1; i <= 5; i++) {
+    d.setUTCDate(d.getUTCDate() - 1);
+    const key = d.toISOString().split('T')[0];
+    if (history[key]) return history[key];
+  }
+  return null;
+}
+
+function calcSpRel(entries, price, p, exits = []) {
+  const spyCurrent = state.prices['__SPY__']?.price;
+  const datedEntries = entries.filter(e => e.date);
+  const datedExits = exits.filter(e => e.date);
+
+  if ((datedEntries.length > 0 || datedExits.length > 0) && spyCurrent) {
+    let totalBuyDollars = 0;
+    let spyBuyShares = 0;
+    let actualBuyShares = 0;
+
+    datedEntries.forEach(e => {
+      const spyOnDate = spyPriceOnDate(e.date);
+      if (spyOnDate) {
+        const dollars = e.price * e.shares;
+        totalBuyDollars += dollars;
+        spyBuyShares += dollars / spyOnDate;
+        actualBuyShares += e.shares;
+      }
+    });
+
+    let totalSellDollars = 0;
+    let spySellShares = 0;
+    let actualSellShares = 0;
+
+    datedExits.forEach(e => {
+      const spyOnDate = spyPriceOnDate(e.date);
+      if (spyOnDate) {
+        const dollars = e.price * e.shares;
+        totalSellDollars += dollars;
+        spySellShares += dollars / spyOnDate;
+        actualSellShares += e.shares;
+      }
+    });
+
+    if (totalBuyDollars > 0) {
+      const remainingActualShares = Math.max(0, actualBuyShares - actualSellShares);
+      const remainingSpyShares = Math.max(0, spyBuyShares - spySellShares);
+      // realized cash is identical for both sides, so it cancels in the delta
+      const actualTotalValue = totalSellDollars + remainingActualShares * (price || 0);
+      const spyTotalValue    = totalSellDollars + remainingSpyShares * spyCurrent;
+      const actualReturn = (actualTotalValue - totalBuyDollars) / totalBuyDollars * 100;
+      const spyReturn    = (spyTotalValue    - totalBuyDollars) / totalBuyDollars * 100;
+      return actualReturn - spyReturn;
+    }
+  }
+
+  // fallback: pnlPct vs spy 1yr
+  const avg = avgCost(entries);
+  const pnlPct = (price && avg) ? ((price - avg) / avg) * 100 : null;
+  if (pnlPct !== null && p.spChg !== undefined) return pnlPct - p.spChg;
+  return null;
+}
+
+// ═══════════════════════════════════════════
+// RENDER DASHBOARD
+// ═══════════════════════════════════════════
+
+function renderDashboard() {
+  const tbody = document.getElementById('posTableBody');
+  const noData = document.getElementById('noData');
+
+  const showExited = document.getElementById('showExited')?.checked ?? false;
+
+  const isExited = (pos) => {
+    const buyShares = parseEntries(pos.entries).reduce((a, e) => a + e.shares, 0);
+    const sellShares = parseEntries(pos.exits).reduce((a, e) => a + e.shares, 0);
+    return buyShares > 0 && sellShares >= buyShares;
+  };
+
+  let positions = state.positions.filter(pos => showExited || !isExited(pos));
+
+  // sort
+  positions.sort((a, b) => {
+    const av = getSortVal(a), bv = getSortVal(b);
+    if (av === null) return 1;
+    if (bv === null) return -1;
+    return (av < bv ? -1 : av > bv ? 1 : 0) * state.sortDir;
+  });
+
+  if (!positions.length) { tbody.innerHTML = ''; noData.style.display = 'block'; return; }
+  noData.style.display = 'none';
+
+  // pinned SPY row
+  const spyP = state.prices['__SPY__'] || {};
+  const spyPrice = spyP.price;
+  const spyDecBar = (high) => {
+    if (!spyPrice || !high) return '<span style="color:var(--muted)">—</span>';
+    const val = ((spyPrice - high) / high) * 100;
+    const pct = Math.min(Math.abs(val), 60);
+    const color = gradeColor(val);
+    return `<div class="decline-bar-wrap">
+      <span style="color:${color};width:52px;display:inline-block;font-size:11px">${fmt1(val)}%</span>
+      <div class="decline-bar-bg"><div class="decline-bar-fill" style="width:${pct/60*100}%;background:${color}"></div></div>
+    </div>`;
+  };
+  const spyRow = `<tr style="background:var(--bg2);border-bottom:1px solid var(--border2)">
+    <td><span class="ticker" style="color:var(--amber)">SPY</span></td>
+    <td class="price">${spyPrice ? '$'+fmt2(spyPrice) : '<span style="color:var(--muted)">—</span>'}</td>
+    <td><span style="color:var(--dim)">—</span></td>
+    <td><span style="color:var(--dim)">—</span></td>
+    <td><span style="color:var(--dim)">—</span></td>
+    <td>${spyDecBar(spyP.ath)}</td>
+    <td>${spyDecBar(spyP.yr1)}</td>
+    <td>${spyDecBar(spyP.mo6)}</td>
+    <td>${spyDecBar(spyP.mo3)}</td>
+    <td>${spyDecBar(spyP.mo1)}</td>
+    <td><span style="color:var(--dim)">—</span></td>
+    <td><span style="color:var(--dim)">—</span></td>
+    <td><span style="color:var(--dim)">—</span></td>
+  </tr>`;
+
+  const pinnedRow = (label, color, pData, invert = false) => {
+    const px = pData.price;
+    const decBar = (high, rangeLabel) => {
+      if (!px || !high) return '<span style="color:var(--muted)">—</span>';
+      const val = ((px - high) / high) * 100;
+      if (Math.abs(val) <= 0.1) return `<span style="color:#ffe066;font-size:10px;font-weight:600;letter-spacing:0.03em">[${rangeLabel} PEAK]</span>`;
+      const pct = Math.min(Math.abs(val), 60);
+      const c = gradeColor(invert ? -val : val);
+      return `<div class="decline-bar-wrap">
+        <span style="color:${c};width:52px;display:inline-block;font-size:11px">${fmt1(val)}%</span>
+        <div class="decline-bar-bg"><div class="decline-bar-fill" style="width:${pct/60*100}%;background:${c}"></div></div>
+      </div>`;
+    };
+    return `<tr style="background:var(--bg2);border-bottom:1px solid var(--border2)">
+      <td><span class="ticker" style="color:${color}">${label}</span></td>
+      <td class="price">${px ? fmt2(px) : '<span style="color:var(--muted)">—</span>'}</td>
+      <td><span style="color:var(--dim)">—</span></td>
+      <td><span style="color:var(--dim)">—</span></td>
+      <td><span style="color:var(--dim)">—</span></td>
+      <td>${decBar(pData.ath, 'ATH')}</td>
+      <td>${decBar(pData.yr1, '1YR')}</td>
+      <td>${decBar(pData.mo6, '6MO')}</td>
+      <td>${decBar(pData.mo3, '3MO')}</td>
+      <td>${decBar(pData.mo1, '1MO')}</td>
+      <td><span style="color:var(--dim)">—</span></td>
+      <td><span style="color:var(--dim)">—</span></td>
+      <td><span style="color:var(--dim)">—</span></td>
+    </tr>`;
+  };
+
+  const vixRow  = pinnedRow('VIX',  'var(--red)',   state.prices['__VIX__'] || {}, true);
+  const tnxRow  = pinnedRow('TNX',  'var(--blue)',  state.prices['__TNX__'] || {});
+  const oilRow  = pinnedRow('OIL',  'var(--amber)', state.prices['__OIL__'] || {});
+
+  tbody.innerHTML = spyRow + vixRow + tnxRow + oilRow + positions.map(pos => {
+    const p = state.prices[pos.ticker] || {};
+    const price = pos.manualPrice || p.price;
+    const entries = parseEntries(pos.entries);
+    const exits = parseEntries(pos.exits);
+    const avg = avgCost(entries);
+    const pnlPct = (price && avg) ? ((price - avg) / avg) * 100 : null;
+
+    // declines from windows
+    const decATH = (price && p.ath) ? ((price - p.ath) / p.ath) * 100 : null;
+    const dec1yr = (price && p.yr1) ? ((price - p.yr1) / p.yr1) * 100 : null;
+    const dec6mo = (price && p.mo6) ? ((price - p.mo6) / p.mo6) * 100 : null;
+    const dec3mo = (price && p.mo3) ? ((price - p.mo3) / p.mo3) * 100 : null;
+    const dec1mo = (price && p.mo1) ? ((price - p.mo1) / p.mo1) * 100 : null;
+    const dec1wk = (price && p.wk1) ? ((price - p.wk1) / p.wk1) * 100 : null;
+
+    const spRel = calcSpRel(entries, price, p, exits);
+
+    const catClass = { long: 'cat-long', spec: 'cat-spec', watch: 'cat-watch', exit: 'cat-exit', closed: 'cat-closed', unsure: 'cat-unsure', bullish: 'cat-bullish' }[pos.category] || 'cat-watch';
+    const catLabel = { long: 'Long', spec: 'Spec', watch: 'Watch', exit: 'Exit', closed: 'Closed', unsure: 'Unsure?', bullish: 'Bullish' }[pos.category] || pos.category;
+
+    const decBar = (val, rangeLabel) => {
+      if (val === null) return '<span style="color:var(--muted)">—</span>';
+      if (Math.abs(val) <= 0.1) return `<span style="color:#ffe066;font-size:10px;font-weight:600;letter-spacing:0.03em">[${rangeLabel} PEAK]</span>`;
+      const pct = Math.min(Math.abs(val), 60);
+      const color = gradeColor(val);
+      return `<div class="decline-bar-wrap">
+        <span style="color:${color};width:52px;display:inline-block;font-size:11px">${fmt1(val)}%</span>
+        <div class="decline-bar-bg"><div class="decline-bar-fill" style="width:${pct/60*100}%;background:${color}"></div></div>
+      </div>`;
+    };
+
+    const entriesShort = entries.slice(0,3).map(e =>
+      `<span class="entry-chip">${e.date ? '<span style="opacity:0.6">'+e.date.slice(5)+'</span> ' : ''}${e.price}${e.shares>1?'×'+e.shares:''}</span>`
+    ).join('') + (entries.length > 3 ? `<span style="font-size:9px;color:var(--muted)">+${entries.length-3}</span>` : '');
+
+    const ruleShort = pos.rule ? pos.rule.substring(0, 50) + (pos.rule.length > 50 ? '…' : '') : '<span style="color:var(--dim)">—</span>';
+
+    const exited = isExited(pos);
+    return `<tr onclick="selectPosition('${pos.id}')" id="row-${pos.id}" ${exited ? 'style="opacity:0.55"' : ''}>
+      <td><span class="ticker" ${exited ? 'style="color:var(--muted)"' : ''}>${pos.ticker}</span></td>
+      <td class="price">${price ? '$'+fmt2(price) : '<span style="color:var(--muted)">—</span>'}</td>
+      <td>${avg ? '<span style="color:var(--muted)">$'+fmt2(avg)+'</span>' : '<span style="color:var(--dim)">—</span>'}</td>
+      <td>${pnlPct !== null ? `<span style="color:${gradeColor(pnlPct)};font-weight:500">${pnlPct >= 0 ? '+' : ''}${fmt1(pnlPct)}%</span>` : '<span style="color:var(--dim)">—</span>'}</td>
+      <td class="sp-rel">${spRel !== null ? `<span style="color:${gradeColor(spRel)}">${spRel >= 0 ? '+' : ''}${fmt1(spRel)}%</span><span style="color:var(--dim)"> vs SPY</span>` : '<span style="color:var(--dim)">—</span>'}</td>
+      <td>${decBar(decATH, 'ATH')}</td>
+      <td>${decBar(dec1yr, '1YR')}</td>
+      <td>${decBar(dec6mo, '6MO')}</td>
+      <td>${decBar(dec3mo, '3MO')}</td>
+      <td>${decBar(dec1mo, '1MO')}</td>
+      <td>${decBar(dec1wk, '1WK')}</td>
+      <td><span class="cat-badge ${catClass}" title="${pos.thesis ? pos.thesis.replace(/"/g,'&quot;') : ''}" style="cursor:${pos.thesis ? 'help' : 'default'}">${catLabel}</span></td>
+      <td><div class="entry-chips" style="flex-wrap:nowrap">${entriesShort || '<span style="color:var(--dim)">—</span>'}</div></td>
+      <td style="max-width:180px;overflow:hidden;color:var(--muted);font-size:10px">${ruleShort}</td>
+    </tr>`;
+  }).join('');
+}
+
+function getSortVal(pos) {
+  const p = state.prices[pos.ticker] || {};
+  const price = pos.manualPrice || p.price;
+  const entries = parseEntries(pos.entries);
+  const avg = avgCost(entries);
+  switch(state.sortCol) {
+    case 'ticker': return pos.ticker;
+    case 'price': return price || 0;
+    case 'cost': return avg || 0;
+    case 'pnl': return (price && avg) ? ((price - avg) / avg) * 100 : -999;
+    case 'ath_pct': return (price && p.ath) ? ((price - p.ath) / p.ath) * 100 : 0;
+    case 'yr1_pct': return (price && p.yr1) ? ((price - p.yr1) / p.yr1) * 100 : 0;
+    case 'mo6_pct': return (price && p.mo6) ? ((price - p.mo6) / p.mo6) * 100 : 0;
+    case 'mo3_pct': return (price && p.mo3) ? ((price - p.mo3) / p.mo3) * 100 : 0;
+    case 'mo1_pct': return (price && p.mo1) ? ((price - p.mo1) / p.mo1) * 100 : 0;
+    case 'wk1_pct': return (price && p.wk1) ? ((price - p.wk1) / p.wk1) * 100 : 0;
+    case 'sp_rel': return calcSpRel(parseEntries(pos.entries), price, p, parseEntries(pos.exits)) ?? -999;
+    case 'category': return pos.category || '';
+    default: return 0;
+  }
+}
+
+function sortBy(col) {
+  if (state.sortCol === col) state.sortDir *= -1;
+  else { state.sortCol = col; state.sortDir = 1; }
+  document.querySelectorAll('thead th').forEach(th => {
+    th.classList.remove('sort-asc','sort-desc');
+  });
+  renderDashboard();
+}
+
+// ═══════════════════════════════════════════
+// DEEP DIVE
+// ═══════════════════════════════════════════
+
+function buildChart(pos, price, entries, exits, range = '1Y') {
+  const history = state.prices[pos.ticker]?.raw?.history;
+
+  const trades = [
+    ...entries.filter(e=>e.date).map(e=>({date:e.date,type:'buy',price:e.price,shares:e.shares})),
+    ...exits.filter(e=>e.date).map(e=>({date:e.date,type:'sell',price:e.price,shares:e.shares}))
+  ].sort((a,b) => a.date < b.date ? -1 : 1);
+
+  const today = new Date().toISOString().split('T')[0];
+  const cutoff = new Date();
+  const monthsBack = { '1Y': 12, '6M': 6, '3M': 3, '1M': 1 }[range] ?? 12;
+  cutoff.setMonth(cutoff.getMonth() - monthsBack);
+  const cutoffStr = cutoff.toISOString().split('T')[0];
+  // for 1Y, extend axis back to oldest trade if it predates the cutoff
+  const rangeStart = (range === '1Y' && trades.length && trades[0].date < cutoffStr) ? trades[0].date : cutoffStr;
+
+  if (!history) return '<div style="color:var(--muted);font-size:10px;padding:10px 0;text-align:center">Refresh prices to see chart</div>';
+
+  const pts = Object.entries(history)
+    .filter(([d]) => d >= rangeStart && d <= today)
+    .sort(([a],[b]) => a < b ? -1 : 1);
+  if (pts.length < 2) return '';
+
+  const W = 700, CHART_H = 200, TL_H = 32, H = CHART_H + TL_H;
+  const PX = 8, PT = 10, PB = 10;
+
+  const visibleTrades = trades.filter(e => e.date >= rangeStart);
+  const tradePrices = visibleTrades.map(e => e.price);
+  const priceVals = pts.map(([,v]) => v);
+  const minP = Math.min(...priceVals, ...tradePrices);
+  const maxP = Math.max(...priceVals, ...tradePrices);
+  const pRange = maxP - minP || 1;
+
+  const t0 = new Date(rangeStart+'T12:00:00Z').getTime();
+  const t1 = new Date(today+'T12:00:00Z').getTime();
+  const tRange = t1 - t0 || 1;
+
+  const xOf = d => ((new Date(d+'T12:00:00Z').getTime() - t0) / tRange * (W - 2*PX) + PX).toFixed(1);
+  const yOf = v => (PT + (1 - (v - minP) / pRange) * (CHART_H - PT - PB)).toFixed(1);
+
+  const polyline = pts.map(([d,v]) => `${xOf(d)},${yOf(v)}`).join(' ');
+  const avg = avgCost(entries);
+  const lineColor = '#5b8db8'; // neutral blue — not profit/loss coded
+
+  const avgLine = avg && avg >= minP && avg <= maxP
+    ? `<line x1="${PX}" y1="${yOf(avg)}" x2="${W-PX}" y2="${yOf(avg)}" stroke="#4a6070" stroke-width="1" stroke-dasharray="4,3"/>`
+    : '';
+
+  // buy = amber; sell = green if profit, red if loss
+  const tradeColor = e => {
+    if (e.type === 'buy') return '#f0a040';
+    return avg ? (e.price >= avg ? '#00cc55' : '#ff4455') : '#ff4455';
+  };
+
+  // dots at actual buy/sell price on the Y axis
+  const lineDots = visibleTrades.map(e => {
+    const color = tradeColor(e);
+    return `<circle cx="${xOf(e.date)}" cy="${yOf(e.price)}" r="4" fill="${color}" stroke="#080c10" stroke-width="1.5"><title>${e.type==='buy'?'Buy':'Sell'} $${e.price}×${e.shares} on ${e.date}</title></circle>`;
+  }).join('');
+
+  // timeline row below axis
+  const axisY = CHART_H + 2;
+  const dotY = CHART_H + 14;
+  const tlDots = visibleTrades.map(e => {
+    const x = xOf(e.date);
+    const color = tradeColor(e);
+    return `<line x1="${x}" y1="${axisY+1}" x2="${x}" y2="${dotY-4}" stroke="${color}" stroke-width="0.75" opacity="0.4"/>
+      <circle cx="${x}" cy="${dotY}" r="3" fill="${color}" stroke="#080c10" stroke-width="1"><title>${e.type==='buy'?'Buy':'Sell'} $${e.price}×${e.shares} on ${e.date}</title></circle>
+      <text x="${x}" y="${dotY+10}" text-anchor="middle" font-size="5.5" fill="${color}" opacity="0.85">${e.date.slice(5)}</text>`;
+  }).join('');
+
+  return `<svg viewBox="0 0 ${W} ${H}" style="width:100%;height:auto;display:block">
+    <rect width="${W}" height="${H}" fill="#080c10" rx="3"/>
+    ${avgLine}
+    <polyline points="${polyline}" fill="none" stroke="${lineColor}" stroke-width="1.5"/>
+    ${lineDots}
+    <line x1="${PX}" y1="${axisY}" x2="${W-PX}" y2="${axisY}" stroke="#1e3040" stroke-width="0.75"/>
+    ${tlDots}
+    <text x="${PX}" y="${axisY+7}" font-size="5.5" fill="#3a5060">${rangeStart.slice(0,7)}</text>
+    <text x="${W-PX}" y="${axisY+7}" font-size="5.5" fill="#3a5060" text-anchor="end">${today.slice(0,7)}</text>
+  </svg>`;
+}
+
+function renderDeepDive(ticker) {
+  const sel = document.getElementById('deepDiveSelect');
+  // populate select
+  sel.innerHTML = '<option value="">— Select ticker —</option>' +
+    [...state.positions].sort((a,b) => a.ticker.localeCompare(b.ticker))
+      .map(p => `<option value="${p.id}" ${(ticker && p.ticker === ticker) || sel.value === p.id ? 'selected' : ''}>${p.ticker}</option>`).join('');
+
+  const id = ticker
+    ? (state.positions.find(p => p.ticker === ticker)?.id || sel.value)
+    : sel.value;
+
+  if (!id) { document.getElementById('ddCatBadge').innerHTML = ''; return; }
+  sel.value = id;
+
+  const pos = state.positions.find(p => p.id === id);
+  if (!pos) return;
+
+  const p = state.prices[pos.ticker] || {};
+  const price = pos.manualPrice || p.price;
+  const entries = parseEntries(pos.entries);
+  const exits = parseEntries(pos.exits);
+  const avg = avgCost(entries);
+  const pnlPct = (price && avg) ? ((price - avg) / avg) * 100 : null;
+  const pnlDollar = (price && avg) ? (price - avg) * totalShares(entries) : null;
+
+  const windows = [
+    { label: 'ATH', key: 'ath' }, { label: '5yr High', key: 'yr5' },
+    { label: '2yr High', key: 'yr2' }, { label: '1yr High', key: 'yr1' },
+    { label: '6mo High', key: 'mo6' }, { label: '3mo High', key: 'mo3' },
+    { label: '1mo High', key: 'mo1' }
+  ];
+
+  const windowCells = windows.map(w => {
+    const high = p[w.key];
+    const chg = (price && high) ? ((price - high) / high) * 100 : null;
+    return `<div class="window-cell">
+      <div class="window-label">${w.label}</div>
+      <div class="window-val">${high ? '$'+fmt2(high) : '<span style="color:var(--dim)">—</span>'}</div>
+      <div class="window-chg ${chg !== null ? (chg >= 0 ? 'up' : 'down') : 'neutral'}">
+        ${chg !== null ? (chg >= 0 ? '+' : '')+fmt1(chg)+'%' : ''}
+      </div>
+    </div>`;
+  }).join('');
+
+  const sortByDate = arr => [...arr].sort((a,b) => {
+    if (!a.date && !b.date) return 0;
+    if (!a.date) return 1;
+    if (!b.date) return -1;
+    return a.date < b.date ? -1 : 1;
+  });
+  const tradeChips = [
+    ...sortByDate(entries).map(e => ({ ...e, type: 'buy' })),
+    ...sortByDate(exits).map(e => ({ ...e, type: 'sell' }))
+  ].sort((a,b) => {
+    if (!a.date && !b.date) return 0;
+    if (!a.date) return 1;
+    if (!b.date) return -1;
+    return a.date < b.date ? -1 : 1;
+  }).map(e => {
+    const isBuy = e.type === 'buy';
+    const sellColor = avg ? (e.price >= avg ? '#00cc55' : '#ff4455') : '#ff4455';
+    const bg = isBuy ? 'rgba(240,160,64,0.12)' : (avg && e.price >= avg ? 'rgba(0,204,85,0.1)' : 'rgba(255,68,85,0.08)');
+    const border = isBuy ? '#a06820' : (avg && e.price >= avg ? '#007a40' : 'var(--red2)');
+    const color = isBuy ? '#f0a040' : sellColor;
+    const label = isBuy ? 'B' : 'S';
+    return `<span style="font-size:10px;padding:2px 7px;border-radius:2px;background:${bg};border:1px solid ${border};color:${color};display:inline-flex;gap:4px;align-items:center">
+      <span style="font-size:8px;font-weight:700;opacity:0.7">${label}</span>${e.date ? '<span style="opacity:0.55;font-size:9px">'+e.date+'</span>' : ''}$${e.price}${e.shares > 1 ? '<span style="opacity:0.7"> ×'+e.shares+'</span>' : ''}
+    </span>`;
+  }).join('');
+
+  // Supplemental analysis
+  const analyses = [];
+
+  if (pnlPct !== null) {
+    if (pnlPct < -20) analyses.push({ type: 'warn', text: `Down ${fmt1(Math.abs(pnlPct))}% from average cost. Approaching significant loss territory — verify thesis is intact before averaging down.` });
+    else if (pnlPct < -10) analyses.push({ type: 'info', text: `Down ${fmt1(Math.abs(pnlPct))}% from average cost. Run the "would I buy today at this price?" test before adding.` });
+    else if (pnlPct > 30) analyses.push({ type: 'ok', text: `Up ${fmt1(pnlPct)}% — consider whether partial profit-taking aligns with your rule.` });
+  }
+
+  if (p.ath && price) {
+    const fromATH = ((price - p.ath) / p.ath) * 100;
+    if (fromATH < -30) analyses.push({ type: 'opportunity', text: `${fmt1(Math.abs(fromATH))}% below ATH — deep discount vs history. High risk/reward if thesis intact.` });
+    else if (fromATH < -15) analyses.push({ type: 'info', text: `${fmt1(Math.abs(fromATH))}% below ATH — in correction territory, may represent value if fundamentals unchanged.` });
+  }
+
+  if (p.yr1 && p.mo3 && price) {
+    const trend1yr = ((price - p.yr1) / p.yr1) * 100;
+    const trend3mo = ((price - p.mo3) / p.mo3) * 100;
+    if (trend3mo > 0 && trend1yr < 0) analyses.push({ type: 'ok', text: 'Price recovering over 3mo despite being below 1yr high — possible trend reversal forming.' });
+    if (trend3mo < -10 && trend1yr < -10) analyses.push({ type: 'warn', text: 'Declining across both 3mo and 1yr windows — downtrend in place, check catalyst.' });
+  }
+
+  const analysisHtml = analyses.length ? analyses.map(a => {
+    const colors = { warn: 'var(--amber)', info: 'var(--blue)', ok: 'var(--green)', opportunity: 'var(--cyan)' };
+    return `<div style="padding:8px 10px;margin-bottom:6px;background:var(--bg2);border-left:3px solid ${colors[a.type]};border-radius:2px;font-size:10px;line-height:1.6;color:var(--text)">${a.text}</div>`;
+  }).join('') : '<div style="color:var(--muted);font-size:10px;padding:8px">No alerts — position looks stable.</div>';
+
+  const ddCatClass = { long: 'cat-long', spec: 'cat-spec', watch: 'cat-watch', exit: 'cat-exit', closed: 'cat-closed', unsure: 'cat-unsure', bullish: 'cat-bullish' }[pos.category] || 'cat-watch';
+  const ddCatLabel = { long: 'Long', spec: 'Spec', watch: 'Watch', exit: 'Exit', closed: 'Closed', unsure: 'Unsure?', bullish: 'Bullish' }[pos.category] || pos.category;
+  const thesisTip = pos.thesis ? pos.thesis.replace(/"/g, '&quot;') : '';
+
+  // Realized / unrealized split via FIFO
+  const { realizedPnl, activeCostBasis, activeShares } = fifoCalc(entries, exits);
+  const unrealizedDollar = (price && activeShares) ? (price - activeCostBasis / activeShares) * activeShares : null;
+  const unrealizedPct = (price && activeCostBasis && activeShares) ? ((price * activeShares - activeCostBasis) / activeCostBasis) * 100 : null;
+
+  // vs S&P
+  const spRel = calcSpRel(entries, price, p, exits);
+
+  // Days held (first buy date → today or last sell date)
+  const datedBuys = entries.filter(e => e.date).sort((a,b) => a.date < b.date ? -1 : 1);
+  let daysHeld = null;
+  if (datedBuys.length) {
+    const firstBuy = new Date(datedBuys[0].date + 'T12:00:00Z');
+    const datedSells = exits.filter(e => e.date).sort((a,b) => a.date < b.date ? -1 : 1);
+    const totalBuyShares = entries.reduce((s,e) => s + e.shares, 0);
+    const totalSellShares = exits.reduce((s,e) => s + e.shares, 0);
+    const fullyExited = totalSellShares >= totalBuyShares;
+    const endDate = (fullyExited && datedSells.length) ? new Date(datedSells[datedSells.length-1].date + 'T12:00:00Z') : new Date();
+    daysHeld = Math.round((endDate - firstBuy) / 86400000);
+  }
+
+  const chartHtml = buildChart(pos, price, entries, exits, ddChartRange);
+
+  document.getElementById('ddCatBadge').innerHTML = `<span class="cat-badge ${ddCatClass}" title="${thesisTip}" style="cursor:${thesisTip ? 'help' : 'default'}">${ddCatLabel}</span>`;
+
+  document.getElementById('deepDiveContent').innerHTML = `
+    <div style="display:grid;grid-template-columns:repeat(8,1fr);gap:6px;margin-bottom:14px">
+      <div class="summary-card" style="padding:7px 8px">
+        <div class="summary-card-label">Shares (active)</div>
+        <div class="summary-card-val" style="font-size:13px">${activeShares > 0 ? activeShares : '—'}</div>
+      </div>
+      <div class="summary-card" style="padding:7px 8px">
+        <div class="summary-card-label">Avg Cost</div>
+        <div class="summary-card-val" style="font-size:13px">${avg ? '$'+fmt2(avg) : '—'}</div>
+      </div>
+      <div class="summary-card" style="padding:7px 8px">
+        <div class="summary-card-label">Days Held</div>
+        <div class="summary-card-val" style="font-size:13px">${daysHeld !== null ? daysHeld+'d' : '—'}</div>
+      </div>
+      <div class="summary-card" style="padding:7px 8px">
+        <div class="summary-card-label">Price</div>
+        <div class="summary-card-val" style="font-size:13px">${price ? '$'+fmt2(price) : '—'}</div>
+      </div>
+      <div class="summary-card" style="padding:7px 8px">
+        <div class="summary-card-label">Unrealized %</div>
+        <div class="summary-card-val" style="font-size:13px;color:${unrealizedPct !== null ? gradeColor(unrealizedPct) : 'var(--muted)'}">${unrealizedPct !== null ? (unrealizedPct >= 0 ? '+' : '')+fmt1(unrealizedPct)+'%' : '—'}</div>
+      </div>
+      <div class="summary-card" style="padding:7px 8px">
+        <div class="summary-card-label">Unrealized $</div>
+        <div class="summary-card-val" style="font-size:13px;color:${unrealizedDollar !== null ? gradeColor(unrealizedDollar / (activeCostBasis || 1) * 100) : 'var(--muted)'}">${unrealizedDollar !== null ? (unrealizedDollar >= 0 ? '+' : '')+'$'+fmt2(Math.abs(unrealizedDollar)) : '—'}</div>
+      </div>
+      <div class="summary-card" style="padding:7px 8px">
+        <div class="summary-card-label">Realized P&L</div>
+        <div class="summary-card-val" style="font-size:13px;color:${realizedPnl !== 0 ? gradeColor(realizedPnl > 0 ? 25 : -25) : 'var(--muted)'}">${exits.length ? (realizedPnl >= 0 ? '+' : '')+'$'+fmt2(Math.abs(realizedPnl)) : '—'}</div>
+      </div>
+      <div class="summary-card" style="padding:7px 8px">
+        <div class="summary-card-label">vs S&P</div>
+        <div class="summary-card-val" style="font-size:13px;color:${spRel !== null ? gradeColor(spRel) : 'var(--muted)'}">${spRel !== null ? (spRel >= 0 ? '+' : '')+fmt1(spRel)+'%' : '—'}</div>
+      </div>
+    </div>
+
+    ${chartHtml ? `<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
+      <div class="section-label" style="margin:0">Price &amp; Trades</div>
+      <div style="display:flex;gap:3px">
+        ${['1Y','6M','3M','1M'].map(r => `<button onclick="ddChartRange='${r}';renderDeepDive()" style="font-size:9px;padding:2px 7px;border-radius:3px;border:1px solid ${ddChartRange===r?'var(--blue)':'var(--border2)'};background:${ddChartRange===r?'var(--blue)':'transparent'};color:${ddChartRange===r?'#fff':'var(--muted)'};cursor:pointer;font-family:inherit">${r}</button>`).join('')}
+      </div>
+    </div>
+    <div style="margin-bottom:14px;border-radius:4px;overflow:hidden">${chartHtml}</div>` : ''}
+
+    <div class="section-label">Entry / Exit Points</div>
+    <div class="entry-chips">${tradeChips || '<span style="color:var(--muted)">None recorded</span>'}</div>
+    ${(entries.length || exits.length) ? `<div style="font-size:10px;color:var(--muted);margin-top:6px">${totalShares(entries)} bought${activeShares > 0 ? ' · '+activeShares+' active' : ''}${exits.length ? ' · '+totalShares(exits)+' sold' : ''}${exits.length ? ' · $'+fmt2(totalCost(exits))+' returned' : ''} · $${fmt2(totalCost(entries))} deployed</div>` : ''}
+
+    <div class="section-label">High-Water Marks</div>
+    <div class="windows-grid" style="grid-template-columns:repeat(${windows.length},1fr)">${windowCells}</div>
+
+    <div class="section-label">Thesis</div>
+    <div class="thesis-block">${pos.thesis || '<span style="color:var(--muted)">No thesis recorded.</span>'}</div>
+
+    <div class="section-label">Rule / Trigger Criteria</div>
+    <div class="rule-block">${pos.rule || '<span style="color:var(--muted)">No rule defined.</span>'}</div>
+
+    <div class="section-label">Signal Analysis</div>
+    ${analysisHtml}
+
+    ${pos.notes ? `<div class="section-label">Notes</div><div style="font-size:11px;color:var(--muted);padding:8px;background:var(--bg2);border-radius:3px;border:1px solid var(--border)">${pos.notes}</div>` : ''}
+
+    <div style="margin-top:16px;display:flex;gap:8px">
+      <button class="btn btn-amber" onclick="openEditModal('${pos.id}')">Edit Position</button>
+    </div>
+  `;
+}
+
+// ═══════════════════════════════════════════
+// DRY POWDER VIEW
+// ═══════════════════════════════════════════
+
+function _powderSPY() {
+  const spATH     = powderConfig.spATH     || state.prices['__SPY__']?.ath   || null;
+  const spCurrent = powderConfig.spCurrent || state.prices['__SPY__']?.price || null;
+  return { spATH, spCurrent };
+}
+
+// Re-renders only the results section (stats + tier status display).
+// Safe to call from oninput — never touches the config input rows.
+function renderPowderResults() {
+  const { spATH, spCurrent } = _powderSPY();
+  const currentDrop = (spATH && spCurrent) ? ((spATH - spCurrent) / spATH) * 100 : null;
+
+  // Auto-calculate invested from active cost basis across all positions
+  let portfolioCostBasis = 0;
+  state.positions.forEach(pos => {
+    const { activeCostBasis } = fifoCalc(parseEntries(pos.entries), parseEntries(pos.exits));
+    portfolioCostBasis += activeCostBasis;
+  });
+  const invested = portfolioCostBasis;
+  const ceiling  = powderConfig.ceiling;
+  const headroom = (ceiling != null) ? ceiling - invested : null;
+
+  // Triggered tier totals — exclude external-account tiers
+  let triggeredAmt = 0, triggeredUndeployed = 0;
+  powderConfig.tiers.forEach(t => {
+    const triggered = currentDrop !== null && currentDrop >= t.dropPct;
+    if (triggered && !t.external) {
+      triggeredAmt       += t.amount;
+      triggeredUndeployed += Math.max(0, t.amount - (t.deployed || 0));
+    }
+  });
+
+  document.getElementById('pwdCeiling').textContent   = ceiling != null ? '$' + Math.round(ceiling).toLocaleString() : '—';
+  document.getElementById('pwdInvested').textContent  = invested > 0 ? '$' + Math.round(invested).toLocaleString() : '—';
+  const hrEl = document.getElementById('pwdHeadroom');
+  if (headroom != null) {
+    hrEl.textContent = (headroom >= 0 ? '' : '−') + '$' + Math.round(Math.abs(headroom)).toLocaleString();
+    hrEl.style.color = headroom >= 0 ? 'var(--green)' : 'var(--red)';
+  } else {
+    hrEl.textContent = '—'; hrEl.style.color = 'var(--muted)';
+  }
+  document.getElementById('pwdTriggered').textContent = '$' + Math.round(triggeredAmt).toLocaleString();
+  document.getElementById('pwdRemaining').textContent = '$' + Math.round(triggeredUndeployed).toLocaleString();
+
+  // ── Trigger Status: sorted cards with ATH reference + current-level marker ──
+  const sortedTiers = [...powderConfig.tiers]
+    .map((t, i) => ({ ...t, origIdx: i }))
+    .sort((a, b) => a.dropPct - b.dropPct);
+
+  function tierCard(t, i, triggered, fullyDeployed) {
+    const triggerLevel = spATH ? spATH * (1 - t.dropPct / 100) : null;
+    const depPct = Math.min((t.deployed || 0) / (t.amount || 1) * 100, 100);
+    let statusText, statusColor;
+    if (fullyDeployed)      { statusText = 'DEPLOYED';     statusColor = 'var(--green)'; }
+    else if (triggered)     { statusText = '⚡ TRIGGERED'; statusColor = 'var(--amber)'; }
+    else                    { statusText = 'WAITING';      statusColor = 'var(--muted)'; }
+    return `<div class="powder-tier ${triggered && !fullyDeployed ? 'triggered' : ''} ${fullyDeployed ? 'deployed-full' : ''}">
+      <div class="powder-tier-label" style="color:var(--text);font-weight:500">${t.label}</div>
+      <div class="powder-tier-trigger">−${t.dropPct}% <span style="font-size:9px;color:var(--muted)">(${triggerLevel ? fmt0(triggerLevel) : '—'})</span></div>
+      <div class="powder-tier-amt">$${(t.amount||0).toLocaleString()}</div>
+      <div class="powder-tier-bar-wrap"><div class="powder-tier-bar" style="width:${depPct}%"></div></div>
+      <div>
+        <input type="number" value="${t.deployed||0}" min="0" max="${t.amount}"
+          onchange="updateTierDeployed(${i},+this.value)"
+          style="width:70px;font-size:10px;padding:3px 6px;text-align:right"
+          title="Deployed amount">
+      </div>
+      <div class="powder-tier-status" style="color:${statusColor}">${statusText}</div>
+    </div>`;
+  }
+
+  // ATH reference card (always first)
+  const athCard = `<div class="powder-tier" style="border-color:#2a4a3a;opacity:0.7">
+    <div class="powder-tier-label" style="color:var(--muted);font-style:italic">S&amp;P ATH</div>
+    <div class="powder-tier-trigger">0% <span style="font-size:9px;color:var(--muted)">(${spATH ? fmt0(spATH) : '—'})</span></div>
+    <div class="powder-tier-amt" style="color:var(--muted)">—</div>
+    <div class="powder-tier-bar-wrap"></div>
+    <div></div>
+    <div class="powder-tier-status" style="color:var(--muted)">PEAK</div>
+  </div>`;
+
+  // Current level marker card
+  const currentCard = currentDrop !== null ? `<div class="powder-tier" style="border-color:#1a4060;background:#060f18">
+    <div class="powder-tier-label" style="color:#4ab0ff;font-weight:600">▶ Current</div>
+    <div class="powder-tier-trigger" style="color:#4ab0ff">−${fmt1(Math.abs(currentDrop))}% <span style="font-size:9px;color:var(--muted)">(${spCurrent ? fmt0(spCurrent) : '—'})</span></div>
+    <div class="powder-tier-amt" style="color:var(--muted)">—</div>
+    <div class="powder-tier-bar-wrap"></div>
+    <div></div>
+    <div class="powder-tier-status" style="color:#4ab0ff">NOW</div>
+  </div>` : '';
+
+  // Build ordered list: ATH → tiers (sorted), inserting current marker at correct spot
+  let cards = athCard;
+  let currentInserted = currentDrop === null;
+  for (const t of sortedTiers) {
+    const triggered = currentDrop !== null && currentDrop >= t.dropPct;
+    const fullyDeployed = (t.deployed || 0) >= t.amount;
+    // Insert current marker just before the first tier NOT YET triggered
+    if (!currentInserted && !triggered) {
+      cards += currentCard;
+      currentInserted = true;
+    }
+    cards += tierCard(t, t.origIdx, triggered, fullyDeployed);
+  }
+  // If all tiers are triggered, append current marker at the end
+  if (!currentInserted) cards += currentCard;
+
+  document.getElementById('powderTierDisplay').innerHTML = cards;
+
+  // ── Notes strip from triggered tiers ──
+  const triggeredNotes = sortedTiers.filter(t =>
+    currentDrop !== null && currentDrop >= t.dropPct && t.note
+  );
+  document.getElementById('pwdTriggerNotes').innerHTML = triggeredNotes.length
+    ? `<div style="display:flex;flex-direction:column;gap:4px">` +
+      triggeredNotes.map(t => `<div style="display:flex;align-items:baseline;gap:10px;padding:6px 10px;background:rgba(240,160,48,0.08);border-left:2px solid var(--amber);border-radius:0 3px 3px 0;font-size:10px">
+        <span style="color:var(--amber);font-weight:600;white-space:nowrap">⚡ ${t.label}</span>
+        <span style="color:var(--text)">${t.note}</span>
+      </div>`).join('') + `</div>`
+    : '';
+}
+
+// Re-renders only the config input rows (label / drop% / amount / note).
+// Call when tiers are added or removed.
+function renderPowderConfig() {
+  document.getElementById('powderTiersConfig').innerHTML = powderConfig.tiers.map((t, i) =>
+    `<div style="margin-bottom:10px;padding:8px;background:var(--bg2);border:1px solid var(--border);border-radius:3px">
+      <div style="display:grid;grid-template-columns:1fr 72px 80px auto 20px;gap:6px;align-items:center;margin-bottom:5px">
+        <input type="text" value="${t.label}" oninput="updateTier(${i},'label',this.value)"
+          style="font-size:10px;padding:4px 6px;font-weight:500">
+        <div style="display:flex;align-items:center;gap:2px">
+          <input type="number" value="${t.dropPct}" oninput="updateTier(${i},'dropPct',+this.value)"
+            style="font-size:10px;padding:4px 5px;width:50px" step="0.5" min="0.5">
+          <span style="color:var(--muted);font-size:10px">%</span>
+        </div>
+        <div style="display:flex;align-items:center;gap:2px">
+          <span style="color:var(--muted);font-size:10px">$</span>
+          <input type="number" value="${t.amount}" oninput="updateTier(${i},'amount',+this.value)"
+            style="font-size:10px;padding:4px 5px;width:58px" step="100">
+        </div>
+        <label style="display:flex;align-items:center;gap:4px;cursor:pointer;white-space:nowrap;user-select:none">
+          <input type="checkbox" ${t.external ? 'checked' : ''} onchange="updateTier(${i},'external',this.checked)"
+            style="width:auto;accent-color:var(--cyan);cursor:pointer">
+          <span style="font-size:9px;color:var(--muted)">DEPLOY EXTERNALLY</span>
+        </label>
+        <button onclick="removeTier(${i})" style="background:none;border:none;color:var(--red);cursor:pointer;font-size:14px;padding:0;line-height:1">×</button>
+      </div>
+      <input type="text" value="${t.note || ''}" placeholder="action note..." oninput="updateTier(${i},'note',this.value)"
+        style="font-size:10px;padding:4px 6px;width:100%;box-sizing:border-box;color:var(--muted)">
+    </div>`
+  ).join('');
+}
+
+function togglePowderConfig() {
+  const panel = document.getElementById('pwdConfigPanel');
+  const btn   = document.getElementById('pwdConfigToggle');
+  const open  = panel.style.display === 'none';
+  panel.style.display = open ? '' : 'none';
+  btn.textContent = open ? 'HIDE' : 'SHOW';
+  btn.style.color = open ? 'var(--cyan)' : 'var(--muted)';
+  localStorage.setItem('signaldesk_powder_config_open', open ? '1' : '0');
+}
+
+function renderPowder() {
+  renderPowderConfig();
+  renderPowderResults();
+  // Restore config panel visibility (hidden by default)
+  const open = localStorage.getItem('signaldesk_powder_config_open') === '1';
+  document.getElementById('pwdConfigPanel').style.display = open ? '' : 'none';
+  document.getElementById('pwdConfigToggle').textContent  = open ? 'HIDE' : 'SHOW';
+  document.getElementById('pwdConfigToggle').style.color  = open ? 'var(--cyan)' : 'var(--muted)';
+  // Populate inputs: manual override wins, otherwise fall back to last-fetched SPY data
+  const _autoATH = state.prices['__SPY__']?.ath;
+  const _autoCur = state.prices['__SPY__']?.price;
+  document.getElementById('spATH').value     = powderConfig.spATH     ?? (_autoATH ? _autoATH.toFixed(2)  : '');
+  document.getElementById('spCurrent').value = powderConfig.spCurrent ?? (_autoCur ? _autoCur.toFixed(2)  : '');
+  if (powderConfig.ceiling != null) document.getElementById('pwdCeilingInput').value = powderConfig.ceiling;
+}
+
+// Called from oninput on tier fields — saves tiers only, never touches SPY inputs
+function updateTier(i, key, val) {
+  powderConfig.tiers[i][key] = val;
+  saveTiers();
+  renderPowderResults();
+}
+
+// Called from onchange on deployed field
+function updateTierDeployed(i, val) {
+  powderConfig.tiers[i].deployed = val;
+  saveTiers();
+  renderPowderResults();
+}
+
+function addPowderTier() {
+  powderConfig.tiers.push({
+    id: Date.now(),
+    label: `Tier ${powderConfig.tiers.length + 1}`,
+    dropPct: (powderConfig.tiers[powderConfig.tiers.length-1]?.dropPct || 0) + 5,
+    amount: 1000,
+    deployed: 0,
+    note: ''
+  });
+  saveTiers();
+  renderPowder();
+}
+
+function removeTier(i) {
+  powderConfig.tiers.splice(i, 1);
+  saveTiers();
+  renderPowder();
+}
+
+// ═══════════════════════════════════════════
+// SUMMARY VIEW
+// ═══════════════════════════════════════════
+
+function fifoCalc(entries, exits) {
+  // sort buys oldest-first (dated entries first, then undated in order)
+  const buys = [...entries]
+    .sort((a, b) => (a.date || '9999') < (b.date || '9999') ? -1 : 1)
+    .map(e => ({ ...e, remaining: e.shares }));
+
+  const sells = [...exits]
+    .sort((a, b) => (a.date || '9999') < (b.date || '9999') ? -1 : 1);
+
+  let realizedPnl = 0;
+
+  for (const sell of sells) {
+    let toSell = sell.shares;
+    for (const buy of buys) {
+      if (buy.remaining <= 0 || toSell <= 0) continue;
+      const matched = Math.min(buy.remaining, toSell);
+      realizedPnl += matched * (sell.price - buy.price);
+      buy.remaining -= matched;
+      toSell -= matched;
+    }
+  }
+
+  let activeCostBasis = 0, activeShares = 0;
+  for (const buy of buys) {
+    if (buy.remaining > 0) {
+      activeCostBasis += buy.remaining * buy.price;
+      activeShares += buy.remaining;
+    }
+  }
+
+  return { realizedPnl, activeCostBasis, activeShares };
+}
+
+function buildDonutSVG(slices, size = 86, ring = 18) {
+  const cx = size / 2, cy = size / 2, r = size / 2 - 3, ri = r - ring;
+  const total = slices.reduce((s, sl) => s + sl.value, 0);
+  if (!total) return '';
+  let angle = -Math.PI / 2;
+  const paths = slices.map(sl => {
+    const sweep = (sl.value / total) * Math.PI * 2;
+    if (sweep < 0.005) return '';
+    const end = angle + sweep;
+    const x1 = cx + r*Math.cos(angle), y1 = cy + r*Math.sin(angle);
+    const x2 = cx + r*Math.cos(end),   y2 = cy + r*Math.sin(end);
+    const xi1 = cx + ri*Math.cos(end),  yi1 = cy + ri*Math.sin(end);
+    const xi2 = cx + ri*Math.cos(angle),yi2 = cy + ri*Math.sin(angle);
+    const large = sweep > Math.PI ? 1 : 0;
+    const d = `M${x1.toFixed(1)},${y1.toFixed(1)} A${r},${r} 0 ${large},1 ${x2.toFixed(1)},${y2.toFixed(1)} L${xi1.toFixed(1)},${yi1.toFixed(1)} A${ri},${ri} 0 ${large},0 ${xi2.toFixed(1)},${yi2.toFixed(1)} Z`;
+    angle = end;
+    return `<path d="${d}" fill="${sl.color}" opacity="0.88"><title>${sl.label}: ${(sl.value/total*100).toFixed(0)}%</title></path>`;
+  }).join('');
+  return `<svg width="${size}" height="${size}" viewBox="0 0 ${size} ${size}" style="flex-shrink:0">
+    <circle cx="${cx}" cy="${cy}" r="${r+2}" fill="#0d1219"/>
+    ${paths}
+  </svg>`;
+}
+
+function renderSummary() {
+  const positions = state.positions;
+  const catColors  = { long:'#00cc55', spec:'#f0a040', watch:'#ff508c', exit:'#ff4455', closed:'#607080', unsure:'#a060ff', bullish:'#ff50c8' };
+  const catLabels  = { long:'Long', spec:'Spec', watch:'Watchlist', exit:'Exit', closed:'Closed', unsure:'Unsure?', bullish:'Bullish' };
+  const catClasses = { long:'cat-long', spec:'cat-spec', watch:'cat-watch', exit:'cat-exit', closed:'cat-closed', unsure:'cat-unsure', bullish:'cat-bullish' };
+
+  let totalCostBasis = 0, totalValue = 0, totalRealized = 0, posCount = 0, negCount = 0;
+  const gainPcts = [], lossPcts = [];
+  const catStats = {};
+  const buysByDate = {}, sellsByDate = {}, sellCostByDate = {};
+  const daysHeldArr = [];
+
+  positions.forEach(pos => {
+    const p = state.prices[pos.ticker] || {};
+    const price = pos.manualPrice || p.price;
+    const entries = parseEntries(pos.entries);
+    const exits   = parseEntries(pos.exits);
+    const { realizedPnl, activeCostBasis, activeShares } = fifoCalc(entries, exits);
+
+    totalCostBasis += activeCostBasis;
+    totalRealized  += realizedPnl;
+    if (price && activeShares) totalValue += price * activeShares;
+
+    const avg    = (activeCostBasis > 0 && activeShares > 0) ? activeCostBasis / activeShares : null;
+    const pnlPct = avg && price ? ((price - avg) / avg) * 100 : null;
+    if (pnlPct !== null) { if (pnlPct >= 0) { posCount++; gainPcts.push(pnlPct); } else { negCount++; lossPcts.push(pnlPct); } }
+
+    // per-category P&L
+    const cat = pos.category || 'watch';
+    if (!catStats[cat]) catStats[cat] = { count: 0, costBasis: 0, unrealized: 0 };
+    catStats[cat].count++;
+    catStats[cat].costBasis += activeCostBasis;
+    if (price && activeShares && activeCostBasis > 0)
+      catStats[cat].unrealized += price * activeShares - activeCostBasis;
+
+    // buy/sell activity (track sell cost basis for stacked profit/loss bars)
+    entries.filter(e => e.date).forEach(e => { buysByDate[e.date]  = (buysByDate[e.date]  || 0) + e.price * e.shares; });
+    exits  .filter(e => e.date).forEach(e => {
+      sellsByDate[e.date]     = (sellsByDate[e.date]     || 0) + e.price * e.shares;
+      sellCostByDate[e.date]  = (sellCostByDate[e.date]  || 0) + (avg || e.price) * e.shares;
+    });
+
+    // days held
+    const datedBuys = entries.filter(e => e.date).sort((a,b) => a.date < b.date ? -1 : 1);
+    if (datedBuys.length) {
+      const totalBuy  = entries.reduce((s,e) => s + e.shares, 0);
+      const totalSell = exits  .reduce((s,e) => s + e.shares, 0);
+      const fullyExited = totalBuy > 0 && totalSell >= totalBuy;
+      const datedSells = exits.filter(e => e.date).sort((a,b) => a.date < b.date ? -1 : 1);
+      const t0 = new Date(datedBuys[0].date + 'T12:00:00Z');
+      const t1 = (fullyExited && datedSells.length) ? new Date(datedSells[datedSells.length-1].date + 'T12:00:00Z') : new Date();
+      daysHeldArr.push({ ticker: pos.ticker, days: Math.round((t1 - t0) / 86400000), fullyExited });
+    }
+  });
+
+  const avgGain = gainPcts.length ? gainPcts.reduce((a,b)=>a+b,0)/gainPcts.length : null;
+  const avgLoss = lossPcts.length ? lossPcts.reduce((a,b)=>a+b,0)/lossPcts.length : null;
+  const totalPnl    = totalValue - totalCostBasis;
+  const totalPnlPct = totalCostBasis > 0 ? (totalPnl / totalCostBasis) * 100 : 0;
+
+  // vs S&P aggregate average alpha
+  let spRelSum = 0, spRelN = 0;
+  positions.forEach(pos => {
+    const p = state.prices[pos.ticker] || {};
+    const price = pos.manualPrice || p.price;
+    const sp = calcSpRel(parseEntries(pos.entries), price, p, parseEntries(pos.exits));
+    if (sp !== null) { spRelSum += sp; spRelN++; }
+  });
+  const avgSpRel = spRelN > 0 ? spRelSum / spRelN : null;
+
+  // ── Summary cards ──
+  document.getElementById('summaryCards').innerHTML = `
+    <div class="summary-card">
+      <div class="summary-card-label">Positions</div>
+      <div class="summary-card-val">${positions.length}</div>
+      <div class="summary-card-sub">${posCount} up · ${negCount} down</div>
+    </div>
+    <div class="summary-card">
+      <div class="summary-card-label">Win / Loss Avg</div>
+      <div class="summary-card-val" style="display:flex;gap:5px;align-items:baseline;font-size:13px">
+        ${avgGain !== null ? `<span style="color:var(--green)">+${fmt1(avgGain)}%</span>` : '<span style="color:var(--muted)">—</span>'}
+        <span style="color:var(--dim);font-size:9px">/</span>
+        ${avgLoss !== null ? `<span style="color:var(--red)">${fmt1(avgLoss)}%</span>` : '<span style="color:var(--muted)">—</span>'}
+      </div>
+      <div class="summary-card-sub">winners · losers</div>
+    </div>
+    <div class="summary-card">
+      <div class="summary-card-label">Cost Basis (active)</div>
+      <div class="summary-card-val">$${fmt0(totalCostBasis)}</div>
+      <div class="summary-card-sub">unsold shares</div>
+    </div>
+    <div class="summary-card">
+      <div class="summary-card-label">Market Value</div>
+      <div class="summary-card-val">${totalValue ? '$'+fmt0(totalValue) : '—'}</div>
+      <div class="summary-card-sub">at current prices</div>
+    </div>
+    <div class="summary-card">
+      <div class="summary-card-label">Unrealized P&L</div>
+      <div class="summary-card-val ${totalPnl >= 0 ? 'up' : 'down'}">${totalPnl >= 0 ? '+' : ''}$${fmt0(Math.abs(totalPnl))}</div>
+      <div class="summary-card-sub ${totalPnlPct >= 0 ? 'up' : 'down'}">${totalPnlPct >= 0 ? '+' : ''}${fmt1(totalPnlPct)}%</div>
+    </div>
+    <div class="summary-card">
+      <div class="summary-card-label">Realized P&L (FIFO)</div>
+      <div class="summary-card-val ${totalRealized >= 0 ? 'up' : 'down'}">${totalRealized >= 0 ? '+' : ''}$${fmt0(Math.abs(totalRealized))}</div>
+      <div class="summary-card-sub">from closed lots</div>
+    </div>
+    <div class="summary-card">
+      <div class="summary-card-label">vs S&P (avg)</div>
+      <div class="summary-card-val" style="color:${avgSpRel !== null ? gradeColor(avgSpRel) : 'var(--muted)'}">${avgSpRel !== null ? (avgSpRel >= 0 ? '+' : '')+fmt1(avgSpRel)+'%' : '—'}</div>
+      <div class="summary-card-sub">avg alpha per position</div>
+    </div>
+    <div class="summary-card">
+      <div class="summary-card-label">Last Refresh</div>
+      <div class="summary-card-val" style="font-size:13px">${state.lastRefresh ? new Date(state.lastRefresh).toLocaleTimeString() : '—'}</div>
+      <div class="summary-card-sub">${state.lastRefresh ? new Date(state.lastRefresh).toLocaleDateString() : 'not yet'}</div>
+    </div>
+  `;
+
+  // ── By Category: donut + P&L rows ──
+  const donutSlices = Object.entries(catStats)
+    .filter(([,s]) => s.costBasis > 0)
+    .map(([cat, s]) => ({ label: catLabels[cat] || cat, value: s.costBasis, color: catColors[cat] || '#4a7090' }));
+  const donutSvg = buildDonutSVG(donutSlices);
+  const catRows = Object.entries(catStats)
+    .sort((a, b) => b[1].costBasis - a[1].costBasis)
+    .map(([cat, s]) => {
+      const upct = s.costBasis > 0 ? (s.unrealized / s.costBasis) * 100 : null;
+      return `<div style="display:flex;align-items:center;gap:7px;padding:5px 0;border-bottom:1px solid var(--border);font-size:10px">
+        <span class="cat-badge ${catClasses[cat]||'cat-watch'}" style="min-width:56px">${catLabels[cat]||cat}</span>
+        <span style="color:var(--text);font-weight:500">${s.count}</span>
+        <span style="color:var(--dim)">·</span>
+        <span style="color:var(--muted)">$${fmt0(s.costBasis)}</span>
+        ${upct !== null ? `<span style="margin-left:auto;color:${gradeColor(upct)}">${upct>=0?'+':''}${fmt1(upct)}%</span>
+        <span style="color:${gradeColor(upct)}">${s.unrealized>=0?'+':''}$${fmt0(Math.abs(s.unrealized))}</span>` : ''}
+      </div>`;
+    }).join('') || '<span style="color:var(--muted);font-size:10px">No positions</span>';
+  document.getElementById('catBreakdown').innerHTML =
+    `<div style="display:flex;gap:12px;align-items:flex-start">${donutSvg}<div style="flex:1;min-width:0">${catRows}</div></div>`;
+
+  // ── Buy / Sell Activity chart ──
+  const allTradeDates = [...new Set([...Object.keys(buysByDate), ...Object.keys(sellsByDate)])].sort();
+  if (!allTradeDates.length) {
+    document.getElementById('activityChart').innerHTML = '<span style="color:var(--muted);font-size:10px">No dated trades recorded</span>';
+  } else {
+    const ACW = 600, ACH = 80, MID = 38, PAD = 8;
+    const upH = MID - PAD, downH = ACH - MID - PAD;
+    const t0a = new Date(allTradeDates[0] + 'T12:00:00Z').getTime();
+    const t1a = new Date(allTradeDates[allTradeDates.length-1] + 'T12:00:00Z').getTime();
+    const tRa = t1a - t0a || 1;
+    const xOfA = d => (new Date(d + 'T12:00:00Z').getTime() - t0a) / tRa * (ACW - 2*PAD) + PAD;
+    const maxAmt = Math.max(...Object.values(buysByDate), ...Object.values(sellsByDate));
+    const BW = Math.max(4, Math.min(16, (ACW - 2*PAD) / allTradeDates.length - 2));
+    const bars = allTradeDates.map(d => {
+      const bAmt = buysByDate[d] || 0;
+      const sAmt = sellsByDate[d] || 0;
+      const sCost = sellCostByDate[d] || sAmt;
+      const sProfit = sAmt - sCost; // positive = profit, negative = loss
+      const x = (xOfA(d) - BW / 2).toFixed(1);
+      let svg = '';
+      if (bAmt > 0) {
+        const h = Math.max(2, bAmt / maxAmt * upH);
+        svg += `<rect x="${x}" y="${(MID - h).toFixed(1)}" width="${BW}" height="${h.toFixed(1)}" fill="#f0a040" rx="1" opacity="0.9"><title>Buy $${fmt0(bAmt)} — ${d}</title></rect>`;
+      }
+      if (sAmt > 0) {
+        const totalH = Math.max(2, sAmt / maxAmt * downH);
+        if (sProfit >= 0) {
+          // stacked: cost portion (dim) on top, profit (green) on bottom
+          const profitH = Math.max(0, sProfit / maxAmt * downH);
+          const costH = Math.max(1, totalH - profitH);
+          svg += `<rect x="${x}" y="${MID}" width="${BW}" height="${costH.toFixed(1)}" fill="#1a5040" rx="1"><title>Sell cost $${fmt0(sCost)} — ${d}</title></rect>`;
+          if (profitH > 0)
+            svg += `<rect x="${x}" y="${(MID + costH).toFixed(1)}" width="${BW}" height="${profitH.toFixed(1)}" fill="#00cc55" rx="1" opacity="0.9"><title>Profit $${fmt0(sProfit)} — ${d}</title></rect>`;
+        } else {
+          // loss: full red bar
+          svg += `<rect x="${x}" y="${MID}" width="${BW}" height="${totalH.toFixed(1)}" fill="#ff4455" rx="1" opacity="0.85"><title>Sell loss $${fmt0(Math.abs(sProfit))} — ${d}</title></rect>`;
+        }
+      }
+      return svg;
+    }).join('');
+    document.getElementById('activityChart').innerHTML =
+      `<svg viewBox="0 0 ${ACW} ${ACH}" style="width:100%;height:auto;display:block">
+        <rect width="${ACW}" height="${ACH}" fill="#080c10" rx="3"/>
+        ${bars}
+        <line x1="${PAD}" y1="${MID}" x2="${ACW-PAD}" y2="${MID}" stroke="#1e3040" stroke-width="0.75"/>
+        <text x="${PAD+2}" y="${MID-3}" font-size="6" fill="#706030">buys</text>
+        <text x="${PAD+2}" y="${MID+9}" font-size="6" fill="#406050">sells</text>
+        <text x="${PAD}" y="${ACH-1}" font-size="5.5" fill="#3a5060">${allTradeDates[0].slice(0,7)}</text>
+        <text x="${ACW-PAD}" y="${ACH-1}" font-size="5.5" fill="#3a5060" text-anchor="end">${allTradeDates[allTradeDates.length-1].slice(0,7)}</text>
+      </svg>`;
+  }
+
+  // ── Days Held ──
+  daysHeldArr.sort((a,b) => a.days - b.days);
+  const maxDays = daysHeldArr.length ? daysHeldArr[daysHeldArr.length-1].days : 1;
+  document.getElementById('daysHeldDist').innerHTML = daysHeldArr.length
+    ? daysHeldArr.map(d => `<div style="display:flex;align-items:center;gap:8px;padding:3px 0">
+        <span style="width:52px;font-size:10px;color:${d.fullyExited?'var(--dim)':'var(--cyan)'}">${d.ticker}</span>
+        <div style="flex:1;height:4px;background:var(--bg3);border-radius:2px">
+          <div style="height:100%;border-radius:2px;width:${(d.days/maxDays*100).toFixed(0)}%;background:${d.fullyExited?'var(--muted)':'var(--blue)'}"></div>
+        </div>
+        <span style="font-size:10px;color:var(--muted);width:40px;text-align:right">${d.days}d</span>
+      </div>`).join('')
+    : '<span style="color:var(--muted);font-size:10px">No dated entries</span>';
+
+  // ── Drawdown from Entry High ──
+  const entryDDs = positions.map(pos => {
+    const p = state.prices[pos.ticker] || {};
+    const price = pos.manualPrice || p.price;
+    const history = state.prices[pos.ticker]?.raw?.history;
+    if (!price || !history) return null;
+    const datedBuys = parseEntries(pos.entries).filter(e => e.date).sort((a,b) => a.date < b.date ? -1 : 1);
+    if (!datedBuys.length) return null;
+    const afterEntry = Object.entries(history).filter(([d]) => d >= datedBuys[0].date).map(([,v]) => v);
+    if (!afterEntry.length) return null;
+    const entryHigh = Math.max(...afterEntry);
+    const dd = ((price - entryHigh) / entryHigh) * 100;
+    const closed = pos.category === 'closed';
+    return { ticker: pos.ticker, dd, closed };
+  }).filter(Boolean).sort((a,b) => a.dd - b.dd);
+
+  document.getElementById('entryDrawdowns').innerHTML = entryDDs.length
+    ? entryDDs.map(d => {
+        const tickerColor = d.closed ? 'var(--dim)' : 'var(--cyan)';
+        const barColor = d.closed ? 'var(--muted)' : gradeColor(d.dd);
+        const valColor = d.closed ? 'var(--dim)' : gradeColor(d.dd);
+        return `<div style="display:flex;align-items:center;gap:8px;padding:3px 0">
+          <span style="width:52px;font-size:10px;color:${tickerColor}">${d.ticker}</span>
+          <div style="flex:1;height:4px;background:var(--bg3);border-radius:2px">
+            <div style="height:100%;border-radius:2px;width:${Math.min(100, Math.abs(d.dd) * 2).toFixed(0)}%;background:${barColor}"></div>
+          </div>
+          <span style="font-size:10px;color:${valColor};width:48px;text-align:right">${fmt1(d.dd)}%</span>
+        </div>`;
+      }).join('')
+    : '<span style="color:var(--muted);font-size:10px">Refresh prices to populate</span>';
+
+  // ── Cost Basis Concentration ──
+  const concentration = positions.map(pos => {
+    const entries = parseEntries(pos.entries);
+    const exits   = parseEntries(pos.exits);
+    const { activeCostBasis } = fifoCalc(entries, exits);
+    return activeCostBasis > 0 ? { ticker: pos.ticker, basis: activeCostBasis, category: pos.category } : null;
+  }).filter(Boolean).sort((a, b) => b.basis - a.basis);
+
+  const totalBasis = concentration.reduce((s, c) => s + c.basis, 0);
+  document.getElementById('concentrationChart').innerHTML = concentration.length
+    ? concentration.map(c => {
+        const pct = totalBasis ? (c.basis / totalBasis) * 100 : 0;
+        const warn = pct > 20 ? '#ff8844' : pct > 10 ? '#f0a040' : 'var(--blue)';
+        const cls = { long:'cat-long', spec:'cat-spec', watch:'cat-watch', exit:'cat-exit', closed:'cat-closed', unsure:'cat-unsure', bullish:'cat-bullish' }[c.category] || 'cat-watch';
+        const lbl = { long:'Long', spec:'Spec', watch:'Watch', exit:'Exit', closed:'Closed', unsure:'Unsure?', bullish:'Bullish' }[c.category] || c.category;
+        return `<div style="display:flex;align-items:center;gap:6px;padding:3px 0">
+          <span style="width:52px;font-size:10px;color:var(--cyan)">${c.ticker}</span>
+          <div style="flex:1;height:4px;background:var(--bg3);border-radius:2px">
+            <div style="height:100%;border-radius:2px;width:${pct.toFixed(0)}%;background:${warn}"></div>
+          </div>
+          <span style="font-size:10px;color:${warn};width:36px;text-align:right">${fmt1(pct)}%</span>
+          <span class="cat-badge ${cls}" style="font-size:8px;padding:1px 4px;width:46px;text-align:center;flex-shrink:0">${lbl}</span>
+        </div>`;
+      }).join('')
+    : '<span style="color:var(--muted);font-size:10px">No cost basis data</span>';
+
+}
+
+function renderResearch() {
+  const positions = state.positions;
+
+  // ── Shared helpers ──
+  function lookbackPrice(history, daysAgo) {
+    if (!history) return null;
+    const t = new Date(); t.setDate(t.getDate() - daysAgo);
+    const target = t.toISOString().split('T')[0];
+    const past = Object.keys(history).sort().filter(d => d <= target).pop();
+    return past ? history[past] : null;
+  }
+  function lookbackReturn(history, currentPrice, daysAgo) {
+    const past = lookbackPrice(history, daysAgo);
+    return (past && currentPrice) ? ((currentPrice - past) / past) * 100 : null;
+  }
+
+  // ── ROW 1: Build unified sorted ticker list (sort key = percentile) ──
+  function pctColor(pct) {
+    if (pct < 20) return '#ff3344';
+    if (pct < 40) return '#ff6633';
+    if (pct < 60) return '#f0a030';
+    if (pct < 80) return '#00aa80';
+    return '#00d4ff';
+  }
+
+  const PERIODS = [
+    { label: '2Y', days: 730 }, { label: '1Y', days: 365 }, { label: '6M', days: 180 },
+    { label: '3M', days: 90 },  { label: '1M', days: 30 },  { label: '1W', days: 7 },
+  ];
+
+  const ROW_H = 26;
+
+  const tickerData = positions.map(pos => {
+    const p   = state.prices[pos.ticker] || {};
+    const price = pos.manualPrice || p.price;
+    const hist  = state.prices[pos.ticker]?.raw?.history;
+
+    // percentile
+    let pct = null;
+    if (price && hist) {
+      const cutoff = new Date(); cutoff.setDate(cutoff.getDate() - 365);
+      const cutStr = cutoff.toISOString().split('T')[0];
+      const vals = Object.entries(hist).filter(([d]) => d >= cutStr).map(([,v]) => v);
+      if (vals.length >= 5) {
+        const lo = Math.min(...vals), hi = Math.max(...vals);
+        pct = hi === lo ? 50 : ((price - lo) / (hi - lo)) * 100;
+      }
+    }
+
+    // momentum returns
+    const rets = PERIODS.map(pd => lookbackReturn(hist, price, pd.days));
+    return { ticker: pos.ticker, pct, rets };
+  }); // unsorted — sort applied by renderResearchRow1
+
+  // ── Sort helpers ──
+  if (!state.researchSort) state.researchSort = { col: 'pct', dir: -1 }; // default: highest pct first
+  const PERIOD_IDX = { '2Y':0, '1Y':1, '6M':2, '3M':3, '1M':4, '1W':5 };
+
+  function applySortTickerData(data) {
+    const { col, dir } = state.researchSort;
+    return [...data].sort((a, b) => {
+      let va = col === 'pct' ? a.pct : a.rets[PERIOD_IDX[col]];
+      let vb = col === 'pct' ? b.pct : b.rets[PERIOD_IDX[col]];
+      if (va === null && vb === null) return 0;
+      if (va === null) return 1;
+      if (vb === null) return -1;
+      return (va - vb) * dir;
+    });
+  }
+
+  function renderResearchRow1(rawData) {
+    const sorted = applySortTickerData(rawData);
+    const { col: sc, dir: sd } = state.researchSort;
+    const arrow = sd === 1 ? ' ▲' : ' ▼';
+
+    // ── Percentile panel ──
+    const sortHdrStyle = (active) =>
+      `font-size:9px;font-weight:600;letter-spacing:.07em;cursor:pointer;user-select:none;` +
+      (active ? 'color:var(--blue)' : 'color:var(--muted)');
+    const pctHeader = `<div style="display:flex;align-items:center;gap:8px;height:${ROW_H}px;border-bottom:1px solid var(--border);margin-bottom:1px">
+      <span style="width:52px;font-size:9px;color:var(--muted);font-weight:600;letter-spacing:.07em">TICKER</span>
+      <span style="flex:1;font-size:9px;color:var(--muted);font-weight:600;letter-spacing:.07em">1yr LOW → HIGH</span>
+      <span onclick="window._researchSortCol('pct')" style="${sortHdrStyle(sc==='pct')};width:34px;text-align:right">${sc==='pct'?'PCT'+arrow:'PCT'}</span>
+    </div>`;
+    const pctRows = sorted.map(d => {
+      if (d.pct === null) return `<div style="display:flex;align-items:center;gap:8px;height:${ROW_H}px">
+        <span style="width:52px;font-size:10px;font-family:monospace;color:var(--cyan)">${d.ticker}</span>
+        <span style="flex:1;font-size:10px;color:var(--muted)">—</span>
+      </div>`;
+      return `<div style="display:flex;align-items:center;gap:8px;height:${ROW_H}px">
+        <span style="width:52px;font-size:10px;font-family:monospace;color:var(--cyan)">${d.ticker}</span>
+        <div style="flex:1;height:5px;background:var(--bg3);border-radius:2px;position:relative">
+          <div style="position:absolute;left:0;top:0;height:100%;width:${d.pct.toFixed(1)}%;background:${pctColor(d.pct)};border-radius:2px"></div>
+        </div>
+        <span style="font-size:10px;width:34px;text-align:right;color:${pctColor(d.pct)}">${Math.round(d.pct)}%</span>
+      </div>`;
+    }).join('');
+    document.getElementById('percentileRank').innerHTML = sorted.length
+      ? pctHeader + pctRows
+      : '<span style="font-size:10px;color:var(--muted)">Refresh prices to populate</span>';
+
+    // ── Momentum Scorecard ──
+    const retCell = v => v === null
+      ? `<td style="text-align:right;padding:0 7px;font-size:10px;color:var(--muted);height:${ROW_H}px">—</td>`
+      : `<td style="text-align:right;padding:0 7px;font-size:10px;color:${gradeColor(v)};font-weight:500;height:${ROW_H}px">${v>=0?'+':''}${fmt1(v)}%</td>`;
+
+    const momRows = sorted.map(d =>
+      `<tr><td style="padding:0 7px;font-size:10px;color:var(--cyan);font-family:monospace;white-space:nowrap;height:${ROW_H}px">${d.ticker}</td>
+      ${d.rets.map(retCell).join('')}</tr>`
+    ).join('');
+
+    const spyPrice = state.prices['__SPY__']?.price;
+    const spyHist  = state.prices['__SPY__']?.raw?.history;
+    const spyRets  = PERIODS.map(pd => lookbackReturn(spyHist, spyPrice, pd.days));
+    const spyRow = `<tr style="border-top:1px solid var(--border)">
+      <td style="padding:0 7px;font-size:10px;color:var(--muted);font-family:monospace;height:${ROW_H}px">SPY ⊕</td>
+      ${spyRets.map(retCell).join('')}
+    </tr>`;
+
+    const thStyle = (lbl) => {
+      const active = sc === lbl;
+      return `text-align:right;padding:0 7px;font-size:9px;font-weight:600;letter-spacing:.07em;height:${ROW_H}px;cursor:pointer;user-select:none;${active?'color:var(--blue)':'color:var(--muted)'}`;
+    };
+    const thCells = PERIODS.map(p =>
+      `<th onclick="window._researchSortCol('${p.label}')" style="${thStyle(p.label)}">${sc===p.label?p.label+arrow:p.label}</th>`
+    ).join('');
+    document.getElementById('momentumScorecard').innerHTML = `
+      <table style="width:100%;border-collapse:collapse">
+        <thead><tr style="border-bottom:1px solid var(--border)">
+          <th style="text-align:left;padding:0 7px;font-size:9px;color:var(--muted);font-weight:600;letter-spacing:.07em;height:${ROW_H}px">TICKER</th>
+          ${thCells}
+        </tr></thead>
+        <tbody>${momRows}${spyRow}</tbody>
+      </table>`;
+  }
+
+  // Expose sort-click handler and cached data
+  window._researchTickerData = tickerData;
+  window._researchSortCol = function(col) {
+    const cur = state.researchSort;
+    state.researchSort = { col, dir: cur.col === col ? -cur.dir : -1 };
+    renderResearchRow1(window._researchTickerData);
+  };
+
+  renderResearchRow1(tickerData);
+
+  // ── ROW 2 LEFT: Risk/Reward Scatter (2yr drawdown) ──
+  const SW=700, SH=420, SPL=40, SPR=12, SPT=16, SPB=28;
+  const SIW=SW-SPL-SPR, SIH=SH-SPT-SPB;
+  const xMin=-70, xMax=0, yMin=-60;
+
+  const scatterData = positions.map(pos => {
+    const p = state.prices[pos.ticker] || {};
+    const price = pos.manualPrice || p.price;
+    const hist  = state.prices[pos.ticker]?.raw?.history;
+    if (!price || !p.yr2) return null;
+    const yr1 = lookbackReturn(hist, price, 365);
+    if (yr1 === null) return null;
+    const drop2yr = ((price - p.yr2) / p.yr2) * 100;
+    return { ticker: pos.ticker, x: Math.max(xMin, drop2yr), y: yr1, cat: pos.category || 'long', isSpy: false };
+  }).filter(Boolean);
+
+  // Add SPY benchmark dot
+  const spyP = state.prices['__SPY__'];
+  if (spyP?.price && spyP?.yr2) {
+    const spyHist = spyP.history || spyP.raw?.history;
+    const spyYr1 = lookbackReturn(spyHist, spyP.price, 365);
+    if (spyYr1 !== null) {
+      const spyDrop2yr = ((spyP.price - spyP.yr2) / spyP.yr2) * 100;
+      scatterData.push({ ticker: 'SPY', x: Math.max(xMin, spyDrop2yr), y: spyYr1, cat: null, isSpy: true });
+    }
+  }
+
+  const yMax = Math.max(100, ...scatterData.map(d => d.y + 15));
+  const CAT_DOT = { long:'#00cc88', spec:'#f0a030', watch:'#ff508c', closed:'#4a6070', unsure:'#a060ff', bullish:'#ff50c8', exit:'#ff4455' };
+  const spx  = x => SPL + ((x - xMin) / (xMax - xMin)) * SIW;
+  const spyY = y => SPT + SIH - ((y - yMin) / (yMax - yMin)) * SIH;
+  const ox = spx(0), oy = spyY(0);
+
+  const sDots = scatterData.map(d => {
+    const cx = spx(d.x).toFixed(1), cy = spyY(d.y).toFixed(1);
+    const col = d.isSpy ? '#ffffff' : (CAT_DOT[d.cat] || '#00cc88');
+    const lx = +cx > SW*0.65 ? +cx - 5 : +cx + 5;
+    const anchor = +cx > SW*0.65 ? 'end' : 'start';
+    if (d.isSpy) {
+      // Diamond shape for SPY
+      const r = 5;
+      return `<polygon points="${cx},${+cy-r} ${+cx+r},${cy} ${cx},${+cy+r} ${+cx-r},${cy}"
+        fill="none" stroke="#ffffff" stroke-width="1.5" opacity="0.9"/>
+        <text x="${lx}" y="${(+cy+3.5).toFixed(1)}" font-size="8" fill="#ffffff" font-weight="600" text-anchor="${anchor}">SPY</text>`;
+    }
+    return `<circle cx="${cx}" cy="${cy}" r="4" fill="${col}" opacity="0.85"/>
+      <text x="${lx}" y="${(+cy+3.5).toFixed(1)}" font-size="7" fill="#607888" text-anchor="${anchor}">${d.ticker}</text>`;
+  }).join('');
+
+  const sXticks = [-70,-60,-50,-40,-30,-20,-10,0].map(v => {
+    const x = spx(v).toFixed(1);
+    return `<line x1="${x}" y1="${SPT+SIH}" x2="${x}" y2="${SPT+SIH+3}" stroke="#2a3a4a"/>
+      <text x="${x}" y="${SPT+SIH+11}" font-size="7" fill="#3a4a5a" text-anchor="middle">${v}%</text>`;
+  }).join('');
+  const sYticks = [-60,-40,-20,0,20,40,60,80,100].filter(v=>v>=yMin&&v<=yMax).map(v => {
+    const y = spyY(v).toFixed(1);
+    return `<line x1="${SPL-3}" y1="${y}" x2="${SPL}" y2="${y}" stroke="#2a3a4a"/>
+      <text x="${SPL-5}" y="${(+y+3).toFixed(1)}" font-size="7" fill="#3a4a5a" text-anchor="end">${v}%</text>`;
+  }).join('');
+  const ql = (x,y,t,a='middle') =>
+    `<text x="${x}" y="${y}" font-size="8" fill="#1e3048" text-anchor="${a}" font-weight="600">${t}</text>`;
+
+  document.getElementById('riskRewardScatter').innerHTML = `
+    <svg viewBox="0 0 ${SW} ${SH}" width="100%" style="display:block">
+      <rect x="${SPL}" y="${SPT}" width="${SIW}" height="${SIH}" fill="#090e14" rx="2"/>
+      <line x1="${ox}" y1="${SPT}" x2="${ox}" y2="${SPT+SIH}" stroke="#1a2a3a" stroke-dasharray="3,3"/>
+      <line x1="${SPL}" y1="${oy}" x2="${SPL+SIW}" y2="${oy}" stroke="#1a2a3a" stroke-dasharray="3,3"/>
+      ${ql(SPL+6, SPT+12, 'RECOVERING', 'start')}
+      ${ql(SPL+SIW-4, SPT+12, 'LEADER', 'end')}
+      ${ql(SPL+6, SPT+SIH-6, 'DISTRESSED', 'start')}
+      ${ql(SPL+SIW-4, SPT+SIH-6, 'FADING', 'end')}
+      <line x1="${SPL}" y1="${SPT}" x2="${SPL}" y2="${SPT+SIH}" stroke="#2a3a4a"/>
+      <line x1="${SPL}" y1="${SPT+SIH}" x2="${SPL+SIW}" y2="${SPT+SIH}" stroke="#2a3a4a"/>
+      ${sXticks}${sYticks}
+      <text x="${SPL+SIW/2}" y="${SH-3}" font-size="8" fill="#3a4a5a" text-anchor="middle">← Drawdown from 2yr High</text>
+      <text x="9" y="${SPT+SIH/2}" font-size="8" fill="#3a4a5a" text-anchor="middle" transform="rotate(-90,9,${SPT+SIH/2})">1yr Return →</text>
+      ${sDots}
+    </svg>`;
+
+  // ── ROW 2 RIGHT: Furthest from Highs (full set, no slice) ──
+  const RADAR_RANGES = [
+    { key: 'ath', label: 'AT' }, { key: 'yr5', label: '5y' }, { key: 'yr2', label: '2y' },
+    { key: 'yr1', label: '1y' }, { key: 'mo6', label: '6m' }, { key: 'mo3', label: '3m' }, { key: 'mo1', label: '1m' },
+  ];
+  const CHART_H=120, BAR_W=10, BAR_GAP=3;
+  const radarBarColor = v => v===null?'#1e2d3d':v>-15?'#007a55':v>-30?'#f0a030':'#ff4455';
+  const radar = positions.map(pos => {
+    const p = state.prices[pos.ticker] || {};
+    const price = pos.manualPrice || p.price;
+    if (!price) return null;
+    const drops = RADAR_RANGES.map(r => {
+      const high = p[r.key];
+      return (high && price) ? ((price - high) / high) * 100 : null;
+    });
+    if (drops.every(d => d === null)) return null;
+    const yr1Drop = drops[3];
+    const buyS  = parseEntries(pos.entries||'').reduce((a,e)=>a+e.shares,0);
+    const sellS = parseEntries(pos.exits||'').reduce((a,e)=>a+e.shares,0);
+    const exited = buyS > 0 && sellS >= buyS;
+    return { ticker: pos.ticker, drops, yr1Drop: yr1Drop ?? 0, exited };
+  }).filter(Boolean).sort((a,b) => a.yr1Drop - b.yr1Drop);
+
+  if (!radar.length) {
+    document.getElementById('opportunityRadar').innerHTML =
+      '<span style="color:var(--muted);font-size:10px">Refresh prices to populate</span>';
+  } else {
+    const cards = radar.map(r => {
+      const bars = r.drops.map(d => {
+        const h = d !== null ? (Math.min(Math.abs(d),100)/100*CHART_H) : 0;
+        return `<div style="width:${BAR_W}px;height:${CHART_H}px;display:flex;align-items:flex-end;background:#111820;border-radius:1px">
+          <div style="width:100%;height:${h.toFixed(1)}px;background:${radarBarColor(d)};border-radius:1px 1px 0 0"></div>
+        </div>`;
+      }).join('');
+      const labels = RADAR_RANGES.map(rng =>
+        `<div style="width:${BAR_W}px;text-align:center;font-size:8px;color:#2a3a4a;overflow:hidden">${rng.label}</div>`
+      ).join('');
+      return `<div style="border:1px solid #1e2d3d;border-radius:3px;padding:8px 7px 6px;background:#0d1219;display:inline-flex;flex-direction:column;align-items:center;gap:3px">
+        <span style="font-size:12px;font-weight:600;letter-spacing:0.05em;color:${r.exited?'#4a6070':'#20d0e0'}">${r.ticker}</span>
+        <span style="font-size:10px;font-weight:500;color:${r.yr1Drop<-30?'#ff4455':r.yr1Drop<-15?'#f0a030':'#007a55'};margin-bottom:2px">${r.yr1Drop!==0?fmt1(r.yr1Drop)+'%':'—'}</span>
+        <div style="display:flex;gap:${BAR_GAP}px">${bars}</div>
+        <div style="display:flex;gap:${BAR_GAP}px">${labels}</div>
+      </div>`;
+    }).join('');
+    document.getElementById('opportunityRadar').innerHTML =
+      `<div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:4px">${cards}</div>`;
+  }
+
+  // ── ROW 3 LEFT: Correlation Heatmap with greedy clustering ──
+  function getDailyRets(hist) {
+    const dates = Object.keys(hist).sort();
+    const rets = {};
+    for (let i=1; i<dates.length; i++) {
+      const prev=hist[dates[i-1]], curr=hist[dates[i]];
+      if (prev && curr) rets[dates[i]] = (curr-prev)/prev;
+    }
+    return rets;
+  }
+  function pearson(xs, ys) {
+    const n = xs.length;
+    if (n < 10) return null;
+    const mx=xs.reduce((a,b)=>a+b,0)/n, my=ys.reduce((a,b)=>a+b,0)/n;
+    const num=xs.reduce((s,x,i)=>s+(x-mx)*(ys[i]-my),0);
+    const dx=Math.sqrt(xs.reduce((s,x)=>s+(x-mx)**2,0));
+    const dy=Math.sqrt(ys.reduce((s,y)=>s+(y-my)**2,0));
+    return (dx&&dy) ? num/(dx*dy) : null;
+  }
+  function corrBg(c) {
+    if (c===null) return '#111';
+    if (c>=0.99) return '#881122';
+    const t=Math.abs(c);
+    return c>0
+      ? `rgb(${Math.round(20+t*220)},20,20)`
+      : `rgb(20,20,${Math.round(20+t*200)})`;
+  }
+
+  const rawHeat = positions.filter(pos => state.prices[pos.ticker]?.raw?.history).map(pos => pos.ticker);
+  if (state.prices['__SPY__']?.raw?.history) rawHeat.push('SPY');
+  const heatRets = {};
+  rawHeat.forEach(t => {
+    const h = t==='SPY' ? state.prices['__SPY__'].raw.history : state.prices[t]?.raw?.history;
+    if (h) heatRets[t] = getDailyRets(h);
+  });
+
+  // Build full correlation matrix
+  const corrMx = {};
+  rawHeat.forEach(a => { corrMx[a]={}; });
+  rawHeat.forEach((a,ai) => rawHeat.forEach((b,bi) => {
+    if (bi < ai) { corrMx[a][b]=corrMx[b][a]; return; }
+    if (a===b) { corrMx[a][b]=1; return; }
+    const rA=heatRets[a], rB=heatRets[b];
+    const common=Object.keys(rA).filter(d=>rB[d]!==undefined);
+    corrMx[a][b]=pearson(common.map(d=>rA[d]),common.map(d=>rB[d])) ?? 0;
+  }));
+
+  // Greedy nearest-neighbour clustering
+  function clusterOrder(tickers) {
+    if (tickers.length <= 2) return tickers;
+    let best=-Infinity, start=tickers[0];
+    tickers.forEach(t => {
+      const avg=tickers.filter(u=>u!==t).reduce((s,u)=>s+(corrMx[t][u]||0),0)/(tickers.length-1);
+      if (avg>best) { best=avg; start=t; }
+    });
+    const visited=new Set([start]), ordered=[start];
+    while (ordered.length < tickers.length) {
+      const last=ordered[ordered.length-1];
+      let bestC=-Infinity, next=null;
+      tickers.forEach(t => { if(!visited.has(t)&&(corrMx[last][t]||0)>bestC){ bestC=corrMx[last][t]||0; next=t; } });
+      if (next) { ordered.push(next); visited.add(next); }
+    }
+    return ordered;
+  }
+  const heatTickers = clusterOrder(rawHeat);
+
+  if (heatTickers.length < 2) {
+    document.getElementById('corrHeatmap').innerHTML =
+      '<span style="font-size:10px;color:var(--muted)">Need price history for at least 2 tickers</span>';
+  } else {
+    const N=heatTickers.length;
+    const CELL=Math.max(26,Math.min(44,Math.floor(540/(N+2))));
+    const valFs=Math.max(6,Math.min(8,Math.floor(CELL*0.24)));   // cell values: small
+    const tickFs=Math.max(10,Math.min(13,Math.floor(CELL*0.4))); // ticker labels: larger
+    let html=`<div style="overflow-x:auto"><table style="border-collapse:collapse">`;
+    html+=`<tr><td style="min-width:58px"></td>`;
+    heatTickers.forEach(t =>
+      html+=`<td style="width:${CELL}px;text-align:center;color:var(--cyan);padding:3px 1px;font-size:${tickFs}px;font-family:monospace;white-space:nowrap">${t}</td>`
+    );
+    html+='</tr>';
+    heatTickers.forEach(rowT => {
+      html+=`<tr><td style="color:var(--cyan);font-family:monospace;padding:1px 8px 1px 0;text-align:right;font-size:${tickFs}px;white-space:nowrap">${rowT}</td>`;
+      heatTickers.forEach(colT => {
+        const c=corrMx[rowT][colT];
+        const txtCol=c!==null&&Math.abs(c)>0.45?'#fff':'#607888';
+        html+=`<td style="width:${CELL}px;height:${CELL}px;background:${corrBg(c)};text-align:center;vertical-align:middle;color:${txtCol};font-size:${valFs}px;border:1px solid #07090f">${c!==null?c.toFixed(2):'—'}</td>`;
+      });
+      html+='</tr>';
+    });
+    html+='</table></div>';
+    document.getElementById('corrHeatmap').innerHTML=html;
+  }
+
+  // ── ROW 3 RIGHT: Biggest Movers with period toggle ──
+  if (!state.researchPeriod) state.researchPeriod = '1M';
+
+  function renderMovers(period) {
+    state.researchPeriod = period;
+    const days = { '1W':7, '1M':30, '3M':90, '6M':180, '1Y':365 }[period] || 30;
+    const rows = positions.map(pos => {
+      const p   = state.prices[pos.ticker] || {};
+      const price = pos.manualPrice || p.price;
+      const hist  = state.prices[pos.ticker]?.raw?.history;
+      const ret   = lookbackReturn(hist, price, days);
+      return { ticker: pos.ticker, ret };
+    }).filter(x => x.ret !== null).sort((a,b) => Math.abs(b.ret)-Math.abs(a.ret));
+    const maxA = Math.max(...rows.map(m=>Math.abs(m.ret)), 1);
+    document.getElementById('moversBreakdown').innerHTML = rows.map(m =>
+      `<div style="display:flex;align-items:center;gap:8px;padding:4px 0;border-bottom:1px solid var(--border)">
+        <span class="ticker" style="width:56px">${m.ticker}</span>
+        <div style="flex:1;height:4px;background:var(--bg3);border-radius:2px">
+          <div style="height:100%;border-radius:2px;width:${(Math.abs(m.ret)/maxA*100).toFixed(1)}%;background:${gradeColor(m.ret)}"></div>
+        </div>
+        <span style="font-weight:500;width:52px;text-align:right;font-size:10px;color:${gradeColor(m.ret)}">${m.ret>=0?'+':''}${fmt1(m.ret)}%</span>
+      </div>`
+    ).join('') || '<span style="color:var(--muted);font-size:10px">Refresh prices to see movers</span>';
+    // highlight active button
+    ['1W','1M','3M','6M','1Y'].forEach(p2 => {
+      const b = document.getElementById('mvrBtn_'+p2);
+      if (b) b.style.cssText = b.style.cssText.replace(/background:[^;]+/,
+        `background:${p2===period?'var(--accent)':'var(--bg3)'}`);
+    });
+  }
+
+  // Period buttons
+  document.getElementById('moversPeriodBtns').innerHTML = ['1W','1M','3M','6M','1Y'].map(p =>
+    `<button id="mvrBtn_${p}" onclick="window._researchMovers('${p}')"
+      style="padding:2px 8px;font-size:9px;border:1px solid var(--border);border-radius:3px;cursor:pointer;
+             background:${p===state.researchPeriod?'var(--accent)':'var(--bg3)'};color:var(--fg)">${p}</button>`
+  ).join('');
+  window._researchMovers = renderMovers;
+  renderMovers(state.researchPeriod);
+}
+
+// ═══════════════════════════════════════════
+// MODAL / CRUD
+// ═══════════════════════════════════════════
+
+function openAddModal() {
+  state.editId = null;
+  document.getElementById('modalTitle').textContent = 'Add Position';
+  document.getElementById('deleteBtn').style.display = 'none';
+  ['fTicker','fEntries','fExits','fHighs','fThesis','fRule','fNotes'].forEach(id => document.getElementById(id).value = '');
+  document.getElementById('fCategory').value = 'long';
+  document.getElementById('fPrice').value = '';
+  document.getElementById('modalOverlay').classList.add('open');
+  document.getElementById('fTicker').focus();
+}
+
+function openEditModal(id) {
+  const pos = state.positions.find(p => p.id === id);
+  if (!pos) return;
+  state.editId = id;
+  document.getElementById('modalTitle').textContent = `Edit — ${pos.ticker}`;
+  document.getElementById('deleteBtn').style.display = 'inline-block';
+  document.getElementById('fTicker').value = pos.ticker;
+  document.getElementById('fCategory').value = pos.category || 'long';
+  document.getElementById('fEntries').value = pos.entries || '';
+  document.getElementById('fExits').value = pos.exits || '';
+  document.getElementById('fHighs').value = pos.manualHighs || '';
+  document.getElementById('fThesis').value = pos.thesis || '';
+  document.getElementById('fRule').value = pos.rule || '';
+  document.getElementById('fNotes').value = pos.notes || '';
+  document.getElementById('fPrice').value = pos.manualPrice || '';
+  document.getElementById('modalOverlay').classList.add('open');
+}
+
+function closeModal() {
+  document.getElementById('modalOverlay').classList.remove('open');
+}
+
+function savePosition() {
+  const ticker = document.getElementById('fTicker').value.trim().toUpperCase();
+  if (!ticker) { showAlert('Ticker is required', 'error'); return; }
+
+  const pos = {
+    id: state.editId || ('pos_' + Date.now()),
+    ticker,
+    category: document.getElementById('fCategory').value,
+    entries: document.getElementById('fEntries').value.trim(),
+    exits: document.getElementById('fExits').value.trim(),
+    manualHighs: document.getElementById('fHighs').value.trim(),
+    thesis: document.getElementById('fThesis').value.trim(),
+    rule: document.getElementById('fRule').value.trim(),
+    notes: document.getElementById('fNotes').value.trim(),
+    manualPrice: parseFloat(document.getElementById('fPrice').value) || null,
+    updatedAt: new Date().toISOString()
+  };
+
+  if (state.editId) {
+    const i = state.positions.findIndex(p => p.id === state.editId);
+    if (i >= 0) state.positions[i] = pos;
+  } else {
+    state.positions.push(pos);
+  }
+
+  save();
+  closeModal();
+  renderAll();
+  showAlert(`${ticker} saved`, 'success');
+
+  // auto-fetch price for this ticker
+  fetchQuote(ticker).then(data => {
+    if (data.ok) {
+      const manualHighs = parseManualHighs(pos.manualHighs);
+      state.prices[ticker] = {
+        price: pos.manualPrice || data.price,
+        ath: manualHighs.ath || data.ath,
+        yr5: manualHighs.yr5 || data.yr5,
+        yr2: manualHighs.yr2 || data.yr2,
+        yr1: manualHighs.yr1 || data.yr1,
+        mo6: manualHighs.mo6 || data.mo6,
+        mo3: manualHighs.mo3 || data.mo3,
+        mo1: manualHighs.mo1 || data.mo1
+      };
+      save();
+      renderAll();
+    }
+  });
+
+  // populate deep dive select
+  populateDeepDiveSelect();
+}
+
+function deletePosition() {
+  if (!state.editId) return;
+  const pos = state.positions.find(p => p.id === state.editId);
+  if (!confirm(`Delete ${pos?.ticker}?`)) return;
+  state.positions = state.positions.filter(p => p.id !== state.editId);
+  delete state.prices[pos?.ticker];
+  save();
+  closeModal();
+  renderAll();
+  showAlert(`${pos?.ticker} deleted`, 'success');
+}
+
+function selectPosition(id) {
+  document.querySelectorAll('tbody tr').forEach(r => r.classList.remove('selected'));
+  const row = document.getElementById('row-' + id);
+  if (row) row.classList.add('selected');
+  const pos = state.positions.find(p => p.id === id);
+  if (pos) {
+    switchTab('deepdive');
+    renderDeepDive(pos.ticker);
+  }
+}
+
+// ═══════════════════════════════════════════
+// EXPORT / IMPORT
+// ═══════════════════════════════════════════
+
+function exportJSON() {
+  const data = {
+    exportedAt: new Date().toISOString(),
+    positions: state.positions,
+    prices: state.prices,
+    powderConfig
+  };
+  const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `signaldesk-${new Date().toISOString().split('T')[0]}.json`;
+  a.click();
+  showAlert('Exported successfully', 'success');
+}
+
+function importJSON(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    try {
+      const d = JSON.parse(e.target.result);
+      if (d.positions) state.positions = d.positions;
+      if (d.prices) state.prices = d.prices;
+      if (d.powderConfig) {
+        powderConfig = d.powderConfig;
+        localStorage.setItem(POWDER_KEY, JSON.stringify(powderConfig));
+      }
+      state.lastRefresh = d.prices ? new Date().toISOString() : null;
+      save();
+      renderAll();
+      showAlert('Import successful', 'success');
+    } catch(err) {
+      showAlert('Import failed: invalid JSON', 'error');
+    }
+  };
+  reader.readAsText(file);
+  event.target.value = '';
+}
+
+function importTransactionsCSV(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    const lines = e.target.result.split('\n').map(l => l.trim()).filter(Boolean);
+    if (lines.length < 2) { showAlert('Empty or invalid CSV', 'error'); return; }
+
+    let created = 0, updated = 0, skipped = 0;
+    const newTickers = new Set();
+
+    for (let i = 1; i < lines.length; i++) {
+      const cols = lines[i].split(',');
+      if (cols.length < 5) { skipped++; continue; }
+
+      const dateRaw = cols[0]?.trim();
+      const action  = cols[1]?.trim();
+      const symbol  = cols[2]?.trim().toUpperCase();
+      const qty     = parseInt(cols[3]?.trim());
+      const price   = parseFloat(cols[4]?.trim().replace(/[$,]/g, ''));
+
+      if (action !== 'Buy' && action !== 'Sell') { skipped++; continue; }
+      if (!symbol || !qty || isNaN(price)) { skipped++; continue; }
+
+      // convert MM/DD/YYYY -> YYYY-MM-DD
+      const dp = dateRaw.split('/');
+      const dateStr = dp.length === 3
+        ? `${dp[2]}-${dp[0].padStart(2,'0')}-${dp[1].padStart(2,'0')}`
+        : null;
+
+      const entryStr = dateStr ? `${dateStr}:${price}x${qty}` : `${price}x${qty}`;
+
+      let pos = state.positions.find(p => p.ticker === symbol);
+      if (!pos) {
+        pos = {
+          id: 'pos_' + Date.now() + '_' + Math.random().toString(36).slice(2),
+          ticker: symbol,
+          category: 'long',
+          entries: '',
+          exits: '',
+          manualHighs: '',
+          thesis: '',
+          rule: '',
+          notes: '',
+          manualPrice: null,
+          updatedAt: new Date().toISOString()
+        };
+        state.positions.push(pos);
+        newTickers.add(symbol);
+        created++;
+      } else {
+        updated++;
+      }
+
+      if (action === 'Buy') {
+        pos.entries = pos.entries ? pos.entries + ',' + entryStr : entryStr;
+      } else {
+        pos.exits = pos.exits ? pos.exits + ',' + entryStr : entryStr;
+      }
+      pos.updatedAt = new Date().toISOString();
+    }
+
+    save();
+    renderAll();
+    showAlert(`Transactions imported: ${created} new position${created!==1?'s':''}, ${updated} updated, ${skipped} skipped`, 'success');
+
+    // auto-fetch prices for any newly created tickers
+    if (newTickers.size > 0) {
+      Promise.allSettled([...newTickers].map(t => fetchQuote(t))).then(results => {
+        [...newTickers].forEach((t, i) => {
+          const r = results[i];
+          if (r.status === 'fulfilled' && r.value.ok) {
+            const data = r.value;
+            state.prices[t] = {
+              price: data.price, ath: data.ath, yr5: data.yr5, yr2: data.yr2,
+              yr1: data.yr1, mo6: data.mo6, mo3: data.mo3, mo1: data.mo1
+            };
+          }
+        });
+        save();
+        renderAll();
+      });
+    }
+  };
+  reader.readAsText(file);
+  event.target.value = '';
+}
+
+// ═══════════════════════════════════════════
+// UI HELPERS
+// ═══════════════════════════════════════════
+
+function switchTab(name) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+  document.querySelector(`.tab[onclick="switchTab('${name}')"]`).classList.add('active');
+  document.getElementById('view-' + name).classList.add('active');
+  localStorage.setItem('signaldesk_tab', name);
+  if (name === 'powder') renderPowder();
+  if (name === 'summary') renderSummary();
+  if (name === 'research') renderResearch();
+  if (name === 'deepdive') populateDeepDiveSelect();
+}
+
+function populateDeepDiveSelect() {
+  const sel = document.getElementById('deepDiveSelect');
+  const cur = sel.value;
+  sel.innerHTML = '<option value="">— Select ticker —</option>' +
+    [...state.positions].sort((a,b) => a.ticker.localeCompare(b.ticker))
+      .map(p => `<option value="${p.id}" ${p.id === cur ? 'selected' : ''}>${p.ticker}</option>`).join('');
+}
+
+function showAlert(msg, type) {
+  const el = document.getElementById('alertBar');
+  el.textContent = msg;
+  el.className = 'alert-bar ' + type;
+  setTimeout(() => el.className = 'alert-bar', 3000);
+}
+
+function updateClock() {
+  const el = document.getElementById('headerTime');
+  if (el) el.textContent = new Date().toLocaleTimeString('en-US', { hour12: false }) + ' LOCAL';
+}
+
+// ── Rotating header ticker ──
+const _HT_TICKERS = [
+  { key: '__SPY__', label: 'SPY',  fmt: p => '$' + p.toFixed(2),        invert: false },
+  { key: '__VIX__', label: 'VIX',  fmt: p => p.toFixed(2),              invert: true  },
+  { key: '__TNX__', label: 'TNX',  fmt: p => p.toFixed(2) + '%',        invert: true  },
+  { key: '__OIL__', label: 'OIL',  fmt: p => '$' + p.toFixed(2),        invert: false },
+];
+let _htIdx = 0;
+
+function renderHeaderTicker() {
+  const t   = _HT_TICKERS[_htIdx];
+  const dat = state.prices[t.key];
+  const labelEl = document.getElementById('htLabel');
+  const priceEl = document.getElementById('htPrice');
+  const chgEl   = document.getElementById('htChg');
+  if (!labelEl) return;
+
+  labelEl.textContent = t.label;
+
+  if (!dat?.price) {
+    priceEl.textContent = '—';
+    chgEl.textContent   = '';
+    chgEl.style.color   = 'var(--muted)';
+  } else {
+    priceEl.textContent = t.fmt(dat.price);
+    // 1-month change: drop from mo1 high (always ≤ 0) or positive if price > mo1
+    if (dat.mo1) {
+      const chg = ((dat.price - dat.mo1) / dat.mo1) * 100;
+      const col = t.invert ? gradeColor(-chg) : gradeColor(chg);
+      chgEl.textContent = (chg >= 0 ? '▲' : '▼') + Math.abs(chg).toFixed(1) + '% 1M';
+      chgEl.style.color = col;
+    } else {
+      chgEl.textContent = '';
+    }
+  }
+
+  // update dots
+  _HT_TICKERS.forEach((_, i) => {
+    const d = document.getElementById('htDot' + i);
+    if (d) d.classList.toggle('active', i === _htIdx);
+  });
+}
+
+function rotateHeaderTicker() {
+  const el = document.getElementById('headerTicker');
+  if (!el) return;
+  el.classList.add('fading');
+  setTimeout(() => {
+    _htIdx = (_htIdx + 1) % _HT_TICKERS.length;
+    renderHeaderTicker();
+    el.classList.remove('fading');
+  }, 220);
+}
+
+function fmt1(n) { return n !== null && !isNaN(n) ? parseFloat(n).toFixed(1) : '—'; }
+function fmt2(n) { return n !== null && !isNaN(n) ? parseFloat(n).toFixed(2) : '—'; }
+function fmt0(n) { return n !== null && !isNaN(n) ? Math.round(n).toLocaleString() : '—'; }
+
+function renderAll() {
+  renderDashboard();
+  populateDeepDiveSelect();
+}
+
+// ═══════════════════════════════════════════
+// KEYBOARD
+// ═══════════════════════════════════════════
+
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') {
+    closeModal();
+    document.getElementById('detailPanel').classList.remove('open');
+  }
+  if ((e.metaKey || e.ctrlKey) && e.key === 'r') { e.preventDefault(); refreshPrices(); }
+});
+
+// ═══════════════════════════════════════════
+// INIT
+// ═══════════════════════════════════════════
+
+load();
+renderAll();
+renderPowder();
+setRefreshStatus(state.lastRefresh ? 'ok' : 'stale');
+// Restore last active tab
+const _savedTab = localStorage.getItem('signaldesk_tab');
+if (_savedTab && _savedTab !== 'dashboard') switchTab(_savedTab);
+setInterval(updateClock, 1000);
+setInterval(rotateHeaderTicker, 3500);
+updateClock();
+renderHeaderTicker();
+
+// seed with some of your known positions if empty
+if (state.positions.length === 0) {
+  const seed = [
+    { ticker: 'GOOGL', category: 'long', entries: '', thesis: '', rule: '' },
+    { ticker: 'NVDA', category: 'long', entries: '', thesis: '', rule: '' },
+    { ticker: 'MSFT', category: 'long', entries: '', thesis: '', rule: '' },
+    { ticker: 'META', category: 'long', entries: '', thesis: '', rule: '' },
+    { ticker: 'GTLB', category: 'spec', entries: '', thesis: 'Consistently undervalued; agentic CI/CD demand thesis', rule: 'Max $1500 total. Stop at $15. Take half off at $35.' },
+    { ticker: 'DAL', category: 'spec', entries: '', thesis: '', rule: '' },
+  ];
+  // just pre-populate tickers, no entries, user fills in
+  // actually leave empty for real first use - just show empty state
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,341 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Life Tracker - Portable</title>
+    <!-- React & ReactDOM -->
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
+    <!-- Babel for JSX -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js" crossorigin></script>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js" crossorigin></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'ui-sans-serif', 'system-ui', 'sans-serif'],
+                        mono: ['JetBrains Mono', 'ui-monospace', 'SFMono-Regular', 'monospace'],
+                    },
+                },
+            },
+        }
+    </script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
+        
+        body { 
+            font-family: 'Inter', ui-sans-serif, system-ui, sans-serif;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+
+        /* Ensure mono font is applied correctly */
+        .font-mono {
+            font-family: 'JetBrains Mono', ui-monospace, SFMono-Regular, monospace !important;
+        }
+
+        input[type="date"]::-webkit-calendar-picker-indicator { cursor: pointer; }
+    </style>
+</head>
+<body class="bg-[#f8f9fa] text-[#1a1a1a] antialiased">
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect, useRef } = React;
+
+        const EVENT_TYPES = [
+            { label: 'Haircut', icon: 'scissors', color: 'bg-blue-100 text-blue-700' },
+            { label: 'Doctor', icon: 'stethoscope', color: 'bg-red-100 text-red-700' },
+            { label: 'Dentist', icon: 'stethoscope', color: 'bg-green-100 text-green-700' },
+            { label: 'Vet', icon: 'dog', color: 'bg-orange-100 text-orange-700' },
+            { label: 'Car', icon: 'car', color: 'bg-purple-100 text-purple-700' },
+            { label: 'Eye', icon: 'eye', color: 'bg-teal-100 text-teal-700' },
+            { label: 'Other', icon: 'calendar', color: 'bg-gray-100 text-gray-700' },
+        ];
+
+        const DEFAULT_REMINDERS = [
+            { type: 'Haircut', intervalMonths: 1.5, enabled: true },
+            { type: 'Dentist', intervalMonths: 6, enabled: true },
+            { type: 'Car', intervalMonths: 3, enabled: true },
+            { type: 'Doctor', intervalMonths: 12, enabled: true },
+            { type: 'Eye', intervalMonths: 12, enabled: true },
+        ];
+
+        // Icon Component Helper
+        const Icon = ({ name, size = 20, className = "" }) => {
+            const iconRef = useRef(null);
+            
+            useEffect(() => {
+                if (iconRef.current && window.lucide) {
+                    // Create a fresh icon element
+                    const iconElement = document.createElement('i');
+                    iconElement.setAttribute('data-lucide', name);
+                    
+                    // Clear and append
+                    iconRef.current.innerHTML = '';
+                    iconRef.current.appendChild(iconElement);
+                    
+                    // Use the built-in createIcons to transform the <i> into an <svg>
+                    window.lucide.createIcons({
+                        attrs: {
+                            'stroke-width': 2,
+                            'stroke': 'currentColor',
+                            'width': size,
+                            'height': size,
+                            'class': className
+                        }
+                    });
+                }
+            }, [name, size, className]);
+            
+            return <span ref={iconRef} className={`inline-flex items-center justify-center ${className}`} style={{ width: size, height: size }}></span>;
+        };
+
+        function App() {
+            const [events, setEvents] = useState([]);
+            const [reminders, setReminders] = useState(DEFAULT_REMINDERS);
+            const [isAdding, setIsAdding] = useState(false);
+            const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+            const [searchTerm, setSearchTerm] = useState('');
+            const [filterType, setFilterType] = useState('All');
+            
+            const [newType, setNewType] = useState(EVENT_TYPES[0].label);
+            const [newDate, setNewDate] = useState(new Date().toISOString().split('T')[0]);
+            const [newNote, setNewNote] = useState('');
+
+            const fileInputRef = useRef(null);
+
+            useEffect(() => {
+                const savedEvents = localStorage.getItem('life-tracker-events');
+                if (savedEvents) setEvents(JSON.parse(savedEvents));
+                const savedReminders = localStorage.getItem('life-tracker-reminders');
+                if (savedReminders) setReminders(JSON.parse(savedReminders));
+            }, []);
+
+            useEffect(() => {
+                localStorage.setItem('life-tracker-events', JSON.stringify(events));
+                localStorage.setItem('life-tracker-reminders', JSON.stringify(reminders));
+            }, [events, reminders]);
+
+            const addEvent = (e) => {
+                e.preventDefault();
+                const event = {
+                    id: Date.now().toString(),
+                    type: newType,
+                    date: newDate,
+                    note: newNote,
+                };
+                setEvents([event, ...events]);
+                setIsAdding(false);
+                setNewNote('');
+            };
+
+            const deleteEvent = (id) => {
+                if(confirm("Delete this entry?")) {
+                    setEvents(events.filter(e => e.id !== id));
+                }
+            };
+
+            const exportData = () => {
+                const data = JSON.stringify({ events, reminders }, null, 2);
+                const blob = new Blob([data], { type: 'application/json' });
+                const url = URL.createObjectURL(blob);
+                const link = document.createElement('a');
+                link.href = url;
+                link.download = `life-tracker-backup-${new Date().toISOString().split('T')[0]}.json`;
+                link.click();
+            };
+
+            const handleImport = (e) => {
+                const file = e.target.files[0];
+                if (!file) return;
+                const reader = new FileReader();
+                reader.onload = (ev) => {
+                    const json = JSON.parse(ev.target.result);
+                    if (json.events) {
+                        setEvents(json.events);
+                        if (json.reminders) setReminders(json.reminders);
+                    } else if (Array.isArray(json)) {
+                        setEvents(json);
+                    }
+                };
+                reader.readAsText(file);
+            };
+
+            const calculateNextDue = (type) => {
+                const config = reminders.find(r => r.type === type);
+                if (!config || !config.enabled) return null;
+                const typeEvents = events.filter(e => e.type === type);
+                if (typeEvents.length === 0) return null;
+                const lastEvent = typeEvents.sort((a, b) => new Date(b.date) - new Date(a.date))[0];
+                const nextDate = new Date(lastEvent.date);
+                nextDate.setMonth(nextDate.getMonth() + Math.floor(config.intervalMonths));
+                nextDate.setDate(nextDate.getDate() + Math.floor((config.intervalMonths % 1) * 30));
+                return nextDate;
+            };
+
+            const dueReminders = reminders
+                .filter(r => r.enabled)
+                .map(r => ({ ...r, nextDue: calculateNextDue(r.type) }))
+                .filter(r => r.nextDue !== null)
+                .sort((a, b) => a.nextDue - b.nextDue);
+
+            const filteredEvents = events
+                .filter(e => filterType === 'All' || e.type === filterType)
+                .filter(e => e.type.toLowerCase().includes(searchTerm.toLowerCase()) || e.note.toLowerCase().includes(searchTerm.toLowerCase()))
+                .sort((a, b) => new Date(b.date) - new Date(a.date));
+
+            return (
+                <div className="min-h-screen p-4 md:p-8">
+                    <div className="max-w-3xl mx-auto">
+                        <header className="flex justify-between items-center mb-10">
+                            <div>
+                                <h1 className="text-4xl font-light tracking-tight">Life Tracker</h1>
+                                <p className="text-sm text-gray-500 mt-1 font-medium opacity-60">Portable Edition</p>
+                            </div>
+                            <div className="flex gap-1">
+                                <button onClick={() => setIsSettingsOpen(true)} className="p-2.5 rounded-full hover:bg-white hover:shadow-sm text-gray-400 hover:text-gray-900"><Icon name="settings" size={22} /></button>
+                                <button onClick={() => fileInputRef.current.click()} className="p-2.5 rounded-full hover:bg-white hover:shadow-sm text-gray-400 hover:text-gray-900"><Icon name="upload" size={22} /></button>
+                                <button onClick={exportData} className="p-2.5 rounded-full hover:bg-white hover:shadow-sm text-gray-400 hover:text-gray-900"><Icon name="download" size={22} /></button>
+                                <input type="file" ref={fileInputRef} onChange={handleImport} className="hidden" accept=".json" />
+                            </div>
+                        </header>
+
+                        {dueReminders.length > 0 && (
+                            <div className="mb-10 space-y-3">
+                                <h2 className="text-xs font-bold text-gray-400 uppercase tracking-widest ml-1">Upcoming & Due</h2>
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                    {dueReminders.slice(0, 4).map(reminder => {
+                                        const isOverdue = reminder.nextDue < new Date();
+                                        const typeInfo = EVENT_TYPES.find(t => t.label === reminder.type) || EVENT_TYPES[6];
+                                        return (
+                                            <div key={reminder.type} className={`flex items-center gap-3 p-4 rounded-2xl border ${isOverdue ? 'bg-red-50 border-red-100' : 'bg-white border-gray-100 shadow-sm'}`}>
+                                                <div className={`p-2 rounded-xl ${typeInfo.color}`}><Icon name="bell" size={16} /></div>
+                                                <div className="flex-1 min-w-0">
+                                                    <p className="text-sm font-bold">{reminder.type}</p>
+                                                    <p className={`text-xs ${isOverdue ? 'text-red-600 font-semibold' : 'text-gray-500'}`}>
+                                                        {isOverdue ? 'Overdue since ' : 'Due '}
+                                                        {reminder.nextDue.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}
+                                                    </p>
+                                                </div>
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                            </div>
+                        )}
+
+                        <div className="flex flex-col md:flex-row gap-3 mb-12">
+                            <div className="relative flex-1">
+                                <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400"><Icon name="search" size={18} /></span>
+                                <input type="text" placeholder="Search..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="w-full pl-11 pr-4 py-3 bg-white rounded-2xl shadow-sm border border-gray-100 outline-none" />
+                            </div>
+                            <div className="relative">
+                                <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400"><Icon name="filter" size={18} /></span>
+                                <select value={filterType} onChange={(e) => setFilterType(e.target.value)} className="appearance-none pl-11 pr-12 py-3 bg-white rounded-2xl shadow-sm border border-gray-100 outline-none cursor-pointer font-medium w-full md:w-auto">
+                                    <option value="All">All Types</option>
+                                    {EVENT_TYPES.map(t => <option key={t.label} value={t.label}>{t.label}</option>)}
+                                </select>
+                            </div>
+                            <button onClick={() => setIsAdding(true)} className="bg-[#1a1a1a] text-white px-6 py-3 rounded-2xl shadow-lg hover:bg-gray-800 active:scale-[0.98] transition-all flex items-center justify-center gap-2 font-bold whitespace-nowrap">
+                                <Icon name="plus" size={20} /> Add Event
+                            </button>
+                        </div>
+
+                        <div className="space-y-3">
+                            <h2 className="text-xs font-bold text-gray-400 uppercase tracking-widest ml-1 mb-4">History</h2>
+                            {filteredEvents.length === 0 ? (
+                                <div className="w-full text-center py-20 bg-white rounded-[32px] border border-dashed border-gray-200 text-gray-400">No events found</div>
+                            ) : (
+                                filteredEvents.map((event) => {
+                                    const typeInfo = EVENT_TYPES.find(t => t.label === event.type) || EVENT_TYPES[6];
+                                    return (
+                                        <div key={event.id} className="group flex items-center gap-4 bg-white px-5 py-1.5 rounded-2xl shadow-sm border border-gray-100 hover:shadow-md transition-all w-full">
+                                            <div className={`p-1.5 rounded-xl ${typeInfo.color}`}><Icon name={typeInfo.icon} size={18} /></div>
+                                            <div className="flex flex-1 items-center justify-between min-w-0">
+                                                <div className="flex items-center gap-4 min-w-0">
+                                                    <span className="font-bold text-sm">{event.type}</span>
+                                                    {event.note && <span className="text-xs text-gray-500 truncate max-w-[600px] italic border-l border-gray-200 pl-4 hidden sm:block">{event.note}</span>}
+                                                </div>
+                                                <div className="flex items-center gap-4">
+                                                    <span className="text-xs text-gray-400 font-mono bg-gray-50 px-3 py-0.5 rounded-lg">
+                                                        {new Date(event.date.replace(/-/g, '/')).toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' })}
+                                                    </span>
+                                                    <button onClick={() => deleteEvent(event.id)} className="p-1.5 text-gray-200 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity"><Icon name="trash-2" size={16} /></button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    );
+                                })
+                            )}
+                        </div>
+
+                        {/* Modals (Simplified for Portable) */}
+                        {isAdding && (
+                            <div className="fixed inset-0 bg-black/40 backdrop-blur-md z-50 flex items-center justify-center p-4">
+                                <div className="bg-white rounded-[40px] shadow-2xl w-full max-w-md p-10 relative">
+                                    <button onClick={() => setIsAdding(false)} className="absolute top-6 right-6 p-2 text-gray-400 hover:text-gray-900"><Icon name="x" size={24} /></button>
+                                    <h2 className="text-3xl font-light mb-8">New Entry</h2>
+                                    <form onSubmit={addEvent} className="space-y-8">
+                                        <div className="grid grid-cols-4 gap-3">
+                                            {EVENT_TYPES.map(t => (
+                                                <button key={t.label} type="button" onClick={() => setNewType(t.label)} className={`flex flex-col items-center p-4 rounded-2xl border-2 ${newType === t.label ? 'border-black bg-gray-50' : 'border-transparent bg-gray-50'}`}>
+                                                    <Icon name={t.icon} size={22} className={newType === t.label ? 'text-black' : 'text-gray-400'} />
+                                                    <span className="text-[10px] mt-2 font-bold">{t.label}</span>
+                                                </button>
+                                            ))}
+                                        </div>
+                                        <input type="date" required value={newDate} onChange={(e) => setNewDate(e.target.value)} className="w-full p-4 bg-gray-50 rounded-2xl outline-none font-medium" />
+                                        <textarea placeholder="Notes..." value={newNote} onChange={(e) => setNewNote(e.target.value)} className="w-full p-4 bg-gray-50 rounded-2xl outline-none min-h-[120px] resize-none font-medium" />
+                                        <button type="submit" className="w-full py-4 bg-black text-white rounded-2xl font-bold text-lg">Save Entry</button>
+                                    </form>
+                                </div>
+                            </div>
+                        )}
+
+                        {isSettingsOpen && (
+                            <div className="fixed inset-0 bg-black/40 backdrop-blur-md z-50 flex items-center justify-center p-4">
+                                <div className="bg-white rounded-[40px] shadow-2xl w-full max-w-lg p-10 max-h-[90vh] overflow-y-auto relative">
+                                    <button onClick={() => setIsSettingsOpen(false)} className="absolute top-6 right-6 p-2 text-gray-400 hover:text-gray-900"><Icon name="x" size={24} /></button>
+                                    <h2 className="text-3xl font-light mb-2">Auto-Reminders</h2>
+                                    <div className="space-y-6 mt-8">
+                                        {reminders.map(reminder => {
+                                            const typeInfo = EVENT_TYPES.find(t => t.label === reminder.type) || EVENT_TYPES[6];
+                                            return (
+                                                <div key={reminder.type} className="flex items-center gap-4 bg-gray-50 p-5 rounded-3xl">
+                                                    <div className={`p-3 rounded-2xl ${typeInfo.color}`}><Icon name={typeInfo.icon} size={20} /></div>
+                                                    <div className="flex-1">
+                                                        <div className="flex justify-between items-center mb-2">
+                                                            <span className="font-bold">{reminder.type}</span>
+                                                            <button onClick={() => setReminders(prev => prev.map(r => r.type === reminder.type ? {...r, enabled: !r.enabled} : r))} className={`w-12 h-6 rounded-full relative transition-all ${reminder.enabled ? 'bg-black' : 'bg-gray-300'}`}>
+                                                                <div className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-all ${reminder.enabled ? 'left-7' : 'left-1'}`} />
+                                                            </button>
+                                                        </div>
+                                                        <div className="flex items-center gap-3">
+                                                            <input type="number" step="0.5" value={reminder.intervalMonths} onChange={(e) => setReminders(prev => prev.map(r => r.type === reminder.type ? {...r, intervalMonths: parseFloat(e.target.value) || 0} : r))} className="w-20 p-2 bg-white rounded-xl text-center font-bold" />
+                                                            <span className="text-xs font-bold text-gray-400">Months</span>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
+                                    <button onClick={() => setIsSettingsOpen(false)} className="w-full py-4 bg-black text-white rounded-2xl font-bold mt-10">Done</button>
+                                </div>
+                            </div>
+                        )}
+                    </div>
+                </div>
+            );
+        }
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>
