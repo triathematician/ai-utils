@@ -1158,9 +1158,11 @@ document.getElementById('ni-toggle').addEventListener('click', ()=>{
     toggle.textContent = '[-NI] hide not-important';
     toggle.style.color = 'var(--fg)';
   } else {
+    ni.classList.add('ni-hidden');
     toggle.textContent = '[+NI] show not-important';
     toggle.style.color = 'var(--dim)';
   }
+  renderMatrix();
 });
 // Start hidden
 document.getElementById('q-ni').classList.add('ni-hidden');
