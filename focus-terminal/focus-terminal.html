@@ -294,7 +294,7 @@ html, body {
 #matrix-header {
   padding: 4px 8px;
   color: var(--accent);
-  font-size: 0.75em;
+  font-size: 0.8em;
   letter-spacing: 2px;
   border-bottom: 1px solid var(--muted);
   display: flex;
@@ -867,7 +867,12 @@ const Q_SEQUENCES = [
 ];
 
 function initBoot(editMode=false) {
-  if (!db.today || db.today.date !== todayStr()) {
+  if (db.today && db.today.date !== todayStr()) {
+    db.history.push({...db.today});
+    db.today = null;
+    saveDB();
+  }
+  if (!db.today) {
     db.today = {
       date: todayStr(),
       dayType: guessDefaultDayType(),
@@ -1513,10 +1518,27 @@ function handleConsoleCmd(raw) {
   const parts = low.split(/\s+/);
   const cmd = parts[0];
 
+  if (pendingConfirm) {
+    const action = pendingConfirm;
+    pendingConfirm = null;
+    if (inp === 'YES') {
+      if (action === 'archive') { doArchiveDay(); return; }
+      if (action === 'boot')    { initBoot(false); return; }
+    } else {
+      statusMsg('Cancelled.');
+      return;
+    }
+  }
+
   if (cmd==='/help') {
     showHelp(); return;
   }
   if (cmd==='/boot'||cmd==='/start') {
+    if (db.today && db.today.date === todayStr()) {
+      pendingConfirm = 'boot';
+      statusMsg("A session already exists for today. Type YES to re-run boot, anything else to cancel.");
+      return;
+    }
     initBoot(false); return;
   }
   if (cmd==='/edit') {
@@ -1592,9 +1614,15 @@ document.addEventListener('keydown', e => {
   if (document.getElementById('help-overlay').style.display !== 'none' && e.key === 'Escape') closeHelp();
 });
 
+let pendingConfirm = null;
+
 function archiveDay() {
   if (!db.today) { statusMsg('No active session.'); return; }
-  if (!confirm('Archive today and start fresh?')) return;
+  pendingConfirm = 'archive';
+  statusMsg('Archive today and start fresh? Type YES to confirm, anything else to cancel.');
+}
+
+function doArchiveDay() {
   db.history.push({...db.today});
   db.today = null;
   saveDB();
