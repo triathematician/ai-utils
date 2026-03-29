@@ -15,7 +15,7 @@ ai-utils/
     terminal-web-template.html  ← copy-me template for new terminal-web apps
     soft-utility.md             ← soft-utility design category (placeholder)
     signal-grid.md              ← signal-grid design category (placeholder)
-    design-canvas.md            ← design-canvas design category (placeholder)
+    design-canvas.md            ← design-canvas design category guidelines
   apps/
     appt-tracker/                 ← LIFE TRACKER: appointments and life events
     chronos/                      ← CHRONOS: timeline and event tracking
@@ -60,12 +60,14 @@ Dashboard-style apps for monitoring, signals, and data grids. No style guideline
 
 ### design-canvas
 
-Visual design and layout tools with a canvas-style interaction model. No style guidelines yet.
+Precise, single-file visual layout and design tools with direct canvas interaction. Minimal chrome to maximise design space; the canvas is the primary interface. No build step — CDN libs only when genuinely needed. No persistence required unless the app truly needs it. Start from `display-wall/display-wall.html` and cherry-pick what you need; all guidelines are inspiration, adapt freely.
 
 **Apps in this category:**
 - `display-wall/display-wall.html` — DISPLAY WALL DESIGNER
 
-**Guidelines:** `docs/design-canvas.md` _(placeholder)_
+**To start a new design-canvas app:** copy `display-wall/display-wall.html`, strip to the skeleton (CSS vars, background texture, chrome), and build from there.
+
+**Guidelines:** `docs/design-canvas.md`
 
 ## One-off apps
 
