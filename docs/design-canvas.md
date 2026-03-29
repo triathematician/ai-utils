@@ -1,21 +1,21 @@
 # Design Canvas — UI Guidelines
 
-Guidelines for building **design-canvas** apps in this repo. Design-canvas is a design category: dark, precise, single-file visual layout and design tools with direct canvas interaction. No template — start from `display-wall/display-wall.html` and strip to what you need.
+Guidelines for building **design-canvas** apps in this repo. Design-canvas is a design category: precise, single-file visual layout and design tools with direct canvas interaction. No template — start from `display-wall/display-wall.html` and strip to what you need. All guidelines below are inspiration; adapt freely to the app's needs.
 
 ---
 
 ## Philosophy
 
-- **Visual-first.** The canvas is the primary interface. Controls and chrome are minimal, kept out of the way.
+- **Visual-first.** The canvas is the primary interface. Controls and chrome are minimal — keep them out of the way and maximise design space.
 - **Single HTML file.** No build step. External libs (e.g. Three.js) loaded via CDN only when genuinely needed.
-- **Dark precision aesthetic.** Near-black backgrounds, tight borders, monospace UI text, muted grid overlays. Feels like a pro tool.
+- **Precision aesthetic.** Tight borders, monospace UI text, muted grid overlays. The UI should feel like a pro tool, not a consumer app. Dark themes work well; use whatever palette fits.
 - **No persistence required.** State lives in memory. Use `localStorage` only if the app genuinely needs to survive page refresh.
 
 ---
 
 ## Color & Theme
 
-Single fixed dark theme — no theme switcher.
+`display-wall.html` uses a near-black dark palette as a starting point — adapt to taste:
 
 ```css
 :root {
@@ -24,7 +24,7 @@ Single fixed dark theme — no theme switcher.
   --surface2:     #161a22;   /* inset / cell backgrounds */
   --border:       #1e2330;   /* subtle borders */
   --border-bright:#2e3650;   /* hover / active borders */
-  --accent:       #4af0c8;   /* primary highlight (teal) */
+  --accent:       #4af0c8;   /* primary highlight */
   --accent3:      #f05c7b;   /* destructive / danger */
   --text:         #e8ecf5;   /* primary text */
   --text-dim:     #5a6380;   /* secondary text */
@@ -32,13 +32,13 @@ Single fixed dark theme — no theme switcher.
 }
 ```
 
-Teal (`--accent`) is the single interactive colour. Use `--accent3` only for destructive actions.
+Use a single accent color for interactive states and a second only for destructive actions. Minimal color — the design subject should be the visual focus, not the chrome.
 
 ---
 
 ## Background Texture
 
-Apply a faint grid overlay to the page via `body::before`:
+A faint grid overlay reinforces the precision aesthetic without distracting from the canvas content:
 
 ```css
 body::before {
@@ -50,45 +50,45 @@ body::before {
 }
 ```
 
+Adjust the grid color and opacity to suit your palette.
+
 ---
 
 ## Typography
 
-- **UI text:** `JetBrains Mono` — all labels, buttons, status, hints.
-- **Display / branding:** `Syne` (weight 700–800) — app name, section headers.
-- Load both from Google Fonts.
-- Tiny sizes throughout: labels at `7–9px`, buttons at `8px`, status at `9–10px`.
-- Use `letter-spacing: 0.1–0.3em` on uppercase labels.
+`display-wall.html` uses `JetBrains Mono` for all UI text and `Syne` (800) for the app name/branding — both via Google Fonts. The key vibes:
+
+- Tiny type — labels at `7–9px`, buttons at `8px`, status at `9–10px`. Let the canvas breathe.
+- `letter-spacing: 0.1–0.3em` on uppercase labels.
+- Monospace keeps the tool feel without being terminal-heavy.
+
+Swap fonts as needed; the small sizing and generous spacing matter more than the specific typeface.
 
 ---
 
 ## Layout
 
-Split the viewport into two equal halves (or adjust as needed):
+`display-wall.html` splits the viewport 50/50 between a 2D canvas area and a 3D preview — adjust proportions to suit:
 
 ```css
 --half: 50vh;
 #top-half { height: var(--half); }   /* 2D canvas / grid interaction */
-#bot-half  { height: var(--half); }  /* 3D preview or secondary canvas */
+#bot-half  { height: var(--half); }  /* 3D preview or secondary view */
 ```
 
 All interactive canvases use `position: absolute; inset: 0; width: 100%; height: 100%`. Recompute sizes on `window.resize` (debounce ~60 ms).
 
-### Top-half chrome
+### Chrome pattern
 
-```
-┌─ topbar: app name · dimensions · config summary ──────────┐
-│  canvas / grid area (fills available space)               │
-├─ bottombar: status text          [Action] [Danger Btn] ───┤
-│  hints strip: Drag — select  Ctrl+V — paste  …            │
-└───────────────────────────────────────────────────────────┘
-```
+Keep chrome compact — a narrow topbar, a bottombar for status/actions, and a hints strip. The canvas fills everything in between.
 
 ---
 
 ## Component Patterns
 
 ### Buttons
+
+Minimal — ghost style by default, accent color only on hover. Keep count low.
 
 ```css
 .btn {
@@ -152,11 +152,11 @@ Single `#ctx-menu` element, shown on `contextmenu` event. Dismiss on `click` or 
 
 ## Building a New App in This Ecosystem
 
-- [ ] Start from `display-wall/display-wall.html` — copy the CSS variables, background texture, fonts, and chrome skeleton
-- [ ] Keep a single fixed dark theme; do not add a theme switcher
-- [ ] Use `JetBrains Mono` for UI text, `Syne` for display headings
-- [ ] Split into two halves (`--half: 50vh`) or adapt proportions as needed
-- [ ] Implement `#toast` and `toast()` for all user feedback
+- [ ] Start from `display-wall/display-wall.html` — cherry-pick the CSS variables, background texture, fonts, and chrome you need
+- [ ] Adapt the color palette freely; keep accent usage minimal so the canvas stays the focus
+- [ ] Use tiny monospace type for all chrome; generous sizing on the canvas itself
+- [ ] Split into halves or adapt proportions — canvas fills the bulk of the viewport
+- [ ] Implement `#toast` and `toast()` for all user feedback — never `alert()`
 - [ ] Show keyboard shortcuts in a hints strip using `<kbd>` — never `title` attributes
 - [ ] Add rubber-band selection if the app has selectable items
 - [ ] Add `#ctx-menu` only if right-click actions add real value
