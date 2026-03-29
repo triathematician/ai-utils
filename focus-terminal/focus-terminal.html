@@ -1506,9 +1506,10 @@ function showHelp(title, lines) {
     '/add [text]      quick-add item to list',
     '/ni              toggle not-important quadrant',
     '/theme [name]    legacy | solar | monk | space | synth | dos',
-    '/backlog [text]  add item to backlog',
-    '/backlog list    show all backlog items',
-    '/backlog export  download backlog as .txt',
+    '/backlog [text]    add item to backlog',
+    '/backlog list      show all backlog items',
+    '/backlog done [n]  toggle item #n as done/open',
+    '/backlog export    download backlog as .txt',
     '/help            this help',
     '',
     'Click any item to open detail/edit popup.',
@@ -1550,15 +1551,25 @@ function quickAdd(text) {
 function handleBacklog(arg) {
   if (!arg || arg === 'list') {
     if (!db.backlog.length) { statusMsg('Backlog is empty.'); return; }
-    showHelp('BACKLOG', db.backlog.map((b,i)=>`${i+1}. ${b.text}`));
+    showHelp('BACKLOG', db.backlog.map((b,i)=>`${b.done?'[x]':'[ ]'} ${i+1}. ${b.text}`));
     return;
   }
   if (arg === 'export') {
     exportBacklog(); return;
   }
+  if (arg.startsWith('done ') || arg.startsWith('fix ')) {
+    const n = parseInt(arg.split(' ')[1]);
+    const item = db.backlog[n-1];
+    if (!item) { statusMsg(`No backlog item #${n}.`); return; }
+    item.done = !item.done;
+    saveDB();
+    statusMsg(`Backlog #${n} marked ${item.done ? 'done' : 'open'}: "${item.text}"`);
+    return;
+  }
   db.backlog.push({
     id: Date.now()+'_'+Math.random().toString(36).slice(2,6),
     text: arg,
+    done: false,
     createdAt: new Date().toISOString()
   });
   saveDB();
@@ -1569,7 +1580,7 @@ function exportBacklog() {
   if (!db.backlog.length) { statusMsg('Backlog is empty.'); return; }
   const now = new Date().toISOString().slice(0,10);
   const txt = '# FOCUS TERMINAL BACKLOG — ' + now + '\n\n'
-    + db.backlog.map(b=>`- [ ] ${b.text}`).join('\n') + '\n';
+    + db.backlog.map(b=>`- ${b.done?'[x]':'[ ]'} ${b.text}`).join('\n') + '\n';
   downloadBlob(txt, `focus-backlog-${now}.txt`, 'text/plain');
   statusMsg(`Exported ${db.backlog.length} backlog item${db.backlog.length===1?'':'s'}.`);
 }
