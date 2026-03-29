@@ -1609,10 +1609,34 @@ function quickAdd(text) {
   statusMsg(`Added: "${item.text}"`);
 }
 
+function showBacklogList() {
+  const overlay = document.getElementById('help-overlay');
+  document.getElementById('help-title').textContent = 'BACKLOG';
+  const body = document.getElementById('help-body');
+  body.style.whiteSpace = 'normal';
+  body.innerHTML = db.backlog.map((b, i) => {
+    const bracket = b.done ? '[x]' : '[ ]';
+    return `<div style="padding:2px 0"><span data-backlog-idx="${i}" style="cursor:pointer;user-select:none;color:var(--accent)">${bracket}</span> ${i+1}. ${escHtml(b.text)}</div>`;
+  }).join('');
+  body.querySelectorAll('[data-backlog-idx]').forEach(el => {
+    el.addEventListener('click', () => {
+      const idx = parseInt(el.dataset.backlogIdx);
+      db.backlog[idx].done = !db.backlog[idx].done;
+      saveDB();
+      showBacklogList();
+    });
+  });
+  overlay.style.display = 'flex';
+}
+
+function escHtml(str) {
+  return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
 function handleBacklog(arg) {
   if (!arg || arg === 'list') {
     if (!db.backlog.length) { statusMsg('Backlog is empty.'); return; }
-    showHelp('BACKLOG', db.backlog.map((b,i)=>`${b.done?'[x]':'[ ]'} ${i+1}. ${b.text}`));
+    showBacklogList();
     return;
   }
   if (arg === 'export') {
