@@ -9,17 +9,18 @@ ai-utils/
   index.html                    ← navigation launcher (open this to browse apps)
   CLAUDE.md                     ← this file
   docs/
+    plans/                      ← design and implementation docs
+    specs/                      ← app specs and reference docs
     terminal-web.md             ← terminal-web design category guidelines
     terminal-web-template.html  ← copy-me template for new terminal-web apps
-    specs/                      ← app specs and reference docs
-    plans/                      ← design and implementation docs
-  focus-terminal/               ← FOCUS TERMINAL: productivity + task management
-  appt-tracker/                 ← LIFE TRACKER: appointments and life events
-  portfolio-manager/            ← PORTFOLIO SIGNAL DESK: portfolio monitoring
-  display-wall/                 ← LIVELAB MEGAWALL: live display wall
-  chronos/                      ← CHRONOS: timeline and event tracking
-  yahoo-finance-proxy/          ← Java proxy service for Yahoo Finance data
+  apps/
+    appt-tracker/                 ← LIFE TRACKER: appointments and life events
+    chronos/                      ← CHRONOS: timeline and event tracking
+    display-wall/                 ← LIVELAB MEGAWALL: live display wall
+    focus-terminal/               ← FOCUS TERMINAL: productivity + task management
+    portfolio-manager/            ← PORTFOLIO SIGNAL DESK: portfolio monitoring
   common/                       ← shared assets (if any)
+    yahoo-finance-proxy/          ← Java proxy service for Yahoo Finance data
 ```
 
 ## Design categories
