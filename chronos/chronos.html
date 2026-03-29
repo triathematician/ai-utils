@@ -1,0 +1,1726 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="space">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CHRONOS</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=VT323&family=Fira+Code:wght@300;400;500&family=Source+Code+Pro:wght@300;400;600&display=swap" rel="stylesheet">
+<style>
+/* ── THEME VARIABLES ───────────────────────────────────────────────── */
+:root {
+  --font: 'Fira Code', 'Source Code Pro', monospace;
+  --font-size: 14px;
+  --line-h: 1.4;
+}
+[data-theme="legacy"] {
+  --bg:#0d0a00;--fg:#ffb000;--accent:#ffd700;--dim:#7a5800;--muted:#1a1400;
+  --border:#3d2e00;--success:#80c000;--warn:#ff6000;
+  --cat-1:#ffd700;--cat-2:#ff4444;--cat-3:#ff9900;--cat-4:#80c000;--cat-5:#40c8e0;
+  --cat-6:#c080ff;--cat-7:#ff80c0;--cat-8:#00e8a0;--cat-9:#e0e040;--cat-10:#ff8040;
+  --font:'VT323',monospace;--font-size:18px;
+}
+[data-theme="solar"] {
+  --bg:#002b36;--fg:#839496;--accent:#268bd2;--dim:#586e75;--muted:#073642;
+  --border:#0a4050;--success:#859900;--warn:#cb4b16;
+  --cat-1:#268bd2;--cat-2:#dc322f;--cat-3:#b58900;--cat-4:#859900;--cat-5:#2aa198;
+  --cat-6:#6c71c4;--cat-7:#d33682;--cat-8:#00b4a0;--cat-9:#cb4b16;--cat-10:#859900;
+}
+[data-theme="monk"] {
+  --bg:#f8f4e8;--fg:#2c2c2c;--accent:#1a1a8c;--dim:#888;--muted:#ede8d8;
+  --border:#ccc;--success:#2a7a2a;--warn:#c04000;
+  --cat-1:#1a1a8c;--cat-2:#c0202020;--cat-3:#b06000;--cat-4:#2a7a2a;--cat-5:#007070;
+  --cat-6:#700070;--cat-7:#c03060;--cat-8:#006040;--cat-9:#804000;--cat-10:#404080;
+}
+[data-theme="space"] {
+  --bg:#06060f;--fg:#c8d8f0;--accent:#4fc8ff;--dim:#4a5a70;--muted:#0d1020;
+  --border:#1a2540;--success:#40e080;--warn:#ff6040;
+  --cat-1:#4fc8ff;--cat-2:#ff4060;--cat-3:#ffb040;--cat-4:#40e080;--cat-5:#40c0c0;
+  --cat-6:#c060ff;--cat-7:#ff60a0;--cat-8:#00e8b0;--cat-9:#ffe060;--cat-10:#ff8060;
+}
+[data-theme="synth"] {
+  --bg:#0a0010;--fg:#e0c0ff;--accent:#ff40ff;--dim:#604080;--muted:#140020;
+  --border:#300050;--success:#40ff80;--warn:#ff8020;
+  --cat-1:#ff40ff;--cat-2:#ff2060;--cat-3:#ffb020;--cat-4:#40ff80;--cat-5:#40e0ff;
+  --cat-6:#c040ff;--cat-7:#ff40a0;--cat-8:#00ffb0;--cat-9:#fff040;--cat-10:#ff6040;
+}
+[data-theme="dos"] {
+  --bg:#0000aa;--fg:#aaaaaa;--accent:#ffffff;--dim:#555555;--muted:#000088;
+  --border:#5555ff;--success:#55ff55;--warn:#ff5555;
+  --cat-1:#ffffff;--cat-2:#ff5555;--cat-3:#ffff55;--cat-4:#55ff55;--cat-5:#55ffff;
+  --cat-6:#ff55ff;--cat-7:#ffaaaa;--cat-8:#aaffaa;--cat-9:#aaaaff;--cat-10:#ffaa55;
+}
+
+/* ── BASE ──────────────────────────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html, body {
+  width: 100%; height: 100%; overflow: hidden;
+  background: var(--bg); color: var(--fg);
+  font-family: var(--font); font-size: var(--font-size);
+  line-height: var(--line-h);
+}
+
+/* ── APP SHELL ─────────────────────────────────────────────────────── */
+#app {
+  display: grid;
+  grid-template-rows: 90vh 10vh;
+  width: 100vw; height: 100vh;
+}
+
+/* ── TIMELINE PANEL ────────────────────────────────────────────────── */
+#timeline-panel {
+  display: grid;
+  grid-template-columns: 80px 1fr;
+  border-bottom: 1px solid var(--border);
+  overflow: hidden;
+  position: relative;
+}
+
+/* ── TIME RULER ────────────────────────────────────────────────────── */
+#time-ruler {
+  background: var(--muted);
+  border-right: 1px solid var(--border);
+  overflow: hidden;
+  position: relative;
+  user-select: none;
+}
+#ruler-canvas {
+  position: absolute;
+  top: 0; left: 0;
+  width: 100%;
+  will-change: transform;
+}
+
+/* ── SWIMLANE AREA ─────────────────────────────────────────────────── */
+#swimlane-area {
+  position: relative;
+  overflow: hidden;
+}
+#swimlane-header {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  display: flex;
+  background: var(--bg);
+  border-bottom: 1px solid var(--border);
+  height: 28px;
+  min-height: 28px;
+}
+.lane-header-cell {
+  flex: 1;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 0.72em; letter-spacing: 2px;
+  color: var(--accent);
+  border-right: 1px solid var(--muted);
+  padding: 0 4px;
+  text-transform: uppercase;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.lane-header-cell:hover { background: var(--muted); }
+.lane-header-cell.hidden-lane { opacity: 0.35; text-decoration: line-through; }
+#swimlane-scroll {
+  position: absolute;
+  top: 28px; left: 0; right: 0; bottom: 0;
+  overflow-y: scroll;
+  overflow-x: hidden;
+}
+#swimlane-scroll::-webkit-scrollbar { width: 6px; }
+#swimlane-scroll::-webkit-scrollbar-track { background: var(--muted); }
+#swimlane-scroll::-webkit-scrollbar-thumb { background: var(--border); }
+
+/* ── TIMELINE CANVAS ───────────────────────────────────────────────── */
+#tl-canvas {
+  position: relative;
+  min-height: 100%;
+}
+
+/* ── NODE ELEMENTS ─────────────────────────────────────────────────── */
+.tl-node {
+  position: absolute;
+  cursor: pointer;
+  font-size: 0.82em;
+  line-height: 1.3;
+  white-space: pre;
+  z-index: 5;
+  transition: opacity 0.15s;
+}
+.tl-node:hover { z-index: 20; }
+.tl-node .node-box {
+  background: var(--bg);
+  border: 1px solid;
+  padding: 2px 6px;
+  display: inline-block;
+}
+.tl-node .node-label {
+  font-size: 0.9em;
+  max-width: 160px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.tl-node .node-time {
+  font-size: 0.75em;
+  color: var(--dim);
+}
+.tl-node.selected .node-box {
+  background: var(--muted);
+}
+
+/* secondary indicator (dot in non-primary lane) */
+.tl-indicator {
+  position: absolute;
+  font-size: 0.9em;
+  z-index: 4;
+  pointer-events: none;
+  opacity: 0.7;
+}
+
+/* ── DAG LINES (SVG overlay) ───────────────────────────────────────── */
+#dag-svg {
+  position: absolute;
+  top: 0; left: 0;
+  width: 100%; height: 100%;
+  pointer-events: none;
+  z-index: 3;
+  overflow: visible;
+}
+
+/* ── TIME GRID LINES ───────────────────────────────────────────────── */
+.grid-line {
+  position: absolute;
+  left: 0; right: 0;
+  height: 1px;
+  background: var(--muted);
+  opacity: 0.5;
+  pointer-events: none;
+}
+.grid-line.major {
+  background: var(--border);
+  opacity: 0.8;
+}
+
+/* ── CONSOLE ROW ───────────────────────────────────────────────────── */
+#console-row {
+  display: flex; align-items: center;
+  background: var(--muted);
+  border-top: 1px solid var(--border);
+  padding: 0 8px;
+  gap: 6px;
+  height: 10vh;
+}
+#console-prompt {
+  color: var(--accent);
+  font-size: 0.85em;
+  letter-spacing: 1px;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+#console-input {
+  flex: 1;
+  background: transparent;
+  border: none; outline: none;
+  color: var(--fg);
+  font-family: var(--font);
+  font-size: 0.9em;
+  caret-color: var(--accent);
+}
+#console-status {
+  color: var(--dim);
+  font-size: 0.75em;
+  letter-spacing: 2px;
+  min-width: 160px;
+  text-align: right;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+#console-zoom {
+  color: var(--dim);
+  font-size: 0.75em;
+  letter-spacing: 1px;
+  white-space: nowrap;
+  flex-shrink: 0;
+  border-left: 1px solid var(--border);
+  padding-left: 8px;
+  margin-left: 4px;
+}
+
+/* ── OVERLAY ───────────────────────────────────────────────────────── */
+#help-overlay {
+  display: none; position: fixed; inset: 0;
+  background: rgba(0,0,0,0.75); z-index: 150;
+  align-items: center; justify-content: center;
+}
+#help-overlay.active { display: flex; }
+.overlay-box {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  padding: 18px 22px;
+  min-width: 580px; max-width: min(90vw,820px);
+  max-height: 80vh; overflow-y: auto;
+  font-family: var(--font); color: var(--fg);
+}
+.overlay-box::-webkit-scrollbar { width: 4px; }
+.overlay-box::-webkit-scrollbar-thumb { background: var(--border); }
+#help-title {
+  color: var(--accent);
+  letter-spacing: 2px;
+  font-size: 0.8em;
+  margin-bottom: 10px;
+  border-bottom: 1px solid var(--muted);
+  padding-bottom: 6px;
+}
+#help-body {
+  white-space: pre;
+  line-height: 1.85;
+  font-size: 0.82em;
+}
+.overlay-footer {
+  color: var(--dim);
+  font-size: 0.78em;
+  margin-top: 10px;
+  border-top: 1px solid var(--muted);
+  padding-top: 6px;
+  cursor: pointer;
+}
+
+/* ── BOOT OVERLAY ──────────────────────────────────────────────────── */
+#boot-overlay {
+  display: none; position: fixed; inset: 0;
+  background: var(--bg); z-index: 200;
+  flex-direction: column;
+  font-family: var(--font);
+}
+#boot-overlay.active { display: flex; }
+#boot-log {
+  flex: 1; overflow-y: auto; padding: 24px 32px;
+  font-size: 0.88em; line-height: 2;
+}
+#boot-log::-webkit-scrollbar { width: 4px; }
+#boot-log::-webkit-scrollbar-thumb { background: var(--border); }
+#boot-input-row {
+  display: flex; align-items: center; gap: 8px;
+  padding: 12px 32px;
+  border-top: 1px solid var(--border);
+  background: var(--muted);
+}
+#boot-prompt { color: var(--accent); font-size: 0.9em; }
+#boot-input {
+  flex: 1; background: transparent; border: none; outline: none;
+  color: var(--fg); font-family: var(--font); font-size: 0.9em;
+  caret-color: var(--accent);
+}
+.boot-line { display: block; }
+.boot-line.sys { color: var(--dim); }
+.boot-line.ask { color: var(--accent); font-weight: 600; }
+.boot-line.ans { color: var(--fg); }
+.boot-line.info { color: var(--success); }
+.boot-line.warn { color: var(--warn); }
+.boot-line.sep { color: var(--dim); }
+
+/* ── GUIDED ADD OVERLAY ────────────────────────────────────────────── */
+#add-overlay {
+  display: none; position: fixed; inset: 0;
+  background: rgba(0,0,0,0.75); z-index: 160;
+  align-items: center; justify-content: center;
+}
+#add-overlay.active { display: flex; }
+#add-box {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  padding: 20px 24px;
+  width: min(90vw, 560px);
+  font-family: var(--font);
+}
+#add-log {
+  font-size: 0.82em; line-height: 1.9;
+  min-height: 80px; margin-bottom: 10px;
+  white-space: pre-wrap;
+}
+#add-input-row {
+  display: flex; align-items: center; gap: 8px;
+  border-top: 1px solid var(--muted); padding-top: 8px;
+}
+#add-prompt { color: var(--accent); font-size: 0.85em; white-space: nowrap; }
+#add-input {
+  flex: 1; background: transparent; border: none; outline: none;
+  color: var(--fg); font-family: var(--font); font-size: 0.9em;
+  caret-color: var(--accent);
+}
+
+/* ── TOOLTIP ───────────────────────────────────────────────────────── */
+#tooltip {
+  position: fixed; display: none;
+  background: var(--muted);
+  border: 1px solid var(--border);
+  color: var(--fg);
+  font-family: var(--font);
+  font-size: 0.75em;
+  padding: 6px 10px;
+  line-height: 1.6;
+  pointer-events: none;
+  z-index: 300;
+  white-space: pre;
+  max-width: 320px;
+}
+
+/* ── NODE DETAIL PANEL (slides in from right) ──────────────────────── */
+#detail-panel {
+  position: fixed;
+  right: 0; top: 0; bottom: 10vh;
+  width: 280px;
+  background: var(--bg);
+  border-left: 1px solid var(--border);
+  z-index: 50;
+  padding: 14px;
+  font-size: 0.8em;
+  transform: translateX(100%);
+  transition: transform 0.2s ease;
+  overflow-y: auto;
+}
+#detail-panel.open { transform: translateX(0); }
+#detail-panel::-webkit-scrollbar { width: 4px; }
+#detail-panel::-webkit-scrollbar-thumb { background: var(--border); }
+.detail-header {
+  color: var(--accent); letter-spacing: 2px; font-size: 0.8em;
+  border-bottom: 1px solid var(--muted); padding-bottom: 5px; margin-bottom: 10px;
+}
+.detail-field { margin-bottom: 8px; }
+.detail-label { color: var(--dim); font-size: 0.85em; letter-spacing: 1px; }
+.detail-value { color: var(--fg); margin-top: 2px; word-break: break-all; }
+.detail-cats { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 3px; }
+.cat-badge {
+  padding: 1px 6px; font-size: 0.82em;
+  border: 1px solid; border-radius: 0;
+}
+.detail-close {
+  color: var(--dim); cursor: pointer; font-size: 0.8em;
+  margin-top: 12px; display: inline-block;
+}
+.detail-close:hover { color: var(--warn); }
+
+/* ── EDGE MARKER ───────────────────────────────────────────────────── */
+.edge-marker {
+  position: sticky;
+  left: 0; right: 0;
+  padding: 2px 8px;
+  font-size: 0.72em;
+  color: var(--accent);
+  background: var(--muted);
+  border: 1px solid var(--border);
+  z-index: 8;
+  display: inline-block;
+  letter-spacing: 1px;
+}
+</style>
+</head>
+<body>
+
+<!-- BOOT OVERLAY -->
+<div id="boot-overlay">
+  <div id="boot-log"></div>
+  <div id="boot-input-row">
+    <span id="boot-prompt">CHRONOS&gt;</span>
+    <input id="boot-input" type="text" autocomplete="off" spellcheck="false">
+  </div>
+</div>
+
+<!-- GUIDED ADD OVERLAY -->
+<div id="add-overlay">
+  <div id="add-box">
+    <div class="detail-header">◈ NEW EVENT</div>
+    <div id="add-log"></div>
+    <div id="add-input-row">
+      <span id="add-prompt">&gt;</span>
+      <input id="add-input" type="text" autocomplete="off" spellcheck="false">
+    </div>
+  </div>
+</div>
+
+<!-- HELP OVERLAY -->
+<div id="help-overlay">
+  <div class="overlay-box">
+    <div id="help-title">◈ CHRONOS — COMMAND REFERENCE</div>
+    <div id="help-body"></div>
+    <div class="overlay-footer" id="help-close">[ESC] CLOSE</div>
+  </div>
+</div>
+
+<!-- TOOLTIP -->
+<div id="tooltip"></div>
+
+<!-- DETAIL PANEL -->
+<div id="detail-panel">
+  <div class="detail-header">◈ EVENT DETAIL</div>
+  <div id="detail-content"></div>
+  <span class="detail-close" id="detail-close">[ESC] CLOSE</span>
+</div>
+
+<!-- APP -->
+<div id="app">
+  <div id="timeline-panel">
+    <div id="time-ruler">
+      <canvas id="ruler-canvas"></canvas>
+    </div>
+    <div id="swimlane-area">
+      <div id="swimlane-header"></div>
+      <div id="swimlane-scroll">
+        <div id="tl-canvas">
+          <svg id="dag-svg"></svg>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="console-row">
+    <span id="console-prompt">CHRONOS&gt;</span>
+    <input type="text" id="console-input" autocomplete="off" spellcheck="false" placeholder="type /help for commands">
+    <span id="console-zoom">ZOOM: —</span>
+    <span id="console-status">READY</span>
+  </div>
+</div>
+
+<script>
+// ══════════════════════════════════════════════════════════════════════
+// CHRONOS — Core Logic
+// ══════════════════════════════════════════════════════════════════════
+
+const STORAGE_KEY = 'chronos_db';
+const CAT_VARS = ['--cat-1','--cat-2','--cat-3','--cat-4','--cat-5',
+                  '--cat-6','--cat-7','--cat-8','--cat-9','--cat-10'];
+
+// Zoom levels: [label, ms-per-pixel]
+const ZOOM_LEVELS = [
+  { label: 'DECADE',  mspp: 1000*60*60*24*365*10 / 60  },
+  { label: 'YEAR',    mspp: 1000*60*60*24*365 / 60     },
+  { label: 'MONTH',   mspp: 1000*60*60*24*30 / 60      },
+  { label: 'WEEK',    mspp: 1000*60*60*24*7 / 60       },
+  { label: 'DAY',     mspp: 1000*60*60*24 / 60         },
+  { label: 'HOUR',    mspp: 1000*60*60 / 60            },
+  { label: 'MINUTE',  mspp: 1000*60 / 60               },
+];
+
+// ── DB ────────────────────────────────────────────────────────────────
+let db = {
+  events: [],          // { uid, ts, label, cats, deps, meta }
+  hiddenCats: [],
+  zoomIdx: 3,          // default: WEEK
+  viewMs: null,        // top of viewport in ms (null = auto-fit)
+  theme: 'space',
+};
+
+function loadDB() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (raw) {
+      const saved = JSON.parse(raw);
+      db.events   = saved.events   || [];
+      db.hiddenCats = saved.hiddenCats || [];
+      db.zoomIdx  = saved.zoomIdx  ?? 3;
+      db.viewMs   = saved.viewMs   ?? null;
+      db.theme    = saved.theme    || 'space';
+    }
+  } catch(e) {}
+}
+
+function saveDB() {
+  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(db)); } catch(e) {}
+}
+
+// ── UTILS ─────────────────────────────────────────────────────────────
+function uid() {
+  return Math.random().toString(36).slice(2,8).toUpperCase();
+}
+
+function getCSSVar(name) {
+  return getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+}
+
+function catColor(catName) {
+  const cats = allCategories();
+  const idx = cats.indexOf(catName);
+  if (idx < 0) return getCSSVar('--fg');
+  return getCSSVar(CAT_VARS[idx % CAT_VARS.length]);
+}
+
+function allCategories() {
+  const seen = new Set();
+  db.events.forEach(e => (e.cats||[]).forEach(c => seen.add(c)));
+  return Array.from(seen);
+}
+
+function visibleCategories() {
+  return allCategories().filter(c => !db.hiddenCats.includes(c));
+}
+
+function parseTS(str) {
+  if (!str) return null;
+  // Try relative: "now", "+2d", "-3h" etc.
+  const relM = str.match(/^([+-])(\d+)([smhdwMy])$/);
+  if (relM) {
+    const sign = relM[1] === '+' ? 1 : -1;
+    const n = parseInt(relM[2]);
+    const unit = relM[3];
+    const ms = { s:1000, m:60000, h:3600000, d:86400000,
+                 w:604800000, M:2592000000, y:31536000000 }[unit] || 0;
+    return Date.now() + sign * n * ms;
+  }
+  if (str.toLowerCase() === 'now') return Date.now();
+  const d = new Date(str);
+  return isNaN(d) ? null : d.getTime();
+}
+
+function fmtTS(ms, zoom) {
+  const d = new Date(ms);
+  const label = ZOOM_LEVELS[db.zoomIdx]?.label || 'DAY';
+  if (zoom === 'DECADE' || zoom === 'YEAR')
+    return d.toISOString().slice(0,10);
+  if (zoom === 'MONTH' || zoom === 'WEEK' || zoom === 'DAY')
+    return d.toISOString().slice(0,10);
+  if (zoom === 'HOUR')
+    return d.toISOString().slice(0,16).replace('T',' ');
+  return d.toISOString().slice(0,19).replace('T',' ');
+}
+
+// ── STATUS ────────────────────────────────────────────────────────────
+let statusTimer = null;
+function statusMsg(msg) {
+  const el = document.getElementById('console-status');
+  el.textContent = msg;
+  if (statusTimer) clearTimeout(statusTimer);
+  statusTimer = setTimeout(() => { el.textContent = 'READY'; }, 3000);
+}
+
+// ── TOOLTIP ───────────────────────────────────────────────────────────
+const tooltip = document.getElementById('tooltip');
+function showTooltip(e, html) {
+  tooltip.style.display = 'block';
+  tooltip.innerHTML = html;
+  moveTooltip(e);
+}
+function moveTooltip(e) {
+  let x = e.clientX + 14, y = e.clientY + 14;
+  if (x + 330 > window.innerWidth) x = e.clientX - 330;
+  if (y + 120 > window.innerHeight) y = e.clientY - 120;
+  tooltip.style.left = x + 'px';
+  tooltip.style.top  = y + 'px';
+}
+function hideTooltip() { tooltip.style.display = 'none'; }
+document.addEventListener('mousemove', e => {
+  if (tooltip.style.display !== 'none') moveTooltip(e);
+});
+
+// ══════════════════════════════════════════════════════════════════════
+// RENDERING
+// ══════════════════════════════════════════════════════════════════════
+//
+// COORDINATE SYSTEM: Y=0 is the BOTTOM of the canvas (most-recent / future).
+//                    Y increases upward — i.e. past events have larger Y.
+//
+//   canvas pixel Y  =  totalH - ((ms - bottomMs) / mspp * PX_PER_ROW)
+//
+// db.viewMs stores the timestamp at the BOTTOM of the visible scroll area.
+// "scroll down" → older times appear.
+
+const PX_PER_ROW = 52;   // pixels per logical row
+
+let selectedUID = null;
+
+function getZoom() { return ZOOM_LEVELS[db.zoomIdx] || ZOOM_LEVELS[3]; }
+
+// Total canvas height in pixels for the current zoom + event set.
+function totalCanvasH() {
+  const zoom = getZoom();
+  const rows = totalCanvasRows();
+  return rows * PX_PER_ROW;
+}
+
+function totalCanvasRows() {
+  if (db.events.length === 0) return 80;
+  const tss = db.events.map(e => e.ts);
+  const span = Math.max(...tss) - Math.min(...tss);
+  const rows = Math.ceil(span / getZoom().mspp / PX_PER_ROW);
+  return Math.max(rows + 24, 80);
+}
+
+// bottomMs: the timestamp that maps to y = totalH (bottom of canvas).
+// We store db.viewMs as the ms at the BOTTOM of the *viewport* (scroll.scrollTop=0
+// shows the top of the canvas which is the FUTURE end; scrolling down goes to past).
+// For layout purposes we need the ms at the canvas bottom.
+function getCanvasBottomMs() {
+  if (db.viewMs !== null) {
+    // db.viewMs = ms at scroll position 0 (top of viewport = future end of canvas).
+    // canvas bottom = viewMs + totalCanvasRows * mspp
+    return db.viewMs + totalCanvasRows() * getZoom().mspp;
+  }
+  if (db.events.length === 0) {
+    return Date.now() + getZoom().mspp * 20;
+  }
+  const tss = db.events.map(e => e.ts);
+  // pad 5 rows below oldest (past) and 5 rows above newest (future)
+  return Math.min(...tss) - getZoom().mspp * 5;
+}
+
+// ms → pixel Y in the canvas.  Higher ms (future) = smaller Y (top).
+function msToY(ms) {
+  const totalH = totalCanvasRows() * PX_PER_ROW;
+  const bottomMs = getCanvasBottomMs();
+  const mspp = getZoom().mspp;
+  return totalH - ((ms - bottomMs) / mspp) * PX_PER_ROW;
+}
+
+// pixel Y → ms
+function yToMs(y) {
+  const totalH = totalCanvasRows() * PX_PER_ROW;
+  const bottomMs = getCanvasBottomMs();
+  const mspp = getZoom().mspp;
+  return bottomMs + ((totalH - y) / PX_PER_ROW) * mspp;
+}
+
+// The ms that corresponds to the top of the viewport (scroll position).
+function getViewTopMs() {
+  const scroll = document.getElementById('swimlane-scroll');
+  return yToMs(scroll.scrollTop);
+}
+
+function render() {
+  renderSwimlaneHeader();
+  renderTimeline();
+  renderRuler();
+  updateZoomDisplay();
+  saveDB();
+}
+
+// ── SWIMLANE HEADER ───────────────────────────────────────────────────
+function renderSwimlaneHeader() {
+  const cats = allCategories();
+  const header = document.getElementById('swimlane-header');
+  header.innerHTML = '';
+  if (cats.length === 0) {
+    const ph = document.createElement('div');
+    ph.className = 'lane-header-cell';
+    ph.style.color = 'var(--dim)';
+    ph.style.letterSpacing = '2px';
+    ph.style.fontSize = '0.7em';
+    ph.textContent = '◈ CHRONOS — NO EVENTS — type /help to begin';
+    header.appendChild(ph);
+    return;
+  }
+  cats.forEach(cat => {
+    const cell = document.createElement('div');
+    cell.className = 'lane-header-cell' + (db.hiddenCats.includes(cat) ? ' hidden-lane' : '');
+    const color = catColor(cat);
+    cell.style.color = color;
+    cell.style.borderBottomColor = color;
+    cell.textContent = cat.toUpperCase();
+    cell.title = '';
+    cell.addEventListener('click', () => {
+      toggleCat(cat);
+    });
+    cell.addEventListener('mouseenter', e => {
+      const evts = db.events.filter(ev => (ev.cats||[]).includes(cat));
+      showTooltip(e, `<b style="color:${color}">${cat}</b>\n${evts.length} event(s)\nClick to toggle visibility`);
+    });
+    cell.addEventListener('mouseleave', hideTooltip);
+    header.appendChild(cell);
+  });
+}
+
+function toggleCat(cat) {
+  if (db.hiddenCats.includes(cat)) {
+    db.hiddenCats = db.hiddenCats.filter(c => c !== cat);
+    statusMsg(`SHOW: ${cat}`);
+  } else {
+    db.hiddenCats.push(cat);
+    statusMsg(`HIDE: ${cat}`);
+  }
+  render();
+}
+
+// ── TIMELINE ──────────────────────────────────────────────────────────
+function renderTimeline() {
+  const canvas = document.getElementById('tl-canvas');
+  const svg    = document.getElementById('dag-svg');
+  const cats   = allCategories();
+  const visCats = visibleCategories();
+
+  // Clear old nodes (keep SVG and grid lines separate)
+  Array.from(canvas.querySelectorAll('.tl-node,.tl-indicator,.grid-line,.edge-marker')).forEach(el => el.remove());
+  svg.innerHTML = '';
+
+  const totalH = totalCanvasRows() * PX_PER_ROW;
+  canvas.style.height = totalH + 'px';
+  svg.setAttribute('viewBox', `0 0 ${canvas.offsetWidth} ${totalH}`);
+  svg.style.height = totalH + 'px';
+
+  // Grid lines — iterate from canvas bottom (past) to top (future)
+  const zoom = getZoom();
+  const gridMs = gridInterval(zoom);
+  const bottomMs = getCanvasBottomMs();
+  const topMs_canvas = yToMs(0);
+  // snap to grid
+  const firstGrid = Math.floor(bottomMs / gridMs) * gridMs;
+  for (let ms = firstGrid; ms <= topMs_canvas + gridMs; ms += gridMs) {
+    const y = msToY(ms);
+    if (y < 0 || y > totalH) continue;
+    const line = document.createElement('div');
+    line.className = 'grid-line' + (isGridMajor(ms, zoom) ? ' major' : '');
+    line.style.top = y + 'px';
+    canvas.appendChild(line);
+  }
+
+  // TODAY line — accent colour
+  const nowY = msToY(Date.now());
+  if (nowY >= 0 && nowY <= totalH) {
+    const todayLine = document.createElement('div');
+    todayLine.style.cssText = `position:absolute;left:0;right:0;top:${nowY}px;height:1px;` +
+      `background:var(--accent);opacity:0.7;pointer-events:none;z-index:6;`;
+    // label
+    const todayLbl = document.createElement('div');
+    todayLbl.style.cssText = `position:absolute;right:4px;top:${nowY - 14}px;` +
+      `font-size:0.65em;letter-spacing:2px;color:var(--accent);pointer-events:none;z-index:7;opacity:0.9;`;
+    todayLbl.textContent = '◆ NOW';
+    canvas.appendChild(todayLine);
+    canvas.appendChild(todayLbl);
+  }
+
+  if (cats.length === 0) return;
+
+  // Lane widths
+  const laneW = canvas.offsetWidth / Math.max(cats.length, 1);
+
+  // Sort events by timestamp
+  const sorted = [...db.events].sort((a,b) => a.ts - b.ts);
+
+  // Render events
+  sorted.forEach(evt => {
+    const primaryCat = (evt.cats||[])[0];
+    const laneIdx = cats.indexOf(primaryCat);
+    if (laneIdx < 0) return;
+
+    const y = msToY(evt.ts);
+    const color = catColor(primaryCat);
+
+    if (!db.hiddenCats.includes(primaryCat)) {
+      const node = document.createElement('div');
+      node.className = 'tl-node' + (selectedUID === evt.uid ? ' selected' : '');
+      node.dataset.uid = evt.uid;
+      node.style.left  = (laneIdx * laneW + 4) + 'px';
+      node.style.top   = y + 'px';
+      node.style.width = (laneW - 8) + 'px';
+
+      const box = document.createElement('div');
+      box.className = 'node-box';
+      box.style.borderColor = color;
+      box.style.width = '100%';
+
+      const lbl = document.createElement('div');
+      lbl.className = 'node-label';
+      lbl.style.color = color;
+      lbl.textContent = `┤ ${evt.label}`;
+
+      const ts = document.createElement('div');
+      ts.className = 'node-time';
+      ts.textContent = fmtTS(evt.ts, zoom.label);
+
+      box.appendChild(lbl);
+      box.appendChild(ts);
+      node.appendChild(box);
+
+      node.addEventListener('click', () => openDetail(evt.uid));
+      node.addEventListener('mouseenter', e => {
+        const meta = evt.meta ? Object.entries(evt.meta).map(([k,v])=>`  ${k}: ${v}`).join('\n') : '';
+        const deps = (evt.deps||[]).map(d => {
+          const dep = db.events.find(x => x.uid === d);
+          return dep ? `  ← ${dep.label} [${dep.uid}]` : `  ← [${d}]`;
+        }).join('\n');
+        showTooltip(e,
+          `<b style="color:${color}">${evt.label}</b>\n` +
+          `UID: ${evt.uid}\n` +
+          `TIME: ${new Date(evt.ts).toISOString()}\n` +
+          `CATS: ${(evt.cats||[]).join(', ')||'—'}\n` +
+          (deps ? `DEPS:\n${deps}\n` : '') +
+          (meta ? `META:\n${meta}` : '')
+        );
+      });
+      node.addEventListener('mouseleave', hideTooltip);
+      canvas.appendChild(node);
+    }
+
+    // Secondary indicators in other visible lanes
+    (evt.cats||[]).slice(1).forEach(sc => {
+      if (db.hiddenCats.includes(sc)) return;
+      const si = cats.indexOf(sc);
+      if (si < 0) return;
+      const ind = document.createElement('div');
+      ind.className = 'tl-indicator';
+      ind.style.left = (si * laneW + laneW/2 - 6) + 'px';
+      ind.style.top  = y + 'px';
+      ind.style.color = catColor(sc);
+      ind.textContent = '◇';
+      canvas.appendChild(ind);
+    });
+  });
+
+  // DAG lines
+  renderDAG(sorted, cats, laneW, svg);
+}
+
+function renderDAG(sorted, cats, laneW, svg) {
+  const fgColor = getCSSVar('--dim');
+  const accentColor = getCSSVar('--accent');
+
+  db.events.forEach(evt => {
+    if (!(evt.deps||[]).length) return;
+    const tgtCat = (evt.cats||[])[0];
+    if (db.hiddenCats.includes(tgtCat)) return;
+    const tgtLane = cats.indexOf(tgtCat);
+    if (tgtLane < 0) return;
+
+    const tgtX = tgtLane * laneW + laneW * 0.5;
+    const tgtY = msToY(evt.ts);
+
+    evt.deps.forEach(depUID => {
+      const dep = db.events.find(e => e.uid === depUID);
+      if (!dep) return;
+      const srcCat = (dep.cats||[])[0];
+      if (db.hiddenCats.includes(srcCat)) return;
+      const srcLane = cats.indexOf(srcCat);
+      if (srcLane < 0) return;
+
+      const srcX = srcLane * laneW + laneW * 0.5;
+      const srcY = msToY(dep.ts);
+
+      // Draw path: vertical from src, horizontal elbow, vertical to tgt
+      const midY = (srcY + tgtY) / 2;
+      const path = document.createElementNS('http://www.w3.org/2000/svg','path');
+      const d = srcLane === tgtLane
+        ? `M ${srcX} ${srcY} L ${tgtX} ${tgtY}`
+        : `M ${srcX} ${srcY} L ${srcX} ${midY} L ${tgtX} ${midY} L ${tgtX} ${tgtY}`;
+
+      path.setAttribute('d', d);
+      path.setAttribute('stroke', accentColor);
+      path.setAttribute('stroke-width', '1');
+      path.setAttribute('stroke-dasharray', '4 3');
+      path.setAttribute('fill', 'none');
+      path.setAttribute('opacity', '0.5');
+      svg.appendChild(path);
+
+      // Arrow head
+      const arrow = document.createElementNS('http://www.w3.org/2000/svg','polygon');
+      arrow.setAttribute('points', `${tgtX-4},${tgtY-8} ${tgtX+4},${tgtY-8} ${tgtX},${tgtY}`);
+      arrow.setAttribute('fill', accentColor);
+      arrow.setAttribute('opacity', '0.6');
+      svg.appendChild(arrow);
+    });
+  });
+}
+
+// ── RULER ─────────────────────────────────────────────────────────────
+function renderRuler() {
+  const ruler  = document.getElementById('time-ruler');
+  const canvas = document.getElementById('ruler-canvas');
+  const scroll = document.getElementById('swimlane-scroll');
+  const h = ruler.offsetHeight;
+  const w = ruler.offsetWidth;
+  if (!h || !w) return;
+
+  // The ruler canvas must match the tl-canvas exactly — same height,
+  // same coordinate mapping. We draw it at full canvas height and
+  // the CSS overflow:hidden on #time-ruler clips it to the viewport.
+  const totalH = totalCanvasRows() * PX_PER_ROW;
+  canvas.width  = w;
+  canvas.height = totalH;
+  canvas.style.height = totalH + 'px';
+  canvas.style.top = '0px';
+
+  const ctx = canvas.getContext('2d');
+  ctx.clearRect(0, 0, w, totalH);
+
+  const zoom = getZoom();
+  const dim = getCSSVar('--dim');
+  const accent = getCSSVar('--accent');
+  const fontSize = Math.max(9, Math.round(parseFloat(getCSSVar('--font-size')) * 0.68));
+  ctx.font = `${fontSize}px ${getCSSVar('--font')}`;
+  ctx.textAlign = 'right';
+
+  const gridMs = gridInterval(zoom);
+  const bottomMs = getCanvasBottomMs();
+  const topMs_canvas = yToMs(0);
+  const firstGrid = Math.floor(bottomMs / gridMs) * gridMs;
+
+  for (let ms = firstGrid; ms <= topMs_canvas + gridMs; ms += gridMs) {
+    const y = msToY(ms);
+    if (y < 0 || y > totalH) continue;
+    const major = isGridMajor(ms, zoom);
+    ctx.fillStyle = major ? accent : dim;
+    ctx.fillText(rulerLabel(ms, zoom), w - 4, y + 4);
+    ctx.strokeStyle = major ? getCSSVar('--border') : getCSSVar('--muted');
+    ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(w - 2, y); ctx.lineTo(w + 2, y); ctx.stroke();
+  }
+
+  // TODAY tick on ruler — bright accent
+  const nowY = msToY(Date.now());
+  if (nowY >= 0 && nowY <= totalH) {
+    ctx.strokeStyle = accent;
+    ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.moveTo(0, nowY); ctx.lineTo(w, nowY); ctx.stroke();
+  }
+}
+
+function gridInterval(zoom) {
+  // Choose a round grid interval based on zoom
+  const mspp = zoom.mspp;
+  const targetPx = 80;
+  const ms = mspp * targetPx / PX_PER_ROW;
+  const candidates = [
+    1000, 5000, 15000, 30000,
+    60000, 300000, 900000, 1800000,
+    3600000, 21600000, 43200000,
+    86400000, 604800000, 2592000000,
+    7776000000, 31536000000, 315360000000
+  ];
+  for (let c of candidates) if (c >= ms) return c;
+  return candidates[candidates.length-1];
+}
+
+function isGridMajor(ms, zoom) {
+  const d = new Date(ms);
+  const label = zoom.label;
+  if (label === 'DECADE' || label === 'YEAR') return d.getMonth() === 0 && d.getDate() === 1;
+  if (label === 'MONTH') return d.getDate() === 1;
+  if (label === 'WEEK')  return d.getDay() === 0;
+  if (label === 'DAY')   return d.getHours() === 0;
+  if (label === 'HOUR')  return d.getMinutes() === 0;
+  return d.getSeconds() === 0;
+}
+
+function rulerLabel(ms, zoom) {
+  const d = new Date(ms);
+  const label = zoom.label;
+  if (label === 'DECADE' || label === 'YEAR') return d.getFullYear().toString();
+  if (label === 'MONTH') return `${d.getMonth()+1}/${d.getDate()}`;
+  if (label === 'WEEK' || label === 'DAY') {
+    const mo = String(d.getMonth()+1).padStart(2,'0');
+    const dy = String(d.getDate()).padStart(2,'0');
+    return `${mo}-${dy}`;
+  }
+  const hh = String(d.getHours()).padStart(2,'0');
+  const mm = String(d.getMinutes()).padStart(2,'0');
+  return `${hh}:${mm}`;
+}
+
+function updateZoomDisplay() {
+  const z = getZoom();
+  document.getElementById('console-zoom').textContent = `ZOOM: ${z.label}`;
+}
+
+// ── SCROLL & ZOOM ─────────────────────────────────────────────────────
+function setupScrollSync() {
+  const scroll = document.getElementById('swimlane-scroll');
+  scroll.addEventListener('scroll', () => {
+    // Move ruler canvas to match scroll position (translate up by scrollTop)
+    document.getElementById('ruler-canvas').style.transform =
+      `translateY(-${scroll.scrollTop}px)`;
+    // Store the ms at the top of the viewport
+    db.viewMs = yToMs(scroll.scrollTop);
+    saveDB();
+  });
+
+  scroll.addEventListener('wheel', e => {
+    if (e.ctrlKey || e.metaKey) {
+      e.preventDefault();
+      if (e.deltaY > 0) zoomOut();
+      else zoomIn();
+    }
+  }, { passive: false });
+}
+
+// ── TIMELINE EXTENTS ──────────────────────────────────────────────────
+function getTimelineExtents() {
+  if (db.events.length === 0) {
+    const now = Date.now();
+    const yr = 365 * 86400000;
+    return { minMs: now - yr, maxMs: now + yr, spanMs: 2 * yr };
+  }
+  const tss = db.events.map(e => e.ts);
+  const minMs = Math.min(...tss);
+  const maxMs = Math.max(...tss);
+  // single-event: treat as ±1 day span so zoom makes sense
+  const spanMs = (maxMs - minMs) || 2 * 86400000;
+  return { minMs, maxMs, spanMs };
+}
+
+// Maximum zoom-in allowed: the span must cover at least 1/3 of the viewport.
+// Returns the finest (lowest index) zoomIdx where spanMs >= 1/3 viewport in px.
+// Lower index = more pixels per ms = more zoomed in.
+function maxZoomInIdx() {
+  const scroll = document.getElementById('swimlane-scroll');
+  const availH = Math.max(scroll.clientHeight, window.innerHeight * 0.9);
+  const { spanMs } = getTimelineExtents();
+  // we want: spanMs / mspp * PX_PER_ROW  >=  availH / 3
+  // => mspp <= spanMs * PX_PER_ROW / (availH / 3)
+  const maxMspp = spanMs * PX_PER_ROW / (availH / 3);
+  // scan from finest (idx 0) outward; return first idx whose mspp <= maxMspp
+  for (let i = 0; i < ZOOM_LEVELS.length; i++) {
+    if (ZOOM_LEVELS[i].mspp <= maxMspp) return i;
+  }
+  return ZOOM_LEVELS.length - 1;
+}
+
+function zoomIn() {
+  const finest = maxZoomInIdx();
+  if (db.zoomIdx > 0 && db.zoomIdx > finest) {
+    db.zoomIdx--;
+    render();
+    statusMsg('ZOOM IN: ' + getZoom().label);
+  } else if (db.zoomIdx <= finest) {
+    statusMsg('ZOOM LIMIT: ' + getZoom().label);
+  } else {
+    statusMsg('MAX ZOOM');
+  }
+}
+
+function zoomOut() {
+  if (db.zoomIdx < ZOOM_LEVELS.length - 1) {
+    db.zoomIdx++;
+    render();
+    statusMsg('ZOOM OUT: ' + getZoom().label);
+  } else {
+    statusMsg('MIN ZOOM');
+  }
+}
+
+// Scroll so that ms is vertically centred in the viewport.
+function scrollToMs(ms) {
+  const scroll = document.getElementById('swimlane-scroll');
+  const y = msToY(ms) - scroll.clientHeight / 2;
+  scroll.scrollTop = Math.max(0, y);
+  document.getElementById('ruler-canvas').style.transform =
+    `translateY(-${scroll.scrollTop}px)`;
+  db.viewMs = yToMs(scroll.scrollTop);
+}
+
+// autoFit: choose zoom so full event span fills ~70% of viewport height,
+// then scroll to centre. Runs inside rAF×2 so clientHeight is always live.
+function autoFit(cb) {
+  requestAnimationFrame(() => requestAnimationFrame(() => {
+    const scroll = document.getElementById('swimlane-scroll');
+    const availH = Math.max(scroll.clientHeight, window.innerHeight * 0.88);
+
+    if (db.events.length === 0) {
+      // Empty: show ±a few weeks around now, WEEK zoom
+      db.zoomIdx = 3;
+      db.viewMs = null;
+      render();
+      requestAnimationFrame(() => { scrollToMs(Date.now()); if (cb) cb(); });
+      return;
+    }
+
+    const { minMs, maxMs, spanMs } = getTimelineExtents();
+
+    // Find the finest zoom where the span px height <= 70% of viewport.
+    // ZOOM_LEVELS[0] is finest (smallest mspp → tallest render).
+    // We want pxSpan = spanMs / mspp * PX_PER_ROW  in [40%, 70%] of availH.
+    let best = ZOOM_LEVELS.length - 1;
+    for (let i = ZOOM_LEVELS.length - 1; i >= 0; i--) {
+      const pxSpan = spanMs / ZOOM_LEVELS[i].mspp * PX_PER_ROW;
+      if (pxSpan <= availH * 0.70) { best = i; }
+      else break; // getting too tall — stop here
+    }
+
+    db.zoomIdx = best;
+    db.viewMs = null; // clear so getCanvasBottomMs recalculates from events
+    render();
+
+    // After render: scroll so midpoint of span is centred
+    requestAnimationFrame(() => {
+      scrollToMs(minMs + spanMs / 2);
+      if (cb) cb();
+      statusMsg('FIT: ' + getZoom().label);
+    });
+  }));
+}
+
+// ══════════════════════════════════════════════════════════════════════
+// DETAIL PANEL
+// ══════════════════════════════════════════════════════════════════════
+function openDetail(evtUID) {
+  const evt = db.events.find(e => e.uid === evtUID);
+  if (!evt) return;
+  selectedUID = evtUID;
+  render();
+
+  const panel = document.getElementById('detail-panel');
+  const content = document.getElementById('detail-content');
+  const primaryCat = (evt.cats||[])[0];
+  const color = primaryCat ? catColor(primaryCat) : getCSSVar('--fg');
+
+  let html = '';
+  html += `<div class="detail-field"><div class="detail-label">UID</div><div class="detail-value" style="color:var(--dim)">${evt.uid}</div></div>`;
+  html += `<div class="detail-field"><div class="detail-label">LABEL</div><div class="detail-value" style="color:${color}">${evt.label}</div></div>`;
+  html += `<div class="detail-field"><div class="detail-label">TIMESTAMP</div><div class="detail-value">${new Date(evt.ts).toISOString()}</div></div>`;
+
+  if ((evt.cats||[]).length) {
+    html += `<div class="detail-field"><div class="detail-label">CATEGORIES</div><div class="detail-cats">`;
+    evt.cats.forEach(c => {
+      const cc = catColor(c);
+      html += `<span class="cat-badge" style="color:${cc};border-color:${cc}">${c}</span>`;
+    });
+    html += `</div></div>`;
+  }
+
+  if ((evt.deps||[]).length) {
+    html += `<div class="detail-field"><div class="detail-label">DEPENDENCIES</div>`;
+    evt.deps.forEach(d => {
+      const dep = db.events.find(e => e.uid === d);
+      html += `<div class="detail-value" style="font-size:0.9em">← ${dep ? dep.label : '?'} <span style="color:var(--dim)">[${d}]</span></div>`;
+    });
+    html += `</div>`;
+  }
+
+  if (evt.meta && Object.keys(evt.meta).length) {
+    html += `<div class="detail-field"><div class="detail-label">METADATA</div>`;
+    Object.entries(evt.meta).forEach(([k,v]) => {
+      html += `<div class="detail-value" style="font-size:0.88em"><span style="color:var(--dim)">${k}:</span> ${v}</div>`;
+    });
+    html += `</div>`;
+  }
+
+  // Edit/delete buttons
+  html += `<div style="margin-top:14px;display:flex;gap:8px;">`;
+  html += `<span onclick="deleteEvent('${evt.uid}')" style="cursor:pointer;color:var(--warn);font-size:0.8em;border:1px solid var(--warn);padding:2px 8px">[DEL]</span>`;
+  html += `</div>`;
+
+  content.innerHTML = html;
+  panel.classList.add('open');
+}
+
+function closeDetail() {
+  selectedUID = null;
+  document.getElementById('detail-panel').classList.remove('open');
+  render();
+}
+
+document.getElementById('detail-close').addEventListener('click', closeDetail);
+
+function deleteEvent(evtUID) {
+  if (!evtUID) return;
+  const evt = db.events.find(e => e.uid === evtUID);
+  if (!evt) return;
+  db.events = db.events.filter(e => e.uid !== evtUID);
+  // Remove from others' deps
+  db.events.forEach(e => { e.deps = (e.deps||[]).filter(d => d !== evtUID); });
+  closeDetail();
+  render();
+  statusMsg(`DELETED: ${evt.label}`);
+}
+
+// ══════════════════════════════════════════════════════════════════════
+// COMMAND HANDLER
+// ══════════════════════════════════════════════════════════════════════
+const HELP_TEXT = `
+◈ COMMAND REFERENCE
+───────────────────────────────────────────────────────
+/add <label> -t <time> -c <cat1,cat2> [-d <uid1,uid2>]
+              Add an event. Bare /add opens guided mode.
+              Time: ISO 8601, 'now', '+2d', '-3h', etc.
+
+/link <src_id> <tgt_id>
+              Add dependency: src must predate tgt.
+
+/show <cat>   Show a hidden swimlane category.
+/hide <cat>   Hide a swimlane category.
+
+/goto <id>    Scroll to event by UID.
+/goto <time>  Scroll to a timestamp.
+
+/zoom fit     Auto-fit zoom to all events.
+/zoom <level> Set zoom: DECADE YEAR MONTH WEEK DAY HOUR MINUTE
+
+/export json  Download events as JSON file.
+/export txt   Export ASCII timeline to .txt file.
+
+/delete <id>  Delete an event by UID.
+/list         List all events with UIDs.
+
+/theme <name> Switch theme: legacy solar monk space synth dos
+/help         Show this reference.
+───────────────────────────────────────────────────────
+SHORTCUTS
+  Ctrl+Wheel    Zoom in/out
+  Mouse scroll  Navigate timeline
+  Click node    Open detail panel
+  Click header  Toggle lane visibility
+  ESC           Close panels/overlays
+`.trim();
+
+function handleConsoleCmd(raw) {
+  const input = raw.trim();
+  if (!input) return;
+
+  // history
+  cmdHistory.push(input);
+  histIdx = cmdHistory.length;
+
+  const parts = input.split(/\s+/);
+  const cmd = parts[0].toLowerCase();
+
+  if (cmd === '/help') {
+    document.getElementById('help-body').textContent = HELP_TEXT;
+    document.getElementById('help-overlay').classList.add('active');
+    return;
+  }
+
+  if (cmd === '/add') {
+    if (parts.length === 1) {
+      openGuidedAdd();
+    } else {
+      inlineAdd(input);
+    }
+    return;
+  }
+
+  if (cmd === '/link') {
+    const [,src,tgt] = parts;
+    if (!src || !tgt) { statusMsg('USAGE: /link <src_id> <tgt_id>'); return; }
+    cmdLink(src.toUpperCase(), tgt.toUpperCase());
+    return;
+  }
+
+  if (cmd === '/show') {
+    const cat = parts.slice(1).join(' ');
+    db.hiddenCats = db.hiddenCats.filter(c => c !== cat);
+    render(); statusMsg(`SHOW: ${cat}`); return;
+  }
+
+  if (cmd === '/hide') {
+    const cat = parts.slice(1).join(' ');
+    if (!db.hiddenCats.includes(cat)) db.hiddenCats.push(cat);
+    render(); statusMsg(`HIDE: ${cat}`); return;
+  }
+
+  if (cmd === '/goto') {
+    const arg = parts.slice(1).join(' ');
+    const evt = db.events.find(e => e.uid === arg.toUpperCase());
+    if (evt) { scrollToMs(evt.ts); statusMsg(`GOTO: ${evt.label}`); return; }
+    const ms = parseTS(arg);
+    if (ms) { scrollToMs(ms); statusMsg(`GOTO: ${new Date(ms).toISOString().slice(0,10)}`); return; }
+    statusMsg('NOT FOUND: ' + arg);
+    return;
+  }
+
+  if (cmd === '/zoom') {
+    const arg = parts[1]?.toUpperCase();
+    if (!arg || arg === 'FIT') { autoFit(); return; }
+    const idx = ZOOM_LEVELS.findIndex(z => z.label === arg);
+    if (idx < 0) {
+      statusMsg('LEVELS: FIT ' + ZOOM_LEVELS.map(z=>z.label).join(' '));
+      return;
+    }
+    const finest = maxZoomInIdx();
+    if (idx < finest) {
+      db.zoomIdx = finest;
+      render(); statusMsg('ZOOM CLAMPED: ' + getZoom().label);
+    } else {
+      db.zoomIdx = idx;
+      render(); statusMsg('ZOOM: ' + arg);
+    }
+    return;
+  }
+
+  if (cmd === '/fit') { autoFit(); return; }
+
+  if (cmd === '/export') {
+    const fmt = parts[1]?.toLowerCase();
+    if (fmt === 'json') exportJSON();
+    else if (fmt === 'txt') exportTXT();
+    else statusMsg('USAGE: /export json|txt');
+    return;
+  }
+
+  if (cmd === '/delete') {
+    const id = parts[1]?.toUpperCase();
+    if (!id) { statusMsg('USAGE: /delete <id>'); return; }
+    deleteEvent(id);
+    return;
+  }
+
+  if (cmd === '/list') {
+    const sorted = [...db.events].sort((a,b) => a.ts - b.ts);
+    const lines = sorted.map(e => {
+      const ts = new Date(e.ts).toISOString().slice(0,19);
+      const cats = (e.cats||[]).join(',') || '—';
+      return `${e.uid}  ${ts}  [${cats}]  ${e.label}`;
+    });
+    const txt = lines.length ? lines.join('\n') : '(no events)';
+    document.getElementById('help-body').textContent = '◈ EVENT LIST\n───────────────────────────────────────────────────────\n' + txt;
+    document.getElementById('help-overlay').classList.add('active');
+    return;
+  }
+
+  if (cmd === '/theme') {
+    const name = parts[1];
+    const themes = ['legacy','solar','monk','space','synth','dos'];
+    if (!themes.includes(name)) { statusMsg('THEMES: ' + themes.join(' ')); return; }
+    db.theme = name;
+    document.documentElement.setAttribute('data-theme', name);
+    render(); statusMsg('THEME: ' + name);
+    return;
+  }
+
+  statusMsg(`Unknown: ${cmd}. /help`);
+}
+
+// ── INLINE ADD ────────────────────────────────────────────────────────
+function inlineAdd(input) {
+  // /add Label -t TIME -c cat1,cat2 -d uid1,uid2 -m key:val,key2:val2
+  const flags = {};
+  const labelM = input.match(/^\/add\s+(.*?)(?=\s+-[tcmd]|$)/);
+  if (!labelM || !labelM[1].trim()) { statusMsg('USAGE: /add <label> -t <time> ...'); return; }
+  const label = labelM[1].trim();
+
+  const tM = input.match(/-t\s+(\S+)/);
+  const cM = input.match(/-c\s+(\S+)/);
+  const dM = input.match(/-d\s+(\S+)/);
+  const mM = input.match(/-m\s+(\S+)/);
+
+  const ts = tM ? parseTS(tM[1]) : Date.now();
+  if (!ts) { statusMsg('BAD TIME: ' + tM?.[1]); return; }
+
+  const cats = cM ? cM[1].split(',').map(s=>s.trim()).filter(Boolean) : [];
+  const deps = dM ? dM[1].split(',').map(s=>s.trim().toUpperCase()).filter(Boolean) : [];
+  let meta = {};
+  if (mM) {
+    mM[1].split(',').forEach(pair => {
+      const [k,...v] = pair.split(':');
+      if (k) meta[k.trim()] = v.join(':').trim();
+    });
+  }
+
+  // Validate deps
+  for (const d of deps) {
+    const dep = db.events.find(e => e.uid === d);
+    if (!dep) { statusMsg(`DEP NOT FOUND: ${d}`); return; }
+    if (dep.ts > ts) { statusMsg(`DEP FUTURE: ${d}`); return; }
+  }
+
+  const evt = { uid: uid(), ts, label, cats, deps, meta };
+  db.events.push(evt);
+  render();
+  statusMsg(`ADDED: ${evt.uid} — ${label}`);
+  setTimeout(() => scrollToMs(ts), 50);
+}
+
+// ── GUIDED ADD ────────────────────────────────────────────────────────
+let guidedState = {};
+let guidedStep = '';
+
+const GUIDED_STEPS = ['label','time','cats','deps','confirm'];
+
+function openGuidedAdd() {
+  guidedState = { label:'', ts: Date.now(), cats:[], deps:[], meta:{} };
+  guidedStep = 'label';
+  const log = document.getElementById('add-log');
+  log.innerHTML = '';
+  addBootLine(log, 'sys', '◈ NEW EVENT — guided mode (ESC to cancel)');
+  addBootLine(log, 'sep', '─'.repeat(44));
+  addBootLine(log, 'ask', 'Label:');
+  document.getElementById('add-prompt').textContent = 'label>';
+  document.getElementById('add-overlay').classList.add('active');
+  document.getElementById('add-input').value = '';
+  document.getElementById('add-input').focus();
+}
+
+function addBootLine(container, cls, text) {
+  const span = document.createElement('span');
+  span.className = 'boot-line ' + cls;
+  span.textContent = text + '\n';
+  container.appendChild(span);
+}
+
+document.getElementById('add-input').addEventListener('keydown', e => {
+  if (e.key === 'Escape') {
+    document.getElementById('add-overlay').classList.remove('active');
+    document.getElementById('console-input').focus();
+    statusMsg('CANCELLED');
+    return;
+  }
+  if (e.key !== 'Enter') return;
+  const val = e.target.value.trim();
+  e.target.value = '';
+  const log = document.getElementById('add-log');
+
+  if (guidedStep === 'label') {
+    if (!val) { addBootLine(log, 'warn', 'Label cannot be empty.'); return; }
+    guidedState.label = val;
+    addBootLine(log, 'ans', '  ' + val);
+    addBootLine(log, 'ask', 'Timestamp (ISO/now/+2d/-3h, Enter=now):');
+    document.getElementById('add-prompt').textContent = 'time>';
+    guidedStep = 'time';
+  } else if (guidedStep === 'time') {
+    const ms = val ? parseTS(val) : Date.now();
+    if (!ms) { addBootLine(log, 'warn', 'Cannot parse: ' + val); return; }
+    guidedState.ts = ms;
+    addBootLine(log, 'ans', '  ' + new Date(ms).toISOString());
+    addBootLine(log, 'ask', 'Categories (comma-separated, or Enter to skip):');
+    document.getElementById('add-prompt').textContent = 'cats>';
+    guidedStep = 'cats';
+  } else if (guidedStep === 'cats') {
+    guidedState.cats = val ? val.split(',').map(s=>s.trim()).filter(Boolean) : [];
+    addBootLine(log, 'ans', '  ' + (guidedState.cats.join(', ') || '(none)'));
+    addBootLine(log, 'ask', 'Dependency UIDs (comma-separated, or Enter to skip):');
+    document.getElementById('add-prompt').textContent = 'deps>';
+    guidedStep = 'deps';
+  } else if (guidedStep === 'deps') {
+    const ids = val ? val.split(',').map(s=>s.trim().toUpperCase()).filter(Boolean) : [];
+    let bad = false;
+    for (const id of ids) {
+      const dep = db.events.find(e => e.uid === id);
+      if (!dep) { addBootLine(log, 'warn', `Not found: ${id}`); bad = true; break; }
+      if (dep.ts > guidedState.ts) { addBootLine(log, 'warn', `Dep is after target: ${id}`); bad = true; break; }
+    }
+    if (bad) return;
+    guidedState.deps = ids;
+    addBootLine(log, 'ans', '  ' + (ids.join(', ') || '(none)'));
+    addBootLine(log, 'sep', '─'.repeat(44));
+    addBootLine(log, 'info', `  ${guidedState.label}`);
+    addBootLine(log, 'sys',  `  ${new Date(guidedState.ts).toISOString()}`);
+    if (guidedState.cats.length) addBootLine(log, 'sys', `  cats: ${guidedState.cats.join(', ')}`);
+    if (guidedState.deps.length) addBootLine(log, 'sys', `  deps: ${guidedState.deps.join(', ')}`);
+    addBootLine(log, 'ask', 'Confirm? (Enter=yes, n=cancel):');
+    document.getElementById('add-prompt').textContent = 'ok?>';
+    guidedStep = 'confirm';
+  } else if (guidedStep === 'confirm') {
+    if (val.toLowerCase() === 'n') {
+      document.getElementById('add-overlay').classList.remove('active');
+      document.getElementById('console-input').focus();
+      statusMsg('CANCELLED');
+      return;
+    }
+    const evt = { uid: uid(), ts: guidedState.ts, label: guidedState.label,
+                  cats: guidedState.cats, deps: guidedState.deps, meta: {} };
+    db.events.push(evt);
+    render();
+    document.getElementById('add-overlay').classList.remove('active');
+    document.getElementById('console-input').focus();
+    statusMsg(`ADDED: ${evt.uid} — ${evt.label}`);
+    setTimeout(() => scrollToMs(evt.ts), 80);
+  }
+  log.scrollTop = log.scrollHeight;
+});
+
+// ── LINK ──────────────────────────────────────────────────────────────
+function cmdLink(srcUID, tgtUID) {
+  const src = db.events.find(e => e.uid === srcUID);
+  const tgt = db.events.find(e => e.uid === tgtUID);
+  if (!src) { statusMsg(`NOT FOUND: ${srcUID}`); return; }
+  if (!tgt) { statusMsg(`NOT FOUND: ${tgtUID}`); return; }
+  if (src.ts > tgt.ts) { statusMsg(`TEMPORAL ERROR: ${srcUID} is after ${tgtUID}`); return; }
+  if ((tgt.deps||[]).includes(srcUID)) { statusMsg('ALREADY LINKED'); return; }
+  tgt.deps = [...(tgt.deps||[]), srcUID];
+  render();
+  statusMsg(`LINKED: ${src.label} → ${tgt.label}`);
+}
+
+// ══════════════════════════════════════════════════════════════════════
+// EXPORT
+// ══════════════════════════════════════════════════════════════════════
+function exportJSON() {
+  const data = JSON.stringify({ events: db.events, exportedAt: new Date().toISOString() }, null, 2);
+  download('chronos-export.json', data, 'application/json');
+  statusMsg('EXPORTED: JSON');
+}
+
+function exportTXT() {
+  const zoom = getZoom();
+  const cats = allCategories();
+  if (!cats.length) { statusMsg('NO DATA'); return; }
+
+  const sorted = [...db.events].sort((a,b) => a.ts - b.ts);
+  const laneW = 22;
+  const header = cats.map(c => c.toUpperCase().padEnd(laneW)).join('│');
+  const sep = cats.map(() => '─'.repeat(laneW)).join('┼');
+  let lines = ['CHRONOS EXPORT — ' + new Date().toISOString(), '─'.repeat(header.length), header, sep];
+
+  sorted.forEach(evt => {
+    const row = cats.map((cat, i) => {
+      const isPrimary = (evt.cats||[])[0] === cat;
+      const isSecondary = (evt.cats||[]).slice(1).includes(cat);
+      if (isPrimary) return `┤${evt.label.slice(0,laneW-3)}`.padEnd(laneW);
+      if (isSecondary) return '◇'.padEnd(laneW);
+      return ' '.repeat(laneW);
+    }).join('│');
+    const ts = fmtTS(evt.ts, zoom.label).padStart(20);
+    lines.push(`${ts} ${row}`);
+  });
+
+  download('chronos-export.txt', lines.join('\n'), 'text/plain');
+  statusMsg('EXPORTED: TXT');
+}
+
+function download(filename, content, mime) {
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([content], { type: mime }));
+  a.download = filename;
+  a.click();
+  URL.revokeObjectURL(a.href);
+}
+
+// ══════════════════════════════════════════════════════════════════════
+// BOOT SEQUENCE
+// ══════════════════════════════════════════════════════════════════════
+let bootStep = 0;
+
+const SAMPLE_EVENTS = [
+  { label: 'Project Kickoff',     ts: Date.now() - 30*86400000, cats:['planning','team'],    deps:[], meta:{owner:'Elisha'} },
+  { label: 'Requirements Freeze', ts: Date.now() - 21*86400000, cats:['planning'],           deps:[], meta:{} },
+  { label: 'Architecture Review', ts: Date.now() - 14*86400000, cats:['engineering','team'], deps:[], meta:{} },
+  { label: 'Sprint 1 Complete',   ts: Date.now() -  7*86400000, cats:['engineering'],        deps:[], meta:{} },
+  { label: 'QA Handoff',          ts: Date.now() -  3*86400000, cats:['qa','engineering'],   deps:[], meta:{} },
+  { label: 'Stakeholder Demo',    ts: Date.now() +  2*86400000, cats:['team','planning'],    deps:[], meta:{} },
+  { label: 'Go-Live',             ts: Date.now() + 14*86400000, cats:['engineering','qa'],   deps:[], meta:{} },
+];
+
+function bootLog(cls, text) {
+  const log = document.getElementById('boot-log');
+  const span = document.createElement('span');
+  span.className = 'boot-line ' + cls;
+  span.textContent = text + '\n';
+  log.appendChild(span);
+  log.scrollTop = log.scrollHeight;
+}
+
+function startBoot() {
+  document.getElementById('boot-overlay').classList.add('active');
+  setTimeout(() => {
+    bootLog('sys', '┌───────────────────────────────────────┐');
+    bootLog('sys', '│  C H R O N O S  —  v1.0               │');
+    bootLog('sys', '│  Vertical ASCII Timeline Visualizer    │');
+    bootLog('sys', '└───────────────────────────────────────┘');
+    bootLog('sep', '');
+    bootLog('sys', 'No timeline data found.');
+    bootLog('sep', '─'.repeat(42));
+    bootLog('ask', 'Load sample dataset? (y/n)');
+    document.getElementById('boot-prompt').textContent = 'CHRONOS>';
+    document.getElementById('boot-input').focus();
+    bootStep = 1;
+  }, 120);
+}
+
+document.getElementById('boot-input').addEventListener('keydown', e => {
+  if (e.key !== 'Enter') return;
+  const val = e.target.value.trim().toLowerCase();
+  e.target.value = '';
+
+  if (bootStep === 1) {
+    bootLog('ans', '  ' + (val || 'y'));
+    if (val === 'n') {
+      bootLog('info', 'Starting empty timeline.');
+      bootLog('sys', 'Type /help to see commands.');
+      closeBoot();
+    } else {
+      bootLog('info', 'Loading sample dataset...');
+      SAMPLE_EVENTS.forEach(e => {
+        const ev = { uid: uid(), ...e };
+        db.events.push(ev);
+      });
+      // Wire a couple of deps
+      if (db.events.length >= 5) {
+        db.events[2].deps = [db.events[1].uid];
+        db.events[3].deps = [db.events[2].uid];
+        db.events[4].deps = [db.events[3].uid];
+        db.events[6].deps = [db.events[4].uid, db.events[5].uid];
+      }
+      bootLog('sep', '─'.repeat(42));
+      db.events.forEach(ev => {
+        bootLog('sys', `  ${ev.uid}  ${ev.label}`);
+      });
+      bootLog('sep', '─'.repeat(42));
+      bootLog('info', `${db.events.length} events loaded.`);
+      bootLog('sys', 'Type /help for commands. /fit to auto-fit view.');
+      setTimeout(closeBoot, 900);
+    }
+  }
+});
+
+function closeBoot() {
+  document.getElementById('boot-overlay').classList.remove('active');
+  document.getElementById('console-input').focus();
+  render();
+  if (db.events.length > 0) autoFit();
+}
+
+// ══════════════════════════════════════════════════════════════════════
+// KEYBOARD & INPUT
+// ══════════════════════════════════════════════════════════════════════
+let cmdHistory = [];
+let histIdx = 0;
+
+document.getElementById('console-input').addEventListener('keydown', e => {
+  if (e.key === 'Enter') {
+    const val = e.target.value;
+    e.target.value = '';
+    handleConsoleCmd(val);
+  }
+  if (e.key === 'ArrowUp') {
+    if (histIdx > 0) histIdx--;
+    e.target.value = cmdHistory[histIdx] || '';
+    e.preventDefault();
+  }
+  if (e.key === 'ArrowDown') {
+    if (histIdx < cmdHistory.length) histIdx++;
+    e.target.value = cmdHistory[histIdx] || '';
+    e.preventDefault();
+  }
+});
+
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') {
+    document.getElementById('help-overlay').classList.remove('active');
+    document.getElementById('add-overlay').classList.remove('active');
+    closeDetail();
+    document.getElementById('console-input').focus();
+  }
+});
+
+document.getElementById('help-close').addEventListener('click', () => {
+  document.getElementById('help-overlay').classList.remove('active');
+});
+document.getElementById('help-overlay').addEventListener('click', e => {
+  if (e.target === document.getElementById('help-overlay'))
+    document.getElementById('help-overlay').classList.remove('active');
+});
+
+// ══════════════════════════════════════════════════════════════════════
+// RESIZE
+// ══════════════════════════════════════════════════════════════════════
+let resizeTimer = null;
+window.addEventListener('resize', () => {
+  clearTimeout(resizeTimer);
+  resizeTimer = setTimeout(render, 120);
+});
+
+// ══════════════════════════════════════════════════════════════════════
+// INIT
+// ══════════════════════════════════════════════════════════════════════
+loadDB();
+document.documentElement.setAttribute('data-theme', db.theme);
+
+if (db.events.length === 0) {
+  startBoot();
+} else {
+  // Always autoFit on load — rAF×2 inside guarantees clientHeight is live.
+  // db.viewMs will be set correctly by scrollToMs inside autoFit.
+  db.viewMs = null;
+  render();
+  autoFit();
+  document.getElementById('console-input').focus();
+}
+
+setupScrollSync();
+</script>
+</body>
+</html>
