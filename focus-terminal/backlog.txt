@@ -1,9 +1,0 @@
-- [ ] Add more variants on the "10%" north star questions
-- [ ] During Q&A phase, show all options for category
-- [ ] In balance grid, show scores as a unit square vis along a line representing the 1-5 scale, e.g. --■-- reflecting a 3 score, and appropriate color coding, separated from the item part of the visualization, e.g. --■--|■■■, so left of the | is the score, and right of the | is the four types of work items
-- [ ] In balance grid, mouseover each square to see task info
-- [ ] In Eisenhower matrix, show category labels
-- [ ] Center items in "ONE THING/FOCUS" section of the page
-- [ ] Increase font sizes by about 30% across the board
-- [ ] Add /backlog command to add a line to backlog.txt
-- [ ] The /help popup should have the same look and feel as the rest of the app
