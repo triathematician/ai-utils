@@ -1310,7 +1310,7 @@ function renderBalanceGrid() {
       items.forEach(item => {
         const s = document.createElement('span');
         s.className = 'sq '+cls;
-        s.textContent = '■';
+        s.textContent = item.done ? '■' : '□';
         addTooltip(s, item);
         sqs.appendChild(s);
       });
