@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI-UTILS LAUNCHER</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@300;400;500;600;700&family=Source+Code+Pro:wght@300;400;600;700&family=VT323&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #121212; --fg: #ffb000; --accent: #ff0000;
+  --dim: #7a5500; --muted: #3a2800; --border: #ffb000;
+  --success: #00ff41; --warn: #ff6600;
+  --font: 'VT323', 'Courier New', monospace;
+  --font-size: 20px; --line-h: 1.4;
+}
+[data-theme="solar"] {
+  --bg:#002b36; --fg:#839496; --accent:#b58900;
+  --dim:#4a5456; --muted:#073642; --border:#839496;
+  --success:#859900; --warn:#cb4b16; --font:'Fira Code',monospace;
+}
+[data-theme="monk"] {
+  --bg:#f5f5f5; --fg:#2a2a2a; --accent:#000000;
+  --dim:#888; --muted:#e0e0e0; --border:#2a2a2a;
+  --success:#1a6600; --warn:#aa4400; --font:'Source Code Pro',monospace;
+}
+[data-theme="space"] {
+  --bg:#0a0a1a; --fg:#a0c0ff; --accent:#00ffff;
+  --dim:#304060; --muted:#0f0f2a; --border:#304080;
+  --success:#00ffaa; --warn:#ff6060; --font:'Fira Code',monospace;
+}
+[data-theme="synth"] {
+  --bg:#1a0033; --fg:#ff00ff; --accent:#00ffff;
+  --dim:#660066; --muted:#2a0044; --border:#ff00ff;
+  --success:#00ff88; --warn:#ffaa00; --font:'Fira Code',monospace;
+}
+[data-theme="dos"] {
+  --bg:#0000aa; --fg:#aaaaaa; --accent:#ffffff;
+  --dim:#5555ff; --muted:#0000cc; --border:#aaaaaa;
+  --success:#55ff55; --warn:#ffff55; --font:'VT323',monospace;
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html, body {
+  height: 100%; background: var(--bg); color: var(--fg);
+  font-family: var(--font); font-size: var(--font-size);
+  line-height: var(--line-h); overflow: hidden;
+  cursor: default; user-select: none;
+}
+::selection { background: var(--fg); color: var(--bg); }
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: var(--muted); }
+::-webkit-scrollbar-thumb { background: var(--dim); }
+
+#app {
+  display: grid;
+  grid-template-rows: 1fr 50px;
+  height: 100vh; width: 100vw;
+}
+
+#boot-log {
+  padding: 12px 16px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.log-sys   { color: var(--dim); }
+.log-ok    { color: var(--success); }
+.log-ready { color: var(--accent); }
+
+.app-line {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.app-num    { color: var(--dim); min-width: 2ch; }
+.app-name   { color: var(--accent); font-weight: bold; }
+.app-desc   { color: var(--fg); flex: 1; }
+.app-cat    { color: var(--dim); font-size: 0.82em; border: 1px solid var(--dim); padding: 0 4px; white-space: nowrap; }
+.app-date   { color: var(--dim); font-size: 0.82em; white-space: nowrap; }
+.app-launch {
+  color: var(--success); border: 1px solid var(--success);
+  padding: 0 6px; cursor: pointer; white-space: nowrap; font-size: 0.9em;
+}
+.app-launch:hover { background: var(--success); color: var(--bg); }
+
+#console-row {
+  background: var(--muted); border-top: 1px solid var(--border);
+  display: flex; align-items: center; padding: 0 12px; gap: 8px;
+}
+#console-prompt { color: var(--accent); white-space: nowrap; }
+#console-input {
+  flex: 1; background: transparent; border: none; outline: none;
+  color: var(--fg); font-family: var(--font); font-size: var(--font-size);
+  caret-color: var(--accent);
+}
+#console-input:disabled { opacity: 0.4; }
+#console-status {
+  color: var(--dim); font-size: 0.8em; min-width: 140px;
+  text-align: right; white-space: nowrap;
+}
+</style>
+</head>
+<body>
+<div id="app">
+  <div id="boot-log"></div>
+  <div id="console-row">
+    <span id="console-prompt">AI-UTILS&gt;</span>
+    <input type="text" id="console-input" autocomplete="off" spellcheck="false" disabled>
+    <span id="console-status">BOOTING...</span>
+  </div>
+</div>
+
+<script>
+const APPS = [
+  { name: 'FOCUS TERMINAL',      desc: 'Personal productivity terminal — tasks, backlog, focus sessions', category: 'terminal-web', path: 'focus-terminal/focus-terminal.html',       date: '2026-03-29' },
+  { name: 'LIFE TRACKER',        desc: 'Portable appointment and life event tracker',                     category: 'terminal-web', path: 'appt-tracker/appt-tracker.html',            date: '2026-03-28' },
+  { name: 'PORTFOLIO SIGNAL DESK', desc: 'Portfolio monitoring and signal dashboard',                     category: 'terminal-web', path: 'portfolio-manager/portfolio-manager.html',   date: '2026-03-28' },
+  { name: 'LIVELAB MEGAWALL',    desc: 'Live display wall for metrics and data feeds',                    category: 'terminal-web', path: 'display-wall/display-wall.html',             date: '2026-03-29' },
+  { name: 'CHRONOS',             desc: 'Timeline and event tracking with zoom levels and dependencies',   category: 'terminal-web', path: 'chronos/chronos.html',                      date: '2026-03-29' }
+];
+
+const THEMES = ['legacy','solar','monk','space','synth','dos'];
+const STORAGE_KEY = 'ai_utils_launcher';
+
+function loadPrefs() {
+  try { return JSON.parse(localStorage.getItem(STORAGE_KEY)) || {}; } catch { return {}; }
+}
+function savePrefs(p) { localStorage.setItem(STORAGE_KEY, JSON.stringify(p)); }
+
+function applyTheme(name) {
+  if (!THEMES.includes(name)) return statusMsg('Unknown theme: ' + name);
+  document.documentElement.dataset.theme = (name === 'legacy') ? '' : name;
+  const p = loadPrefs(); p.theme = name; savePrefs(p);
+  statusMsg('Theme: ' + name.toUpperCase());
+}
+
+function statusMsg(msg) {
+  document.getElementById('console-status').textContent = msg;
+  setTimeout(() => document.getElementById('console-status').textContent = 'READY', 3000);
+}
+
+function launchApp(indexOrName) {
+  let app;
+  const n = parseInt(indexOrName);
+  if (!isNaN(n) && n >= 1 && n <= APPS.length) {
+    app = APPS[n - 1];
+  } else {
+    const q = String(indexOrName).toLowerCase();
+    app = APPS.find(a => a.name.toLowerCase().includes(q));
+  }
+  if (!app) return statusMsg('App not found: ' + indexOrName);
+  window.open(app.path, '_blank');
+  statusMsg('Launching: ' + app.name);
+}
+
+const input = document.getElementById('console-input');
+
+input.addEventListener('keydown', e => {
+  if (e.key === 'Enter') {
+    const cmd = input.value.trim();
+    input.value = '';
+    if (cmd) handleCmd(cmd);
+  }
+});
+
+function handleCmd(raw) {
+  const parts = raw.split(/\s+/);
+  const cmd = parts[0].toLowerCase();
+  const arg = parts.slice(1).join(' ');
+  if (cmd === '/help')   return showHelp();
+  if (cmd === '/list')   return printList();
+  if (cmd === '/theme')  return applyTheme(arg);
+  if (cmd === '/launch') return launchApp(arg);
+  statusMsg('Unknown: ' + cmd + '. Type /help');
+}
+
+function showHelp() {
+  appendLine('/help             show this help', 'log-sys');
+  appendLine('/list             reprint app list', 'log-sys');
+  appendLine('/launch <n|name>  open app in new window', 'log-sys');
+  appendLine('/theme <name>     legacy | solar | monk | space | synth | dos', 'log-sys');
+  scrollLog();
+}
+
+function printList() {
+  APPS.forEach((app, i) => appendAppLine(app, i + 1));
+  scrollLog();
+}
+
+const log = document.getElementById('boot-log');
+
+function appendLine(text, cls) {
+  const div = document.createElement('div');
+  if (cls) div.className = cls;
+  div.textContent = text;
+  log.appendChild(div);
+  return div;
+}
+
+function appendAppLine(app, num) {
+  const div = document.createElement('div');
+  div.className = 'app-line';
+  div.innerHTML =
+    `<span class="app-num">[${num}]</span>` +
+    `<span class="app-name">${app.name}</span>` +
+    `<span class="app-desc">${app.desc}</span>` +
+    `<span class="app-cat">${app.category}</span>` +
+    `<span class="app-date">${app.date}</span>` +
+    `<span class="app-launch" onclick="launchApp(${num})">[ LAUNCH ]</span>`;
+  log.appendChild(div);
+}
+
+function scrollLog() { log.scrollTop = log.scrollHeight; }
+function delay(ms) { return new Promise(r => setTimeout(r, ms)); }
+
+async function runBoot() {
+  appendLine('AI-UTILS LAUNCHER v1.0', 'log-ready');
+  await delay(120);
+  appendLine('INITIALIZING...', 'log-sys');
+  await delay(200);
+  appendLine('SCANNING MODULES...', 'log-sys');
+  await delay(300);
+  appendLine('', null);
+
+  for (let i = 0; i < APPS.length; i++) {
+    await delay(180);
+    appendLine('MODULE DETECTED:', 'log-ok');
+    appendAppLine(APPS[i], i + 1);
+    scrollLog();
+  }
+
+  await delay(300);
+  appendLine('', null);
+  appendLine('ALL MODULES ONLINE. Type /help for commands.', 'log-ready');
+  scrollLog();
+
+  document.getElementById('console-status').textContent = 'READY';
+  input.disabled = false;
+  input.focus();
+}
+
+document.addEventListener('keydown', () => {
+  if (!input.disabled && document.activeElement !== input) input.focus();
+});
+
+window.addEventListener('DOMContentLoaded', () => {
+  const prefs = loadPrefs();
+  applyTheme(prefs.theme || 'legacy');
+  runBoot();
+});
+</script>
+</body>
+</html>
