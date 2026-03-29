@@ -663,6 +663,17 @@ html, body {
   </div>
 </div>
 
+<!-- HELP OVERLAY -->
+<div id="help-overlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:150;align-items:center;justify-content:center;">
+  <div style="background:var(--bg);border:1px solid var(--border);padding:16px 20px;min-width:400px;max-width:560px;width:90%;font-family:var(--font);color:var(--fg);font-size:0.9em;">
+    <div id="help-title" style="color:var(--accent);font-size:1em;letter-spacing:2px;margin-bottom:10px;border-bottom:1px solid var(--muted);padding-bottom:6px;"></div>
+    <div id="help-body" style="line-height:1.8;white-space:pre;"></div>
+    <div style="margin-top:12px;border-top:1px solid var(--muted);padding-top:10px;font-size:0.82em;color:var(--dim);">
+      <span id="help-close" style="cursor:pointer;">[ESC] CLOSE</span>
+    </div>
+  </div>
+</div>
+
 <script>
 'use strict';
 
@@ -1463,22 +1474,39 @@ function statusMsg(msg) {
   setTimeout(updateStatus, 3000);
 }
 
-function showHelp() {
-  const lines = [
-    '/boot       — start morning boot sequence',
-    '/edit       — re-enter boot to modify today',
-    '/next       — archive today, start fresh',
-    '/export     — download history (.txt + .json)',
-    '/goals      — manage north star goals',
-    '/add [text] — quick-add item to list',
-    '/ni         — toggle not-important quadrant',
-    '/theme [name] — legacy | solar | monk | space | synth | dos',
-    '/help       — this help',
+function showHelp(title, lines) {
+  const overlay = document.getElementById('help-overlay');
+  document.getElementById('help-title').textContent = title || 'FOCUS TERMINAL — COMMANDS';
+  document.getElementById('help-body').textContent = (lines || [
+    '/boot            start morning boot sequence',
+    '/edit            re-enter boot to modify today',
+    '/next            archive today, start fresh',
+    '/export          download history (.txt + .json)',
+    '/goals           manage north star goals',
+    '/add [text]      quick-add item to list',
+    '/ni              toggle not-important quadrant',
+    '/theme [name]    legacy | solar | monk | space | synth | dos',
+    '/backlog [text]  add item to backlog',
+    '/backlog list    show all backlog items',
+    '/backlog export  download backlog as .txt',
+    '/help            this help',
     '',
-    'Click any item for detail/edit popup.',
-  ];
-  alert('FOCUS TERMINAL COMMANDS\n\n' + lines.join('\n'));
+    'Click any item to open detail/edit popup.',
+  ]).join('\n');
+  overlay.style.display = 'flex';
 }
+
+function closeHelp() {
+  document.getElementById('help-overlay').style.display = 'none';
+}
+
+document.getElementById('help-close').addEventListener('click', closeHelp);
+document.getElementById('help-overlay').addEventListener('click', e => {
+  if (e.target === document.getElementById('help-overlay')) closeHelp();
+});
+document.addEventListener('keydown', e => {
+  if (document.getElementById('help-overlay').style.display !== 'none' && e.key === 'Escape') closeHelp();
+});
 
 function archiveDay() {
   if (!db.today) { statusMsg('No active session.'); return; }
