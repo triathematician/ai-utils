@@ -721,7 +721,8 @@ let db = {
   northStarGoals: [],
   today: null,
   history: [],
-  theme: 'legacy'
+  theme: 'legacy',
+  backlog: []
 };
 
 function saveDB() {
@@ -732,6 +733,7 @@ function loadDB() {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (raw) db = JSON.parse(raw);
   } catch(e) {}
+  db.backlog = db.backlog || [];
 }
 
 /* ═══════════════════════════════════════════════════════════════════
@@ -1479,6 +1481,9 @@ function handleConsoleCmd(raw) {
   if (inp.startsWith('/add ')) {
     quickAdd(inp.slice(5)); return;
   }
+  if (cmd === '/backlog') {
+    handleBacklog(inp.slice('/backlog'.length).trim()); return;
+  }
   statusMsg(`Unknown command: ${cmd}. Type /help`);
 }
 
@@ -1538,6 +1543,33 @@ function quickAdd(text) {
   saveDB();
   renderDashboard();
   statusMsg(`Added: "${item.text}"`);
+}
+
+function handleBacklog(arg) {
+  if (!arg || arg === 'list') {
+    if (!db.backlog.length) { statusMsg('Backlog is empty.'); return; }
+    showHelp('BACKLOG', db.backlog.map((b,i)=>`${i+1}. ${b.text}`));
+    return;
+  }
+  if (arg === 'export') {
+    exportBacklog(); return;
+  }
+  db.backlog.push({
+    id: Date.now()+'_'+Math.random().toString(36).slice(2,6),
+    text: arg,
+    createdAt: new Date().toISOString()
+  });
+  saveDB();
+  statusMsg(`Backlog: added "${arg}" (${db.backlog.length} item${db.backlog.length===1?'':'s'})`);
+}
+
+function exportBacklog() {
+  if (!db.backlog.length) { statusMsg('Backlog is empty.'); return; }
+  const now = new Date().toISOString().slice(0,10);
+  const txt = '# FOCUS TERMINAL BACKLOG — ' + now + '\n\n'
+    + db.backlog.map(b=>`- [ ] ${b.text}`).join('\n') + '\n';
+  downloadBlob(txt, `focus-backlog-${now}.txt`, 'text/plain');
+  statusMsg(`Exported ${db.backlog.length} backlog item${db.backlog.length===1?'':'s'}.`);
 }
 
 function editGoals() {
