@@ -781,7 +781,8 @@ let db = {
   today: null,
   history: [],
   theme: 'legacy',
-  backlog: []
+  backlog: [],
+  backlogArchive: []
 };
 
 function saveDB() {
@@ -793,6 +794,7 @@ function loadDB() {
     if (raw) db = JSON.parse(raw);
   } catch(e) {}
   db.backlog = db.backlog || [];
+  db.backlogArchive = db.backlogArchive || [];
 }
 
 /* ═══════════════════════════════════════════════════════════════════
@@ -1591,10 +1593,12 @@ function showHelp(title, lines) {
     '/add [text]      quick-add item to list',
     '/ni              toggle not-important quadrant',
     '/theme [name]    legacy | solar | monk | space | synth | dos',
-    '/backlog [text]    add item to backlog',
-    '/backlog list      show all backlog items',
-    '/backlog done [n]  toggle item #n as done/open',
-    '/backlog export    download backlog as .txt',
+    '/backlog [text]         add item to backlog',
+    '/backlog list           show all backlog items',
+    '/backlog done [n]       toggle item #n as done/open',
+    '/backlog archive        move done items to archive',
+    '/backlog archive list   show archived batches',
+    '/backlog export         download backlog as .txt',
     '/help            this help',
     '',
     'Click any item to open detail/edit popup.',
@@ -1667,6 +1671,24 @@ function handleBacklog(arg) {
   if (!arg || arg === 'list') {
     if (!db.backlog.length) { statusMsg('Backlog is empty.'); return; }
     showBacklogList();
+    return;
+  }
+  if (arg === 'archive list') {
+    if (!db.backlogArchive.length) { statusMsg('No archived batches.'); return; }
+    const lines = db.backlogArchive.flatMap(batch => [
+      `── ${batch.date} (${batch.items.length} item${batch.items.length===1?'':'s'}) ──`,
+      ...batch.items.map(b => `  [x] ${b.text}`)
+    ]);
+    showHelp('BACKLOG ARCHIVE', lines);
+    return;
+  }
+  if (arg === 'archive') {
+    const done = db.backlog.filter(b => b.done);
+    if (!done.length) { statusMsg('No done items to archive.'); return; }
+    db.backlog = db.backlog.filter(b => !b.done);
+    db.backlogArchive.push({ date: todayStr(), items: done });
+    saveDB();
+    statusMsg(`Archived ${done.length} done item${done.length===1?'':'s'}.`);
     return;
   }
   if (arg === 'export') {
