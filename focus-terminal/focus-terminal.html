@@ -173,6 +173,8 @@ html, body {
   font-size: 0.8em;
   letter-spacing: 2px;
   margin-bottom: 2px;
+  border-bottom: 1px solid var(--muted);
+  padding-bottom: 4px;
 }
 #one-thing-display {
   color: var(--fg);
@@ -1131,7 +1133,7 @@ function renderTopRow() {
     return;
   }
 
-  hEl.textContent = `◈ ONE THING  [${t.dayType.toUpperCase()}]  ◈ FOCUS`;
+  hEl.textContent = `◈ ONE THING  ◈ FOCUS  [${t.dayType.toUpperCase()}]`;
   otEl.textContent = t.oneThing ? `❝ ${t.oneThing.trim()} ❞` : '— no one thing yet —';
 
   // Focus items: show priority first, or top 2
