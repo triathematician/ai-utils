@@ -1596,6 +1596,7 @@ function showHelp(title, lines) {
     '/backlog [text]         add item to backlog',
     '/backlog list           show all backlog items',
     '/backlog done [n]       toggle item #n as done/open',
+    '/backlog delete [n]     remove item #n from backlog',
     '/backlog archive        move done items to archive',
     '/backlog archive list   show archived batches',
     '/backlog export         download backlog as .txt',
@@ -1693,6 +1694,15 @@ function handleBacklog(arg) {
   }
   if (arg === 'export') {
     exportBacklog(); return;
+  }
+  if (arg.startsWith('delete ') || arg.startsWith('del ')) {
+    const n = parseInt(arg.split(' ')[1]);
+    const item = db.backlog[n-1];
+    if (!item) { statusMsg(`No backlog item #${n}.`); return; }
+    db.backlog.splice(n-1, 1);
+    saveDB();
+    statusMsg(`Backlog #${n} deleted: "${item.text}"`);
+    return;
   }
   if (arg.startsWith('done ') || arg.startsWith('fix ')) {
     const n = parseInt(arg.split(' ')[1]);
