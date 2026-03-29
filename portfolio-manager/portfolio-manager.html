@@ -1012,7 +1012,16 @@ async function fetchQuote(ticker) {
       }
     });
 
-    return { price, ...windows, history, ok: true };
+    // track the opening price of each window (oldest close within the period)
+    const mo1Open = (() => {
+      const cut = cutoffs.mo1;
+      for (let i = 0; i < timestamps.length; i++) {
+        if (timestamps[i] >= cut && closes[i]) return closes[i];
+      }
+      return null;
+    })();
+
+    return { price, ...windows, mo1Open, history, ok: true };
   } catch(e) {
     return { ok: false, error: e.message };
   }
@@ -1021,9 +1030,8 @@ async function fetchQuote(ticker) {
 async function refreshPrices() {
   setRefreshStatus('loading');
   const tickers = [...new Set(state.positions.map(p => p.ticker))];
-  if (!tickers.length) { setRefreshStatus('ok'); return; }
 
-  // also fetch SPY, VIX, TNX for dashboard rows + relative performance
+  // always fetch market tickers (header ticker needs them even with no positions)
   const allTickers = [...tickers, SP_TICKER, VIX_TICKER, TNX_TICKER, OIL_TICKER];
 
   const results = await Promise.allSettled(allTickers.map(t => fetchQuote(t)));
@@ -1074,6 +1082,7 @@ async function refreshPrices() {
       mo6: spyData.mo6,
       mo3: spyData.mo3,
       mo1: spyData.mo1,
+      mo1Open: spyData.mo1Open,
       history: spyData.history
     };
     // update powder inputs with latest SPY data if user has no manual override
@@ -1088,19 +1097,19 @@ async function refreshPrices() {
   if (vixData) {
     state.prices['__VIX__'] = {
       price: vixData.price, ath: vixData.ath, yr5: vixData.yr5, yr2: vixData.yr2,
-      yr1: vixData.yr1, mo6: vixData.mo6, mo3: vixData.mo3, mo1: vixData.mo1
+      yr1: vixData.yr1, mo6: vixData.mo6, mo3: vixData.mo3, mo1: vixData.mo1, mo1Open: vixData.mo1Open
     };
   }
   if (tnxData) {
     state.prices['__TNX__'] = {
       price: tnxData.price, ath: tnxData.ath, yr5: tnxData.yr5, yr2: tnxData.yr2,
-      yr1: tnxData.yr1, mo6: tnxData.mo6, mo3: tnxData.mo3, mo1: tnxData.mo1
+      yr1: tnxData.yr1, mo6: tnxData.mo6, mo3: tnxData.mo3, mo1: tnxData.mo1, mo1Open: tnxData.mo1Open
     };
   }
   if (oilData) {
     state.prices['__OIL__'] = {
       price: oilData.price, ath: oilData.ath, yr5: oilData.yr5, yr2: oilData.yr2,
-      yr1: oilData.yr1, mo6: oilData.mo6, mo3: oilData.mo3, mo1: oilData.mo1
+      yr1: oilData.yr1, mo6: oilData.mo6, mo3: oilData.mo3, mo1: oilData.mo1, mo1Open: oilData.mo1Open
     };
   }
 
@@ -2961,9 +2970,10 @@ function renderHeaderTicker() {
     chgEl.style.color   = 'var(--muted)';
   } else {
     priceEl.textContent = t.fmt(dat.price);
-    // 1-month change: drop from mo1 high (always ≤ 0) or positive if price > mo1
-    if (dat.mo1) {
-      const chg = ((dat.price - dat.mo1) / dat.mo1) * 100;
+    // 1-month change: current price vs price at start of 1-month window
+    const mo1Ref = dat.mo1Open;
+    if (mo1Ref) {
+      const chg = ((dat.price - mo1Ref) / mo1Ref) * 100;
       const col = t.invert ? gradeColor(-chg) : gradeColor(chg);
       chgEl.textContent = (chg >= 0 ? '▲' : '▼') + Math.abs(chg).toFixed(1) + '% 1M';
       chgEl.style.color = col;
@@ -3026,6 +3036,7 @@ setInterval(updateClock, 1000);
 setInterval(rotateHeaderTicker, 3500);
 updateClock();
 renderHeaderTicker();
+refreshPrices();
 
 // seed with some of your known positions if empty
 if (state.positions.length === 0) {
