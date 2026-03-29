@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>APP NAME</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@300;400;500;600;700&family=Source+Code+Pro:wght@300;400;600;700&family=VT323&display=swap" rel="stylesheet">
+<style>
+/* ═══════════════════════════════════════════════
+   CSS VARIABLES — THEME SYSTEM
+   Copy this block verbatim. Do not modify palette values.
+   See docs/terminal-web.md for the full variable contract.
+   ═══════════════════════════════════════════════ */
+:root {
+  --bg: #121212; --fg: #ffb000; --accent: #ff0000;
+  --dim: #7a5500; --muted: #3a2800; --border: #ffb000;
+  --success: #00ff41; --warn: #ff6600;
+  --font: 'VT323', 'Courier New', monospace;
+  --font-size: 20px; --line-h: 1.4;
+  --cat-1:#ffb000; --cat-2:#ff4444; --cat-3:#ff8800; --cat-4:#00ff41;
+  --cat-5:#00bbff; --cat-6:#aa44ff; --cat-7:#ff44aa; --cat-8:#ffff44;
+  --cat-9:#00ffaa; --cat-10:#ffffff;
+}
+[data-theme="solar"] {
+  --bg:#002b36; --fg:#839496; --accent:#b58900;
+  --dim:#4a5456; --muted:#073642; --border:#839496;
+  --success:#859900; --warn:#cb4b16;
+  --font:'Fira Code',monospace;
+  --cat-1:#b58900; --cat-2:#cb4b16; --cat-3:#dc322f; --cat-4:#d33682;
+  --cat-5:#6c71c4; --cat-6:#268bd2; --cat-7:#2aa198; --cat-8:#859900;
+  --cat-9:#657b83; --cat-10:#93a1a1;
+}
+[data-theme="monk"] {
+  --bg:#f5f5f5; --fg:#2a2a2a; --accent:#000000;
+  --dim:#888; --muted:#e0e0e0; --border:#2a2a2a;
+  --success:#1a6600; --warn:#aa4400;
+  --font:'Source Code Pro',monospace;
+  --cat-1:#2a2a2a; --cat-2:#aa2200; --cat-3:#005588; --cat-4:#336600;
+  --cat-5:#884400; --cat-6:#550055; --cat-7:#006666; --cat-8:#7a5000;
+  --cat-9:#555500; --cat-10:#003344;
+}
+[data-theme="space"] {
+  --bg:#0a0a1a; --fg:#a0c0ff; --accent:#00ffff;
+  --dim:#304060; --muted:#0f0f2a; --border:#304080;
+  --success:#00ffaa; --warn:#ff6060;
+  --font:'Fira Code',monospace;
+  --cat-1:#00ffff; --cat-2:#ff00aa; --cat-3:#00ff88; --cat-4:#ffff00;
+  --cat-5:#ff6060; --cat-6:#7788ff; --cat-7:#aa66ff; --cat-8:#ffffff;
+  --cat-9:#00ccff; --cat-10:#ff8800;
+}
+[data-theme="synth"] {
+  --bg:#1a0033; --fg:#ff00ff; --accent:#00ffff;
+  --dim:#660066; --muted:#2a0044; --border:#ff00ff;
+  --success:#00ff88; --warn:#ffaa00;
+  --font:'Fira Code',monospace;
+  --cat-1:#ff00ff; --cat-2:#00ffff; --cat-3:#00ff88; --cat-4:#ffaa00;
+  --cat-5:#ff0066; --cat-6:#6600ff; --cat-7:#ff6600; --cat-8:#00aaff;
+  --cat-9:#ffff00; --cat-10:#ff44aa;
+}
+[data-theme="dos"] {
+  --bg:#0000aa; --fg:#aaaaaa; --accent:#ffffff;
+  --dim:#5555ff; --muted:#0000cc; --border:#aaaaaa;
+  --success:#55ff55; --warn:#ffff55;
+  --font:'VT323',monospace;
+  --cat-1:#ffffff; --cat-2:#55ffff; --cat-3:#55ff55; --cat-4:#ff5555;
+  --cat-5:#ffff55; --cat-6:#ff55ff; --cat-7:#5555ff; --cat-8:#aaaaaa;
+  --cat-9:#ffaa55; --cat-10:#55aaaa;
+}
+
+/* ═══════════════════════════════════════════════
+   RESET & BASE
+   ═══════════════════════════════════════════════ */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html, body {
+  height: 100%; background: var(--bg); color: var(--fg);
+  font-family: var(--font); font-size: var(--font-size);
+  line-height: var(--line-h); overflow: hidden;
+  cursor: default; user-select: none;
+}
+::selection { background: var(--fg); color: var(--bg); }
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: var(--muted); }
+::-webkit-scrollbar-thumb { background: var(--dim); }
+
+/* ═══════════════════════════════════════════════
+   LAYOUT — standard 30/60/10 grid
+   Adjust grid-template-rows for your app's needs.
+   ═══════════════════════════════════════════════ */
+#app {
+  display: grid;
+  grid-template-rows: 30vh 60vh 10vh;
+  height: 100vh; width: 100vw;
+}
+#top-row    { border-bottom: 1px solid var(--border); padding: 10px 12px; overflow: hidden; }
+#main-row   { display: grid; grid-template-columns: 1fr 1fr; overflow: hidden; }
+#main-panel { border-right: 1px solid var(--border); padding: 10px 12px; overflow-y: auto; }
+#side-panel { padding: 10px 12px; overflow-y: auto; }
+#console-row {
+  background: var(--muted); border-top: 1px solid var(--border);
+  display: flex; align-items: center; padding: 0 12px; gap: 8px;
+}
+
+/* Panel headers: ◈ LABEL pattern */
+.row-header {
+  color: var(--accent); font-size: 0.8em; letter-spacing: 2px;
+  margin-bottom: 4px; border-bottom: 1px solid var(--muted); padding-bottom: 4px;
+}
+
+/* Console row elements */
+#console-prompt { color: var(--accent); white-space: nowrap; }
+#console-input  {
+  flex: 1; background: transparent; border: none; outline: none;
+  color: var(--fg); font-family: var(--font); font-size: var(--font-size);
+  caret-color: var(--accent);
+}
+#console-status {
+  color: var(--dim); font-size: 0.8em; min-width: 120px;
+  text-align: right; white-space: nowrap;
+}
+
+/* ═══════════════════════════════════════════════
+   OVERLAY (help / edit forms)
+   ═══════════════════════════════════════════════ */
+#help-overlay {
+  display: none; position: fixed; inset: 0;
+  background: rgba(0,0,0,0.7); z-index: 150;
+  align-items: center; justify-content: center;
+}
+#help-overlay.visible { display: flex; }
+.overlay-box {
+  background: var(--bg); border: 1px solid var(--border);
+  padding: 16px 20px; min-width: 640px; max-width: min(90vw,960px);
+  font-family: var(--font); color: var(--fg);
+}
+#help-title { color: var(--accent); letter-spacing: 2px; margin-bottom: 8px; }
+#help-body  { white-space: pre; line-height: 1.8; }
+#help-close { color: var(--dim); font-size: 0.82em; cursor: pointer; display: block; margin-top: 8px; }
+
+/* ═══════════════════════════════════════════════
+   TOOLTIP
+   ═══════════════════════════════════════════════ */
+#tooltip {
+  position: fixed; display: none; background: var(--bg);
+  border: 1px solid var(--border); color: var(--fg);
+  padding: 4px 8px; font-size: 0.8em; pointer-events: none;
+  z-index: 200; white-space: nowrap;
+}
+</style>
+</head>
+<body>
+
+<!-- ═══ SPLASH (shown before boot, hidden after) ═══ -->
+<div id="splash" style="position:fixed;inset:0;background:var(--bg);display:flex;align-items:center;justify-content:center;z-index:100;flex-direction:column;gap:8px;">
+  <div style="color:var(--accent);font-size:2em;letter-spacing:4px;">APP NAME</div>
+  <div style="color:var(--dim);font-size:0.8em;">LOADING...</div>
+</div>
+
+<!-- ═══ MAIN LAYOUT ═══ -->
+<div id="app">
+  <div id="top-row">
+    <div class="row-header">◈ TOP PANEL</div>
+    <!-- primary focus content -->
+  </div>
+  <div id="main-row">
+    <div id="main-panel">
+      <div class="row-header">◈ MAIN</div>
+    </div>
+    <div id="side-panel">
+      <div class="row-header">◈ SIDE</div>
+    </div>
+  </div>
+  <div id="console-row">
+    <span id="console-prompt">APPNAME&gt;</span>
+    <input type="text" id="console-input" autocomplete="off" spellcheck="false">
+    <span id="console-status">READY</span>
+  </div>
+</div>
+
+<!-- ═══ HELP OVERLAY ═══ -->
+<div id="help-overlay">
+  <div class="overlay-box">
+    <div id="help-title"></div>
+    <div id="help-body"></div>
+    <span id="help-close">[ESC] CLOSE</span>
+  </div>
+</div>
+
+<!-- ═══ TOOLTIP ═══ -->
+<div id="tooltip"></div>
+
+<script>
+/* ─── STORAGE ─────────────────────────────────────────── */
+const STORAGE_KEY = 'YOUR_APP_NAME_db';  // TODO: change this
+
+function loadDB() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    const db = raw ? JSON.parse(raw) : {};
+    // Migration guards — add new fields with defaults:
+    // db.myField = db.myField ?? defaultValue;
+    return db;
+  } catch { return {}; }
+}
+
+function saveDB(db) {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(db));
+}
+
+/* ─── STATUS BAR ──────────────────────────────────────── */
+function statusMsg(msg) {
+  document.getElementById('console-status').textContent = msg;
+  setTimeout(updateStatus, 3000);
+}
+
+function updateStatus() {
+  document.getElementById('console-status').textContent = 'READY';
+  // TODO: replace with app-specific status (e.g. item count)
+}
+
+/* ─── THEME ───────────────────────────────────────────── */
+const THEMES = ['legacy','solar','monk','space','synth','dos'];
+let db = loadDB();
+
+function applyTheme(name) {
+  if (!THEMES.includes(name)) return statusMsg('Unknown theme: ' + name);
+  document.documentElement.dataset.theme = (name === 'legacy') ? '' : name;
+  db.theme = name;
+  saveDB(db);
+  statusMsg('Theme: ' + name.toUpperCase());
+}
+
+/* ─── CONSOLE ─────────────────────────────────────────── */
+const input = document.getElementById('console-input');
+
+input.addEventListener('keydown', e => {
+  if (e.key === 'Enter') {
+    const cmd = input.value.trim();
+    input.value = '';
+    if (cmd) handleConsoleCmd(cmd);
+  }
+});
+
+function handleConsoleCmd(raw) {
+  const parts = raw.split(/\s+/);
+  const cmd = parts[0].toLowerCase();
+  const arg = parts.slice(1).join(' ');
+
+  if (cmd === '/help')   return showHelp();
+  if (cmd === '/theme')  return applyTheme(arg);
+  // TODO: add app-specific commands here
+
+  statusMsg('Unknown command: ' + cmd);
+}
+
+/* ─── HELP OVERLAY ────────────────────────────────────── */
+function showHelp() {
+  document.getElementById('help-title').textContent = '◈ APPNAME — COMMANDS';
+  document.getElementById('help-body').textContent = [
+    '/help          show this help',
+    '/theme <name>  switch theme (legacy|solar|monk|space|synth|dos)',
+    // TODO: add your commands here
+  ].join('\n');
+  const overlay = document.getElementById('help-overlay');
+  overlay.classList.add('visible');
+  overlay.onclick = e => { if (e.target === overlay) overlay.classList.remove('visible'); };
+}
+
+document.getElementById('help-close').onclick = () =>
+  document.getElementById('help-overlay').classList.remove('visible');
+
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') document.getElementById('help-overlay').classList.remove('visible');
+  if (document.getElementById('help-overlay').classList.contains('visible')) return;
+  if (document.activeElement !== input) input.focus();
+});
+
+/* ─── TOOLTIP ─────────────────────────────────────────── */
+const tooltip = document.getElementById('tooltip');
+
+function addTooltip(el, text) {
+  el.addEventListener('mouseenter', () => { tooltip.textContent = text; tooltip.style.display = 'block'; });
+  el.addEventListener('mousemove', e => { tooltip.style.left = (e.clientX + 14) + 'px'; tooltip.style.top = (e.clientY + 8) + 'px'; });
+  el.addEventListener('mouseleave', () => { tooltip.style.display = 'none'; });
+}
+
+/* ─── BOOT / INIT ─────────────────────────────────────── */
+function init() {
+  db = loadDB();
+  applyTheme(db.theme || 'legacy');
+  render();
+  document.getElementById('splash').style.display = 'none';
+  input.focus();
+}
+
+function render() {
+  // TODO: implement render logic
+}
+
+window.addEventListener('DOMContentLoaded', init);
+</script>
+</body>
+</html>
