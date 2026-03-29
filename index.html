@@ -102,6 +102,21 @@ html, body {
   color: var(--dim); font-size: 0.8em; min-width: 140px;
   text-align: right; white-space: nowrap;
 }
+
+#help-overlay {
+  display: none; position: fixed; inset: 0;
+  background: rgba(0,0,0,0.7); z-index: 150;
+  align-items: center; justify-content: center;
+}
+#help-overlay.visible { display: flex; }
+.overlay-box {
+  background: var(--bg); border: 1px solid var(--border);
+  padding: 16px 20px; min-width: 640px; max-width: min(90vw,960px);
+  font-family: var(--font); color: var(--fg);
+}
+#help-title { color: var(--accent); letter-spacing: 2px; margin-bottom: 8px; }
+#help-body  { line-height: 1.8; max-height: 60vh; overflow-y: auto; }
+#help-close { color: var(--dim); font-size: 0.82em; cursor: pointer; display: block; margin-top: 8px; }
 </style>
 </head>
 <body>
@@ -111,6 +126,15 @@ html, body {
     <span id="console-prompt">AI-UTILS&gt;</span>
     <input type="text" id="console-input" autocomplete="off" spellcheck="false" disabled>
     <span id="console-status">BOOTING...</span>
+  </div>
+</div>
+
+<!-- ═══ HELP / BACKLOG OVERLAY ═══ -->
+<div id="help-overlay">
+  <div class="overlay-box">
+    <div id="help-title"></div>
+    <div id="help-body"></div>
+    <span id="help-close">[ESC] CLOSE</span>
   </div>
 </div>
 
@@ -132,6 +156,12 @@ function loadPrefs() {
 function savePrefs(p) { localStorage.setItem(STORAGE_KEY, JSON.stringify(p)); }
 
 function applyTheme(name) {
+  if (!name) {
+    const p = loadPrefs();
+    const current = p.theme || 'legacy';
+    const others = THEMES.filter(t => t !== current);
+    name = others[Math.floor(Math.random() * others.length)];
+  }
   if (!THEMES.includes(name)) return statusMsg('Unknown theme: ' + name);
   document.documentElement.dataset.theme = (name === 'legacy') ? '' : name;
   const p = loadPrefs(); p.theme = name; savePrefs(p);
@@ -171,10 +201,11 @@ function handleCmd(raw) {
   const parts = raw.split(/\s+/);
   const cmd = parts[0].toLowerCase();
   const arg = parts.slice(1).join(' ');
-  if (cmd === '/help')   return showHelp();
-  if (cmd === '/list')   return printList();
-  if (cmd === '/theme')  return applyTheme(arg);
-  if (cmd === '/launch') return launchApp(arg);
+  if (cmd === '/help')    return showHelp();
+  if (cmd === '/list')    return printList();
+  if (cmd === '/theme')   return applyTheme(arg);
+  if (cmd === '/launch')  return launchApp(arg);
+  if (cmd === '/backlog') { handleBacklog(raw.slice('/backlog'.length).trim()); return; }
   statusMsg('Unknown: ' + cmd + '. Type /help');
 }
 
@@ -182,7 +213,14 @@ function showHelp() {
   appendLine('/help             show this help', 'log-sys');
   appendLine('/list             reprint app list', 'log-sys');
   appendLine('/launch <n|name>  open app in new window', 'log-sys');
-  appendLine('/theme <name>     legacy | solar | monk | space | synth | dos', 'log-sys');
+  appendLine('/theme [name]     legacy | solar | monk | space | synth | dos  (random if omitted)', 'log-sys');
+  appendLine('/backlog [text]         add item to backlog', 'log-sys');
+  appendLine('/backlog list           show all backlog items', 'log-sys');
+  appendLine('/backlog done [n]       toggle item #n as done/open', 'log-sys');
+  appendLine('/backlog delete [n]     remove item #n from backlog', 'log-sys');
+  appendLine('/backlog archive        move done items to archive', 'log-sys');
+  appendLine('/backlog archive list   show archived batches', 'log-sys');
+  appendLine('/backlog export         download backlog as .txt', 'log-sys');
   scrollLog();
 }
 
@@ -216,6 +254,127 @@ function appendAppLine(app, num) {
 
 function scrollLog() { log.scrollTop = log.scrollHeight; }
 function delay(ms) { return new Promise(r => setTimeout(r, ms)); }
+
+function todayStr() { return new Date().toISOString().slice(0,10); }
+
+function escHtml(str) {
+  return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+function downloadBlob(content, filename, type) {
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([content], { type }));
+  a.download = filename;
+  a.click();
+  URL.revokeObjectURL(a.href);
+}
+
+function showBacklogList() {
+  const p = loadPrefs();
+  const backlog = p.backlog || [];
+  document.getElementById('help-title').textContent = 'BACKLOG';
+  const body = document.getElementById('help-body');
+  body.style.whiteSpace = 'normal';
+  body.innerHTML = backlog.map((b, i) => {
+    const bracket = b.done ? '[x]' : '[ ]';
+    return `<div style="padding:2px 0"><span data-backlog-idx="${i}" style="cursor:pointer;user-select:none;color:var(--accent)">${bracket}</span> ${i+1}. ${escHtml(b.text)}</div>`;
+  }).join('');
+  body.querySelectorAll('[data-backlog-idx]').forEach(el => {
+    el.addEventListener('click', () => {
+      const idx = parseInt(el.dataset.backlogIdx);
+      const p2 = loadPrefs();
+      const item = (p2.backlog || [])[idx];
+      if (item) item.done = !item.done;
+      savePrefs(p2);
+      showBacklogList();
+    });
+  });
+  const overlay = document.getElementById('help-overlay');
+  overlay.classList.add('visible');
+}
+
+function handleBacklog(arg) {
+  const p = loadPrefs();
+  if (!p.backlog) p.backlog = [];
+  if (!p.backlogArchive) p.backlogArchive = [];
+
+  if (!arg || arg === 'list') {
+    if (!p.backlog.length) { statusMsg('Backlog is empty.'); return; }
+    showBacklogList();
+    return;
+  }
+  if (arg === 'archive list') {
+    if (!p.backlogArchive.length) { statusMsg('No archived batches.'); return; }
+    const lines = p.backlogArchive.flatMap(batch => [
+      `── ${batch.date} (${batch.items.length} item${batch.items.length===1?'':'s'}) ──`,
+      ...batch.items.map(b => `  [x] ${b.text}`)
+    ]);
+    document.getElementById('help-title').textContent = 'BACKLOG ARCHIVE';
+    document.getElementById('help-body').style.whiteSpace = 'pre';
+    document.getElementById('help-body').textContent = lines.join('\n');
+    document.getElementById('help-overlay').classList.add('visible');
+    return;
+  }
+  if (arg === 'archive') {
+    const done = p.backlog.filter(b => b.done);
+    if (!done.length) { statusMsg('No done items to archive.'); return; }
+    p.backlog = p.backlog.filter(b => !b.done);
+    p.backlogArchive.push({ date: todayStr(), items: done });
+    savePrefs(p);
+    statusMsg(`Archived ${done.length} done item${done.length===1?'':'s'}.`);
+    return;
+  }
+  if (arg === 'export') {
+    exportBacklog(); return;
+  }
+  if (arg.startsWith('delete ') || arg.startsWith('del ')) {
+    const n = parseInt(arg.split(' ')[1]);
+    const item = p.backlog[n-1];
+    if (!item) { statusMsg(`No backlog item #${n}.`); return; }
+    p.backlog.splice(n-1, 1);
+    savePrefs(p);
+    statusMsg(`Backlog #${n} deleted: "${item.text}"`);
+    return;
+  }
+  if (arg.startsWith('done ')) {
+    const n = parseInt(arg.split(' ')[1]);
+    const item = p.backlog[n-1];
+    if (!item) { statusMsg(`No backlog item #${n}.`); return; }
+    item.done = !item.done;
+    savePrefs(p);
+    statusMsg(`Backlog #${n} marked ${item.done ? 'done' : 'open'}: "${item.text}"`);
+    return;
+  }
+  p.backlog.push({
+    id: Date.now()+'_'+Math.random().toString(36).slice(2,6),
+    text: arg,
+    done: false,
+    createdAt: new Date().toISOString()
+  });
+  savePrefs(p);
+  statusMsg(`Backlog: added "${arg}" (${p.backlog.length} item${p.backlog.length===1?'':'s'})`);
+}
+
+function exportBacklog() {
+  const p = loadPrefs();
+  const backlog = p.backlog || [];
+  if (!backlog.length) { statusMsg('Backlog is empty.'); return; }
+  const now = todayStr();
+  const txt = '# AI-UTILS BACKLOG — ' + now + '\n\n'
+    + backlog.map(b => `- ${b.done?'[x]':'[ ]'} ${b.text}`).join('\n') + '\n';
+  downloadBlob(txt, `ai-utils-backlog-${now}.txt`, 'text/plain');
+  statusMsg(`Exported ${backlog.length} backlog item${backlog.length===1?'':'s'}.`);
+}
+
+document.getElementById('help-close').onclick = () =>
+  document.getElementById('help-overlay').classList.remove('visible');
+document.getElementById('help-overlay').addEventListener('click', e => {
+  if (e.target === document.getElementById('help-overlay'))
+    document.getElementById('help-overlay').classList.remove('visible');
+});
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') document.getElementById('help-overlay').classList.remove('visible');
+});
 
 async function runBoot() {
   appendLine('AI-UTILS LAUNCHER v1.0', 'log-ready');

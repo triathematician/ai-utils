@@ -508,6 +508,8 @@ let db = {
   zoomIdx: 3,          // default: WEEK
   viewMs: null,        // top of viewport in ms (null = auto-fit)
   theme: 'space',
+  backlog: [],
+  backlogArchive: [],
 };
 
 function loadDB() {
@@ -520,6 +522,8 @@ function loadDB() {
       db.zoomIdx  = saved.zoomIdx  ?? 3;
       db.viewMs   = saved.viewMs   ?? null;
       db.theme    = saved.theme    || 'space';
+      db.backlog        = saved.backlog        || [];
+      db.backlogArchive = saved.backlogArchive || [];
     }
   } catch(e) {}
 }
@@ -1246,7 +1250,17 @@ const HELP_TEXT = `
 /delete <id>  Delete an event by UID.
 /list         List all events with UIDs.
 
-/theme <name> Switch theme: legacy solar monk space synth dos
+/theme [name] Switch theme: legacy solar monk space synth dos
+              (random if omitted)
+
+/backlog [text]         Add item to backlog.
+/backlog list           Show all backlog items.
+/backlog done [n]       Toggle item #n as done/open.
+/backlog delete [n]     Remove item #n from backlog.
+/backlog archive        Move done items to archive.
+/backlog archive list   Show archived batches.
+/backlog export         Download backlog as .txt.
+
 /help         Show this reference.
 ───────────────────────────────────────────────────────
 SHORTCUTS
@@ -1364,10 +1378,24 @@ function handleConsoleCmd(raw) {
   if (cmd === '/theme') {
     const name = parts[1];
     const themes = ['legacy','solar','monk','space','synth','dos'];
+    if (!name) {
+      const others = themes.filter(t => t !== db.theme);
+      const picked = others[Math.floor(Math.random() * others.length)];
+      db.theme = picked;
+      document.documentElement.setAttribute('data-theme', picked);
+      saveDB(); render(); statusMsg('THEME: ' + picked);
+      return;
+    }
     if (!themes.includes(name)) { statusMsg('THEMES: ' + themes.join(' ')); return; }
     db.theme = name;
     document.documentElement.setAttribute('data-theme', name);
-    render(); statusMsg('THEME: ' + name);
+    saveDB(); render(); statusMsg('THEME: ' + name);
+    return;
+    return;
+  }
+
+  if (cmd === '/backlog') {
+    handleBacklog(raw.slice('/backlog'.length).trim());
     return;
   }
 
@@ -1523,6 +1551,100 @@ function cmdLink(srcUID, tgtUID) {
   tgt.deps = [...(tgt.deps||[]), srcUID];
   render();
   statusMsg(`LINKED: ${src.label} → ${tgt.label}`);
+}
+
+// ══════════════════════════════════════════════════════════════════════
+// BACKLOG
+// ══════════════════════════════════════════════════════════════════════
+function todayStr() { return new Date().toISOString().slice(0,10); }
+
+function escHtml(str) {
+  return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+function showBacklogList() {
+  const body = document.getElementById('help-body');
+  body.style.whiteSpace = 'normal';
+  body.innerHTML = '<div style="margin-bottom:4px">◈ BACKLOG (' + db.backlog.length + ')</div>'
+    + db.backlog.map((b, i) => {
+      const bracket = b.done ? '[x]' : '[ ]';
+      return `<div style="padding:2px 0"><span data-backlog-idx="${i}" style="cursor:pointer;user-select:none;color:var(--accent)">${bracket}</span> ${i+1}. ${escHtml(b.text)}</div>`;
+    }).join('');
+  body.querySelectorAll('[data-backlog-idx]').forEach(el => {
+    el.addEventListener('click', () => {
+      const idx = parseInt(el.dataset.backlogIdx);
+      db.backlog[idx].done = !db.backlog[idx].done;
+      saveDB();
+      showBacklogList();
+    });
+  });
+  document.getElementById('help-overlay').classList.add('active');
+}
+
+function handleBacklog(arg) {
+  if (!arg || arg === 'list') {
+    if (!db.backlog.length) { statusMsg('Backlog is empty.'); return; }
+    showBacklogList();
+    return;
+  }
+  if (arg === 'archive list') {
+    if (!db.backlogArchive.length) { statusMsg('No archived batches.'); return; }
+    const lines = db.backlogArchive.flatMap(batch => [
+      `── ${batch.date} (${batch.items.length} item${batch.items.length===1?'':'s'}) ──`,
+      ...batch.items.map(b => `  [x] ${b.text}`)
+    ]);
+    document.getElementById('help-body').style.whiteSpace = 'pre';
+    document.getElementById('help-body').textContent = '◈ BACKLOG ARCHIVE\n───────────────────────────────────────────────────────\n' + lines.join('\n');
+    document.getElementById('help-overlay').classList.add('active');
+    return;
+  }
+  if (arg === 'archive') {
+    const done = db.backlog.filter(b => b.done);
+    if (!done.length) { statusMsg('No done items to archive.'); return; }
+    db.backlog = db.backlog.filter(b => !b.done);
+    db.backlogArchive.push({ date: todayStr(), items: done });
+    saveDB();
+    statusMsg(`Archived ${done.length} done item${done.length===1?'':'s'}.`);
+    return;
+  }
+  if (arg === 'export') {
+    exportBacklog(); return;
+  }
+  if (arg.startsWith('delete ') || arg.startsWith('del ')) {
+    const n = parseInt(arg.split(' ')[1]);
+    const item = db.backlog[n-1];
+    if (!item) { statusMsg(`No backlog item #${n}.`); return; }
+    db.backlog.splice(n-1, 1);
+    saveDB();
+    statusMsg(`Backlog #${n} deleted: "${item.text}"`);
+    return;
+  }
+  if (arg.startsWith('done ')) {
+    const n = parseInt(arg.split(' ')[1]);
+    const item = db.backlog[n-1];
+    if (!item) { statusMsg(`No backlog item #${n}.`); return; }
+    item.done = !item.done;
+    saveDB();
+    statusMsg(`Backlog #${n} marked ${item.done ? 'done' : 'open'}: "${item.text}"`);
+    return;
+  }
+  db.backlog.push({
+    id: Date.now()+'_'+Math.random().toString(36).slice(2,6),
+    text: arg,
+    done: false,
+    createdAt: new Date().toISOString()
+  });
+  saveDB();
+  statusMsg(`Backlog: added "${arg}" (${db.backlog.length} item${db.backlog.length===1?'':'s'})`);
+}
+
+function exportBacklog() {
+  if (!db.backlog.length) { statusMsg('Backlog is empty.'); return; }
+  const now = todayStr();
+  const txt = '# CHRONOS BACKLOG — ' + now + '\n\n'
+    + db.backlog.map(b => `- ${b.done?'[x]':'[ ]'} ${b.text}`).join('\n') + '\n';
+  download(`chronos-backlog-${now}.txt`, txt, 'text/plain');
+  statusMsg(`Exported ${db.backlog.length} backlog item${db.backlog.length===1?'':'s'}.`);
 }
 
 // ══════════════════════════════════════════════════════════════════════
