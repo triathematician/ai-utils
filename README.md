@@ -13,10 +13,13 @@ ai-utils/
     specs/                      ← app specs and reference docs
     terminal-web.md             ← terminal-web design category guidelines
     terminal-web-template.html  ← copy-me template for new terminal-web apps
+    soft-utility.md             ← soft-utility design category (placeholder)
+    signal-grid.md              ← signal-grid design category (placeholder)
+    design-canvas.md            ← design-canvas design category (placeholder)
   apps/
     appt-tracker/                 ← LIFE TRACKER: appointments and life events
     chronos/                      ← CHRONOS: timeline and event tracking
-    display-wall/                 ← LIVELAB MEGAWALL: live display wall
+    display-wall/                 ← DISPLAY WALL DESIGNER: video wall layout tool
     focus-terminal/               ← FOCUS TERMINAL: productivity + task management
     portfolio-manager/            ← PORTFOLIO SIGNAL DESK: portfolio monitoring
   common/                       ← shared assets (if any)
@@ -31,14 +34,38 @@ Monospace, dark-first, single-file apps with a command-line interaction model. L
 
 **Apps in this category:**
 - `focus-terminal/focus-terminal.html` — FOCUS TERMINAL
-- `appt-tracker/appt-tracker.html` — LIFE TRACKER
-- `portfolio-manager/portfolio-manager.html` — PORTFOLIO SIGNAL DESK
-- `display-wall/display-wall.html` — LIVELAB MEGAWALL
 - `chronos/chronos.html` — CHRONOS
 
 **To start a new terminal-web app:** copy `docs/terminal-web-template.html` to a new subdirectory, rename the `STORAGE_KEY`, and build on top of the stubs.
 
 **Guidelines:** `docs/terminal-web.md`
+
+### soft-utility
+
+Portable, lightweight utility apps with a clean and approachable UI. No style guidelines yet.
+
+**Apps in this category:**
+- `appt-tracker/appt-tracker.html` — LIFE TRACKER
+
+**Guidelines:** `docs/soft-utility.md` _(placeholder)_
+
+### signal-grid
+
+Dashboard-style apps for monitoring, signals, and data grids. No style guidelines yet.
+
+**Apps in this category:**
+- `portfolio-manager/portfolio-manager.html` — PORTFOLIO SIGNAL DESK
+
+**Guidelines:** `docs/signal-grid.md` _(placeholder)_
+
+### design-canvas
+
+Visual design and layout tools with a canvas-style interaction model. No style guidelines yet.
+
+**Apps in this category:**
+- `display-wall/display-wall.html` — DISPLAY WALL DESIGNER
+
+**Guidelines:** `docs/design-canvas.md` _(placeholder)_
 
 ## One-off apps
 
