@@ -702,6 +702,17 @@ const DIM_ALIASES = {
 };
 const DAY_TYPES = ['Work','Personal','Travel'];
 const STORAGE_KEY = 'focus_terminal_db';
+const NORTH_STAR_QUESTIONS = [
+  "What 10% move serves this goal today?",
+  "What's the smallest action today that builds toward this?",
+  "If you could only do one thing for this goal today, what would it be?",
+  "What would future-you wish you had done today on this?",
+  "What resistance are you avoiding on this — and can you touch it today?",
+  "What does 1% better look like for this goal today?",
+  "What's the most honest next step on this?",
+  "If this goal were already achieved, what did today look like?",
+  "What would make today count toward this?"
+];
 
 /* ═══════════════════════════════════════════════════════════════════
    STATE
@@ -878,7 +889,8 @@ function advanceBoot() {
     }
     const g = goals[s.subIndex];
     bootLog('ask',`◈ NORTH STAR [${s.subIndex+1}/${goals.length}]: "${g.text}"`);
-    bootLog('sys','→ What 10% move serves this goal today?');
+    const q = NORTH_STAR_QUESTIONS[Math.floor(Math.random() * NORTH_STAR_QUESTIONS.length)];
+    bootLog('sys',`→ ${q}`);
     bootLog('sys','  Append /dim for health category, +u for urgent, +i for important');
     bootLog('sys','  Type /skip to skip this goal.');
     s.awaitingConfirm = 'focus_goal';
@@ -920,6 +932,7 @@ function advanceBoot() {
     if (s.subIndex === 0) {
       bootLog('sep','──────────────────────────────────────────────────────');
       bootLog('ask','◈ DIMENSION SCORES: Rate each dimension today (1-5)');
+      bootLog('sys','  ' + DIMS.map(d=>`${d.label}=${d.full}`).join('  ·  '));
     }
     const d = DIMS[s.subIndex];
     bootLog('ask',`  ${d.full}: [1-5] or /skip`);
