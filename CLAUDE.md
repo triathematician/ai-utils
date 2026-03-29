@@ -13,7 +13,8 @@ ai-utils/
     specs/                      ← app specs and reference docs
     terminal-web.md             ← terminal-web design category guidelines
     terminal-web-template.html  ← copy-me template for new terminal-web apps
-    soft-utility.md             ← soft-utility design category (placeholder)
+    soft-utility.md             ← soft-utility design category guidelines
+    soft-utility-template.html  ← copy-me template for new soft-utility apps
     signal-grid.md              ← signal-grid design category (placeholder)
     design-canvas.md            ← design-canvas design category (placeholder)
   apps/
@@ -42,12 +43,14 @@ Monospace, dark-first, single-file apps with a command-line interaction model. L
 
 ### soft-utility
 
-Portable, lightweight utility apps with a clean and approachable UI. No style guidelines yet.
+Portable, lightweight utility apps with a clean and approachable UI. Built with React (CDN), Tailwind CSS, and Lucide Icons. Light-themed with Inter fonts.
 
 **Apps in this category:**
 - `appt-tracker/appt-tracker.html` — LIFE TRACKER
 
-**Guidelines:** `docs/soft-utility.md` _(placeholder)_
+**To start a new soft-utility app:** copy `docs/soft-utility-template.html` to a new subdirectory, rename the `APP_NAME` constant, and build on top of the stubs.
+
+**Guidelines:** `docs/soft-utility.md`
 
 ### signal-grid
 
