@@ -1591,6 +1591,10 @@ function editGoals() {
 function setTheme(name) {
   const valid = ['legacy','solar','monk','space','synth','dos'];
   const themes = {legacy:'',solar:'solar',monk:'monk',space:'space',synth:'synth',dos:'dos'};
+  if (!name) {
+    const others = valid.filter(t => t !== (db.theme||'legacy'));
+    name = others[Math.floor(Math.random() * others.length)];
+  }
   if (!valid.includes(name)) {
     statusMsg(`Themes: ${valid.join(' | ')}`); return;
   }
