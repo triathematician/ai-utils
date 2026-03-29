@@ -337,16 +337,11 @@ html, body {
   gap: 1px;
   flex: 1;
 }
-.sq {
-  width: 7px;
-  height: 7px;
-  display: inline-block;
-  flex-shrink: 0;
-}
-.sq-imp-today { background: var(--grid-important-today); }
-.sq-imp-week  { background: var(--grid-important-week); }
-.sq-nim-today { background: var(--grid-notimportant-today); }
-.sq-nim-week  { background: var(--grid-notimportant-week); border: 1px solid var(--dim); }
+.sq { display: inline; flex-shrink: 0; cursor: default; }
+.sq-imp-today { color: var(--grid-important-today); }
+.sq-imp-week  { color: var(--grid-important-week); }
+.sq-nim-today { color: var(--grid-notimportant-today); }
+.sq-nim-week  { color: var(--grid-notimportant-week); }
 
 /* ═══════════════════════════════════════════════
    BOTTOM ROW — CONSOLE
@@ -1254,7 +1249,8 @@ function renderBalanceGrid() {
       items.forEach(item => {
         const s = document.createElement('span');
         s.className = 'sq '+cls;
-        s.title = item.text;
+        s.textContent = '■';
+        addTooltip(s, item);
         sqs.appendChild(s);
       });
     };
