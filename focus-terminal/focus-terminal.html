@@ -321,10 +321,12 @@ html, body {
   white-space: nowrap;
 }
 .dim-score {
-  width: 1.2em;
+  width: 4.2em;
   color: var(--fg);
   text-align: right;
   flex-shrink: 0;
+  letter-spacing: 1px;
+  font-family: monospace;
 }
 .balance-squares {
   display: flex;
@@ -1186,39 +1188,49 @@ function renderBalanceGrid() {
   DIMS.forEach(dim => {
     const score = t ? (t.scores[dim.key]||0) : 0;
     const todayItems = t ? [...t.intentions,...t.list] : [];
-    const impToday  = todayItems.filter(i=>i.dim===dim.key && i.important).length;
-    const impWeek   = histItems.filter(i=>i.dim===dim.key && i.important).length;
-    const nimToday  = todayItems.filter(i=>i.dim===dim.key && !i.important).length;
-    const nimWeek   = histItems.filter(i=>i.dim===dim.key && !i.important).length;
+    const impTodayItems = todayItems.filter(i=>i.dim===dim.key && i.important);
+    const impWeekItems  = histItems.filter(i=>i.dim===dim.key && i.important);
+    const nimTodayItems = todayItems.filter(i=>i.dim===dim.key && !i.important);
+    const nimWeekItems  = histItems.filter(i=>i.dim===dim.key && !i.important);
 
     const row = document.createElement('div');
     row.className = 'balance-row';
 
     const lbl = document.createElement('span');
     lbl.className = 'dim-label';
-    lbl.title = dim.full;
     lbl.textContent = dim.label;
+    lbl.style.cursor = 'default';
+    lbl.addEventListener('mousemove', (e) => {
+      ttEl.style.display = 'block';
+      ttEl.style.left = Math.min(e.clientX+12, window.innerWidth-320)+'px';
+      ttEl.style.top  = Math.min(e.clientY+12, window.innerHeight-100)+'px';
+      ttEl.textContent = dim.full;
+    });
+    lbl.addEventListener('mouseleave', () => { ttEl.style.display = 'none'; });
 
     const scr = document.createElement('span');
     scr.className = 'dim-score';
-    scr.textContent = score||'·';
+    const marker = score >= 1 && score <= 5
+      ? Array.from({length:5}, (_,i) => i === score-1 ? '■' : '–').join('')
+      : '–––––';
+    scr.textContent = marker + '|';
 
     const sqs = document.createElement('div');
     sqs.className = 'balance-squares';
 
-    const addSq = (cls, n) => {
-      for (let i=0;i<n;i++) {
+    const addSqItems = (cls, items) => {
+      items.forEach(item => {
         const s = document.createElement('span');
         s.className = 'sq '+cls;
-        s.title = cls;
+        s.title = item.text;
         sqs.appendChild(s);
-      }
+      });
     };
 
-    addSq('sq-imp-today', impToday);
-    addSq('sq-imp-week',  impWeek);
-    addSq('sq-nim-today', nimToday);
-    addSq('sq-nim-week',  nimWeek);
+    addSqItems('sq-imp-today', impTodayItems);
+    addSqItems('sq-imp-week',  impWeekItems);
+    addSqItems('sq-nim-today', nimTodayItems);
+    addSqItems('sq-nim-week',  nimWeekItems);
 
     row.appendChild(lbl);
     row.appendChild(scr);
