@@ -1558,7 +1558,9 @@ function statusMsg(msg) {
 function showHelp(title, lines) {
   const overlay = document.getElementById('help-overlay');
   document.getElementById('help-title').textContent = title || 'FOCUS TERMINAL — COMMANDS';
-  document.getElementById('help-body').textContent = (lines || [
+  const body = document.getElementById('help-body');
+  body.style.whiteSpace = 'pre';
+  body.textContent = (lines || [
     '/boot            start morning boot sequence',
     '/edit            re-enter boot to modify today',
     '/next            archive today, start fresh',
