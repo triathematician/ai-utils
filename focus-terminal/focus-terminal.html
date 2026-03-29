@@ -1142,7 +1142,8 @@ function renderMatrix() {
       div.className = 'matrix-item' + (item.done?' done':'');
       div.dataset.id = item.id;
       const src = item.source==='focus'?'◈':'·';
-      div.innerHTML = `<span class="check">${item.done?'✓':src}</span><span class="item-text">${escHtml(item.text)}</span>`;
+      const dimLabel = item.dim ? (DIMS.find(d=>d.key===item.dim)?.label || item.dim) : '—';
+      div.innerHTML = `<span class="check">${item.done?'✓':src}</span><span class="item-text">${escHtml(item.text)}</span><span class="tag">[${dimLabel}]</span>`;
       div.addEventListener('click', ()=>openPopup(item.id, item.source==='intention'?'intention':item.source));
       addTooltip(div, item);
       el.appendChild(div);
