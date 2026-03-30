@@ -542,22 +542,36 @@ const STORAGE_KEY = 'chronos_db';
 const CAT_VARS = ['--cat-1','--cat-2','--cat-3','--cat-4','--cat-5',
                   '--cat-6','--cat-7','--cat-8','--cat-9','--cat-10'];
 
-// Zoom levels: [label, ms-per-pixel]
+// Zoom levels: 18 steps with ≤5× factor between consecutive levels.
+// Ordered coarsest→finest (index 0 = 10YEAR, index 17 = 1MIN) so that
+// zoomIn (idx++) moves toward more detail and zoomOut (idx--) moves toward overview.
+// mspp = ms represented by PX_PER_ROW pixels at this zoom level.
 const ZOOM_LEVELS = [
-  { label: 'DECADE',  mspp: 1000*60*60*24*365*10 / 60  },
-  { label: 'YEAR',    mspp: 1000*60*60*24*365 / 60     },
-  { label: 'MONTH',   mspp: 1000*60*60*24*30 / 60      },
-  { label: 'WEEK',    mspp: 1000*60*60*24*7 / 60       },
-  { label: 'DAY',     mspp: 1000*60*60*24 / 60         },
-  { label: 'HOUR',    mspp: 1000*60*60 / 60            },
-  { label: 'MINUTE',  mspp: 1000*60 / 60               },
+  { label: '10YEAR', mspp: 1000*60*60*24*365*10 / 60 },
+  { label: '3YEAR',  mspp: 1000*60*60*24*365*3  / 60 },
+  { label: '1YEAR',  mspp: 1000*60*60*24*365    / 60 },
+  { label: '6MONTH', mspp: 1000*60*60*24*182    / 60 },
+  { label: '3MONTH', mspp: 1000*60*60*24*91     / 60 },
+  { label: '1MONTH', mspp: 1000*60*60*24*30     / 60 },
+  { label: '2WEEK',  mspp: 1000*60*60*24*14     / 60 },
+  { label: '1WEEK',  mspp: 1000*60*60*24*7      / 60 },
+  { label: '3DAY',   mspp: 1000*60*60*24*3      / 60 },
+  { label: '1DAY',   mspp: 1000*60*60*24        / 60 },
+  { label: '8HR',    mspp: 1000*60*60*8         / 60 },
+  { label: '4HR',    mspp: 1000*60*60*4         / 60 },
+  { label: '2HR',    mspp: 1000*60*60*2         / 60 },
+  { label: '1HR',    mspp: 1000*60*60           / 60 },
+  { label: '30MIN',  mspp: 1000*60*30           / 60 },
+  { label: '15MIN',  mspp: 1000*60*15           / 60 },
+  { label: '5MIN',   mspp: 1000*60*5            / 60 },
+  { label: '1MIN',   mspp: 1000*60              / 60 },
 ];
 
 // ── DB ────────────────────────────────────────────────────────────────
 let db = {
   events: [],          // { uid, ts, label, cats, deps, meta }
   hiddenCats: [],
-  zoomIdx: 3,          // default: WEEK
+  zoomIdx: 7,          // default: 1WEEK
   viewTopMs: null,     // ms at the top of the current viewport (null = auto-fit)
   theme: 'space',
   backlog: [],
@@ -627,16 +641,14 @@ function parseTS(str) {
   return isNaN(d) ? null : d.getTime();
 }
 
+// zoom: a ZOOM_LEVELS object; format depends on how much detail is visible.
+// mspp=60000 is the 1HR zoom level; mspp=43200000 is the 1MONTH zoom level.
 function fmtTS(ms, zoom) {
   const d = new Date(ms);
-  const label = ZOOM_LEVELS[db.zoomIdx]?.label || 'DAY';
-  if (zoom === 'DECADE' || zoom === 'YEAR')
-    return d.toISOString().slice(0,10);
-  if (zoom === 'MONTH' || zoom === 'WEEK' || zoom === 'DAY')
-    return d.toISOString().slice(0,10);
-  if (zoom === 'HOUR')
-    return d.toISOString().slice(0,16).replace('T',' ');
-  return d.toISOString().slice(0,19).replace('T',' ');
+  const mspp = zoom.mspp;
+  if (mspp <= 60000)     return d.toISOString().slice(0,19).replace('T',' '); // 1HR or finer: HH:MM:SS
+  if (mspp <= 43200000)  return d.toISOString().slice(0,16).replace('T',' '); // 1MONTH or finer: date+HH:MM
+  return d.toISOString().slice(0,10);                                          // coarser: date only
 }
 
 // ── STATUS ────────────────────────────────────────────────────────────
@@ -863,7 +875,7 @@ function renderTimeline() {
 
       const ts = document.createElement('div');
       ts.className = 'node-time';
-      ts.textContent = fmtTS(evt.ts, zoom.label);
+      ts.textContent = fmtTS(evt.ts, zoom);
 
       box.appendChild(lbl);
       box.appendChild(ts);
@@ -1051,28 +1063,39 @@ function gridInterval(zoom) {
 
 function isGridMajor(ms, zoom) {
   const d = new Date(ms);
-  const label = zoom.label;
-  if (label === 'DECADE' || label === 'YEAR') return d.getMonth() === 0 && d.getDate() === 1;
-  if (label === 'MONTH') return d.getDate() === 1;
-  if (label === 'WEEK')  return d.getDay() === 0;
-  if (label === 'DAY')   return d.getHours() === 0;
-  if (label === 'HOUR')  return d.getMinutes() === 0;
-  return d.getSeconds() === 0;
+  const mspp = zoom.mspp;
+  // Thresholds below match ZOOM_LEVELS mspp values (1YEAR=525600000, 1MONTH=43200000, etc.).
+  // Major ticks mark the next-larger natural boundary above the grid interval.
+  if (mspp >= 1000*60*60*24*365/60) return d.getMonth() === 0 && d.getDate() === 1; // ≥1YEAR: Jan 1
+  if (mspp >= 1000*60*60*24*30/60)  return d.getDate() === 1;                        // ≥1MONTH: 1st
+  if (mspp >= 1000*60*60*24*7/60)   return d.getDay() === 0;                         // ≥1WEEK: Sunday
+  if (mspp >= 1000*60*60*24/60)     return d.getHours() === 0;                       // ≥1DAY: midnight
+  if (mspp >= 1000*60*60/60)        return d.getMinutes() === 0 && d.getSeconds() === 0; // ≥1HR: hour
+  if (mspp >= 1000*60*5/60)         return d.getSeconds() === 0;                     // ≥5MIN: minute
+  return d.getSeconds() % 30 === 0;                                                  // 1MIN: 30s
 }
 
 function rulerLabel(ms, zoom) {
   const d = new Date(ms);
-  const label = zoom.label;
-  if (label === 'DECADE' || label === 'YEAR') return d.getFullYear().toString();
-  if (label === 'MONTH') return `${d.getMonth()+1}/${d.getDate()}`;
-  if (label === 'WEEK' || label === 'DAY') {
+  const mspp = zoom.mspp;
+  if (mspp >= 525600000) return d.getFullYear().toString();                // ≥1YEAR: year
+  if (mspp >= 43200000) {                                                  // ≥1MONTH: YYYY-MM
+    return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
+  }
+  if (mspp >= 1440000) {                                                   // ≥1DAY: MM-DD
     const mo = String(d.getMonth()+1).padStart(2,'0');
     const dy = String(d.getDate()).padStart(2,'0');
     return `${mo}-${dy}`;
   }
-  const hh = String(d.getHours()).padStart(2,'0');
+  if (mspp >= 15000) {                                                     // ≥15MIN: HH:MM
+    const hh = String(d.getHours()).padStart(2,'0');
+    const mm = String(d.getMinutes()).padStart(2,'0');
+    return `${hh}:${mm}`;
+  }
+  const hh = String(d.getHours()).padStart(2,'0');                        // <15MIN: HH:MM:SS
   const mm = String(d.getMinutes()).padStart(2,'0');
-  return `${hh}:${mm}`;
+  const ss = String(d.getSeconds()).padStart(2,'0');
+  return `${hh}:${mm}:${ss}`;
 }
 
 // ── SCROLL & ZOOM ─────────────────────────────────────────────────────
@@ -1137,7 +1160,7 @@ function autoFit(cb) {
     const availH = Math.max(scroll.clientHeight, window.innerHeight * 0.88);
 
     if (db.events.length === 0) {
-      db.zoomIdx = 3;
+      db.zoomIdx = 7;   // 1WEEK default for empty timeline
       db.viewTopMs = null;
       render();
       requestAnimationFrame(() => {
@@ -1272,7 +1295,10 @@ const HELP_TEXT = `
 /goto <time>  Scroll to a timestamp.
 
 /zoom fit     Auto-fit zoom to all events.
-/zoom <level> Set zoom: DECADE YEAR MONTH WEEK DAY HOUR MINUTE
+/zoom <level> Set zoom level (18 steps, ≤5× factor each):
+              10YEAR 3YEAR 1YEAR 6MONTH 3MONTH 1MONTH
+              2WEEK 1WEEK 3DAY 1DAY 8HR 4HR 2HR 1HR
+              30MIN 15MIN 5MIN 1MIN
 
 /export json  Download events as JSON file.
 /export txt   Export ASCII timeline to .txt file.
@@ -1698,7 +1724,7 @@ function exportTXT() {
       if (isSecondary) return '◇'.padEnd(laneW);
       return ' '.repeat(laneW);
     }).join('│');
-    const ts = fmtTS(evt.ts, zoom.label).padStart(20);
+    const ts = fmtTS(evt.ts, zoom).padStart(20);
     lines.push(`${ts} ${row}`);
   });
 
