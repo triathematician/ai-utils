@@ -548,14 +548,17 @@ const STORAGE_KEY = 'chronos_db';
 const CAT_VARS = ['--cat-1','--cat-2','--cat-3','--cat-4','--cat-5',
                   '--cat-6','--cat-7','--cat-8','--cat-9','--cat-10'];
 
-// Zoom levels: 18 steps with ≤5× factor between consecutive levels.
-// Ordered coarsest→finest (index 0 = 10YEAR, index 17 = 1MIN) so that
+// Zoom levels: 21 steps with ≤5× factor between consecutive levels.
+// Ordered coarsest→finest (index 0 = 100YEAR, index 20 = 1MIN) so that
 // zoomIn (idx++) moves toward more detail and zoomOut (idx--) moves toward overview.
 // mspp = ms represented by PX_PER_ROW pixels at this zoom level.
 const ZOOM_LEVELS = [
-  { label: '10YEAR', mspp: 1000*60*60*24*365*10 / 60 },
-  { label: '3YEAR',  mspp: 1000*60*60*24*365*3  / 60 },
-  { label: '1YEAR',  mspp: 1000*60*60*24*365    / 60 },
+  { label: '100YEAR', mspp: 1000*60*60*24*365*100 / 60 },
+  { label: '50YEAR',  mspp: 1000*60*60*24*365*50  / 60 },
+  { label: '25YEAR',  mspp: 1000*60*60*24*365*25  / 60 },
+  { label: '10YEAR',  mspp: 1000*60*60*24*365*10 / 60 },
+  { label: '3YEAR',   mspp: 1000*60*60*24*365*3  / 60 },
+  { label: '1YEAR',   mspp: 1000*60*60*24*365    / 60 },
   { label: '6MONTH', mspp: 1000*60*60*24*182    / 60 },
   { label: '3MONTH', mspp: 1000*60*60*24*91     / 60 },
   { label: '1MONTH', mspp: 1000*60*60*24*30     / 60 },
@@ -577,7 +580,7 @@ const ZOOM_LEVELS = [
 let db = {
   events: [],          // { uid, ts, label, cats, deps, meta }
   hiddenCats: [],
-  zoomIdx: 7,          // default: 1WEEK
+  zoomIdx: 10,         // default: 1WEEK
   viewTopMs: null,     // ms at the top of the current viewport (null = auto-fit)
   theme: 'space',
   backlog: [],
@@ -591,7 +594,7 @@ function loadDB() {
       const saved = JSON.parse(raw);
       db.events   = saved.events   || [];
       db.hiddenCats = saved.hiddenCats || [];
-      db.zoomIdx    = saved.zoomIdx    ?? 3;
+      db.zoomIdx    = saved.zoomIdx    ?? 10;
       db.viewTopMs  = saved.viewTopMs  ?? null;
       db.theme    = saved.theme    || 'space';
       db.backlog        = saved.backlog        || [];
@@ -701,6 +704,8 @@ const AXIS_HALF = AXIS_WIDTH / 2; // half-width used for lane layout
 const AXIS_HEADER_H = 28;       // height of #axis-header (matches CSS)
 const NODE_MARGIN = 8;          // px gap between lane edge and node
 const TARGET_VIEWPORT_FILL = 0.65; // target fraction of viewport for autoFit
+const MAX_CANVAS_H = 150000;    // max canvas height in px — at finest zoom (1MIN, ~1000 ms/px)
+                                  // this limits the loop to ~2500 grid elements and keeps scroll manageable
 
 let selectedUID = null;
 
@@ -719,7 +724,12 @@ function getCanvasBounds() {
     topMs    = Math.max(...tss) + PAD_ROWS * getZoom().mspp;
     bottomMs = Math.min(...tss) - PAD_ROWS * getZoom().mspp;
   }
-  const totalH = (topMs - bottomMs) / msPerPx;
+  let totalH = (topMs - bottomMs) / msPerPx;
+  // Cap canvas height for performance — clamp from the bottom (oldest end)
+  if (totalH > MAX_CANVAS_H) {
+    totalH = MAX_CANVAS_H;
+    bottomMs = topMs - totalH * msPerPx;
+  }
   return { topMs, bottomMs, totalH, msPerPx };
 }
 
@@ -811,7 +821,7 @@ function renderTimeline() {
   svg.setAttribute('viewBox', `0 0 ${canvas.offsetWidth} ${totalH}`);
   svg.style.height = totalH + 'px';
 
-  // Grid lines
+  // Grid lines — canvas height is already capped by MAX_CANVAS_H so element count is bounded
   const zoom = getZoom();
   const gridMs = gridInterval(zoom);
   const firstGrid = Math.floor(bottomMs / gridMs) * gridMs;
@@ -1061,7 +1071,8 @@ function gridInterval(zoom) {
     60000, 300000, 900000, 1800000,
     3600000, 21600000, 43200000,
     86400000, 604800000, 2592000000,
-    7776000000, 31536000000, 315360000000
+    7776000000, 31536000000, 157680000000,
+    315360000000, 788400000000, 1576800000000, 3153600000000
   ];
   for (let c of candidates) if (c >= ms) return c;
   return candidates[candidates.length-1];
@@ -1070,8 +1081,9 @@ function gridInterval(zoom) {
 function isGridMajor(ms, zoom) {
   const d = new Date(ms);
   const mspp = zoom.mspp;
-  // Thresholds below match ZOOM_LEVELS mspp values (1YEAR=525600000, 1MONTH=43200000, etc.).
+  // Thresholds below match ZOOM_LEVELS mspp values.
   // Major ticks mark the next-larger natural boundary above the grid interval.
+  if (mspp >= 1000*60*60*24*365*25/60) return d.getFullYear() % 10 === 0;  // ≥25YEAR: decade
   if (mspp >= 1000*60*60*24*365/60) return d.getMonth() === 0 && d.getDate() === 1; // ≥1YEAR: Jan 1
   if (mspp >= 1000*60*60*24*30/60)  return d.getDate() === 1;                        // ≥1MONTH: 1st
   if (mspp >= 1000*60*60*24*7/60)   return d.getDay() === 0;                         // ≥1WEEK: Sunday
@@ -1166,7 +1178,7 @@ function autoFit(cb) {
     const availH = Math.max(scroll.clientHeight, window.innerHeight * 0.88);
 
     if (db.events.length === 0) {
-      db.zoomIdx = 7;   // 1WEEK default for empty timeline
+      db.zoomIdx = 10;  // 1WEEK default for empty timeline
       db.viewTopMs = null;
       render();
       requestAnimationFrame(() => {
@@ -1301,16 +1313,17 @@ const HELP_TEXT = `
 /goto <time>  Scroll to a timestamp.
 
 /zoom fit     Auto-fit zoom to all events.
-/zoom <level> Set zoom level (18 steps, ≤5× factor each):
-              10YEAR 3YEAR 1YEAR 6MONTH 3MONTH 1MONTH
-              2WEEK 1WEEK 3DAY 1DAY 8HR 4HR 2HR 1HR
-              30MIN 15MIN 5MIN 1MIN
+/zoom <level> Set zoom level (21 steps, ≤5× factor each):
+              100YEAR 50YEAR 25YEAR 10YEAR 3YEAR 1YEAR
+              6MONTH 3MONTH 1MONTH 2WEEK 1WEEK 3DAY
+              1DAY 8HR 4HR 2HR 1HR 30MIN 15MIN 5MIN 1MIN
 
 /export json  Download events as JSON file.
 /export txt   Export ASCII timeline to .txt file.
 
 /delete <id>  Delete an event by UID.
-/list         List all events with UIDs.
+/clear        Clear ALL events (type /clear confirm to proceed).
+/list         List all events — click UID to copy, [EDIT] to edit.
 
 /theme [name] Switch theme: legacy solar monk space synth dos notebook
               (random if omitted)
@@ -1345,7 +1358,9 @@ function handleConsoleCmd(raw) {
   const cmd = parts[0].toLowerCase();
 
   if (cmd === '/help') {
-    document.getElementById('help-body').textContent = HELP_TEXT;
+    const body = document.getElementById('help-body');
+    body.style.whiteSpace = 'pre';
+    body.textContent = HELP_TEXT;
     document.getElementById('help-overlay').classList.add('active');
     return;
   }
@@ -1418,16 +1433,24 @@ function handleConsoleCmd(raw) {
     return;
   }
 
+  if (cmd === '/clear') {
+    if (db.events.length === 0) { statusMsg('Nothing to clear.'); return; }
+    if (parts[1] === 'confirm') {
+      const count = db.events.length;
+      db.events = [];
+      db.hiddenCats = [];
+      selectedUID = null;
+      document.getElementById('detail-panel').classList.remove('open');
+      render();
+      statusMsg(`CLEARED ${count} event${count === 1 ? '' : 's'}.`);
+    } else {
+      statusMsg(`Type /clear confirm to remove all ${db.events.length} events.`);
+    }
+    return;
+  }
+
   if (cmd === '/list') {
-    const sorted = [...db.events].sort((a,b) => a.ts - b.ts);
-    const lines = sorted.map(e => {
-      const ts = new Date(e.ts).toISOString().slice(0,19);
-      const cats = (e.cats||[]).join(',') || '—';
-      return `${e.uid}  ${ts}  [${cats}]  ${e.label}`;
-    });
-    const txt = lines.length ? lines.join('\n') : '(no events)';
-    document.getElementById('help-body').textContent = '◈ EVENT LIST\n───────────────────────────────────────────────────────\n' + txt;
-    document.getElementById('help-overlay').classList.add('active');
+    showEventList();
     return;
   }
 
@@ -1455,6 +1478,95 @@ function handleConsoleCmd(raw) {
   }
 
   statusMsg(`Unknown: ${cmd}. /help`);
+}
+
+// ── EVENT LIST ────────────────────────────────────────────────────────
+function showEventList() {
+  const sorted = [...db.events].sort((a,b) => a.ts - b.ts);
+  const body = document.getElementById('help-body');
+  body.style.whiteSpace = 'normal';
+
+  if (sorted.length === 0) {
+    body.style.whiteSpace = 'pre';
+    body.textContent = '◈ EVENT LIST\n───────────────────────────────────────────────────────\n(no events)';
+    document.getElementById('help-overlay').classList.add('active');
+    return;
+  }
+
+  let html = `<div style="margin-bottom:6px;letter-spacing:1px">◈ EVENT LIST (${sorted.length})</div>`;
+  html += `<div style="font-size:0.8em;margin-bottom:8px;color:var(--dim)">Click UID to copy · [EDIT] to edit</div>`;
+  html += `<table style="border-collapse:collapse;width:100%;font-size:0.8em">`;
+  html += `<tr style="color:var(--dim);border-bottom:1px solid var(--border);font-size:0.75em;letter-spacing:1px">`;
+  html += `<th style="text-align:left;padding:2px 6px 4px">UID</th>`;
+  html += `<th style="text-align:left;padding:2px 6px 4px">TIMESTAMP</th>`;
+  html += `<th style="text-align:left;padding:2px 6px 4px">CATS</th>`;
+  html += `<th style="text-align:left;padding:2px 6px 4px">LABEL</th>`;
+  html += `<th style="padding:2px 6px 4px"></th>`;
+  html += `</tr>`;
+
+  sorted.forEach(evt => {
+    const cats = (evt.cats||[]).join(',') || '—';
+    const ts = new Date(evt.ts).toISOString().slice(0,19).replace('T',' ');
+    const primaryCat = (evt.cats||[])[0];
+    const color = primaryCat ? catColor(primaryCat) : getCSSVar('--fg');
+    html += `<tr style="border-bottom:1px solid var(--muted)">`;
+    html += `<td style="padding:3px 6px;font-family:var(--font)"><span data-copy-uid="${escHtml(evt.uid)}" title="Click to copy" style="cursor:pointer;color:var(--accent);text-decoration:underline dotted;user-select:none">${escHtml(evt.uid)}</span></td>`;
+    html += `<td style="padding:3px 6px;color:var(--dim);white-space:nowrap">${ts}</td>`;
+    html += `<td style="padding:3px 6px;color:${color}">${escHtml(cats)}</td>`;
+    html += `<td style="padding:3px 6px">${escHtml(evt.label)}</td>`;
+    html += `<td style="padding:3px 6px;white-space:nowrap"><span data-edit-uid="${escHtml(evt.uid)}" style="cursor:pointer;color:var(--warn);border:1px solid var(--warn);padding:0 5px;font-size:0.85em;user-select:none">[EDIT]</span></td>`;
+    html += `</tr>`;
+  });
+  html += `</table>`;
+
+  body.innerHTML = html;
+
+  body.querySelectorAll('[data-copy-uid]').forEach(el => {
+    el.addEventListener('click', () => {
+      const id = el.dataset.copyUid;
+      if (navigator.clipboard) {
+        navigator.clipboard.writeText(id).then(() => statusMsg('COPIED: ' + id))
+          .catch(() => statusMsg('COPY FAILED — UID: ' + id));
+      } else {
+        statusMsg('UID: ' + id);
+      }
+    });
+  });
+
+  body.querySelectorAll('[data-edit-uid]').forEach(el => {
+    el.addEventListener('click', () => {
+      document.getElementById('help-overlay').classList.remove('active');
+      openEdit(el.dataset.editUid);
+    });
+  });
+
+  document.getElementById('help-overlay').classList.add('active');
+}
+
+// ── EDIT EVENT ────────────────────────────────────────────────────────
+function openEdit(evtUID) {
+  const evt = db.events.find(e => e.uid === evtUID);
+  if (!evt) return;
+  guidedState = {
+    uid: evt.uid,
+    label: evt.label,
+    ts: evt.ts,
+    cats: [...(evt.cats||[])],
+    deps: [...(evt.deps||[])],
+    meta: {...(evt.meta||{})},
+    isEdit: true,
+  };
+  guidedStep = 'label';
+  const log = document.getElementById('add-log');
+  log.innerHTML = '';
+  document.querySelector('#add-box .detail-header').textContent = `◈ EDIT EVENT [${evt.uid}]`;
+  addBootLine(log, 'sys', `◈ EDIT EVENT [${evt.uid}] (ESC to cancel)`);
+  addBootLine(log, 'sep', '─'.repeat(44));
+  addBootLine(log, 'ask', `Label (Enter to keep: ${evt.label}):`);
+  document.getElementById('add-prompt').textContent = 'label>';
+  document.getElementById('add-overlay').classList.add('active');
+  document.getElementById('add-input').value = '';
+  document.getElementById('add-input').focus();
 }
 
 // ── INLINE ADD ────────────────────────────────────────────────────────
@@ -1508,6 +1620,7 @@ function openGuidedAdd() {
   guidedStep = 'label';
   const log = document.getElementById('add-log');
   log.innerHTML = '';
+  document.querySelector('#add-box .detail-header').textContent = '◈ NEW EVENT';
   addBootLine(log, 'sys', '◈ NEW EVENT — guided mode (ESC to cancel)');
   addBootLine(log, 'sep', '─'.repeat(44));
   addBootLine(log, 'ask', 'Label:');
@@ -1537,28 +1650,37 @@ document.getElementById('add-input').addEventListener('keydown', e => {
   const log = document.getElementById('add-log');
 
   if (guidedStep === 'label') {
-    if (!val) { addBootLine(log, 'warn', 'Label cannot be empty.'); return; }
-    guidedState.label = val;
-    addBootLine(log, 'ans', '  ' + val);
-    addBootLine(log, 'ask', 'Timestamp (ISO/now/+2d/-3h, Enter=now):');
+    if (guidedState.isEdit) {
+      guidedState.label = val || guidedState.label;
+    } else {
+      if (!val) { addBootLine(log, 'warn', 'Label cannot be empty.'); return; }
+      guidedState.label = val;
+    }
+    addBootLine(log, 'ans', '  ' + guidedState.label);
+    const keepHint = guidedState.isEdit ? ` (Enter to keep: ${new Date(guidedState.ts).toISOString().slice(0,19)})` : ' (ISO/now/+2d/-3h, Enter=now)';
+    addBootLine(log, 'ask', 'Timestamp' + keepHint + ':');
     document.getElementById('add-prompt').textContent = 'time>';
     guidedStep = 'time';
   } else if (guidedStep === 'time') {
-    const ms = val ? parseTS(val) : Date.now();
+    const ms = val ? parseTS(val) : (guidedState.isEdit ? guidedState.ts : Date.now());
     if (!ms) { addBootLine(log, 'warn', 'Cannot parse: ' + val); return; }
     guidedState.ts = ms;
     addBootLine(log, 'ans', '  ' + new Date(ms).toISOString());
-    addBootLine(log, 'ask', 'Categories (comma-separated, or Enter to skip):');
+    const catsHint = guidedState.isEdit ? ` (Enter to keep: ${guidedState.cats.join(',') || 'none'})` : '';
+    addBootLine(log, 'ask', 'Categories (comma-separated, or Enter to skip' + catsHint + '):');
     document.getElementById('add-prompt').textContent = 'cats>';
     guidedStep = 'cats';
   } else if (guidedStep === 'cats') {
-    guidedState.cats = val ? val.split(',').map(s=>s.trim()).filter(Boolean) : [];
+    if (val) {
+      guidedState.cats = val.split(',').map(s=>s.trim()).filter(Boolean);
+    }
+    // In edit mode, empty input keeps existing cats
     addBootLine(log, 'ans', '  ' + (guidedState.cats.join(', ') || '(none)'));
     addBootLine(log, 'ask', 'Dependency UIDs (comma-separated, or Enter to skip):');
     document.getElementById('add-prompt').textContent = 'deps>';
     guidedStep = 'deps';
   } else if (guidedStep === 'deps') {
-    const ids = val ? val.split(',').map(s=>s.trim().toUpperCase()).filter(Boolean) : [];
+    const ids = val ? val.split(',').map(s=>s.trim().toUpperCase()).filter(Boolean) : (guidedState.isEdit ? guidedState.deps : []);
     let bad = false;
     for (const id of ids) {
       const dep = db.events.find(e => e.uid === id);
@@ -1583,14 +1705,28 @@ document.getElementById('add-input').addEventListener('keydown', e => {
       statusMsg('CANCELLED');
       return;
     }
-    const evt = { uid: uid(), ts: guidedState.ts, label: guidedState.label,
-                  cats: guidedState.cats, deps: guidedState.deps, meta: {} };
-    db.events.push(evt);
-    render();
-    document.getElementById('add-overlay').classList.remove('active');
-    document.getElementById('console-input').focus();
-    statusMsg(`ADDED: ${evt.uid} — ${evt.label}`);
-    setTimeout(() => scrollToMs(evt.ts), 80);
+    if (guidedState.isEdit) {
+      const idx = db.events.findIndex(e => e.uid === guidedState.uid);
+      if (idx >= 0) {
+        db.events[idx] = { uid: guidedState.uid, ts: guidedState.ts, label: guidedState.label,
+                           cats: guidedState.cats, deps: guidedState.deps,
+                           meta: db.events[idx].meta || {} };
+      }
+      render();
+      document.getElementById('add-overlay').classList.remove('active');
+      document.getElementById('console-input').focus();
+      statusMsg(`UPDATED: ${guidedState.uid} — ${guidedState.label}`);
+      setTimeout(() => scrollToMs(guidedState.ts), 80);
+    } else {
+      const evt = { uid: uid(), ts: guidedState.ts, label: guidedState.label,
+                    cats: guidedState.cats, deps: guidedState.deps, meta: {} };
+      db.events.push(evt);
+      render();
+      document.getElementById('add-overlay').classList.remove('active');
+      document.getElementById('console-input').focus();
+      statusMsg(`ADDED: ${evt.uid} — ${evt.label}`);
+      setTimeout(() => scrollToMs(evt.ts), 80);
+    }
   }
   log.scrollTop = log.scrollHeight;
 });
