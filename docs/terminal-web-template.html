@@ -199,8 +199,10 @@ function loadDB() {
     const db = raw ? JSON.parse(raw) : {};
     // Migration guards — add new fields with defaults:
     // db.myField = db.myField ?? defaultValue;
+    db.backlog        = db.backlog        || [];
+    db.backlogArchive = db.backlogArchive || [];
     return db;
-  } catch { return {}; }
+  } catch { return { backlog: [], backlogArchive: [] }; }
 }
 
 function saveDB(db) {
@@ -223,6 +225,11 @@ const THEMES = ['legacy','solar','monk','space','synth','dos'];
 let db = loadDB();
 
 function applyTheme(name) {
+  if (!name) {
+    const current = db.theme || 'legacy';
+    const others = THEMES.filter(t => t !== current);
+    name = others[Math.floor(Math.random() * others.length)];
+  }
   if (!THEMES.includes(name)) return statusMsg('Unknown theme: ' + name);
   document.documentElement.dataset.theme = (name === 'legacy') ? '' : name;
   db.theme = name;
@@ -246,8 +253,9 @@ function handleConsoleCmd(raw) {
   const cmd = parts[0].toLowerCase();
   const arg = parts.slice(1).join(' ');
 
-  if (cmd === '/help')   return showHelp();
-  if (cmd === '/theme')  return applyTheme(arg);
+  if (cmd === '/help')    return showHelp();
+  if (cmd === '/theme')   return applyTheme(arg);
+  if (cmd === '/backlog') { handleBacklog(raw.slice('/backlog'.length).trim()); return; }
   // TODO: add app-specific commands here
 
   statusMsg('Unknown command: ' + cmd);
@@ -256,9 +264,17 @@ function handleConsoleCmd(raw) {
 /* ─── HELP OVERLAY ────────────────────────────────────── */
 function showHelp() {
   document.getElementById('help-title').textContent = '◈ APPNAME — COMMANDS';
+  document.getElementById('help-body').style.whiteSpace = 'pre';
   document.getElementById('help-body').textContent = [
-    '/help          show this help',
-    '/theme <name>  switch theme (legacy|solar|monk|space|synth|dos)',
+    '/help                    show this help',
+    '/theme [name]            switch theme (legacy|solar|monk|space|synth|dos)  (random if omitted)',
+    '/backlog [text]          add item to backlog',
+    '/backlog list            show all backlog items',
+    '/backlog done [n]        toggle item #n as done/open',
+    '/backlog delete [n]      remove item #n from backlog',
+    '/backlog archive         move done items to archive',
+    '/backlog archive list    show archived batches',
+    '/backlog export          download backlog as .txt',
     // TODO: add your commands here
   ].join('\n');
   const overlay = document.getElementById('help-overlay');
@@ -282,6 +298,112 @@ function addTooltip(el, text) {
   el.addEventListener('mouseenter', () => { tooltip.textContent = text; tooltip.style.display = 'block'; });
   el.addEventListener('mousemove', e => { tooltip.style.left = (e.clientX + 14) + 'px'; tooltip.style.top = (e.clientY + 8) + 'px'; });
   el.addEventListener('mouseleave', () => { tooltip.style.display = 'none'; });
+}
+
+/* ─── BACKLOG ─────────────────────────────────────────── */
+function todayStr() { return new Date().toISOString().slice(0,10); }
+
+function escHtml(str) {
+  return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+function downloadBlob(content, filename, type) {
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([content], { type }));
+  a.download = filename;
+  a.click();
+  URL.revokeObjectURL(a.href);
+}
+
+function showBacklogList() {
+  document.getElementById('help-title').textContent = 'BACKLOG';
+  const body = document.getElementById('help-body');
+  body.style.whiteSpace = 'normal';
+  body.innerHTML = db.backlog.map((b, i) => {
+    const bracket = b.done ? '[x]' : '[ ]';
+    return `<div style="padding:2px 0"><span data-backlog-idx="${i}" style="cursor:pointer;user-select:none;color:var(--accent)">${bracket}</span> ${i+1}. ${escHtml(b.text)}</div>`;
+  }).join('');
+  body.querySelectorAll('[data-backlog-idx]').forEach(el => {
+    el.addEventListener('click', () => {
+      const idx = parseInt(el.dataset.backlogIdx);
+      db.backlog[idx].done = !db.backlog[idx].done;
+      saveDB(db);
+      showBacklogList();
+    });
+  });
+  const overlay = document.getElementById('help-overlay');
+  overlay.classList.add('visible');
+  overlay.onclick = e => { if (e.target === overlay) overlay.classList.remove('visible'); };
+}
+
+function handleBacklog(arg) {
+  if (!arg || arg === 'list') {
+    if (!db.backlog.length) { statusMsg('Backlog is empty.'); return; }
+    showBacklogList();
+    return;
+  }
+  if (arg === 'archive list') {
+    if (!db.backlogArchive.length) { statusMsg('No archived batches.'); return; }
+    const lines = db.backlogArchive.flatMap(batch => [
+      `── ${batch.date} (${batch.items.length} item${batch.items.length===1?'':'s'}) ──`,
+      ...batch.items.map(b => `  [x] ${b.text}`)
+    ]);
+    document.getElementById('help-title').textContent = 'BACKLOG ARCHIVE';
+    const body = document.getElementById('help-body');
+    body.style.whiteSpace = 'pre';
+    body.textContent = lines.join('\n');
+    const overlay = document.getElementById('help-overlay');
+    overlay.classList.add('visible');
+    overlay.onclick = e => { if (e.target === overlay) overlay.classList.remove('visible'); };
+    return;
+  }
+  if (arg === 'archive') {
+    const done = db.backlog.filter(b => b.done);
+    if (!done.length) { statusMsg('No done items to archive.'); return; }
+    db.backlog = db.backlog.filter(b => !b.done);
+    db.backlogArchive.push({ date: todayStr(), items: done });
+    saveDB(db);
+    statusMsg(`Archived ${done.length} done item${done.length===1?'':'s'}.`);
+    return;
+  }
+  if (arg === 'export') {
+    exportBacklog(); return;
+  }
+  if (arg.startsWith('delete ') || arg.startsWith('del ')) {
+    const n = parseInt(arg.split(' ')[1]);
+    const item = db.backlog[n-1];
+    if (!item) { statusMsg(`No backlog item #${n}.`); return; }
+    db.backlog.splice(n-1, 1);
+    saveDB(db);
+    statusMsg(`Backlog #${n} deleted: "${item.text}"`);
+    return;
+  }
+  if (arg.startsWith('done ')) {
+    const n = parseInt(arg.split(' ')[1]);
+    const item = db.backlog[n-1];
+    if (!item) { statusMsg(`No backlog item #${n}.`); return; }
+    item.done = !item.done;
+    saveDB(db);
+    statusMsg(`Backlog #${n} marked ${item.done ? 'done' : 'open'}: "${item.text}"`);
+    return;
+  }
+  db.backlog.push({
+    id: Date.now()+'_'+Math.random().toString(36).slice(2,6),
+    text: arg,
+    done: false,
+    createdAt: new Date().toISOString()
+  });
+  saveDB(db);
+  statusMsg(`Backlog: added "${arg}" (${db.backlog.length} item${db.backlog.length===1?'':'s'})`);
+}
+
+function exportBacklog() {
+  if (!db.backlog.length) { statusMsg('Backlog is empty.'); return; }
+  const now = todayStr();
+  const txt = '# BACKLOG — ' + now + '\n\n'
+    + db.backlog.map(b => `- ${b.done?'[x]':'[ ]'} ${b.text}`).join('\n') + '\n';
+  downloadBlob(txt, `backlog-${now}.txt`, 'text/plain');
+  statusMsg(`Exported ${db.backlog.length} backlog item${db.backlog.length===1?'':'s'}.`);
 }
 
 /* ─── BOOT / INIT ─────────────────────────────────────── */

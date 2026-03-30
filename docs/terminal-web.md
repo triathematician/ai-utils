@@ -229,6 +229,44 @@ Every app must implement `/help` that opens the styled overlay listing all comma
 
 ---
 
+## Standard Commands
+
+All terminal-web apps share a common set of built-in commands. Implement these as-is — do not change their UX behaviour:
+
+### `/theme [name]`
+
+Switch the colour theme. If `name` is omitted, a random theme that is not the current one is applied.
+
+```
+/theme          → picks a random non-current theme
+/theme solar    → applies solar directly
+```
+
+Saves the chosen theme to `db.theme` via `saveDB()`. Recognised names: `legacy solar monk space synth dos`.
+
+### `/backlog` — persistent item list
+
+A cross-session backlog backed by `db.backlog` (array of `{id, text, done, createdAt}`) and `db.backlogArchive` (array of `{date, items[]}`). Add migration guards in `loadDB()`:
+
+```javascript
+db.backlog        = db.backlog        || [];
+db.backlogArchive = db.backlogArchive || [];
+```
+
+| Sub-command | Action |
+|---|---|
+| `/backlog <text>` | Add an item |
+| `/backlog list` | Open overlay with clickable checkboxes |
+| `/backlog done <n>` | Toggle item #n done/open |
+| `/backlog delete <n>` | Remove item #n |
+| `/backlog archive` | Batch-move all done items to archive |
+| `/backlog archive list` | Show archived batches in overlay |
+| `/backlog export` | Download backlog as `.txt` |
+
+The list popup reuses the app's shared `#help-overlay` element. Clicking a checkbox bracket toggles `done` and re-renders the list in place.
+
+---
+
 ## Building a New App in This Ecosystem
 
 Checklist for starting a new terminal-web category app:
@@ -239,8 +277,9 @@ Checklist for starting a new terminal-web category app:
 - [ ] Copy all `[data-theme="X"]` blocks — do not modify the palette
 - [ ] Use `STORAGE_KEY = 'your_app_name_db'` to avoid localStorage collisions
 - [ ] Implement `loadDB()` / `saveDB()` with migration guards (`db.newField = db.newField || default`)
-- [ ] Implement `handleConsoleCmd()` with `/help`, `/theme`, and app-specific commands
+- [ ] Implement `handleConsoleCmd()` with `/help`, `/theme`, `/backlog`, and app-specific commands
 - [ ] Use `statusMsg()` for all user feedback — never native dialogs
 - [ ] Wire `addTooltip(el, item)` for hover details — never `title` attributes
 - [ ] Panel headers: `◈ LABEL` pattern with `border-bottom: 1px solid var(--muted)`
 - [ ] All font sizes in `em`, all layout dimensions in `vh`/`vw` or `fr`
+- [ ] Initialise `db.backlog = db.backlog || []` and `db.backlogArchive = db.backlogArchive || []` in `loadDB()` migration guards
