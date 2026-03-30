@@ -859,7 +859,7 @@ function renderTimeline() {
       const lbl = document.createElement('div');
       lbl.className = 'node-label';
       lbl.style.color = color;
-      lbl.textContent = (isLeft ? `${evt.label} ┤` : `┤ ${evt.label}`);
+      lbl.textContent = (isLeft ? `${evt.label} ├` : `┤ ${evt.label}`);
 
       const ts = document.createElement('div');
       ts.className = 'node-time';
@@ -1093,10 +1093,10 @@ function setupScrollSync() {
 }
 
 function zoomIn() {
-  if (db.zoomIdx > 0) {
+  if (db.zoomIdx < ZOOM_LEVELS.length - 1) {
     const scroll = document.getElementById('swimlane-scroll');
     const centerMs = yToMs(scroll.scrollTop + scroll.clientHeight / 2);
-    db.zoomIdx--;
+    db.zoomIdx++;
     render();
     const newCenterY = msToY(centerMs);
     scroll.scrollTop = Math.max(0, newCenterY - scroll.clientHeight / 2);
@@ -1108,10 +1108,10 @@ function zoomIn() {
 }
 
 function zoomOut() {
-  if (db.zoomIdx < ZOOM_LEVELS.length - 1) {
+  if (db.zoomIdx > 0) {
     const scroll = document.getElementById('swimlane-scroll');
     const centerMs = yToMs(scroll.scrollTop + scroll.clientHeight / 2);
-    db.zoomIdx++;
+    db.zoomIdx--;
     render();
     const newCenterY = msToY(centerMs);
     scroll.scrollTop = Math.max(0, newCenterY - scroll.clientHeight / 2);
@@ -1152,9 +1152,11 @@ function autoFit(cb) {
     const maxMs = Math.max(...tss);
     const spanMs = (maxMs - minMs) || 2 * 86400000;
 
-    // Find zoom level where event span fills ~65% of viewport height
-    let best = ZOOM_LEVELS.length - 1;
-    for (let i = ZOOM_LEVELS.length - 1; i >= 0; i--) {
+    // Find finest zoom level where event span fills ≤65% of viewport height.
+    // Iterate from coarsest (index 0) to finest (last index), keeping the
+    // last index that still fits.  Break as soon as the content is too tall.
+    let best = 0;
+    for (let i = 0; i < ZOOM_LEVELS.length; i++) {
       const msPerPx = ZOOM_LEVELS[i].mspp / PX_PER_ROW;
       const pxSpan = spanMs / msPerPx;
       if (pxSpan <= availH * TARGET_VIEWPORT_FILL) {
@@ -1412,7 +1414,6 @@ function handleConsoleCmd(raw) {
     db.theme = name;
     document.documentElement.setAttribute('data-theme', name);
     saveDB(); render(); statusMsg('THEME: ' + name);
-    return;
     return;
   }
 
