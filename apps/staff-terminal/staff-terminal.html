@@ -996,7 +996,7 @@ function handleStaffSetupInput(inp) {
   }
 
   if (ph.key === 'startDate') {
-    if (inp.trim() && inp.trim() !== '') {
+    if (inp.trim()) {
       s.draft.startDate = inp.trim();
       bootLog('info', '  → Start date: ' + inp.trim());
     }
@@ -1699,7 +1699,8 @@ function handleBacklog(arg) {
       }).join('');
       body.querySelectorAll('[data-backlog-idx]').forEach(el => {
         el.addEventListener('click', () => {
-          db.backlog[parseInt(el.dataset.backlogIdx)].done = !db.backlog[parseInt(el.dataset.backlogIdx)].done;
+          const idx = parseInt(el.dataset.backlogIdx);
+          db.backlog[idx].done = !db.backlog[idx].done;
           saveDB();
           handleBacklog('list');
         });
