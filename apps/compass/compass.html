@@ -1,0 +1,1566 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>COMPASS v1.0</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@300;400;500;600;700&family=Source+Code+Pro:wght@300;400;600;700&family=VT323&display=swap" rel="stylesheet">
+<style>
+/* ═══════════════════════════════════════════════
+   CSS VARIABLES — THEME SYSTEM
+   ═══════════════════════════════════════════════ */
+:root {
+  --bg: #121212; --fg: #ffb000; --accent: #ff0000;
+  --dim: #7a5500; --muted: #3a2800; --border: #ffb000;
+  --success: #00ff41; --warn: #ff6600;
+  --font: 'VT323', 'Courier New', monospace;
+  --font-size: 20px; --line-h: 1.4;
+  --cat-1:#ffb000; --cat-2:#ff4444; --cat-3:#ff8800; --cat-4:#00ff41;
+  --cat-5:#00bbff; --cat-6:#aa44ff; --cat-7:#ff44aa; --cat-8:#ffff44;
+  --cat-9:#00ffaa; --cat-10:#ffffff;
+}
+[data-theme="solar"] {
+  --bg:#002b36; --fg:#839496; --accent:#b58900;
+  --dim:#4a5456; --muted:#073642; --border:#839496;
+  --success:#859900; --warn:#cb4b16;
+  --font:'Fira Code',monospace;
+  --cat-1:#b58900; --cat-2:#cb4b16; --cat-3:#dc322f; --cat-4:#d33682;
+  --cat-5:#6c71c4; --cat-6:#268bd2; --cat-7:#2aa198; --cat-8:#859900;
+  --cat-9:#657b83; --cat-10:#93a1a1;
+}
+[data-theme="monk"] {
+  --bg:#f5f5f5; --fg:#2a2a2a; --accent:#000000;
+  --dim:#888; --muted:#e0e0e0; --border:#2a2a2a;
+  --success:#1a6600; --warn:#aa4400;
+  --font:'Source Code Pro',monospace;
+  --cat-1:#2a2a2a; --cat-2:#aa2200; --cat-3:#005588; --cat-4:#336600;
+  --cat-5:#884400; --cat-6:#550055; --cat-7:#006666; --cat-8:#7a5000;
+  --cat-9:#555500; --cat-10:#003344;
+}
+[data-theme="space"] {
+  --bg:#0a0a1a; --fg:#a0c0ff; --accent:#00ffff;
+  --dim:#304060; --muted:#0f0f2a; --border:#304080;
+  --success:#00ffaa; --warn:#ff6060;
+  --font:'Fira Code',monospace;
+  --cat-1:#00ffff; --cat-2:#ff00aa; --cat-3:#00ff88; --cat-4:#ffff00;
+  --cat-5:#ff6060; --cat-6:#7788ff; --cat-7:#aa66ff; --cat-8:#ffffff;
+  --cat-9:#00ccff; --cat-10:#ff8800;
+}
+[data-theme="synth"] {
+  --bg:#1a0033; --fg:#ff00ff; --accent:#00ffff;
+  --dim:#660066; --muted:#2a0044; --border:#ff00ff;
+  --success:#00ff88; --warn:#ffaa00;
+  --font:'Fira Code',monospace;
+  --cat-1:#ff00ff; --cat-2:#00ffff; --cat-3:#00ff88; --cat-4:#ffaa00;
+  --cat-5:#ff0066; --cat-6:#6600ff; --cat-7:#ff6600; --cat-8:#00aaff;
+  --cat-9:#ffff00; --cat-10:#ff44aa;
+}
+[data-theme="dos"] {
+  --bg:#0000aa; --fg:#aaaaaa; --accent:#ffffff;
+  --dim:#5555ff; --muted:#0000cc; --border:#aaaaaa;
+  --success:#55ff55; --warn:#ffff55;
+  --font:'VT323',monospace;
+  --cat-1:#ffffff; --cat-2:#55ffff; --cat-3:#55ff55; --cat-4:#ff5555;
+  --cat-5:#ffff55; --cat-6:#ff55ff; --cat-7:#5555ff; --cat-8:#aaaaaa;
+  --cat-9:#ffaa55; --cat-10:#55aaaa;
+}
+[data-theme="notebook"] {
+  --bg:#fafaf2; --fg:#1a1a2e; --accent:#c0392b;
+  --dim:#8a8a9a; --muted:#eeeede; --border:#90a8d4;
+  --success:#2e7d32; --warn:#e65100;
+  --font:'Source Code Pro',monospace;
+  --cat-1:#c0392b; --cat-2:#d84315; --cat-3:#f57c00; --cat-4:#2e7d32;
+  --cat-5:#1565c0; --cat-6:#6a1b9a; --cat-7:#00838f; --cat-8:#4e342e;
+  --cat-9:#37474f; --cat-10:#880e4f;
+}
+[data-theme="engineering"] {
+  --bg:#e8f5e8; --fg:#0d2b0d; --accent:#2e7d32;
+  --dim:#5a7a5a; --muted:#d0e8d0; --border:#7ab87a;
+  --success:#1b5e20; --warn:#cc6600;
+  --font:'Source Code Pro',monospace;
+  --cat-1:#2e7d32; --cat-2:#b71c1c; --cat-3:#e65100; --cat-4:#1b5e20;
+  --cat-5:#1565c0; --cat-6:#4a148c; --cat-7:#00695c; --cat-8:#4e342e;
+  --cat-9:#37474f; --cat-10:#880e4f;
+}
+
+/* ═══════════════════════════════════════════════
+   RESET & BASE
+   ═══════════════════════════════════════════════ */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html, body {
+  height: 100%; background: var(--bg); color: var(--fg);
+  font-family: var(--font); font-size: var(--font-size);
+  line-height: var(--line-h); overflow: hidden;
+  cursor: default; user-select: none;
+}
+::selection { background: var(--fg); color: var(--bg); }
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: var(--muted); }
+::-webkit-scrollbar-thumb { background: var(--dim); }
+
+/* ═══════════════════════════════════════════════
+   LAYOUT — 20/70/10 grid
+   ═══════════════════════════════════════════════ */
+#app {
+  display: grid;
+  grid-template-rows: 20vh 70vh 10vh;
+  height: 100vh; width: 100vw;
+}
+#top-row {
+  border-bottom: 1px solid var(--border);
+  padding: 8px 12px; overflow: hidden;
+  display: flex; flex-direction: column; gap: 4px;
+}
+#main-row {
+  overflow-x: auto; overflow-y: hidden;
+  display: flex; flex-direction: row;
+  padding: 0; gap: 0;
+}
+#console-row {
+  background: var(--muted); border-top: 1px solid var(--border);
+  display: flex; align-items: center; padding: 0 12px; gap: 8px;
+}
+
+/* Panel headers: ◈ LABEL pattern */
+.row-header {
+  color: var(--accent); font-size: 0.75em; letter-spacing: 2px;
+  margin-bottom: 3px; border-bottom: 1px solid var(--muted); padding-bottom: 3px;
+}
+
+/* Console row elements */
+#console-prompt { color: var(--accent); white-space: nowrap; }
+#console-input {
+  flex: 1; background: transparent; border: none; outline: none;
+  color: var(--fg); font-family: var(--font); font-size: var(--font-size);
+  caret-color: var(--accent);
+}
+#console-status {
+  color: var(--dim); font-size: 0.8em; min-width: 160px;
+  text-align: right; white-space: nowrap;
+}
+
+/* ═══════════════════════════════════════════════
+   TOP ROW — group tabs, vision, LOEs
+   ═══════════════════════════════════════════════ */
+#top-header-line {
+  display: flex; align-items: center; gap: 12px; flex-wrap: nowrap; overflow: hidden;
+}
+#top-label { color: var(--accent); font-size: 0.75em; letter-spacing: 3px; white-space: nowrap; }
+#group-tabs { display: flex; gap: 6px; align-items: center; flex-wrap: nowrap; overflow: hidden; }
+.group-tab {
+  border: 1px solid var(--dim); padding: 0 8px; cursor: pointer;
+  font-size: 0.75em; white-space: nowrap; color: var(--dim);
+  transition: all 0.1s;
+}
+.group-tab:hover { border-color: var(--fg); color: var(--fg); }
+.group-tab.active { border-color: var(--accent); color: var(--accent); }
+#year-badge {
+  border: 1px solid var(--dim); padding: 0 6px;
+  font-size: 0.75em; color: var(--dim); white-space: nowrap;
+}
+#vision-line {
+  font-size: 0.82em; color: var(--fg); overflow: hidden;
+  white-space: nowrap; text-overflow: ellipsis;
+  flex: 1; min-width: 0;
+}
+#vision-label { color: var(--dim); margin-right: 6px; font-size: 0.9em; }
+#loe-row { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
+#loe-header { color: var(--dim); font-size: 0.7em; letter-spacing: 1px; white-space: nowrap; }
+.loe-badge {
+  border: 1px solid; padding: 0 6px; font-size: 0.7em;
+  white-space: nowrap; cursor: pointer;
+}
+.loe-badge:hover { opacity: 0.7; }
+#no-group-msg {
+  color: var(--dim); font-size: 0.8em;
+  display: flex; align-items: center; height: 100%;
+}
+
+/* ═══════════════════════════════════════════════
+   MAIN ROW — strategy/objective columns
+   ═══════════════════════════════════════════════ */
+.strategy-col {
+  min-width: 220px; max-width: 260px; width: 240px;
+  border-right: 1px solid var(--border);
+  display: flex; flex-direction: column;
+  overflow: hidden; flex-shrink: 0;
+}
+.strategy-col:last-child { border-right: none; }
+.col-header {
+  padding: 8px 10px 6px;
+  border-bottom: 1px solid var(--muted);
+  flex-shrink: 0;
+}
+.col-type-badge {
+  font-size: 0.65em; letter-spacing: 1px; padding: 0 4px;
+  border: 1px solid; display: inline-block; margin-bottom: 3px;
+}
+.col-title {
+  font-size: 0.85em; cursor: pointer; line-height: 1.3;
+  word-break: break-word;
+}
+.col-title:hover { color: var(--accent); }
+.col-rag { display: inline-block; margin-left: 6px; font-size: 0.8em; }
+.col-loe-tags { display: flex; gap: 3px; flex-wrap: wrap; margin-top: 4px; }
+.loe-tag-chip {
+  font-size: 0.6em; padding: 0 4px; border: 1px solid;
+  white-space: nowrap;
+}
+.col-body {
+  flex: 1; overflow-y: auto; padding: 4px 6px;
+}
+.exec-item {
+  padding: 5px 6px; margin-bottom: 4px;
+  border: 1px solid var(--muted); cursor: pointer;
+  font-size: 0.8em; line-height: 1.3;
+}
+.exec-item:hover { border-color: var(--fg); }
+.exec-item-header { display: flex; align-items: flex-start; gap: 4px; }
+.exec-rag { flex-shrink: 0; font-size: 0.9em; }
+.exec-type-badge {
+  font-size: 0.6em; letter-spacing: 1px; padding: 0 3px;
+  border: 1px solid; flex-shrink: 0; margin-top: 1px;
+}
+.exec-title { flex: 1; word-break: break-word; }
+.exec-loe-tags { display: flex; gap: 2px; flex-wrap: wrap; margin-top: 3px; }
+.exec-loe-chip {
+  font-size: 0.55em; padding: 0 3px; border: 1px solid;
+}
+.col-add-btn {
+  padding: 6px; margin: 4px 6px; border: 1px dashed var(--dim);
+  cursor: pointer; text-align: center; font-size: 0.7em; color: var(--dim);
+  flex-shrink: 0;
+}
+.col-add-btn:hover { border-color: var(--fg); color: var(--fg); }
+#add-col-btn {
+  min-width: 100px; width: 100px;
+  display: flex; align-items: center; justify-content: center;
+  border-right: 1px solid var(--muted); flex-shrink: 0;
+  cursor: pointer; color: var(--dim); font-size: 0.8em;
+}
+#add-col-btn:hover { color: var(--fg); background: var(--muted); }
+#no-nodes-msg {
+  display: flex; align-items: center; justify-content: center;
+  width: 100%; color: var(--dim); font-size: 0.8em; padding: 20px;
+  flex-direction: column; gap: 8px; text-align: center;
+}
+
+/* RAG colors */
+.rag-green { color: var(--success); }
+.rag-amber { color: #ffaa00; }
+.rag-red   { color: var(--warn); }
+.rag-none  { color: var(--dim); }
+
+/* type badge colors */
+.type-strategy  { color: var(--cat-5); border-color: var(--cat-5); }
+.type-objective { color: var(--cat-6); border-color: var(--cat-6); }
+.type-execution { color: var(--cat-3); border-color: var(--cat-3); }
+.type-kr        { color: var(--cat-4); border-color: var(--cat-4); }
+.type-task      { color: var(--dim); border-color: var(--dim); }
+
+/* ═══════════════════════════════════════════════
+   OVERLAY (help / edit forms)
+   ═══════════════════════════════════════════════ */
+.overlay {
+  display: none; position: fixed; inset: 0;
+  background: rgba(0,0,0,0.75); z-index: 150;
+  align-items: center; justify-content: center;
+}
+.overlay.visible { display: flex; }
+.overlay-box {
+  background: var(--bg); border: 1px solid var(--border);
+  padding: 16px 20px; min-width: 560px; max-width: min(90vw, 860px);
+  max-height: 85vh; overflow-y: auto;
+  font-family: var(--font); color: var(--fg);
+}
+.overlay-title { color: var(--accent); letter-spacing: 2px; margin-bottom: 10px; font-size: 0.85em; }
+.overlay-close { color: var(--dim); font-size: 0.8em; cursor: pointer; display: block; margin-top: 10px; }
+.overlay-close:hover { color: var(--fg); }
+
+/* edit modal fields */
+.field-row { margin-bottom: 10px; }
+.field-label { color: var(--dim); font-size: 0.72em; letter-spacing: 1px; margin-bottom: 3px; }
+.field-input {
+  background: var(--muted); border: 1px solid var(--dim);
+  color: var(--fg); font-family: var(--font); font-size: 0.8em;
+  padding: 4px 8px; width: 100%; outline: none;
+}
+.field-input:focus { border-color: var(--accent); }
+textarea.field-input { resize: vertical; min-height: 50px; }
+.field-select {
+  background: var(--muted); border: 1px solid var(--dim);
+  color: var(--fg); font-family: var(--font); font-size: 0.8em;
+  padding: 4px 8px; outline: none; cursor: pointer;
+}
+.field-select:focus { border-color: var(--accent); }
+
+.rag-btns { display: flex; gap: 8px; }
+.rag-btn {
+  border: 1px solid var(--dim); padding: 2px 12px; cursor: pointer;
+  font-size: 0.78em; color: var(--dim);
+}
+.rag-btn:hover { border-color: var(--fg); color: var(--fg); }
+.rag-btn.active-green { border-color: var(--success); color: var(--success); }
+.rag-btn.active-amber { border-color: #ffaa00; color: #ffaa00; }
+.rag-btn.active-red   { border-color: var(--warn); color: var(--warn); }
+.rag-btn.active-none  { border-color: var(--dim); color: var(--dim); }
+
+.loe-checks { display: flex; gap: 8px; flex-wrap: wrap; }
+.loe-check-item {
+  border: 1px solid var(--dim); padding: 2px 8px; cursor: pointer;
+  font-size: 0.72em;
+}
+.loe-check-item.active { border-color: var(--accent); color: var(--accent); }
+
+.pulse-list { max-height: 120px; overflow-y: auto; }
+.pulse-entry {
+  border-bottom: 1px solid var(--muted); padding: 4px 0;
+  font-size: 0.75em;
+}
+.pulse-date { color: var(--dim); margin-right: 6px; }
+.pulse-rag  { margin-right: 6px; }
+.pulse-text { color: var(--fg); }
+
+.action-btns { display: flex; gap: 8px; margin-top: 12px; flex-wrap: wrap; }
+.action-btn {
+  border: 1px solid var(--dim); padding: 4px 14px; cursor: pointer;
+  font-size: 0.78em; color: var(--dim);
+}
+.action-btn:hover { border-color: var(--fg); color: var(--fg); }
+.action-btn.primary { border-color: var(--accent); color: var(--accent); }
+.action-btn.primary:hover { background: var(--accent); color: var(--bg); }
+.action-btn.danger { border-color: var(--warn); color: var(--warn); }
+.action-btn.danger:hover { background: var(--warn); color: var(--bg); }
+.action-btn.success { border-color: var(--success); color: var(--success); }
+.action-btn.success:hover { background: var(--success); color: var(--bg); }
+
+.sep { border: none; border-top: 1px solid var(--muted); margin: 10px 0; }
+
+/* confidence selector */
+.conf-btns { display: flex; gap: 4px; }
+.conf-btn {
+  border: 1px solid var(--dim); padding: 2px 8px; cursor: pointer;
+  font-size: 0.75em; color: var(--dim);
+}
+.conf-btn:hover { border-color: var(--fg); color: var(--fg); }
+.conf-btn.active { border-color: var(--accent); color: var(--accent); }
+
+/* ═══════════════════════════════════════════════
+   TOOLTIP
+   ═══════════════════════════════════════════════ */
+#tooltip {
+  position: fixed; display: none; background: var(--bg);
+  border: 1px solid var(--border); color: var(--fg);
+  padding: 3px 8px; font-size: 0.72em; pointer-events: none;
+  z-index: 200; white-space: nowrap;
+}
+</style>
+</head>
+<body>
+
+<!-- ═══ SPLASH ═══ -->
+<div id="splash" style="position:fixed;inset:0;background:var(--bg);display:flex;align-items:center;justify-content:center;z-index:100;flex-direction:column;gap:8px;">
+  <div style="color:var(--accent);font-size:2em;letter-spacing:6px;">COMPASS</div>
+  <div style="color:var(--dim);font-size:0.75em;letter-spacing:2px;">STRATEGIC PLANNING TERMINAL</div>
+  <div style="color:var(--dim);font-size:0.7em;margin-top:4px;">LOADING...</div>
+</div>
+
+<!-- ═══ MAIN LAYOUT ═══ -->
+<div id="app">
+  <!-- TOP ROW: group tabs + year + vision + LOEs -->
+  <div id="top-row">
+    <div id="top-header-line">
+      <span id="top-label">◈ COMPASS</span>
+      <div id="group-tabs"></div>
+      <span id="year-badge">—</span>
+      <span id="vision-line"><span id="vision-label">VISION:</span><span id="vision-text" style="font-style:italic;color:var(--dim);">No vision set. Use /vision to set one.</span></span>
+    </div>
+    <div id="loe-row">
+      <span id="loe-header">LOE:</span>
+      <span id="loe-badges"></span>
+    </div>
+  </div>
+
+  <!-- MAIN ROW: horizontal scroll columns -->
+  <div id="main-row">
+    <div id="columns-container" style="display:flex;flex-direction:row;height:100%;min-width:100%;"></div>
+  </div>
+
+  <!-- CONSOLE ROW -->
+  <div id="console-row">
+    <span id="console-prompt">COMPASS&gt;</span>
+    <input type="text" id="console-input" autocomplete="off" spellcheck="false">
+    <span id="console-status">READY</span>
+  </div>
+</div>
+
+<!-- ═══ HELP OVERLAY ═══ -->
+<div id="help-overlay" class="overlay">
+  <div class="overlay-box">
+    <div id="help-title" class="overlay-title"></div>
+    <div id="help-body"></div>
+    <span id="help-close" class="overlay-close">[ESC] CLOSE</span>
+  </div>
+</div>
+
+<!-- ═══ EDIT MODAL ═══ -->
+<div id="edit-overlay" class="overlay">
+  <div class="overlay-box" style="min-width:600px;max-width:min(90vw,760px);">
+    <div id="edit-title" class="overlay-title"></div>
+    <div id="edit-body"></div>
+  </div>
+</div>
+
+<!-- ═══ TOOLTIP ═══ -->
+<div id="tooltip"></div>
+
+<script>
+/* ─── CONSTANTS ───────────────────────────────────────── */
+const STORAGE_KEY = 'compass_db';
+const THEMES = ['legacy','solar','monk','space','synth','dos','notebook','engineering'];
+const DEFAULT_THEME = 'space';
+
+const RAG_SYMBOLS = { green: '●', amber: '◑', red: '○', none: '·' };
+const RAG_CLASSES  = { green: 'rag-green', amber: 'rag-amber', red: 'rag-red', none: 'rag-none' };
+const LOE_COLORS   = ['--cat-5','--cat-6','--cat-7','--cat-3','--cat-4','--cat-8','--cat-9','--cat-10'];
+
+/* ─── STORAGE ─────────────────────────────────────────── */
+let db;
+
+function loadDB() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    const d = raw ? JSON.parse(raw) : {};
+    d.groups          = d.groups          || [];
+    d.nodes           = d.nodes           || [];
+    d.activeGroupId   = d.activeGroupId   || null;
+    d.backlog         = d.backlog         || [];
+    d.backlogArchive  = d.backlogArchive  || [];
+    d.theme           = d.theme           || DEFAULT_THEME;
+    d.schemaVersion   = d.schemaVersion   || 1;
+    return d;
+  } catch { return { groups:[], nodes:[], activeGroupId:null, backlog:[], backlogArchive:[], theme:DEFAULT_THEME, schemaVersion:1 }; }
+}
+
+function saveDB() {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(db));
+}
+
+/* ─── ID GENERATION ───────────────────────────────────── */
+function uid(prefix) {
+  return (prefix || 'id') + '_' + Date.now().toString(36) + Math.random().toString(36).slice(2,6);
+}
+
+/* ─── HELPERS ─────────────────────────────────────────── */
+function todayStr() { return new Date().toISOString().slice(0,10); }
+
+function escHtml(str) {
+  return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+function downloadBlob(content, filename, type) {
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([content], { type }));
+  a.download = filename;
+  a.click();
+  URL.revokeObjectURL(a.href);
+}
+
+function getGroup(id) {
+  return db.groups.find(g => g.id === id) || null;
+}
+
+function activeGroup() {
+  return getGroup(db.activeGroupId);
+}
+
+function nodesForGroup(groupId) {
+  return db.nodes.filter(n => n.groupId === groupId);
+}
+
+function topLevelNodes(groupId) {
+  return db.nodes.filter(n => n.groupId === groupId && !n.parentId);
+}
+
+function childNodes(parentId) {
+  return db.nodes.filter(n => n.parentId === parentId);
+}
+
+function latestRag(node) {
+  if (!node.pulses || !node.pulses.length) return node.ragStatus || 'none';
+  const last = node.pulses[node.pulses.length - 1];
+  return last.ragStatus || 'none';
+}
+
+function typeClass(type) {
+  const t = (type || '').toLowerCase();
+  if (t === 'strategy')  return 'type-strategy';
+  if (t === 'objective') return 'type-objective';
+  if (t === 'execution') return 'type-execution';
+  if (t === 'kr')        return 'type-kr';
+  return 'type-task';
+}
+
+function loeColor(loe) {
+  const g = activeGroup();
+  if (!g) return '#888';
+  const idx = g.loeDefinitions.findIndex(l => l.id === loe.id);
+  const varName = LOE_COLORS[idx % LOE_COLORS.length];
+  return `var(${varName})`;
+}
+
+function loeById(loeId) {
+  const g = activeGroup();
+  if (!g) return null;
+  return g.loeDefinitions.find(l => l.id === loeId) || null;
+}
+
+/* ─── STATUS BAR ──────────────────────────────────────── */
+function statusMsg(msg) {
+  document.getElementById('console-status').textContent = msg;
+  setTimeout(updateStatus, 3000);
+}
+
+function updateStatus() {
+  const g = activeGroup();
+  if (g) {
+    const nodes = nodesForGroup(g.id);
+    document.getElementById('console-status').textContent = g.name + ' · ' + nodes.length + ' node' + (nodes.length === 1 ? '' : 's');
+  } else {
+    document.getElementById('console-status').textContent = 'READY';
+  }
+}
+
+/* ─── THEME ───────────────────────────────────────────── */
+function applyTheme(name) {
+  if (!name) {
+    const current = db.theme || DEFAULT_THEME;
+    const others = THEMES.filter(t => t !== current);
+    name = others[Math.floor(Math.random() * others.length)];
+  }
+  if (!THEMES.includes(name)) return statusMsg('Unknown theme: ' + name);
+  document.documentElement.dataset.theme = (name === 'legacy') ? '' : name;
+  db.theme = name;
+  saveDB();
+  statusMsg('Theme: ' + name.toUpperCase());
+}
+
+/* ─── RENDER ──────────────────────────────────────────── */
+function render() {
+  renderTopRow();
+  renderColumns();
+  updateStatus();
+}
+
+function renderTopRow() {
+  // Group tabs
+  const tabsEl = document.getElementById('group-tabs');
+  tabsEl.innerHTML = '';
+  if (db.groups.length === 0) {
+    tabsEl.innerHTML = '<span style="color:var(--dim);font-size:0.72em;">No groups — use /new to create one</span>';
+    document.getElementById('year-badge').textContent = '—';
+    document.getElementById('vision-text').textContent = 'No vision set.';
+    document.getElementById('vision-text').style.color = 'var(--dim)';
+    document.getElementById('loe-badges').innerHTML = '';
+    return;
+  }
+
+  db.groups.forEach(g => {
+    const tab = document.createElement('span');
+    tab.className = 'group-tab' + (g.id === db.activeGroupId ? ' active' : '');
+    tab.textContent = g.name + ' \'' + String(g.year).slice(-2);
+    tab.onclick = () => { db.activeGroupId = g.id; saveDB(); render(); };
+    addTooltip(tab, g.name + ' · FY' + g.year);
+    tabsEl.appendChild(tab);
+  });
+
+  const g = activeGroup();
+  if (!g) return;
+
+  document.getElementById('year-badge').textContent = 'FY' + g.year;
+
+  const vt = document.getElementById('vision-text');
+  if (g.vision) {
+    vt.textContent = g.vision;
+    vt.style.color = '';
+    vt.style.fontStyle = '';
+  } else {
+    vt.textContent = 'No vision set. Use /vision to set one.';
+    vt.style.color = 'var(--dim)';
+    vt.style.fontStyle = 'italic';
+  }
+
+  // LOE badges
+  const loeBadgesEl = document.getElementById('loe-badges');
+  loeBadgesEl.innerHTML = '';
+  (g.loeDefinitions || []).forEach((loe, idx) => {
+    const badge = document.createElement('span');
+    badge.className = 'loe-badge';
+    const color = `var(${LOE_COLORS[idx % LOE_COLORS.length]})`;
+    badge.style.color = color;
+    badge.style.borderColor = color;
+    badge.textContent = loe.name;
+    addTooltip(badge, 'LOE: ' + loe.name);
+    loeBadgesEl.appendChild(badge);
+  });
+  if (!g.loeDefinitions || g.loeDefinitions.length === 0) {
+    loeBadgesEl.innerHTML = '<span style="color:var(--dim);font-size:0.72em;">No LOEs — use /loe [name]</span>';
+  }
+}
+
+function renderColumns() {
+  const container = document.getElementById('columns-container');
+  container.innerHTML = '';
+
+  const g = activeGroup();
+  if (!g) {
+    const msg = document.createElement('div');
+    msg.id = 'no-nodes-msg';
+    msg.innerHTML = '<div style="color:var(--dim);">No goal group selected.</div><div style="font-size:0.7em;color:var(--dim);">Use /new [name] [year] to create one.</div>';
+    container.appendChild(msg);
+    return;
+  }
+
+  const tops = topLevelNodes(g.id);
+  if (tops.length === 0) {
+    const msg = document.createElement('div');
+    msg.id = 'no-nodes-msg';
+    msg.innerHTML = '<div style="color:var(--dim);">No strategies or objectives yet.</div><div style="font-size:0.7em;color:var(--dim);">Use /strategy [title] or /objective [title]</div>';
+    container.appendChild(msg);
+  } else {
+    tops.forEach((node, idx) => {
+      container.appendChild(buildColumn(node, idx + 1));
+    });
+  }
+
+  // Add column button
+  const addBtn = document.createElement('div');
+  addBtn.id = 'add-col-btn';
+  addBtn.textContent = '+ ADD';
+  addBtn.title = '/strategy or /objective';
+  addBtn.onclick = () => {
+    focusConsole('/strategy ');
+  };
+  container.appendChild(addBtn);
+}
+
+function buildColumn(node, colNum) {
+  const col = document.createElement('div');
+  col.className = 'strategy-col';
+
+  // Header
+  const hdr = document.createElement('div');
+  hdr.className = 'col-header';
+
+  const typeBadge = document.createElement('span');
+  typeBadge.className = 'col-type-badge ' + typeClass(node.type);
+  typeBadge.textContent = (node.type || 'STRATEGY').toUpperCase();
+
+  const rag = latestRag(node);
+  const ragSpan = document.createElement('span');
+  ragSpan.className = 'col-rag ' + (RAG_CLASSES[rag] || 'rag-none');
+  ragSpan.textContent = RAG_SYMBOLS[rag] || '·';
+  addTooltip(ragSpan, 'RAG: ' + rag.toUpperCase());
+
+  const titleEl = document.createElement('div');
+  titleEl.className = 'col-title';
+  titleEl.textContent = '[' + colNum + '] ' + node.title;
+  titleEl.onclick = () => openEditModal(node.id);
+
+  const tagRow = document.createElement('div');
+  tagRow.className = 'col-loe-tags';
+  (node.loeTagIds || []).forEach(lid => {
+    const loe = loeById(lid);
+    if (!loe) return;
+    const g = activeGroup();
+    const idx = g.loeDefinitions.findIndex(l => l.id === lid);
+    const color = `var(${LOE_COLORS[idx % LOE_COLORS.length]})`;
+    const chip = document.createElement('span');
+    chip.className = 'loe-tag-chip';
+    chip.style.color = color;
+    chip.style.borderColor = color;
+    chip.textContent = loe.name;
+    tagRow.appendChild(chip);
+  });
+
+  const typeLine = document.createElement('div');
+  typeLine.style.display = 'flex';
+  typeLine.style.alignItems = 'center';
+  typeLine.style.gap = '4px';
+  typeLine.appendChild(typeBadge);
+  typeLine.appendChild(ragSpan);
+
+  hdr.appendChild(typeLine);
+  hdr.appendChild(titleEl);
+  if (tagRow.children.length) hdr.appendChild(tagRow);
+  col.appendChild(hdr);
+
+  // Body — execution/KR items
+  const body = document.createElement('div');
+  body.className = 'col-body';
+
+  const children = childNodes(node.id);
+  children.forEach(child => {
+    body.appendChild(buildExecItem(child));
+  });
+
+  col.appendChild(body);
+
+  // Add exec item button
+  const addBtn = document.createElement('div');
+  addBtn.className = 'col-add-btn';
+  addBtn.textContent = '+ Add item';
+  addBtn.onclick = (e) => {
+    e.stopPropagation();
+    const suggestion = node.type === 'Objective' ? '/kr ' : '/exec ';
+    focusConsole(suggestion + colNum + ' ');
+  };
+  col.appendChild(addBtn);
+
+  return col;
+}
+
+function buildExecItem(node) {
+  const item = document.createElement('div');
+  item.className = 'exec-item';
+
+  const hdr = document.createElement('div');
+  hdr.className = 'exec-item-header';
+
+  const rag = latestRag(node);
+  const ragSpan = document.createElement('span');
+  ragSpan.className = 'exec-rag ' + (RAG_CLASSES[rag] || 'rag-none');
+  ragSpan.textContent = RAG_SYMBOLS[rag] || '·';
+
+  const typeBadge = document.createElement('span');
+  typeBadge.className = 'exec-type-badge ' + typeClass(node.type);
+  typeBadge.textContent = (node.type || 'EXEC').toUpperCase().slice(0,4);
+
+  const titleEl = document.createElement('span');
+  titleEl.className = 'exec-title';
+  titleEl.textContent = node.title;
+
+  hdr.appendChild(ragSpan);
+  hdr.appendChild(typeBadge);
+  hdr.appendChild(titleEl);
+  item.appendChild(hdr);
+
+  // LOE chips
+  if (node.loeTagIds && node.loeTagIds.length) {
+    const tagRow = document.createElement('div');
+    tagRow.className = 'exec-loe-tags';
+    node.loeTagIds.forEach(lid => {
+      const loe = loeById(lid);
+      if (!loe) return;
+      const g = activeGroup();
+      const idx = g.loeDefinitions.findIndex(l => l.id === lid);
+      const color = `var(${LOE_COLORS[idx % LOE_COLORS.length]})`;
+      const chip = document.createElement('span');
+      chip.className = 'exec-loe-chip';
+      chip.style.color = color;
+      chip.style.borderColor = color;
+      chip.textContent = loe.name;
+      tagRow.appendChild(chip);
+    });
+    item.appendChild(tagRow);
+  }
+
+  item.onclick = () => openEditModal(node.id);
+  return item;
+}
+
+/* ─── EDIT MODAL ──────────────────────────────────────── */
+let editNodeId = null;
+
+function openEditModal(nodeId) {
+  const node = db.nodes.find(n => n.id === nodeId);
+  if (!node) return;
+  editNodeId = nodeId;
+
+  const g = activeGroup();
+  const isTop = !node.parentId;
+  const title = (isTop ? '◈ EDIT ' : '◈ EDIT ') + (node.type || 'NODE').toUpperCase() + ' — ' + node.title.slice(0, 40);
+  document.getElementById('edit-title').textContent = title;
+
+  const body = document.getElementById('edit-body');
+  body.innerHTML = '';
+
+  // Title
+  const titleRow = mkFieldRow('TITLE', `<input class="field-input" id="ef-title" value="${escHtml(node.title)}" type="text">`);
+  body.appendChild(titleRow);
+
+  // Type
+  const typeOpts = isTop
+    ? ['Strategy', 'Objective']
+    : ['Execution', 'KR', 'Task'];
+  const typeRow = mkFieldRow('TYPE', `<select class="field-select" id="ef-type">${typeOpts.map(t => `<option value="${t}"${node.type===t?' selected':''}>${t}</option>`).join('')}</select>`);
+  body.appendChild(typeRow);
+
+  // Description
+  const descRow = mkFieldRow('DESCRIPTION', `<textarea class="field-input" id="ef-desc">${escHtml(node.description || '')}</textarea>`);
+  body.appendChild(descRow);
+
+  // RAG status
+  const ragCurrent = node.ragStatus || 'none';
+  const ragRow = mkFieldRow('RAG STATUS', `
+    <div class="rag-btns" id="ef-rag">
+      ${['green','amber','red','none'].map(r =>
+        `<span class="rag-btn${ragCurrent===r?' active-'+r:''}" data-rag="${r}">${RAG_SYMBOLS[r]} ${r.toUpperCase()}</span>`
+      ).join('')}
+    </div>`);
+  body.appendChild(ragRow);
+
+  // Confidence (1-5)
+  const conf = node.confidence || 0;
+  const confRow = mkFieldRow('CONFIDENCE (1–5)', `
+    <div class="conf-btns" id="ef-conf">
+      ${[1,2,3,4,5].map(n => `<span class="conf-btn${conf===n?' active':''}" data-conf="${n}">${n}</span>`).join('')}
+      <span class="conf-btn${conf===0?' active':''}" data-conf="0">—</span>
+    </div>`);
+  body.appendChild(confRow);
+
+  // Assumption notes
+  const assumpRow = mkFieldRow('ASSUMPTION NOTES', `<textarea class="field-input" id="ef-assump">${escHtml(node.assumptionNotes || '')}</textarea>`);
+  body.appendChild(assumpRow);
+
+  // LOE tags
+  if (g && g.loeDefinitions && g.loeDefinitions.length) {
+    const loeHtml = g.loeDefinitions.map((loe, idx) => {
+      const color = `var(${LOE_COLORS[idx % LOE_COLORS.length]})`;
+      const active = (node.loeTagIds || []).includes(loe.id);
+      return `<span class="loe-check-item${active?' active':''}" data-loe-id="${loe.id}" style="${active?'border-color:var(--accent);color:var(--accent)':'color:'+color+';border-color:'+color}">${loe.name}</span>`;
+    }).join('');
+    const loeRow = mkFieldRow('LINE OF EFFORT TAGS', `<div class="loe-checks" id="ef-loes">${loeHtml}</div>`);
+    body.appendChild(loeRow);
+  }
+
+  body.appendChild(mkSep());
+
+  // Pulse history
+  const pulses = node.pulses || [];
+  const pulseListHtml = pulses.length
+    ? pulses.slice().reverse().map(p => `
+        <div class="pulse-entry">
+          <span class="pulse-date">${p.date}</span>
+          <span class="pulse-rag ${RAG_CLASSES[p.ragStatus] || 'rag-none'}">${RAG_SYMBOLS[p.ragStatus] || '·'} ${(p.ragStatus||'?').toUpperCase()}</span>
+          <span class="pulse-text">${escHtml(p.narrative || '')}</span>
+        </div>`).join('')
+    : '<div style="color:var(--dim);font-size:0.75em;">No pulses yet.</div>';
+
+  const pulseHdr = document.createElement('div');
+  pulseHdr.className = 'row-header';
+  pulseHdr.textContent = '◈ PULSE HISTORY';
+  body.appendChild(pulseHdr);
+
+  const pulseList = document.createElement('div');
+  pulseList.className = 'pulse-list';
+  pulseList.innerHTML = pulseListHtml;
+  body.appendChild(pulseList);
+
+  body.appendChild(mkSep());
+
+  // Add pulse
+  const addPulseHdr = document.createElement('div');
+  addPulseHdr.className = 'row-header';
+  addPulseHdr.textContent = '◈ ADD PULSE';
+  body.appendChild(addPulseHdr);
+
+  const pRagRow = mkFieldRow('STATUS', `
+    <div class="rag-btns" id="ef-prag">
+      ${['green','amber','red'].map(r =>
+        `<span class="rag-btn" data-prag="${r}">${RAG_SYMBOLS[r]} ${r.toUpperCase()}</span>`
+      ).join('')}
+    </div>`);
+  body.appendChild(pRagRow);
+
+  const pNarrRow = mkFieldRow('NARRATIVE', `<textarea class="field-input" id="ef-pnarr" placeholder="Brief status update..."></textarea>`);
+  body.appendChild(pNarrRow);
+
+  // Action buttons
+  const actionDiv = document.createElement('div');
+  actionDiv.className = 'action-btns';
+  actionDiv.innerHTML = `
+    <span class="action-btn success" id="ef-add-pulse">+ ADD PULSE</span>
+    <span class="action-btn primary" id="ef-save">SAVE</span>
+    <span class="action-btn danger" id="ef-delete">DELETE</span>
+    <span class="action-btn" id="ef-close">[ESC] CLOSE</span>
+  `;
+  body.appendChild(actionDiv);
+
+  // Wire up RAG buttons
+  body.querySelectorAll('#ef-rag .rag-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      body.querySelectorAll('#ef-rag .rag-btn').forEach(b => {
+        b.className = 'rag-btn';
+      });
+      btn.className = 'rag-btn active-' + btn.dataset.rag;
+    });
+  });
+
+  // Wire up pulse RAG buttons
+  body.querySelectorAll('#ef-prag .rag-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      body.querySelectorAll('#ef-prag .rag-btn').forEach(b => b.className = 'rag-btn');
+      btn.className = 'rag-btn active-' + btn.dataset.prag;
+    });
+  });
+
+  // Wire up confidence buttons
+  body.querySelectorAll('#ef-conf .conf-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      body.querySelectorAll('#ef-conf .conf-btn').forEach(b => b.className = 'conf-btn');
+      btn.className = 'conf-btn active';
+    });
+  });
+
+  // Wire up LOE toggles
+  body.querySelectorAll('#ef-loes .loe-check-item').forEach(item => {
+    item.addEventListener('click', () => {
+      item.classList.toggle('active');
+      if (item.classList.contains('active')) {
+        item.style.borderColor = 'var(--accent)';
+        item.style.color = 'var(--accent)';
+      } else {
+        const g2 = activeGroup();
+        const idx = (g2.loeDefinitions || []).findIndex(l => l.id === item.dataset.loeId);
+        const color = `var(${LOE_COLORS[idx % LOE_COLORS.length]})`;
+        item.style.borderColor = color;
+        item.style.color = color;
+      }
+    });
+  });
+
+  // Add pulse
+  document.getElementById('ef-add-pulse').onclick = () => {
+    const pragBtn = body.querySelector('#ef-prag .rag-btn[class*="active-"]');
+    if (!pragBtn) { statusMsg('Select a RAG status for pulse.'); return; }
+    const pRag = pragBtn.dataset.prag;
+    const pNarr = document.getElementById('ef-pnarr').value.trim();
+    const nd = db.nodes.find(n => n.id === editNodeId);
+    if (!nd) return;
+    nd.pulses = nd.pulses || [];
+    nd.pulses.push({ id: uid('pulse'), date: todayStr(), ragStatus: pRag, narrative: pNarr });
+    saveDB();
+    statusMsg('Pulse added: ' + pRag.toUpperCase());
+    openEditModal(editNodeId);
+  };
+
+  // Save
+  document.getElementById('ef-save').onclick = () => {
+    const nd = db.nodes.find(n => n.id === editNodeId);
+    if (!nd) return;
+    nd.title = document.getElementById('ef-title').value.trim() || nd.title;
+    nd.type = document.getElementById('ef-type').value;
+    nd.description = document.getElementById('ef-desc').value.trim();
+    const ragBtn = body.querySelector('#ef-rag .rag-btn[class*="active-"]');
+    if (ragBtn) nd.ragStatus = ragBtn.dataset.rag;
+    const confBtn = body.querySelector('#ef-conf .conf-btn.active');
+    if (confBtn) nd.confidence = parseInt(confBtn.dataset.conf) || 0;
+    nd.assumptionNotes = document.getElementById('ef-assump').value.trim();
+    nd.loeTagIds = [...body.querySelectorAll('#ef-loes .loe-check-item.active')].map(el => el.dataset.loeId);
+    saveDB();
+    closeEditModal();
+    render();
+    statusMsg('Saved: ' + nd.title);
+  };
+
+  // Delete
+  document.getElementById('ef-delete').onclick = () => {
+    if (!confirm('Delete "' + db.nodes.find(n => n.id === editNodeId)?.title + '"? Children will also be deleted.')) return;
+    deleteNode(editNodeId);
+    closeEditModal();
+    render();
+    statusMsg('Node deleted.');
+  };
+
+  document.getElementById('ef-close').onclick = closeEditModal;
+
+  const overlay = document.getElementById('edit-overlay');
+  overlay.classList.add('visible');
+  overlay.onclick = e => { if (e.target === overlay) closeEditModal(); };
+}
+
+function closeEditModal() {
+  document.getElementById('edit-overlay').classList.remove('visible');
+  editNodeId = null;
+}
+
+function mkFieldRow(label, contentHtml) {
+  const row = document.createElement('div');
+  row.className = 'field-row';
+  row.innerHTML = `<div class="field-label">${label}</div>${contentHtml}`;
+  return row;
+}
+
+function mkSep() {
+  const hr = document.createElement('hr');
+  hr.className = 'sep';
+  return hr;
+}
+
+function deleteNode(nodeId) {
+  // Delete children recursively
+  const children = db.nodes.filter(n => n.parentId === nodeId);
+  children.forEach(c => deleteNode(c.id));
+  db.nodes = db.nodes.filter(n => n.id !== nodeId);
+  saveDB();
+}
+
+/* ─── CONSOLE ─────────────────────────────────────────── */
+const input = document.getElementById('console-input');
+
+input.addEventListener('keydown', e => {
+  if (e.key === 'Enter') {
+    const cmd = input.value.trim();
+    input.value = '';
+    if (cmd) handleConsoleCmd(cmd);
+  }
+});
+
+function focusConsole(prefill) {
+  input.focus();
+  if (prefill !== undefined) {
+    input.value = prefill;
+    input.setSelectionRange(prefill.length, prefill.length);
+  }
+}
+
+function handleConsoleCmd(raw) {
+  const parts = raw.split(/\s+/);
+  const cmd = parts[0].toLowerCase();
+  const rest = raw.slice(parts[0].length).trim();
+
+  if (cmd === '/help')       return showHelp();
+  if (cmd === '/theme')      return applyTheme(rest);
+  if (cmd === '/backlog')    { handleBacklog(rest); return; }
+
+  if (cmd === '/new')        return cmdNew(rest);
+  if (cmd === '/group')      return cmdGroup(rest);
+  if (cmd === '/rename')     return cmdRename(rest);
+  if (cmd === '/vision')     return cmdVision(rest);
+  if (cmd === '/year')       return cmdYear(rest);
+  if (cmd === '/loe')        return cmdLoe(rest);
+  if (cmd === '/strategy')   return cmdAddTop('Strategy', rest);
+  if (cmd === '/objective')  return cmdAddTop('Objective', rest);
+  if (cmd === '/exec')       return cmdAddChild('Execution', rest);
+  if (cmd === '/kr')         return cmdAddChild('KR', rest);
+  if (cmd === '/task')       return cmdAddChild('Task', rest);
+  if (cmd === '/pulse')      return cmdPulse(rest);
+  if (cmd === '/rag')        return cmdRag(rest);
+  if (cmd === '/tag')        return cmdTag(rest);
+  if (cmd === '/edit')       return cmdEdit(rest);
+  if (cmd === '/delete')     return cmdDelete(rest);
+  if (cmd === '/export')     return cmdExport(rest);
+  if (cmd === '/import')     return cmdImport();
+  if (cmd === '/swot')       return statusMsg('SWOT: not yet implemented. Coming in a future version.');
+
+  statusMsg('Unknown command: ' + cmd + '. Type /help');
+}
+
+/* ─── APP COMMANDS ────────────────────────────────────── */
+function cmdNew(rest) {
+  // /new [name] [year]   e.g. /new "R&D Org" 2026
+  if (!rest) { statusMsg('Usage: /new [name] [year]'); return; }
+  const yearMatch = rest.match(/(\d{4})$/);
+  const year = yearMatch ? parseInt(yearMatch[1]) : new Date().getFullYear();
+  const name = (yearMatch ? rest.slice(0, rest.length - yearMatch[0].length) : rest).trim() || 'Goal Group';
+  const g = {
+    id: uid('grp'),
+    name,
+    year,
+    vision: '',
+    loeDefinitions: []
+  };
+  db.groups.push(g);
+  db.activeGroupId = g.id;
+  saveDB();
+  render();
+  statusMsg('Created group: ' + name + ' (' + year + ')');
+}
+
+function cmdGroup(rest) {
+  if (!rest) {
+    // List groups
+    if (!db.groups.length) { statusMsg('No groups. Use /new to create one.'); return; }
+    const lines = db.groups.map((g, i) => `[${i+1}] ${g.name} FY${g.year}${g.id === db.activeGroupId ? ' ◄ ACTIVE' : ''}`);
+    showTextOverlay('◈ GOAL GROUPS', lines.join('\n'));
+    return;
+  }
+  const n = parseInt(rest);
+  let found;
+  if (!isNaN(n) && n >= 1 && n <= db.groups.length) {
+    found = db.groups[n - 1];
+  } else {
+    found = db.groups.find(g => g.name.toLowerCase().includes(rest.toLowerCase()));
+  }
+  if (!found) { statusMsg('Group not found: ' + rest); return; }
+  db.activeGroupId = found.id;
+  saveDB();
+  render();
+  statusMsg('Switched to: ' + found.name);
+}
+
+function cmdRename(rest) {
+  const g = activeGroup();
+  if (!g) { statusMsg('No active group.'); return; }
+  if (!rest) { statusMsg('Usage: /rename [new name]'); return; }
+  g.name = rest;
+  saveDB();
+  render();
+  statusMsg('Renamed to: ' + rest);
+}
+
+function cmdVision(rest) {
+  const g = activeGroup();
+  if (!g) { statusMsg('No active group. Use /new first.'); return; }
+  if (!rest) { statusMsg('Usage: /vision [statement]'); return; }
+  g.vision = rest;
+  saveDB();
+  render();
+  statusMsg('Vision set.');
+}
+
+function cmdYear(rest) {
+  const g = activeGroup();
+  if (!g) { statusMsg('No active group.'); return; }
+  const y = parseInt(rest);
+  if (!y || y < 2000 || y > 2100) { statusMsg('Usage: /year [yyyy]'); return; }
+  g.year = y;
+  saveDB();
+  render();
+  statusMsg('Year set to FY' + y);
+}
+
+function cmdLoe(rest) {
+  const g = activeGroup();
+  if (!g) { statusMsg('No active group.'); return; }
+  if (!rest) {
+    // List LOEs
+    if (!g.loeDefinitions.length) { statusMsg('No LOEs defined. Use /loe [name]'); return; }
+    const lines = g.loeDefinitions.map((l, i) => `[${i+1}] ${l.name}`);
+    showTextOverlay('◈ LINES OF EFFORT — ' + g.name, lines.join('\n'));
+    return;
+  }
+  if (rest.toLowerCase().startsWith('delete ') || rest.toLowerCase().startsWith('del ')) {
+    const n = parseInt(rest.split(' ')[1]);
+    if (isNaN(n) || n < 1 || n > g.loeDefinitions.length) { statusMsg('Invalid LOE number.'); return; }
+    const removed = g.loeDefinitions.splice(n - 1, 1)[0];
+    saveDB();
+    render();
+    statusMsg('LOE removed: ' + removed.name);
+    return;
+  }
+  if (g.loeDefinitions.find(l => l.name.toLowerCase() === rest.toLowerCase())) {
+    statusMsg('LOE already exists: ' + rest);
+    return;
+  }
+  g.loeDefinitions.push({ id: uid('loe'), name: rest });
+  saveDB();
+  render();
+  statusMsg('LOE added: ' + rest);
+}
+
+function cmdAddTop(type, rest) {
+  const g = activeGroup();
+  if (!g) { statusMsg('No active group. Use /new first.'); return; }
+  if (!rest) { statusMsg('Usage: /' + type.toLowerCase() + ' [title]'); return; }
+  const node = {
+    id: uid('node'),
+    groupId: g.id,
+    parentId: null,
+    type,
+    title: rest,
+    description: '',
+    loeTagIds: [],
+    assumptionNotes: '',
+    confidence: 0,
+    ragStatus: 'none',
+    pulses: []
+  };
+  db.nodes.push(node);
+  saveDB();
+  render();
+  statusMsg(type + ' added: ' + rest);
+}
+
+function cmdAddChild(type, rest) {
+  const g = activeGroup();
+  if (!g) { statusMsg('No active group.'); return; }
+  // /exec [col#] [title]  or  /exec [title] (appends to last top-level node)
+  const parts = rest.split(/\s+/);
+  const n = parseInt(parts[0]);
+  let parentNode, title;
+  const tops = topLevelNodes(g.id);
+  if (!isNaN(n) && n >= 1 && n <= tops.length) {
+    parentNode = tops[n - 1];
+    title = parts.slice(1).join(' ');
+  } else {
+    parentNode = tops[tops.length - 1];
+    title = rest;
+  }
+  if (!parentNode) { statusMsg('No strategy/objective to attach to. Add one first.'); return; }
+  if (!title) { statusMsg('Usage: /' + type.toLowerCase() + ' [col#] [title]'); return; }
+  const node = {
+    id: uid('node'),
+    groupId: g.id,
+    parentId: parentNode.id,
+    type,
+    title,
+    description: '',
+    loeTagIds: [],
+    assumptionNotes: '',
+    confidence: 0,
+    ragStatus: 'none',
+    pulses: []
+  };
+  db.nodes.push(node);
+  saveDB();
+  render();
+  statusMsg(type + ' added under "' + parentNode.title + '"');
+}
+
+function cmdPulse(rest) {
+  // /pulse [node#] [g|a|r] [narrative]
+  const g = activeGroup();
+  if (!g) { statusMsg('No active group.'); return; }
+  const parts = rest.split(/\s+/);
+  if (parts.length < 2) { statusMsg('Usage: /pulse [node#] [g|a|r] [narrative]'); return; }
+  const n = parseInt(parts[0]);
+  const ragChar = parts[1].toLowerCase();
+  const ragMap = { g: 'green', a: 'amber', r: 'red', green: 'green', amber: 'amber', red: 'red' };
+  const rag = ragMap[ragChar];
+  if (!rag) { statusMsg('RAG must be g/a/r (green/amber/red)'); return; }
+  const narrative = parts.slice(2).join(' ');
+
+  const allNodes = nodesForGroup(g.id);
+  const node = allNodes[n - 1];
+  if (!node) { statusMsg('Node #' + n + ' not found.'); return; }
+  node.pulses = node.pulses || [];
+  node.pulses.push({ id: uid('pulse'), date: todayStr(), ragStatus: rag, narrative });
+  saveDB();
+  render();
+  statusMsg('Pulse added to "' + node.title + '": ' + rag.toUpperCase());
+}
+
+function cmdRag(rest) {
+  // /rag [node#] [g|a|r]
+  const g = activeGroup();
+  if (!g) { statusMsg('No active group.'); return; }
+  const parts = rest.split(/\s+/);
+  if (parts.length < 2) { statusMsg('Usage: /rag [node#] [g|a|r]'); return; }
+  const n = parseInt(parts[0]);
+  const ragChar = parts[1].toLowerCase();
+  const ragMap = { g: 'green', a: 'amber', r: 'red', green: 'green', amber: 'amber', red: 'red' };
+  const rag = ragMap[ragChar];
+  if (!rag) { statusMsg('RAG must be g/a/r'); return; }
+  const allNodes = nodesForGroup(g.id);
+  const node = allNodes[n - 1];
+  if (!node) { statusMsg('Node #' + n + ' not found.'); return; }
+  node.ragStatus = rag;
+  node.pulses = node.pulses || [];
+  node.pulses.push({ id: uid('pulse'), date: todayStr(), ragStatus: rag, narrative: '' });
+  saveDB();
+  render();
+  statusMsg('RAG updated: "' + node.title + '" → ' + rag.toUpperCase());
+}
+
+function cmdTag(rest) {
+  // /tag [node#] [loe name]
+  const g = activeGroup();
+  if (!g) { statusMsg('No active group.'); return; }
+  const parts = rest.split(/\s+/);
+  if (parts.length < 2) { statusMsg('Usage: /tag [node#] [loe name]'); return; }
+  const n = parseInt(parts[0]);
+  const loeName = parts.slice(1).join(' ');
+  const loe = g.loeDefinitions.find(l => l.name.toLowerCase().includes(loeName.toLowerCase()));
+  if (!loe) { statusMsg('LOE not found: ' + loeName + '. Use /loe to list/add.'); return; }
+  const allNodes = nodesForGroup(g.id);
+  const node = allNodes[n - 1];
+  if (!node) { statusMsg('Node #' + n + ' not found.'); return; }
+  node.loeTagIds = node.loeTagIds || [];
+  if (node.loeTagIds.includes(loe.id)) {
+    node.loeTagIds = node.loeTagIds.filter(id => id !== loe.id);
+    saveDB();
+    render();
+    statusMsg('LOE tag removed: ' + loe.name + ' from "' + node.title + '"');
+  } else {
+    node.loeTagIds.push(loe.id);
+    saveDB();
+    render();
+    statusMsg('LOE tagged: ' + loe.name + ' → "' + node.title + '"');
+  }
+}
+
+function cmdEdit(rest) {
+  // /edit [node#]
+  const g = activeGroup();
+  if (!g) { statusMsg('No active group.'); return; }
+  const n = parseInt(rest);
+  if (isNaN(n)) { statusMsg('Usage: /edit [node#]'); return; }
+  const allNodes = nodesForGroup(g.id);
+  const node = allNodes[n - 1];
+  if (!node) { statusMsg('Node #' + n + ' not found.'); return; }
+  openEditModal(node.id);
+}
+
+function cmdDelete(rest) {
+  // /delete [node#]
+  const g = activeGroup();
+  if (!g) { statusMsg('No active group.'); return; }
+  const n = parseInt(rest);
+  if (isNaN(n)) { statusMsg('Usage: /delete [node#]'); return; }
+  const allNodes = nodesForGroup(g.id);
+  const node = allNodes[n - 1];
+  if (!node) { statusMsg('Node #' + n + ' not found.'); return; }
+  deleteNode(node.id);
+  render();
+  statusMsg('Deleted: ' + node.title);
+}
+
+function cmdExport(rest) {
+  const g = activeGroup();
+  if (!g) { statusMsg('No active group.'); return; }
+  const exportObj = {
+    schemaVersion: 1,
+    exportedAt: new Date().toISOString(),
+    group: g,
+    nodes: nodesForGroup(g.id)
+  };
+  const json = JSON.stringify(exportObj, null, 2);
+  downloadBlob(json, 'compass-' + g.name.replace(/\s+/g,'_') + '-' + g.year + '.json', 'application/json');
+  statusMsg('Exported: ' + g.name);
+}
+
+function cmdImport() {
+  const fileInput = document.createElement('input');
+  fileInput.type = 'file';
+  fileInput.accept = '.json';
+  fileInput.onchange = e => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = evt => {
+      try {
+        const obj = JSON.parse(evt.target.result);
+        if (!obj.group || !obj.nodes) { statusMsg('Invalid Compass export file.'); return; }
+        const existing = db.groups.find(g => g.id === obj.group.id);
+        if (existing) {
+          // Update existing group
+          Object.assign(existing, obj.group);
+          db.nodes = db.nodes.filter(n => n.groupId !== obj.group.id);
+        } else {
+          db.groups.push(obj.group);
+        }
+        obj.nodes.forEach(n => db.nodes.push(n));
+        db.activeGroupId = obj.group.id;
+        saveDB();
+        render();
+        statusMsg('Imported: ' + obj.group.name);
+      } catch { statusMsg('Failed to parse import file.'); }
+    };
+    reader.readAsText(file);
+  };
+  fileInput.click();
+}
+
+/* ─── HELP OVERLAY ────────────────────────────────────── */
+function showHelp() {
+  document.getElementById('help-title').textContent = '◈ COMPASS — COMMANDS';
+  const body = document.getElementById('help-body');
+  body.style.whiteSpace = 'pre';
+  body.style.fontSize = '0.78em';
+  body.style.lineHeight = '1.8';
+  body.textContent = [
+    '── GOAL GROUPS ──────────────────────────────────────────',
+    '/new [name] [year]           create a new goal group',
+    '/group                       list all goal groups',
+    '/group [n|name]              switch to a goal group',
+    '/rename [new name]           rename current goal group',
+    '/vision [statement]          set vision for current group',
+    '/year [yyyy]                 set fiscal year',
+    '/loe [name]                  add a Line of Effort tag',
+    '/loe                         list LOEs',
+    '/loe delete [n]              remove an LOE',
+    '',
+    '── GOAL NODES ───────────────────────────────────────────',
+    '/strategy [title]            add top-level Strategy',
+    '/objective [title]           add top-level Objective',
+    '/exec [col#] [title]         add Execution item under col#',
+    '/kr [col#] [title]           add Key Result under col#',
+    '/task [col#] [title]         add Task under col#',
+    '/edit [node#]                open edit modal for node',
+    '/delete [node#]              delete node (and children)',
+    '',
+    '── STATUS & PULSE ───────────────────────────────────────',
+    '/rag [node#] [g|a|r]         quick RAG update',
+    '/pulse [node#] [g|a|r] [text]  add pulse with narrative',
+    '/tag [node#] [loe name]      toggle LOE tag on a node',
+    '',
+    '── DATA ─────────────────────────────────────────────────',
+    '/export                      export current group as JSON',
+    '/import                      import from JSON file',
+    '/swot                        SWOT workspace (placeholder)',
+    '',
+    '── SYSTEM ───────────────────────────────────────────────',
+    '/theme [name]                switch theme (random if omitted)',
+    '                             themes: legacy solar monk space synth dos notebook engineering',
+    '/backlog [text]              add to backlog',
+    '/backlog list                show backlog',
+    '/backlog done [n]            toggle item #n done',
+    '/backlog delete [n]          remove item #n',
+    '/backlog archive             archive done items',
+    '/backlog archive list        show archived batches',
+    '/backlog export              download backlog as .txt',
+    '/help                        show this help',
+    '',
+    '── NAVIGATION ───────────────────────────────────────────',
+    'Click any column header or item → open edit modal',
+    'Click "+ Add item" → pre-fill console with /exec or /kr',
+    'Click LOE badge in top row → (future: filter view)',
+  ].join('\n');
+  const overlay = document.getElementById('help-overlay');
+  overlay.classList.add('visible');
+  overlay.onclick = e => { if (e.target === overlay) overlay.classList.remove('visible'); };
+}
+
+function showTextOverlay(title, text) {
+  document.getElementById('help-title').textContent = title;
+  const body = document.getElementById('help-body');
+  body.style.whiteSpace = 'pre';
+  body.style.fontSize = '0.8em';
+  body.style.lineHeight = '1.8';
+  body.textContent = text;
+  const overlay = document.getElementById('help-overlay');
+  overlay.classList.add('visible');
+  overlay.onclick = e => { if (e.target === overlay) overlay.classList.remove('visible'); };
+}
+
+document.getElementById('help-close').onclick = () =>
+  document.getElementById('help-overlay').classList.remove('visible');
+
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') {
+    document.getElementById('help-overlay').classList.remove('visible');
+    closeEditModal();
+  }
+  const helpVisible = document.getElementById('help-overlay').classList.contains('visible');
+  const editVisible = document.getElementById('edit-overlay').classList.contains('visible');
+  if (!helpVisible && !editVisible && document.activeElement !== input) input.focus();
+});
+
+/* ─── TOOLTIP ─────────────────────────────────────────── */
+const tooltip = document.getElementById('tooltip');
+
+function addTooltip(el, text) {
+  el.addEventListener('mouseenter', () => { tooltip.textContent = text; tooltip.style.display = 'block'; });
+  el.addEventListener('mousemove', e => { tooltip.style.left = (e.clientX + 14) + 'px'; tooltip.style.top = (e.clientY + 8) + 'px'; });
+  el.addEventListener('mouseleave', () => { tooltip.style.display = 'none'; });
+}
+
+/* ─── BACKLOG ─────────────────────────────────────────── */
+function showBacklogList() {
+  document.getElementById('help-title').textContent = 'BACKLOG';
+  const body = document.getElementById('help-body');
+  body.style.whiteSpace = 'normal';
+  body.style.fontSize = '0.8em';
+  body.style.lineHeight = '1.8';
+  body.innerHTML = db.backlog.map((b, i) => {
+    const bracket = b.done ? '[x]' : '[ ]';
+    return `<div style="padding:2px 0"><span data-backlog-idx="${i}" style="cursor:pointer;user-select:none;color:var(--accent)">${bracket}</span> ${i+1}. ${escHtml(b.text)}</div>`;
+  }).join('');
+  body.querySelectorAll('[data-backlog-idx]').forEach(el => {
+    el.addEventListener('click', () => {
+      const idx = parseInt(el.dataset.backlogIdx);
+      db.backlog[idx].done = !db.backlog[idx].done;
+      saveDB();
+      showBacklogList();
+    });
+  });
+  const overlay = document.getElementById('help-overlay');
+  overlay.classList.add('visible');
+  overlay.onclick = e => { if (e.target === overlay) overlay.classList.remove('visible'); };
+}
+
+function handleBacklog(arg) {
+  if (!arg || arg === 'list') {
+    if (!db.backlog.length) { statusMsg('Backlog is empty.'); return; }
+    showBacklogList();
+    return;
+  }
+  if (arg === 'archive list') {
+    if (!db.backlogArchive.length) { statusMsg('No archived batches.'); return; }
+    const lines = db.backlogArchive.flatMap(batch => [
+      `── ${batch.date} (${batch.items.length} item${batch.items.length===1?'':'s'}) ──`,
+      ...batch.items.map(b => `  [x] ${b.text}`)
+    ]);
+    document.getElementById('help-title').textContent = 'BACKLOG ARCHIVE';
+    const body = document.getElementById('help-body');
+    body.style.whiteSpace = 'pre';
+    body.style.fontSize = '0.8em';
+    body.textContent = lines.join('\n');
+    const overlay = document.getElementById('help-overlay');
+    overlay.classList.add('visible');
+    overlay.onclick = e => { if (e.target === overlay) overlay.classList.remove('visible'); };
+    return;
+  }
+  if (arg === 'archive') {
+    const done = db.backlog.filter(b => b.done);
+    if (!done.length) { statusMsg('No done items to archive.'); return; }
+    db.backlog = db.backlog.filter(b => !b.done);
+    db.backlogArchive.push({ date: todayStr(), items: done });
+    saveDB();
+    statusMsg(`Archived ${done.length} done item${done.length===1?'':'s'}.`);
+    return;
+  }
+  if (arg === 'export') { exportBacklog(); return; }
+  if (arg.startsWith('delete ') || arg.startsWith('del ')) {
+    const n = parseInt(arg.split(' ')[1]);
+    const item = db.backlog[n-1];
+    if (!item) { statusMsg(`No backlog item #${n}.`); return; }
+    db.backlog.splice(n-1, 1);
+    saveDB();
+    statusMsg(`Backlog #${n} deleted: "${item.text}"`);
+    return;
+  }
+  if (arg.startsWith('done ')) {
+    const n = parseInt(arg.split(' ')[1]);
+    const item = db.backlog[n-1];
+    if (!item) { statusMsg(`No backlog item #${n}.`); return; }
+    item.done = !item.done;
+    saveDB();
+    statusMsg(`Backlog #${n} marked ${item.done ? 'done' : 'open'}: "${item.text}"`);
+    return;
+  }
+  db.backlog.push({
+    id: uid('bl'),
+    text: arg,
+    done: false,
+    createdAt: new Date().toISOString()
+  });
+  saveDB();
+  statusMsg(`Backlog: added "${arg}" (${db.backlog.length} item${db.backlog.length===1?'':'s'})`);
+}
+
+function exportBacklog() {
+  if (!db.backlog.length) { statusMsg('Backlog is empty.'); return; }
+  const now = todayStr();
+  const txt = '# COMPASS BACKLOG — ' + now + '\n\n'
+    + db.backlog.map(b => `- ${b.done?'[x]':'[ ]'} ${b.text}`).join('\n') + '\n';
+  downloadBlob(txt, `compass-backlog-${now}.txt`, 'text/plain');
+  statusMsg(`Exported ${db.backlog.length} backlog item${db.backlog.length===1?'':'s'}.`);
+}
+
+/* ─── BOOT / INIT ─────────────────────────────────────── */
+function init() {
+  db = loadDB();
+  applyTheme(db.theme || DEFAULT_THEME);
+  render();
+  document.getElementById('splash').style.display = 'none';
+  input.focus();
+}
+
+window.addEventListener('DOMContentLoaded', init);
+</script>
+</body>
+</html>
