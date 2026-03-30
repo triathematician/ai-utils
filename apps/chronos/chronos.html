@@ -709,6 +709,7 @@ const AXIS_WIDTH = 120;         // CSS width of #axis-col
 const AXIS_HALF = AXIS_WIDTH / 2; // half-width used for lane layout
 const AXIS_HEADER_H = 28;       // height of #axis-header (matches CSS)
 const NODE_MARGIN = 8;          // px gap between lane edge and node
+const NODE_CARD_H = 36;         // estimated height of a .tl-node card (px) — used to anchor arrows below cards
 const TARGET_VIEWPORT_FILL = 0.65; // target fraction of viewport for autoFit
 const MAX_CANVAS_H = 150000;    // max canvas height in px — at finest zoom (1MIN, ~1000 ms/px)
                                   // this limits the loop to ~2500 grid elements and keeps scroll manageable
@@ -989,11 +990,12 @@ function renderDAG(sorted, cats, leftCats, rightCats, axisCenter, AXIS_HALF, lef
       const srcX = eventCenterX(dep);
       const srcY = msToY(dep.ts);
 
-      const midY = (srcY + tgtY) / 2;
+      const anchorY = tgtY + NODE_CARD_H;  // bottom edge of the future event card
+      const midY = (srcY + anchorY) / 2;
       const path = document.createElementNS('http://www.w3.org/2000/svg','path');
       const d = Math.abs(srcX - tgtX) < NODE_MARGIN
-        ? `M ${srcX} ${srcY} L ${tgtX} ${tgtY}`
-        : `M ${srcX} ${srcY} L ${srcX} ${midY} L ${tgtX} ${midY} L ${tgtX} ${tgtY}`;
+        ? `M ${srcX} ${srcY} L ${tgtX} ${anchorY}`
+        : `M ${srcX} ${srcY} L ${srcX} ${midY} L ${tgtX} ${midY} L ${tgtX} ${anchorY}`;
 
       path.setAttribute('d', d);
       path.setAttribute('stroke', accentColor);
@@ -1004,7 +1006,7 @@ function renderDAG(sorted, cats, leftCats, rightCats, axisCenter, AXIS_HALF, lef
       svg.appendChild(path);
 
       const arrow = document.createElementNS('http://www.w3.org/2000/svg','polygon');
-      arrow.setAttribute('points', `${tgtX-4},${tgtY-8} ${tgtX+4},${tgtY-8} ${tgtX},${tgtY}`);
+      arrow.setAttribute('points', `${tgtX-4},${anchorY+8} ${tgtX+4},${anchorY+8} ${tgtX},${anchorY}`);
       arrow.setAttribute('fill', accentColor);
       arrow.setAttribute('opacity', '0.6');
       svg.appendChild(arrow);
