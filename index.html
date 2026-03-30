@@ -148,6 +148,8 @@ const APPS = [
   { name: 'STAFF TERMINAL',      desc: 'Staff development tracker — milestones, LDP goals, notes, and Q&A walkthroughs', category: 'terminal-web', path: 'apps/staff-terminal/staff-terminal.html', date: '2026-03-30' }
 ];
 
+APPS.sort((a, b) => b.date.localeCompare(a.date));
+
 const THEMES = ['legacy','solar','monk','space','synth','dos'];
 const STORAGE_KEY = 'ai_utils_launcher';
 
