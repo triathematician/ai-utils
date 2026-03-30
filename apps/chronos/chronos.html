@@ -245,7 +245,7 @@ html, body {
   transform: translateX(-50%);
   width: 1px;
   background: var(--border);
-  top: 28px;
+  top: 0;
   bottom: 0;
   pointer-events: none;
   opacity: 0.4;
@@ -989,7 +989,6 @@ function renderAxis() {
   // Vertical centre line
   const vline = document.createElement('div');
   vline.className = 'axis-vline';
-  vline.style.height = totalH + 'px';
   axisCol.appendChild(vline);
 
   const zoom = getZoom();
@@ -1004,7 +1003,7 @@ function renderAxis() {
 
     const tick = document.createElement('div');
     tick.className = 'axis-tick' + (major ? ' major' : '');
-    tick.style.top = (y + AXIS_HEADER_H) + 'px'; // offset for sticky header
+    tick.style.top = y + 'px';
 
     const label = document.createElement('span');
     label.className = 'axis-label';
@@ -1025,7 +1024,7 @@ function renderAxis() {
   if (nowY >= 0 && nowY <= totalH) {
     const nowMarker = document.createElement('div');
     nowMarker.className = 'axis-now';
-    nowMarker.style.top = (nowY + AXIS_HEADER_H) + 'px';
+    nowMarker.style.top = nowY + 'px';
     nowMarker.textContent = '◆ NOW';
     axisCol.appendChild(nowMarker);
   }
