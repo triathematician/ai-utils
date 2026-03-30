@@ -27,6 +27,9 @@ ai-utils/
     yahoo-finance-proxy/          ← Java proxy service for Yahoo Finance data
 ```
 
+Most of these apps can be run directly from the file system. Exceptions:
+- `portfolio-manager` requires `yahoo-finance-proxy` to gather real-time data, recommended to run `yahoo-finance-proxy` with `??` and then serve the app using `npx serve .`
+
 ## Design categories
 
 ### terminal-web
