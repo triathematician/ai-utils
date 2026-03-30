@@ -216,6 +216,35 @@
   --cat-9: #37474f;
   --cat-10: #880e4f;
 }
+[data-theme="engineering"] {
+  --bg: #e8f5e8;
+  --fg: #0d2b0d;
+  --accent: #2e7d32;
+  --dim: #5a7a5a;
+  --muted: #d0e8d0;
+  --border: #7ab87a;
+  --success: #1b5e20;
+  --warn: #cc6600;
+  --font: 'Source Code Pro', monospace;
+  --grid-important-today: #1b5e20;
+  --grid-important-week: #a5c8a5;
+  --grid-notimportant-today: #0d47a1;
+  --grid-notimportant-week: #b3cde3;
+  --quadrant-ui: #2e7d32;
+  --quadrant-di: #cc6600;
+  --quadrant-un: #0d47a1;
+  --quadrant-ni: #7a9a7a;
+  --cat-1: #2e7d32;
+  --cat-2: #b71c1c;
+  --cat-3: #e65100;
+  --cat-4: #1b5e20;
+  --cat-5: #1565c0;
+  --cat-6: #4a148c;
+  --cat-7: #00695c;
+  --cat-8: #4e342e;
+  --cat-9: #37474f;
+  --cat-10: #880e4f;
+}
 
 /* ═══════════════════════════════════════════════
    RESET & BASE
@@ -1646,7 +1675,7 @@ function showHelp(title, lines) {
     '/goals           manage north star goals',
     '/add [text]      quick-add item to list',
     '/ni              toggle not-important quadrant',
-    '/theme [name]    legacy | solar | monk | space | synth | dos | notebook',
+    '/theme [name]    legacy | solar | monk | space | synth | dos | notebook | engineering',
     '/backlog [text]         add item to backlog',
     '/backlog list           show all backlog items',
     '/backlog done [n]       toggle item #n as done/open',
@@ -1801,8 +1830,8 @@ function editGoals() {
 }
 
 function setTheme(name) {
-  const valid = ['legacy','solar','monk','space','synth','dos','notebook'];
-  const themes = {legacy:'',solar:'solar',monk:'monk',space:'space',synth:'synth',dos:'dos',notebook:'notebook'};
+  const valid = ['legacy','solar','monk','space','synth','dos','notebook','engineering'];
+  const themes = {legacy:'',solar:'solar',monk:'monk',space:'space',synth:'synth',dos:'dos',notebook:'notebook',engineering:'engineering'};
   if (!name) {
     const others = valid.filter(t => t !== (db.theme||'legacy'));
     name = others[Math.floor(Math.random() * others.length)];
@@ -1898,7 +1927,7 @@ function escHtml(s) {
    ═══════════════════════════════════════════════════════════════════ */
 loadDB();
 // Apply saved theme
-const themeMap = {legacy:'',solar:'solar',monk:'monk',space:'space',synth:'synth',dos:'dos'};
+const themeMap = {legacy:'',solar:'solar',monk:'monk',space:'space',synth:'synth',dos:'dos',notebook:'notebook',engineering:'engineering'};
 if (db.theme && db.theme!=='legacy') {
   document.documentElement.setAttribute('data-theme', themeMap[db.theme]);
 }
