@@ -677,7 +677,12 @@ document.addEventListener('mousemove', e => {
 //   Y increases downward; ms decreases as Y increases (future at top)
 //   db.viewTopMs:   ms at the top of the current viewport
 
-const PX_PER_ROW = 52;   // pixels per logical row
+const PX_PER_ROW = 52;          // pixels per logical row
+const AXIS_WIDTH = 120;         // CSS width of #axis-col
+const AXIS_HALF = AXIS_WIDTH / 2; // half-width used for lane layout
+const AXIS_HEADER_H = 28;       // height of #axis-header (matches CSS)
+const NODE_MARGIN = 8;          // px gap between lane edge and node
+const TARGET_VIEWPORT_FILL = 0.65; // target fraction of viewport for autoFit
 
 let selectedUID = null;
 
@@ -809,7 +814,7 @@ function renderTimeline() {
 
   const canvasW   = canvas.offsetWidth;
   const axisCenter = canvasW / 2;
-  const AXIS_HALF  = 60; // half-width of the axis column
+  // AXIS_HALF is defined as a top-level constant (AXIS_WIDTH / 2)
   const leftW      = axisCenter - AXIS_HALF;
   const rightW     = canvasW - axisCenter - AXIS_HALF;
 
@@ -836,14 +841,14 @@ function renderTimeline() {
       if (isLeft) {
         const li = leftCats.indexOf(primaryCat);
         const rightEdge = axisCenter - AXIS_HALF - li * leftLaneW;
-        const w = leftLaneW - 8;
+        const w = leftLaneW - NODE_MARGIN;
         node.style.left  = (rightEdge - w) + 'px';
         node.style.width = w + 'px';
       } else {
         const ri = rightCats.indexOf(primaryCat);
         const leftEdge = axisCenter + AXIS_HALF + ri * rightLaneW;
         node.style.left  = leftEdge + 'px';
-        node.style.width = (rightLaneW - 8) + 'px';
+        node.style.width = (rightLaneW - NODE_MARGIN) + 'px';
       }
 
       const box = document.createElement('div');
@@ -923,11 +928,11 @@ function renderDAG(sorted, cats, leftCats, rightCats, axisCenter, AXIS_HALF, lef
     if (isLeft) {
       const li = leftCats.indexOf(primaryCat);
       const rightEdge = axisCenter - AXIS_HALF - li * leftLaneW;
-      return rightEdge - (leftLaneW - 8) / 2;
+      return rightEdge - (leftLaneW - NODE_MARGIN) / 2;
     } else {
       const ri = rightCats.indexOf(primaryCat);
       const leftEdge = axisCenter + AXIS_HALF + ri * rightLaneW;
-      return leftEdge + (rightLaneW - 8) / 2;
+      return leftEdge + (rightLaneW - NODE_MARGIN) / 2;
     }
   }
 
@@ -952,7 +957,7 @@ function renderDAG(sorted, cats, leftCats, rightCats, axisCenter, AXIS_HALF, lef
 
       const midY = (srcY + tgtY) / 2;
       const path = document.createElementNS('http://www.w3.org/2000/svg','path');
-      const d = Math.abs(srcX - tgtX) < 4
+      const d = Math.abs(srcX - tgtX) < NODE_MARGIN
         ? `M ${srcX} ${srcY} L ${tgtX} ${tgtY}`
         : `M ${srcX} ${srcY} L ${srcX} ${midY} L ${tgtX} ${midY} L ${tgtX} ${tgtY}`;
 
@@ -999,7 +1004,7 @@ function renderAxis() {
 
     const tick = document.createElement('div');
     tick.className = 'axis-tick' + (major ? ' major' : '');
-    tick.style.top = (y + 28) + 'px'; // +28 for sticky header
+    tick.style.top = (y + AXIS_HEADER_H) + 'px'; // offset for sticky header
 
     const label = document.createElement('span');
     label.className = 'axis-label';
@@ -1020,7 +1025,7 @@ function renderAxis() {
   if (nowY >= 0 && nowY <= totalH) {
     const nowMarker = document.createElement('div');
     nowMarker.className = 'axis-now';
-    nowMarker.style.top = (nowY + 28) + 'px';
+    nowMarker.style.top = (nowY + AXIS_HEADER_H) + 'px';
     nowMarker.textContent = '◆ NOW';
     axisCol.appendChild(nowMarker);
   }
@@ -1153,7 +1158,7 @@ function autoFit(cb) {
     for (let i = ZOOM_LEVELS.length - 1; i >= 0; i--) {
       const msPerPx = ZOOM_LEVELS[i].mspp / PX_PER_ROW;
       const pxSpan = spanMs / msPerPx;
-      if (pxSpan <= availH * 0.65) {
+      if (pxSpan <= availH * TARGET_VIEWPORT_FILL) {
         best = i;
       } else {
         break;
