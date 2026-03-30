@@ -246,8 +246,8 @@ html, body {
   text-overflow: ellipsis;
   white-space: nowrap;
   text-align: center;
-  margin-top: 30px;
-  margin-bottom: 32px;
+  margin-top: 10px;
+  margin-bottom: 8px;
 }
 #focus-display {
   display: flex;
@@ -272,6 +272,20 @@ html, body {
   color: var(--dim);
   font-size: 0.85em;
   margin-left: 6px;
+}
+#energy-display {
+  color: var(--dim);
+  font-size: 0.88em;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  text-align: center;
+  margin-top: 6px;
+}
+#energy-display .energy-label {
+  color: var(--accent);
+  margin-right: 5px;
+  letter-spacing: 1px;
 }
 
 /* ═══════════════════════════════════════════════
@@ -655,9 +669,10 @@ html, body {
 <div id="app">
   <!-- TOP ROW -->
   <div id="top-row">
-    <div class="row-header" id="top-row-header">◈ ONE THING  ◈ FOCUS</div>
+    <div class="row-header" id="top-row-header">◈ ONE THING  ◈ FOCUS  ◈ ENERGY</div>
     <div id="one-thing-display" class="cursor-blink">NO DATA — RUN /boot TO BEGIN</div>
     <div id="focus-display"></div>
+    <div id="energy-display"></div>
   </div>
 
   <!-- MIDDLE ROW -->
@@ -1185,17 +1200,19 @@ function renderTopRow() {
   const otEl = document.getElementById('one-thing-display');
   const fEl  = document.getElementById('focus-display');
   const hEl  = document.getElementById('top-row-header');
+  const eEl  = document.getElementById('energy-display');
   otEl.classList.remove('cursor-blink');
 
   if (!t) {
-    hEl.textContent = '◈ ONE THING  ◈ FOCUS';
+    hEl.textContent = '◈ ONE THING  ◈ FOCUS  ◈ ENERGY';
     otEl.textContent = 'NO SESSION — TYPE /boot TO BEGIN';
     otEl.classList.add('cursor-blink');
     fEl.innerHTML = '';
+    eEl.innerHTML = '';
     return;
   }
 
-  hEl.textContent = `◈ ONE THING  ◈ FOCUS  [${t.dayType.toUpperCase()}]`;
+  hEl.textContent = `◈ ONE THING  ◈ FOCUS  ◈ ENERGY  [${t.dayType.toUpperCase()}]`;
   otEl.textContent = t.oneThing ? `❝ ${t.oneThing.trim()} ❞` : '— no one thing yet —';
 
   // Focus items: show priority first, or top 2
@@ -1217,6 +1234,14 @@ function renderTopRow() {
     addTooltip(div, f);
     fEl.appendChild(div);
   });
+
+  // Energy
+  const energyText = t.energy && t.energy.general ? t.energy.general.trim() : '';
+  if (energyText) {
+    eEl.innerHTML = `<span class="energy-label">⚡ ENERGY:</span> ${escHtml(energyText)}`;
+  } else {
+    eEl.innerHTML = '';
+  }
 }
 
 function renderMatrix() {
