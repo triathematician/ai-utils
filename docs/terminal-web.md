@@ -132,6 +132,30 @@ Every panel starts with a header line in this format:
 
 ## Component Patterns
 
+### Buttons
+
+Clickable inline actions use the `[ LABEL ]` bracket convention — the brackets are part of the text content, not a CSS border. **Do not add `border` or `outline` to button elements**: the brackets already convey interactivity.
+
+Always provide a mouseover visual so users know the element is clickable. Invert the foreground/background colours on `:hover`:
+
+```css
+.my-action {
+  color: var(--success);
+  padding: 0 4px; cursor: pointer;
+}
+.my-action:hover { background: var(--success); color: var(--bg); }
+```
+
+Example rendered output (buttons separated by surrounding text or whitespace as needed):
+
+```
+[ LAUNCH ]  [ EDIT ]  [ DELETE ]
+```
+
+- Text colour: use a semantic variable (`--success`, `--accent`, `--warn`) appropriate to the action.
+- No `border`, `outline`, or `box-shadow` on the element itself.
+- On hover: invert colours (background becomes the text colour, text becomes `--bg`).
+
 ### Console row
 
 The bottom row of every app is the command console:

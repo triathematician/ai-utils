@@ -82,7 +82,7 @@ html, body {
 .app-cat    { color: var(--dim); font-size: 0.82em; border: 1px solid var(--dim); padding: 0 4px; white-space: nowrap; }
 .app-date   { color: var(--dim); font-size: 0.82em; white-space: nowrap; }
 .app-launch {
-  color: var(--success); border: 1px solid var(--success);
+  color: var(--success);
   padding: 0 6px; cursor: pointer; white-space: nowrap; font-size: 0.9em;
 }
 .app-launch:hover { background: var(--success); color: var(--bg); }
@@ -148,7 +148,7 @@ const APPS = [
   { name: 'STAFF TERMINAL',      desc: 'Staff development tracker — milestones, LDP goals, notes, and Q&A walkthroughs', category: 'terminal-web', path: 'apps/staff-terminal/staff-terminal.html', date: '2026-03-30' }
 ];
 
-APPS.sort((a, b) => b.date.localeCompare(a.date));
+APPS.sort((a, b) => a.date.localeCompare(b.date));
 
 const THEMES = ['legacy','solar','monk','space','synth','dos'];
 const STORAGE_KEY = 'ai_utils_launcher';
