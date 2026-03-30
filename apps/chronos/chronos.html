@@ -70,25 +70,10 @@ html, body {
 /* ── TIMELINE PANEL ────────────────────────────────────────────────── */
 #timeline-panel {
   display: grid;
-  grid-template-columns: 80px 1fr;
+  grid-template-columns: 1fr;
   border-bottom: 1px solid var(--border);
   overflow: hidden;
   position: relative;
-}
-
-/* ── TIME RULER ────────────────────────────────────────────────────── */
-#time-ruler {
-  background: var(--muted);
-  border-right: 1px solid var(--border);
-  overflow: hidden;
-  position: relative;
-  user-select: none;
-}
-#ruler-canvas {
-  position: absolute;
-  top: 0; left: 0;
-  width: 100%;
-  will-change: transform;
 }
 
 /* ── SWIMLANE AREA ─────────────────────────────────────────────────── */
@@ -201,6 +186,83 @@ html, body {
   opacity: 0.8;
 }
 
+/* ── AXIS COLUMN ───────────────────────────────────────────────────── */
+#axis-col {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 120px;
+  top: 0;
+  bottom: 0;
+  z-index: 2;
+  pointer-events: none;
+}
+#axis-header {
+  position: sticky;
+  top: 0;
+  height: 28px;
+  background: var(--bg);
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10;
+  font-size: 0.7em;
+  color: var(--accent);
+  letter-spacing: 2px;
+}
+.axis-tick {
+  position: absolute;
+  left: 0;
+  width: 100%;
+  text-align: center;
+  font-size: 0.72em;
+  color: var(--dim);
+  pointer-events: none;
+  line-height: 1;
+  transform: translateY(-50%);
+  white-space: nowrap;
+}
+.axis-tick.major {
+  color: var(--accent);
+}
+.axis-tick .axis-label {
+  display: block;
+  margin-bottom: 1px;
+}
+.axis-tick .axis-line {
+  display: block;
+  color: var(--border);
+  letter-spacing: 0;
+}
+.axis-tick.major .axis-line {
+  color: var(--accent);
+  opacity: 0.6;
+}
+.axis-vline {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 1px;
+  background: var(--border);
+  top: 0;
+  bottom: 0;
+  pointer-events: none;
+  opacity: 0.4;
+}
+.axis-now {
+  position: absolute;
+  left: 0;
+  width: 100%;
+  text-align: center;
+  font-size: 0.65em;
+  color: var(--accent);
+  pointer-events: none;
+  transform: translateY(-50%);
+  z-index: 5;
+  white-space: nowrap;
+}
+
 /* ── CONSOLE ROW ───────────────────────────────────────────────────── */
 #console-row {
   display: flex; align-items: center;
@@ -235,17 +297,6 @@ html, body {
   white-space: nowrap;
   flex-shrink: 0;
 }
-#console-zoom {
-  color: var(--dim);
-  font-size: 0.75em;
-  letter-spacing: 1px;
-  white-space: nowrap;
-  flex-shrink: 0;
-  border-left: 1px solid var(--border);
-  padding-left: 8px;
-  margin-left: 4px;
-}
-
 /* ── OVERLAY ───────────────────────────────────────────────────────── */
 #help-overlay {
   display: none; position: fixed; inset: 0;
@@ -460,13 +511,15 @@ html, body {
 <!-- APP -->
 <div id="app">
   <div id="timeline-panel">
-    <div id="time-ruler">
-      <canvas id="ruler-canvas"></canvas>
-    </div>
     <div id="swimlane-area">
       <div id="swimlane-header"></div>
       <div id="swimlane-scroll">
         <div id="tl-canvas">
+          <div id="axis-col">
+            <div id="axis-header">
+              <span id="axis-zoom-label">ZOOM: WEEK</span>
+            </div>
+          </div>
           <svg id="dag-svg"></svg>
         </div>
       </div>
@@ -476,7 +529,6 @@ html, body {
   <div id="console-row">
     <span id="console-prompt">CHRONOS&gt;</span>
     <input type="text" id="console-input" autocomplete="off" spellcheck="false" placeholder="type /help for commands">
-    <span id="console-zoom">ZOOM: —</span>
     <span id="console-status">READY</span>
   </div>
 </div>
@@ -490,23 +542,37 @@ const STORAGE_KEY = 'chronos_db';
 const CAT_VARS = ['--cat-1','--cat-2','--cat-3','--cat-4','--cat-5',
                   '--cat-6','--cat-7','--cat-8','--cat-9','--cat-10'];
 
-// Zoom levels: [label, ms-per-pixel]
+// Zoom levels: 18 steps with ≤5× factor between consecutive levels.
+// Ordered coarsest→finest (index 0 = 10YEAR, index 17 = 1MIN) so that
+// zoomIn (idx++) moves toward more detail and zoomOut (idx--) moves toward overview.
+// mspp = ms represented by PX_PER_ROW pixels at this zoom level.
 const ZOOM_LEVELS = [
-  { label: 'DECADE',  mspp: 1000*60*60*24*365*10 / 60  },
-  { label: 'YEAR',    mspp: 1000*60*60*24*365 / 60     },
-  { label: 'MONTH',   mspp: 1000*60*60*24*30 / 60      },
-  { label: 'WEEK',    mspp: 1000*60*60*24*7 / 60       },
-  { label: 'DAY',     mspp: 1000*60*60*24 / 60         },
-  { label: 'HOUR',    mspp: 1000*60*60 / 60            },
-  { label: 'MINUTE',  mspp: 1000*60 / 60               },
+  { label: '10YEAR', mspp: 1000*60*60*24*365*10 / 60 },
+  { label: '3YEAR',  mspp: 1000*60*60*24*365*3  / 60 },
+  { label: '1YEAR',  mspp: 1000*60*60*24*365    / 60 },
+  { label: '6MONTH', mspp: 1000*60*60*24*182    / 60 },
+  { label: '3MONTH', mspp: 1000*60*60*24*91     / 60 },
+  { label: '1MONTH', mspp: 1000*60*60*24*30     / 60 },
+  { label: '2WEEK',  mspp: 1000*60*60*24*14     / 60 },
+  { label: '1WEEK',  mspp: 1000*60*60*24*7      / 60 },
+  { label: '3DAY',   mspp: 1000*60*60*24*3      / 60 },
+  { label: '1DAY',   mspp: 1000*60*60*24        / 60 },
+  { label: '8HR',    mspp: 1000*60*60*8         / 60 },
+  { label: '4HR',    mspp: 1000*60*60*4         / 60 },
+  { label: '2HR',    mspp: 1000*60*60*2         / 60 },
+  { label: '1HR',    mspp: 1000*60*60           / 60 },
+  { label: '30MIN',  mspp: 1000*60*30           / 60 },
+  { label: '15MIN',  mspp: 1000*60*15           / 60 },
+  { label: '5MIN',   mspp: 1000*60*5            / 60 },
+  { label: '1MIN',   mspp: 1000*60              / 60 },
 ];
 
 // ── DB ────────────────────────────────────────────────────────────────
 let db = {
   events: [],          // { uid, ts, label, cats, deps, meta }
   hiddenCats: [],
-  zoomIdx: 3,          // default: WEEK
-  viewMs: null,        // top of viewport in ms (null = auto-fit)
+  zoomIdx: 7,          // default: 1WEEK
+  viewTopMs: null,     // ms at the top of the current viewport (null = auto-fit)
   theme: 'space',
   backlog: [],
   backlogArchive: [],
@@ -519,8 +585,8 @@ function loadDB() {
       const saved = JSON.parse(raw);
       db.events   = saved.events   || [];
       db.hiddenCats = saved.hiddenCats || [];
-      db.zoomIdx  = saved.zoomIdx  ?? 3;
-      db.viewMs   = saved.viewMs   ?? null;
+      db.zoomIdx    = saved.zoomIdx    ?? 3;
+      db.viewTopMs  = saved.viewTopMs  ?? null;
       db.theme    = saved.theme    || 'space';
       db.backlog        = saved.backlog        || [];
       db.backlogArchive = saved.backlogArchive || [];
@@ -575,16 +641,14 @@ function parseTS(str) {
   return isNaN(d) ? null : d.getTime();
 }
 
+// zoom: a ZOOM_LEVELS object; format depends on how much detail is visible.
+// mspp=60000 is the 1HR zoom level; mspp=43200000 is the 1MONTH zoom level.
 function fmtTS(ms, zoom) {
   const d = new Date(ms);
-  const label = ZOOM_LEVELS[db.zoomIdx]?.label || 'DAY';
-  if (zoom === 'DECADE' || zoom === 'YEAR')
-    return d.toISOString().slice(0,10);
-  if (zoom === 'MONTH' || zoom === 'WEEK' || zoom === 'DAY')
-    return d.toISOString().slice(0,10);
-  if (zoom === 'HOUR')
-    return d.toISOString().slice(0,16).replace('T',' ');
-  return d.toISOString().slice(0,19).replace('T',' ');
+  const mspp = zoom.mspp;
+  if (mspp <= 60000)     return d.toISOString().slice(0,19).replace('T',' '); // 1HR or finer: HH:MM:SS
+  if (mspp <= 43200000)  return d.toISOString().slice(0,16).replace('T',' '); // 1MONTH or finer: date+HH:MM
+  return d.toISOString().slice(0,10);                                          // coarser: date only
 }
 
 // ── STATUS ────────────────────────────────────────────────────────────
@@ -619,81 +683,65 @@ document.addEventListener('mousemove', e => {
 // RENDERING
 // ══════════════════════════════════════════════════════════════════════
 //
-// COORDINATE SYSTEM: Y=0 is the BOTTOM of the canvas (most-recent / future).
-//                    Y increases upward — i.e. past events have larger Y.
-//
-//   canvas pixel Y  =  totalH - ((ms - bottomMs) / mspp * PX_PER_ROW)
-//
-// db.viewMs stores the timestamp at the BOTTOM of the visible scroll area.
-// "scroll down" → older times appear.
+// COORDINATE SYSTEM:
+//   canvasTopMs:    ms at Y=0 (top of canvas = most future time shown)
+//   canvasBottomMs: ms at Y=totalH (bottom of canvas = oldest time)
+//   Y increases downward; ms decreases as Y increases (future at top)
+//   db.viewTopMs:   ms at the top of the current viewport
 
-const PX_PER_ROW = 52;   // pixels per logical row
+const PX_PER_ROW = 52;          // pixels per logical row
+const AXIS_WIDTH = 120;         // CSS width of #axis-col
+const AXIS_HALF = AXIS_WIDTH / 2; // half-width used for lane layout
+const AXIS_HEADER_H = 28;       // height of #axis-header (matches CSS)
+const NODE_MARGIN = 8;          // px gap between lane edge and node
+const TARGET_VIEWPORT_FILL = 0.65; // target fraction of viewport for autoFit
 
 let selectedUID = null;
 
 function getZoom() { return ZOOM_LEVELS[db.zoomIdx] || ZOOM_LEVELS[3]; }
 
-// Total canvas height in pixels for the current zoom + event set.
-function totalCanvasH() {
-  const zoom = getZoom();
-  const rows = totalCanvasRows();
-  return rows * PX_PER_ROW;
-}
-
-function totalCanvasRows() {
-  if (db.events.length === 0) return 80;
-  const tss = db.events.map(e => e.ts);
-  const span = Math.max(...tss) - Math.min(...tss);
-  const rows = Math.ceil(span / getZoom().mspp / PX_PER_ROW);
-  return Math.max(rows + 24, 80);
-}
-
-// bottomMs: the timestamp that maps to y = totalH (bottom of canvas).
-// We store db.viewMs as the ms at the BOTTOM of the *viewport* (scroll.scrollTop=0
-// shows the top of the canvas which is the FUTURE end; scrolling down goes to past).
-// For layout purposes we need the ms at the canvas bottom.
-function getCanvasBottomMs() {
-  if (db.viewMs !== null) {
-    // db.viewMs = ms at scroll position 0 (top of viewport = future end of canvas).
-    // canvas bottom = viewMs + totalCanvasRows * mspp
-    return db.viewMs + totalCanvasRows() * getZoom().mspp;
-  }
+function getCanvasBounds() {
+  const msPerPx = getZoom().mspp / PX_PER_ROW;
+  const PAD_ROWS = 10;
+  let topMs, bottomMs;
   if (db.events.length === 0) {
-    return Date.now() + getZoom().mspp * 20;
+    const now = Date.now();
+    topMs    = now + PAD_ROWS * getZoom().mspp;
+    bottomMs = now - PAD_ROWS * getZoom().mspp;
+  } else {
+    const tss = db.events.map(e => e.ts);
+    topMs    = Math.max(...tss) + PAD_ROWS * getZoom().mspp;
+    bottomMs = Math.min(...tss) - PAD_ROWS * getZoom().mspp;
   }
-  const tss = db.events.map(e => e.ts);
-  // pad 5 rows below oldest (past) and 5 rows above newest (future)
-  return Math.min(...tss) - getZoom().mspp * 5;
+  const totalH = (topMs - bottomMs) / msPerPx;
+  return { topMs, bottomMs, totalH, msPerPx };
 }
 
-// ms → pixel Y in the canvas.  Higher ms (future) = smaller Y (top).
+// ms → pixel Y (future = smaller Y = top of canvas)
 function msToY(ms) {
-  const totalH = totalCanvasRows() * PX_PER_ROW;
-  const bottomMs = getCanvasBottomMs();
-  const mspp = getZoom().mspp;
-  return totalH - ((ms - bottomMs) / mspp) * PX_PER_ROW;
+  const { topMs, msPerPx } = getCanvasBounds();
+  return (topMs - ms) / msPerPx;
 }
 
 // pixel Y → ms
 function yToMs(y) {
-  const totalH = totalCanvasRows() * PX_PER_ROW;
-  const bottomMs = getCanvasBottomMs();
-  const mspp = getZoom().mspp;
-  return bottomMs + ((totalH - y) / PX_PER_ROW) * mspp;
-}
-
-// The ms that corresponds to the top of the viewport (scroll position).
-function getViewTopMs() {
-  const scroll = document.getElementById('swimlane-scroll');
-  return yToMs(scroll.scrollTop);
+  const { topMs, msPerPx } = getCanvasBounds();
+  return topMs - y * msPerPx;
 }
 
 function render() {
   renderSwimlaneHeader();
   renderTimeline();
-  renderRuler();
-  updateZoomDisplay();
+  renderAxis();
   saveDB();
+  // Restore scroll position
+  const scroll = document.getElementById('swimlane-scroll');
+  if (db.viewTopMs !== null) {
+    const y = msToY(db.viewTopMs);
+    if (Math.abs(scroll.scrollTop - y) > 2) {
+      scroll.scrollTop = Math.max(0, y);
+    }
+  }
 }
 
 // ── SWIMLANE HEADER ───────────────────────────────────────────────────
@@ -747,25 +795,21 @@ function renderTimeline() {
   const canvas = document.getElementById('tl-canvas');
   const svg    = document.getElementById('dag-svg');
   const cats   = allCategories();
-  const visCats = visibleCategories();
 
-  // Clear old nodes (keep SVG and grid lines separate)
+  // Clear old nodes and grid lines (keep axis-col and svg)
   Array.from(canvas.querySelectorAll('.tl-node,.tl-indicator,.grid-line,.edge-marker')).forEach(el => el.remove());
   svg.innerHTML = '';
 
-  const totalH = totalCanvasRows() * PX_PER_ROW;
+  const { topMs, bottomMs, totalH } = getCanvasBounds();
   canvas.style.height = totalH + 'px';
   svg.setAttribute('viewBox', `0 0 ${canvas.offsetWidth} ${totalH}`);
   svg.style.height = totalH + 'px';
 
-  // Grid lines — iterate from canvas bottom (past) to top (future)
+  // Grid lines
   const zoom = getZoom();
   const gridMs = gridInterval(zoom);
-  const bottomMs = getCanvasBottomMs();
-  const topMs_canvas = yToMs(0);
-  // snap to grid
   const firstGrid = Math.floor(bottomMs / gridMs) * gridMs;
-  for (let ms = firstGrid; ms <= topMs_canvas + gridMs; ms += gridMs) {
+  for (let ms = firstGrid; ms <= topMs + gridMs; ms += gridMs) {
     const y = msToY(ms);
     if (y < 0 || y > totalH) continue;
     const line = document.createElement('div');
@@ -774,45 +818,50 @@ function renderTimeline() {
     canvas.appendChild(line);
   }
 
-  // TODAY line — accent colour
-  const nowY = msToY(Date.now());
-  if (nowY >= 0 && nowY <= totalH) {
-    const todayLine = document.createElement('div');
-    todayLine.style.cssText = `position:absolute;left:0;right:0;top:${nowY}px;height:1px;` +
-      `background:var(--accent);opacity:0.7;pointer-events:none;z-index:6;`;
-    // label
-    const todayLbl = document.createElement('div');
-    todayLbl.style.cssText = `position:absolute;right:4px;top:${nowY - 14}px;` +
-      `font-size:0.65em;letter-spacing:2px;color:var(--accent);pointer-events:none;z-index:7;opacity:0.9;`;
-    todayLbl.textContent = '◆ NOW';
-    canvas.appendChild(todayLine);
-    canvas.appendChild(todayLbl);
-  }
-
   if (cats.length === 0) return;
 
-  // Lane widths
-  const laneW = canvas.offsetWidth / Math.max(cats.length, 1);
+  // Left/right lane layout
+  const leftCats  = cats.filter((c, i) => i % 2 === 0);
+  const rightCats = cats.filter((c, i) => i % 2 !== 0);
 
-  // Sort events by timestamp
-  const sorted = [...db.events].sort((a,b) => a.ts - b.ts);
+  const canvasW   = canvas.offsetWidth;
+  const axisCenter = canvasW / 2;
+  // AXIS_HALF is defined as a top-level constant (AXIS_WIDTH / 2)
+  const leftW      = axisCenter - AXIS_HALF;
+  const rightW     = canvasW - axisCenter - AXIS_HALF;
 
-  // Render events
+  const leftLaneW  = leftCats.length  > 0 ? leftW  / leftCats.length  : leftW;
+  const rightLaneW = rightCats.length > 0 ? rightW / rightCats.length : rightW;
+
+  const sorted = [...db.events].sort((a, b) => a.ts - b.ts);
+
   sorted.forEach(evt => {
     const primaryCat = (evt.cats||[])[0];
-    const laneIdx = cats.indexOf(primaryCat);
-    if (laneIdx < 0) return;
+    const catIdx = cats.indexOf(primaryCat);
+    if (catIdx < 0) return;
 
     const y = msToY(evt.ts);
     const color = catColor(primaryCat);
+    const isLeft = catIdx % 2 === 0;
 
     if (!db.hiddenCats.includes(primaryCat)) {
       const node = document.createElement('div');
       node.className = 'tl-node' + (selectedUID === evt.uid ? ' selected' : '');
       node.dataset.uid = evt.uid;
-      node.style.left  = (laneIdx * laneW + 4) + 'px';
-      node.style.top   = y + 'px';
-      node.style.width = (laneW - 8) + 'px';
+      node.style.top = y + 'px';
+
+      if (isLeft) {
+        const li = leftCats.indexOf(primaryCat);
+        const rightEdge = axisCenter - AXIS_HALF - li * leftLaneW;
+        const w = leftLaneW - NODE_MARGIN;
+        node.style.left  = (rightEdge - w) + 'px';
+        node.style.width = w + 'px';
+      } else {
+        const ri = rightCats.indexOf(primaryCat);
+        const leftEdge = axisCenter + AXIS_HALF + ri * rightLaneW;
+        node.style.left  = leftEdge + 'px';
+        node.style.width = (rightLaneW - NODE_MARGIN) + 'px';
+      }
 
       const box = document.createElement('div');
       box.className = 'node-box';
@@ -822,11 +871,11 @@ function renderTimeline() {
       const lbl = document.createElement('div');
       lbl.className = 'node-label';
       lbl.style.color = color;
-      lbl.textContent = `┤ ${evt.label}`;
+      lbl.textContent = (isLeft ? `${evt.label} ├` : `┤ ${evt.label}`);
 
       const ts = document.createElement('div');
       ts.className = 'node-time';
-      ts.textContent = fmtTS(evt.ts, zoom.label);
+      ts.textContent = fmtTS(evt.ts, zoom);
 
       box.appendChild(lbl);
       box.appendChild(ts);
@@ -852,15 +901,24 @@ function renderTimeline() {
       canvas.appendChild(node);
     }
 
-    // Secondary indicators in other visible lanes
+    // Secondary indicators
     (evt.cats||[]).slice(1).forEach(sc => {
       if (db.hiddenCats.includes(sc)) return;
       const si = cats.indexOf(sc);
       if (si < 0) return;
+      const isLeftSec = si % 2 === 0;
+      let indX;
+      if (isLeftSec) {
+        const li2 = leftCats.indexOf(sc);
+        indX = axisCenter - AXIS_HALF - li2 * leftLaneW - leftLaneW / 2;
+      } else {
+        const ri2 = rightCats.indexOf(sc);
+        indX = axisCenter + AXIS_HALF + ri2 * rightLaneW + rightLaneW / 2;
+      }
       const ind = document.createElement('div');
       ind.className = 'tl-indicator';
-      ind.style.left = (si * laneW + laneW/2 - 6) + 'px';
-      ind.style.top  = y + 'px';
+      ind.style.left  = (indX - 6) + 'px';
+      ind.style.top   = y + 'px';
       ind.style.color = catColor(sc);
       ind.textContent = '◇';
       canvas.appendChild(ind);
@@ -868,21 +926,35 @@ function renderTimeline() {
   });
 
   // DAG lines
-  renderDAG(sorted, cats, laneW, svg);
+  renderDAG(sorted, cats, leftCats, rightCats, axisCenter, AXIS_HALF, leftLaneW, rightLaneW, svg);
 }
 
-function renderDAG(sorted, cats, laneW, svg) {
-  const fgColor = getCSSVar('--dim');
+function renderDAG(sorted, cats, leftCats, rightCats, axisCenter, AXIS_HALF, leftLaneW, rightLaneW, svg) {
   const accentColor = getCSSVar('--accent');
+
+  function eventCenterX(evt) {
+    const primaryCat = (evt.cats||[])[0];
+    const catIdx = cats.indexOf(primaryCat);
+    if (catIdx < 0) return axisCenter;
+    const isLeft = catIdx % 2 === 0;
+    if (isLeft) {
+      const li = leftCats.indexOf(primaryCat);
+      const rightEdge = axisCenter - AXIS_HALF - li * leftLaneW;
+      return rightEdge - (leftLaneW - NODE_MARGIN) / 2;
+    } else {
+      const ri = rightCats.indexOf(primaryCat);
+      const leftEdge = axisCenter + AXIS_HALF + ri * rightLaneW;
+      return leftEdge + (rightLaneW - NODE_MARGIN) / 2;
+    }
+  }
 
   db.events.forEach(evt => {
     if (!(evt.deps||[]).length) return;
     const tgtCat = (evt.cats||[])[0];
     if (db.hiddenCats.includes(tgtCat)) return;
-    const tgtLane = cats.indexOf(tgtCat);
-    if (tgtLane < 0) return;
+    if (cats.indexOf(tgtCat) < 0) return;
 
-    const tgtX = tgtLane * laneW + laneW * 0.5;
+    const tgtX = eventCenterX(evt);
     const tgtY = msToY(evt.ts);
 
     evt.deps.forEach(depUID => {
@@ -890,16 +962,14 @@ function renderDAG(sorted, cats, laneW, svg) {
       if (!dep) return;
       const srcCat = (dep.cats||[])[0];
       if (db.hiddenCats.includes(srcCat)) return;
-      const srcLane = cats.indexOf(srcCat);
-      if (srcLane < 0) return;
+      if (cats.indexOf(srcCat) < 0) return;
 
-      const srcX = srcLane * laneW + laneW * 0.5;
+      const srcX = eventCenterX(dep);
       const srcY = msToY(dep.ts);
 
-      // Draw path: vertical from src, horizontal elbow, vertical to tgt
       const midY = (srcY + tgtY) / 2;
       const path = document.createElementNS('http://www.w3.org/2000/svg','path');
-      const d = srcLane === tgtLane
+      const d = Math.abs(srcX - tgtX) < NODE_MARGIN
         ? `M ${srcX} ${srcY} L ${tgtX} ${tgtY}`
         : `M ${srcX} ${srcY} L ${srcX} ${midY} L ${tgtX} ${midY} L ${tgtX} ${tgtY}`;
 
@@ -911,7 +981,6 @@ function renderDAG(sorted, cats, laneW, svg) {
       path.setAttribute('opacity', '0.5');
       svg.appendChild(path);
 
-      // Arrow head
       const arrow = document.createElementNS('http://www.w3.org/2000/svg','polygon');
       arrow.setAttribute('points', `${tgtX-4},${tgtY-8} ${tgtX+4},${tgtY-8} ${tgtX},${tgtY}`);
       arrow.setAttribute('fill', accentColor);
@@ -921,57 +990,59 @@ function renderDAG(sorted, cats, laneW, svg) {
   });
 }
 
-// ── RULER ─────────────────────────────────────────────────────────────
-function renderRuler() {
-  const ruler  = document.getElementById('time-ruler');
-  const canvas = document.getElementById('ruler-canvas');
-  const scroll = document.getElementById('swimlane-scroll');
-  const h = ruler.offsetHeight;
-  const w = ruler.offsetWidth;
-  if (!h || !w) return;
+// ── AXIS ──────────────────────────────────────────────────────────────
+function renderAxis() {
+  const axisCol = document.getElementById('axis-col');
+  // Clear old ticks/lines/markers (keep the header div)
+  Array.from(axisCol.querySelectorAll('.axis-tick,.axis-now,.axis-vline')).forEach(el => el.remove());
 
-  // The ruler canvas must match the tl-canvas exactly — same height,
-  // same coordinate mapping. We draw it at full canvas height and
-  // the CSS overflow:hidden on #time-ruler clips it to the viewport.
-  const totalH = totalCanvasRows() * PX_PER_ROW;
-  canvas.width  = w;
-  canvas.height = totalH;
-  canvas.style.height = totalH + 'px';
-  canvas.style.top = '0px';
+  const { topMs, bottomMs, totalH } = getCanvasBounds();
 
-  const ctx = canvas.getContext('2d');
-  ctx.clearRect(0, 0, w, totalH);
+  // Vertical centre line
+  const vline = document.createElement('div');
+  vline.className = 'axis-vline';
+  axisCol.appendChild(vline);
 
   const zoom = getZoom();
-  const dim = getCSSVar('--dim');
-  const accent = getCSSVar('--accent');
-  const fontSize = Math.max(9, Math.round(parseFloat(getCSSVar('--font-size')) * 0.68));
-  ctx.font = `${fontSize}px ${getCSSVar('--font')}`;
-  ctx.textAlign = 'right';
-
   const gridMs = gridInterval(zoom);
-  const bottomMs = getCanvasBottomMs();
-  const topMs_canvas = yToMs(0);
   const firstGrid = Math.floor(bottomMs / gridMs) * gridMs;
+  const W = 5; // ASCII chars per side
 
-  for (let ms = firstGrid; ms <= topMs_canvas + gridMs; ms += gridMs) {
+  for (let ms = firstGrid; ms <= topMs + gridMs; ms += gridMs) {
     const y = msToY(ms);
     if (y < 0 || y > totalH) continue;
     const major = isGridMajor(ms, zoom);
-    ctx.fillStyle = major ? accent : dim;
-    ctx.fillText(rulerLabel(ms, zoom), w - 4, y + 4);
-    ctx.strokeStyle = major ? getCSSVar('--border') : getCSSVar('--muted');
-    ctx.lineWidth = 1;
-    ctx.beginPath(); ctx.moveTo(w - 2, y); ctx.lineTo(w + 2, y); ctx.stroke();
+
+    const tick = document.createElement('div');
+    tick.className = 'axis-tick' + (major ? ' major' : '');
+    tick.style.top = y + 'px';
+
+    const label = document.createElement('span');
+    label.className = 'axis-label';
+    label.textContent = rulerLabel(ms, zoom);
+    tick.appendChild(label);
+
+    const line = document.createElement('span');
+    line.className = 'axis-line';
+    const side = '─'.repeat(W);
+    line.textContent = major ? `${side}┤ ├${side}` : `──┤ ├──`;
+    tick.appendChild(line);
+
+    axisCol.appendChild(tick);
   }
 
-  // TODAY tick on ruler — bright accent
+  // TODAY marker
   const nowY = msToY(Date.now());
   if (nowY >= 0 && nowY <= totalH) {
-    ctx.strokeStyle = accent;
-    ctx.lineWidth = 2;
-    ctx.beginPath(); ctx.moveTo(0, nowY); ctx.lineTo(w, nowY); ctx.stroke();
+    const nowMarker = document.createElement('div');
+    nowMarker.className = 'axis-now';
+    nowMarker.style.top = nowY + 'px';
+    nowMarker.textContent = '◆ NOW';
+    axisCol.appendChild(nowMarker);
   }
+
+  // Update zoom label in axis header
+  document.getElementById('axis-zoom-label').textContent = `ZOOM: ${getZoom().label}`;
 }
 
 function gridInterval(zoom) {
@@ -992,44 +1063,46 @@ function gridInterval(zoom) {
 
 function isGridMajor(ms, zoom) {
   const d = new Date(ms);
-  const label = zoom.label;
-  if (label === 'DECADE' || label === 'YEAR') return d.getMonth() === 0 && d.getDate() === 1;
-  if (label === 'MONTH') return d.getDate() === 1;
-  if (label === 'WEEK')  return d.getDay() === 0;
-  if (label === 'DAY')   return d.getHours() === 0;
-  if (label === 'HOUR')  return d.getMinutes() === 0;
-  return d.getSeconds() === 0;
+  const mspp = zoom.mspp;
+  // Thresholds below match ZOOM_LEVELS mspp values (1YEAR=525600000, 1MONTH=43200000, etc.).
+  // Major ticks mark the next-larger natural boundary above the grid interval.
+  if (mspp >= 1000*60*60*24*365/60) return d.getMonth() === 0 && d.getDate() === 1; // ≥1YEAR: Jan 1
+  if (mspp >= 1000*60*60*24*30/60)  return d.getDate() === 1;                        // ≥1MONTH: 1st
+  if (mspp >= 1000*60*60*24*7/60)   return d.getDay() === 0;                         // ≥1WEEK: Sunday
+  if (mspp >= 1000*60*60*24/60)     return d.getHours() === 0;                       // ≥1DAY: midnight
+  if (mspp >= 1000*60*60/60)        return d.getMinutes() === 0 && d.getSeconds() === 0; // ≥1HR: hour
+  if (mspp >= 1000*60*5/60)         return d.getSeconds() === 0;                     // ≥5MIN: minute
+  return d.getSeconds() % 30 === 0;                                                  // 1MIN: 30s
 }
 
 function rulerLabel(ms, zoom) {
   const d = new Date(ms);
-  const label = zoom.label;
-  if (label === 'DECADE' || label === 'YEAR') return d.getFullYear().toString();
-  if (label === 'MONTH') return `${d.getMonth()+1}/${d.getDate()}`;
-  if (label === 'WEEK' || label === 'DAY') {
+  const mspp = zoom.mspp;
+  if (mspp >= 525600000) return d.getFullYear().toString();                // ≥1YEAR: year
+  if (mspp >= 43200000) {                                                  // ≥1MONTH: YYYY-MM
+    return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
+  }
+  if (mspp >= 1440000) {                                                   // ≥1DAY: MM-DD
     const mo = String(d.getMonth()+1).padStart(2,'0');
     const dy = String(d.getDate()).padStart(2,'0');
     return `${mo}-${dy}`;
   }
-  const hh = String(d.getHours()).padStart(2,'0');
+  if (mspp >= 15000) {                                                     // ≥15MIN: HH:MM
+    const hh = String(d.getHours()).padStart(2,'0');
+    const mm = String(d.getMinutes()).padStart(2,'0');
+    return `${hh}:${mm}`;
+  }
+  const hh = String(d.getHours()).padStart(2,'0');                        // <15MIN: HH:MM:SS
   const mm = String(d.getMinutes()).padStart(2,'0');
-  return `${hh}:${mm}`;
-}
-
-function updateZoomDisplay() {
-  const z = getZoom();
-  document.getElementById('console-zoom').textContent = `ZOOM: ${z.label}`;
+  const ss = String(d.getSeconds()).padStart(2,'0');
+  return `${hh}:${mm}:${ss}`;
 }
 
 // ── SCROLL & ZOOM ─────────────────────────────────────────────────────
 function setupScrollSync() {
   const scroll = document.getElementById('swimlane-scroll');
   scroll.addEventListener('scroll', () => {
-    // Move ruler canvas to match scroll position (translate up by scrollTop)
-    document.getElementById('ruler-canvas').style.transform =
-      `translateY(-${scroll.scrollTop}px)`;
-    // Store the ms at the top of the viewport
-    db.viewMs = yToMs(scroll.scrollTop);
+    db.viewTopMs = yToMs(scroll.scrollTop);
     saveDB();
   });
 
@@ -1042,55 +1115,30 @@ function setupScrollSync() {
   }, { passive: false });
 }
 
-// ── TIMELINE EXTENTS ──────────────────────────────────────────────────
-function getTimelineExtents() {
-  if (db.events.length === 0) {
-    const now = Date.now();
-    const yr = 365 * 86400000;
-    return { minMs: now - yr, maxMs: now + yr, spanMs: 2 * yr };
-  }
-  const tss = db.events.map(e => e.ts);
-  const minMs = Math.min(...tss);
-  const maxMs = Math.max(...tss);
-  // single-event: treat as ±1 day span so zoom makes sense
-  const spanMs = (maxMs - minMs) || 2 * 86400000;
-  return { minMs, maxMs, spanMs };
-}
-
-// Maximum zoom-in allowed: the span must cover at least 1/3 of the viewport.
-// Returns the finest (lowest index) zoomIdx where spanMs >= 1/3 viewport in px.
-// Lower index = more pixels per ms = more zoomed in.
-function maxZoomInIdx() {
-  const scroll = document.getElementById('swimlane-scroll');
-  const availH = Math.max(scroll.clientHeight, window.innerHeight * 0.9);
-  const { spanMs } = getTimelineExtents();
-  // we want: spanMs / mspp * PX_PER_ROW  >=  availH / 3
-  // => mspp <= spanMs * PX_PER_ROW / (availH / 3)
-  const maxMspp = spanMs * PX_PER_ROW / (availH / 3);
-  // scan from finest (idx 0) outward; return first idx whose mspp <= maxMspp
-  for (let i = 0; i < ZOOM_LEVELS.length; i++) {
-    if (ZOOM_LEVELS[i].mspp <= maxMspp) return i;
-  }
-  return ZOOM_LEVELS.length - 1;
-}
-
 function zoomIn() {
-  const finest = maxZoomInIdx();
-  if (db.zoomIdx > 0 && db.zoomIdx > finest) {
-    db.zoomIdx--;
+  if (db.zoomIdx < ZOOM_LEVELS.length - 1) {
+    const scroll = document.getElementById('swimlane-scroll');
+    const centerMs = yToMs(scroll.scrollTop + scroll.clientHeight / 2);
+    db.zoomIdx++;
     render();
+    const newCenterY = msToY(centerMs);
+    scroll.scrollTop = Math.max(0, newCenterY - scroll.clientHeight / 2);
+    db.viewTopMs = yToMs(scroll.scrollTop);
     statusMsg('ZOOM IN: ' + getZoom().label);
-  } else if (db.zoomIdx <= finest) {
-    statusMsg('ZOOM LIMIT: ' + getZoom().label);
   } else {
     statusMsg('MAX ZOOM');
   }
 }
 
 function zoomOut() {
-  if (db.zoomIdx < ZOOM_LEVELS.length - 1) {
-    db.zoomIdx++;
+  if (db.zoomIdx > 0) {
+    const scroll = document.getElementById('swimlane-scroll');
+    const centerMs = yToMs(scroll.scrollTop + scroll.clientHeight / 2);
+    db.zoomIdx--;
     render();
+    const newCenterY = msToY(centerMs);
+    scroll.scrollTop = Math.max(0, newCenterY - scroll.clientHeight / 2);
+    db.viewTopMs = yToMs(scroll.scrollTop);
     statusMsg('ZOOM OUT: ' + getZoom().label);
   } else {
     statusMsg('MIN ZOOM');
@@ -1102,44 +1150,49 @@ function scrollToMs(ms) {
   const scroll = document.getElementById('swimlane-scroll');
   const y = msToY(ms) - scroll.clientHeight / 2;
   scroll.scrollTop = Math.max(0, y);
-  document.getElementById('ruler-canvas').style.transform =
-    `translateY(-${scroll.scrollTop}px)`;
-  db.viewMs = yToMs(scroll.scrollTop);
+  db.viewTopMs = yToMs(scroll.scrollTop);
+  saveDB();
 }
 
-// autoFit: choose zoom so full event span fills ~70% of viewport height,
-// then scroll to centre. Runs inside rAF×2 so clientHeight is always live.
 function autoFit(cb) {
   requestAnimationFrame(() => requestAnimationFrame(() => {
     const scroll = document.getElementById('swimlane-scroll');
     const availH = Math.max(scroll.clientHeight, window.innerHeight * 0.88);
 
     if (db.events.length === 0) {
-      // Empty: show ±a few weeks around now, WEEK zoom
-      db.zoomIdx = 3;
-      db.viewMs = null;
+      db.zoomIdx = 7;   // 1WEEK default for empty timeline
+      db.viewTopMs = null;
       render();
-      requestAnimationFrame(() => { scrollToMs(Date.now()); if (cb) cb(); });
+      requestAnimationFrame(() => {
+        scrollToMs(Date.now());
+        if (cb) cb();
+      });
       return;
     }
 
-    const { minMs, maxMs, spanMs } = getTimelineExtents();
+    const tss = db.events.map(e => e.ts);
+    const minMs = Math.min(...tss);
+    const maxMs = Math.max(...tss);
+    const spanMs = (maxMs - minMs) || 2 * 86400000;
 
-    // Find the finest zoom where the span px height <= 70% of viewport.
-    // ZOOM_LEVELS[0] is finest (smallest mspp → tallest render).
-    // We want pxSpan = spanMs / mspp * PX_PER_ROW  in [40%, 70%] of availH.
-    let best = ZOOM_LEVELS.length - 1;
-    for (let i = ZOOM_LEVELS.length - 1; i >= 0; i--) {
-      const pxSpan = spanMs / ZOOM_LEVELS[i].mspp * PX_PER_ROW;
-      if (pxSpan <= availH * 0.70) { best = i; }
-      else break; // getting too tall — stop here
+    // Find finest zoom level where event span fills ≤65% of viewport height.
+    // Iterate from coarsest (index 0) to finest (last index), keeping the
+    // last index that still fits.  Break as soon as the content is too tall.
+    let best = 0;
+    for (let i = 0; i < ZOOM_LEVELS.length; i++) {
+      const msPerPx = ZOOM_LEVELS[i].mspp / PX_PER_ROW;
+      const pxSpan = spanMs / msPerPx;
+      if (pxSpan <= availH * TARGET_VIEWPORT_FILL) {
+        best = i;
+      } else {
+        break;
+      }
     }
 
     db.zoomIdx = best;
-    db.viewMs = null; // clear so getCanvasBottomMs recalculates from events
+    db.viewTopMs = null;
     render();
 
-    // After render: scroll so midpoint of span is centred
     requestAnimationFrame(() => {
       scrollToMs(minMs + spanMs / 2);
       if (cb) cb();
@@ -1242,7 +1295,10 @@ const HELP_TEXT = `
 /goto <time>  Scroll to a timestamp.
 
 /zoom fit     Auto-fit zoom to all events.
-/zoom <level> Set zoom: DECADE YEAR MONTH WEEK DAY HOUR MINUTE
+/zoom <level> Set zoom level (18 steps, ≤5× factor each):
+              10YEAR 3YEAR 1YEAR 6MONTH 3MONTH 1MONTH
+              2WEEK 1WEEK 3DAY 1DAY 8HR 4HR 2HR 1HR
+              30MIN 15MIN 5MIN 1MIN
 
 /export json  Download events as JSON file.
 /export txt   Export ASCII timeline to .txt file.
@@ -1334,14 +1390,8 @@ function handleConsoleCmd(raw) {
       statusMsg('LEVELS: FIT ' + ZOOM_LEVELS.map(z=>z.label).join(' '));
       return;
     }
-    const finest = maxZoomInIdx();
-    if (idx < finest) {
-      db.zoomIdx = finest;
-      render(); statusMsg('ZOOM CLAMPED: ' + getZoom().label);
-    } else {
-      db.zoomIdx = idx;
-      render(); statusMsg('ZOOM: ' + arg);
-    }
+    db.zoomIdx = idx;
+    render(); statusMsg('ZOOM: ' + arg);
     return;
   }
 
@@ -1390,7 +1440,6 @@ function handleConsoleCmd(raw) {
     db.theme = name;
     document.documentElement.setAttribute('data-theme', name);
     saveDB(); render(); statusMsg('THEME: ' + name);
-    return;
     return;
   }
 
@@ -1675,7 +1724,7 @@ function exportTXT() {
       if (isSecondary) return '◇'.padEnd(laneW);
       return ' '.repeat(laneW);
     }).join('│');
-    const ts = fmtTS(evt.ts, zoom.label).padStart(20);
+    const ts = fmtTS(evt.ts, zoom).padStart(20);
     lines.push(`${ts} ${row}`);
   });
 
@@ -1835,8 +1884,8 @@ if (db.events.length === 0) {
   startBoot();
 } else {
   // Always autoFit on load — rAF×2 inside guarantees clientHeight is live.
-  // db.viewMs will be set correctly by scrollToMs inside autoFit.
-  db.viewMs = null;
+  // db.viewTopMs will be set correctly by scrollToMs inside autoFit.
+  db.viewTopMs = null;
   render();
   autoFit();
   document.getElementById('console-input').focus();
