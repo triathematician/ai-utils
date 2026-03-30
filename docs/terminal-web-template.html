@@ -67,6 +67,15 @@
   --cat-5:#ffff55; --cat-6:#ff55ff; --cat-7:#5555ff; --cat-8:#aaaaaa;
   --cat-9:#ffaa55; --cat-10:#55aaaa;
 }
+[data-theme="notebook"] {
+  --bg:#fafaf2; --fg:#1a1a2e; --accent:#c0392b;
+  --dim:#8a8a9a; --muted:#eeeede; --border:#90a8d4;
+  --success:#2e7d32; --warn:#e65100;
+  --font:'Source Code Pro',monospace;
+  --cat-1:#c0392b; --cat-2:#d84315; --cat-3:#f57c00; --cat-4:#2e7d32;
+  --cat-5:#1565c0; --cat-6:#6a1b9a; --cat-7:#00838f; --cat-8:#4e342e;
+  --cat-9:#37474f; --cat-10:#880e4f;
+}
 
 /* ═══════════════════════════════════════════════
    RESET & BASE
@@ -221,7 +230,7 @@ function updateStatus() {
 }
 
 /* ─── THEME ───────────────────────────────────────────── */
-const THEMES = ['legacy','solar','monk','space','synth','dos'];
+const THEMES = ['legacy','solar','monk','space','synth','dos','notebook'];
 let db = loadDB();
 
 function applyTheme(name) {
@@ -267,7 +276,7 @@ function showHelp() {
   document.getElementById('help-body').style.whiteSpace = 'pre';
   document.getElementById('help-body').textContent = [
     '/help                    show this help',
-    '/theme [name]            switch theme (legacy|solar|monk|space|synth|dos)  (random if omitted)',
+    '/theme [name]            switch theme (legacy|solar|monk|space|synth|dos|notebook)  (random if omitted)',
     '/backlog [text]          add item to backlog',
     '/backlog list            show all backlog items',
     '/backlog done [n]        toggle item #n as done/open',
