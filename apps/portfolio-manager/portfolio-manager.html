@@ -964,6 +964,13 @@ const VIX_TICKER = '^VIX';
 const TNX_TICKER = '^TNX';
 const OIL_TICKER = 'CL=F';
 
+const PINNED_INFO = [
+  { key: '__SPY__', label: 'SPY', color: 'var(--amber)', desc: 'S&P 500',       fmt: p => '$' + fmt2(p) },
+  { key: '__VIX__', label: 'VIX', color: 'var(--red)',   desc: 'Volatility',     fmt: p => fmt2(p) },
+  { key: '__TNX__', label: 'TNX', color: 'var(--blue)',  desc: '10yr Yield',     fmt: p => fmt2(p) + '%' },
+  { key: '__OIL__', label: 'OIL', color: 'var(--amber)', desc: 'Crude Oil',      fmt: p => '$' + fmt2(p) },
+];
+
 async function fetchQuote(ticker) {
   // Uses Yahoo Finance v8 API (unofficial but widely used)
   const url = `http://localhost:8081/quote/${ticker}?range=5y`
@@ -1085,7 +1092,8 @@ async function refreshPrices() {
       mo1: spyData.mo1,
       wk1: spyData.wk1,
       mo1Open: spyData.mo1Open,
-      history: spyData.history
+      history: spyData.history,
+      raw: spyData
     };
     // update powder inputs with latest SPY data if user has no manual override
     if (!powderConfig.spATH) {
@@ -1100,21 +1108,21 @@ async function refreshPrices() {
     state.prices['__VIX__'] = {
       price: vixData.price, ath: vixData.ath, yr5: vixData.yr5, yr2: vixData.yr2,
       yr1: vixData.yr1, mo6: vixData.mo6, mo3: vixData.mo3, mo1: vixData.mo1,
-      wk1: vixData.wk1, mo1Open: vixData.mo1Open
+      wk1: vixData.wk1, mo1Open: vixData.mo1Open, raw: vixData
     };
   }
   if (tnxData) {
     state.prices['__TNX__'] = {
       price: tnxData.price, ath: tnxData.ath, yr5: tnxData.yr5, yr2: tnxData.yr2,
       yr1: tnxData.yr1, mo6: tnxData.mo6, mo3: tnxData.mo3, mo1: tnxData.mo1,
-      wk1: tnxData.wk1, mo1Open: tnxData.mo1Open
+      wk1: tnxData.wk1, mo1Open: tnxData.mo1Open, raw: tnxData
     };
   }
   if (oilData) {
     state.prices['__OIL__'] = {
       price: oilData.price, ath: oilData.ath, yr5: oilData.yr5, yr2: oilData.yr2,
       yr1: oilData.yr1, mo6: oilData.mo6, mo3: oilData.mo3, mo1: oilData.mo1,
-      wk1: oilData.wk1, mo1Open: oilData.mo1Open
+      wk1: oilData.wk1, mo1Open: oilData.mo1Open, raw: oilData
     };
   }
 
@@ -1533,14 +1541,23 @@ function renderDeepDive(ticker) {
   // populate select
   sel.innerHTML = '<option value="">— Select ticker —</option>' +
     [...state.positions].sort((a,b) => a.ticker.localeCompare(b.ticker))
-      .map(p => `<option value="${p.id}" ${(ticker && p.ticker === ticker) || sel.value === p.id ? 'selected' : ''}>${p.ticker}</option>`).join('');
+      .map(p => `<option value="${p.id}" ${(ticker && p.ticker === ticker) || sel.value === p.id ? 'selected' : ''}>${p.ticker}</option>`).join('') +
+    '<optgroup label="— Market —">' +
+    PINNED_INFO.map(pin => `<option value="${pin.key}" ${(ticker && ticker === pin.label) || sel.value === pin.key ? 'selected' : ''}>${pin.label} — ${pin.desc}</option>`).join('') +
+    '</optgroup>';
 
-  const id = ticker
-    ? (state.positions.find(p => p.ticker === ticker)?.id || sel.value)
-    : sel.value;
+  const pinnedMatch = ticker ? PINNED_INFO.find(pin => pin.label === ticker) : null;
+  const id = pinnedMatch
+    ? pinnedMatch.key
+    : (ticker
+        ? (state.positions.find(p => p.ticker === ticker)?.id || sel.value)
+        : sel.value);
 
   if (!id) { document.getElementById('ddCatBadge').innerHTML = ''; return; }
   sel.value = id;
+
+  const pinnedPin = PINNED_INFO.find(pin => pin.key === id);
+  if (pinnedPin) { renderPinnedDeepDive(pinnedPin); return; }
 
   const pos = state.positions.find(p => p.id === id);
   if (!pos) return;
@@ -1719,6 +1736,72 @@ function renderDeepDive(ticker) {
     <div style="margin-top:16px;display:flex;gap:8px">
       <button class="btn btn-amber" onclick="openEditModal('${pos.id}')">Edit Position</button>
     </div>
+  `;
+}
+
+function renderPinnedDeepDive(pin) {
+  document.getElementById('ddCatBadge').innerHTML = '';
+  const p = state.prices[pin.key] || {};
+  const price = p.price;
+
+  const windows = [
+    { label: 'ATH', key: 'ath' }, { label: '5yr High', key: 'yr5' },
+    { label: '2yr High', key: 'yr2' }, { label: '1yr High', key: 'yr1' },
+    { label: '6mo High', key: 'mo6' }, { label: '3mo High', key: 'mo3' },
+    { label: '1mo High', key: 'mo1' }
+  ];
+
+  const windowCells = windows.map(w => {
+    const high = p[w.key];
+    const chg = (price && high) ? ((price - high) / high) * 100 : null;
+    return `<div class="window-cell">
+      <div class="window-label">${w.label}</div>
+      <div class="window-val">${high ? pin.fmt(high) : '<span style="color:var(--dim)">—</span>'}</div>
+      <div class="window-chg ${chg !== null ? (chg >= 0 ? 'up' : 'down') : 'neutral'}">
+        ${chg !== null ? (chg >= 0 ? '+' : '')+fmt1(chg)+'%' : ''}
+      </div>
+    </div>`;
+  }).join('');
+
+  const pseudoPos = { ticker: pin.key };
+  const chartHtml = buildChart(pseudoPos, price, [], [], ddChartRange);
+
+  document.getElementById('deepDiveContent').innerHTML = `
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-bottom:14px">
+      <div class="summary-card" style="padding:7px 8px">
+        <div class="summary-card-label">Price</div>
+        <div class="summary-card-val" style="font-size:13px;color:${pin.color}">${price ? pin.fmt(price) : '—'}</div>
+      </div>
+      <div class="summary-card" style="padding:7px 8px">
+        <div class="summary-card-label">vs 1yr High</div>
+        <div class="summary-card-val" style="font-size:13px;color:${p.yr1 && price ? gradeColor(((price-p.yr1)/p.yr1)*100) : 'var(--muted)'}">
+          ${p.yr1 && price ? ((((price-p.yr1)/p.yr1)*100) >= 0 ? '+' : '')+fmt1(((price-p.yr1)/p.yr1)*100)+'%' : '—'}
+        </div>
+      </div>
+      <div class="summary-card" style="padding:7px 8px">
+        <div class="summary-card-label">vs ATH</div>
+        <div class="summary-card-val" style="font-size:13px;color:${p.ath && price ? gradeColor(((price-p.ath)/p.ath)*100) : 'var(--muted)'}">
+          ${p.ath && price ? ((((price-p.ath)/p.ath)*100) >= 0 ? '+' : '')+fmt1(((price-p.ath)/p.ath)*100)+'%' : '—'}
+        </div>
+      </div>
+      <div class="summary-card" style="padding:7px 8px">
+        <div class="summary-card-label">1wk Change</div>
+        <div class="summary-card-val" style="font-size:13px;color:${p.wk1 && price ? gradeColor(((price-p.wk1)/p.wk1)*100) : 'var(--muted)'}">
+          ${p.wk1 && price ? ((((price-p.wk1)/p.wk1)*100) >= 0 ? '+' : '')+fmt1(((price-p.wk1)/p.wk1)*100)+'%' : '—'}
+        </div>
+      </div>
+    </div>
+
+    ${chartHtml ? `<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
+      <div class="section-label" style="margin:0">Price</div>
+      <div style="display:flex;gap:3px">
+        ${['1Y','6M','3M','1M'].map(r => `<button onclick="ddChartRange='${r}';renderDeepDive()" style="font-size:9px;padding:2px 7px;border-radius:3px;border:1px solid ${ddChartRange===r?'var(--blue)':'var(--border2)'};background:${ddChartRange===r?'var(--blue)':'transparent'};color:${ddChartRange===r?'#fff':'var(--muted)'};cursor:pointer;font-family:inherit">${r}</button>`).join('')}
+      </div>
+    </div>
+    <div style="margin-bottom:14px;border-radius:4px;overflow:hidden">${chartHtml}</div>` : ''}
+
+    <div class="section-label">High-Water Marks</div>
+    <div class="windows-grid" style="grid-template-columns:repeat(${windows.length},1fr)">${windowCells}</div>
   `;
 }
 
@@ -2936,7 +3019,10 @@ function populateDeepDiveSelect() {
   const cur = sel.value;
   sel.innerHTML = '<option value="">— Select ticker —</option>' +
     [...state.positions].sort((a,b) => a.ticker.localeCompare(b.ticker))
-      .map(p => `<option value="${p.id}" ${p.id === cur ? 'selected' : ''}>${p.ticker}</option>`).join('');
+      .map(p => `<option value="${p.id}" ${p.id === cur ? 'selected' : ''}>${p.ticker}</option>`).join('') +
+    '<optgroup label="— Market —">' +
+    PINNED_INFO.map(pin => `<option value="${pin.key}" ${cur === pin.key ? 'selected' : ''}>${pin.label} — ${pin.desc}</option>`).join('') +
+    '</optgroup>';
 }
 
 function showAlert(msg, type) {
