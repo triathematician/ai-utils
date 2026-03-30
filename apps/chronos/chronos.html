@@ -50,6 +50,12 @@
   --cat-1:#ffffff;--cat-2:#ff5555;--cat-3:#ffff55;--cat-4:#55ff55;--cat-5:#55ffff;
   --cat-6:#ff55ff;--cat-7:#ffaaaa;--cat-8:#aaffaa;--cat-9:#aaaaff;--cat-10:#ffaa55;
 }
+[data-theme="notebook"] {
+  --bg:#fafaf2;--fg:#1a1a2e;--accent:#c0392b;--dim:#8a8a9a;--muted:#eeeede;
+  --border:#90a8d4;--success:#2e7d32;--warn:#e65100;
+  --cat-1:#c0392b;--cat-2:#d84315;--cat-3:#f57c00;--cat-4:#2e7d32;--cat-5:#1565c0;
+  --cat-6:#6a1b9a;--cat-7:#00838f;--cat-8:#4e342e;--cat-9:#37474f;--cat-10:#880e4f;
+}
 
 /* ── BASE ──────────────────────────────────────────────────────────── */
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -1306,7 +1312,7 @@ const HELP_TEXT = `
 /delete <id>  Delete an event by UID.
 /list         List all events with UIDs.
 
-/theme [name] Switch theme: legacy solar monk space synth dos
+/theme [name] Switch theme: legacy solar monk space synth dos notebook
               (random if omitted)
 
 /backlog [text]         Add item to backlog.
@@ -1427,7 +1433,7 @@ function handleConsoleCmd(raw) {
 
   if (cmd === '/theme') {
     const name = parts[1];
-    const themes = ['legacy','solar','monk','space','synth','dos'];
+    const themes = ['legacy','solar','monk','space','synth','dos','notebook'];
     if (!name) {
       const others = themes.filter(t => t !== db.theme);
       const picked = others[Math.floor(Math.random() * others.length)];

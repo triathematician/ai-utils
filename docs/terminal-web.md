@@ -31,6 +31,7 @@ Themes are applied via a `data-theme` attribute on `<html>`. The default (no att
 | `space` | Dark navy, neon accents |
 | `synth` | Dark purple, synthwave neon |
 | `dos` | Classic blue DOS screen, CGA palette |
+| `notebook` | Off-white paper background, blue ruled lines, red margin accent |
 
 ### CSS variable contract
 
@@ -242,7 +243,7 @@ Switch the colour theme. If `name` is omitted, a random theme that is not the cu
 /theme solar    → applies solar directly
 ```
 
-Saves the chosen theme to `db.theme` via `saveDB()`. Recognised names: `legacy solar monk space synth dos`.
+Saves the chosen theme to `db.theme` via `saveDB()`. Recognised names: `legacy solar monk space synth dos notebook`.
 
 ### `/backlog` — persistent item list
 
