@@ -424,7 +424,7 @@ html, body {
   <!-- TOP ROW — STAFF SUMMARY -->
   <div id="top-row">
     <div class="row-header" id="top-header">◈ STAFF SUMMARY</div>
-    <div id="staff-name" class="empty">NO STAFF LOADED — use /new or /load &lt;name&gt;</div>
+    <div id="staff-name" class="empty">NO STAFF LOADED — use /new or /load [name]</div>
     <div id="staff-meta"></div>
     <div id="staff-highlights">
       <div class="highlight-card" id="hc-note">
@@ -682,7 +682,7 @@ function renderTopRow() {
 
   if (!s) {
     nameEl.className = 'empty';
-    nameEl.textContent = 'NO STAFF LOADED — use /new or /load <name>';
+    nameEl.textContent = 'NO STAFF LOADED — use /new or /load [name]';
     metaEl.textContent = '';
     hdrEl.textContent = '◈ STAFF SUMMARY';
     setHighlightCard('hc-note',       '◈ LAST NOTE',       '—', true);

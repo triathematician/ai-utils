@@ -23,6 +23,7 @@ ai-utils/
     display-wall/                 ← DISPLAY WALL DESIGNER: video wall layout tool
     focus-terminal/               ← FOCUS TERMINAL: productivity + task management
     portfolio-manager/            ← PORTFOLIO SIGNAL DESK: portfolio monitoring
+    staff-terminal/               ← STAFF TERMINAL: staff development, LDP goals, notes
   common/                       ← shared assets (if any)
     yahoo-finance-proxy/          ← Java proxy service for Yahoo Finance data
 ```
@@ -39,6 +40,7 @@ Monospace, dark-first, single-file apps with a command-line interaction model. L
 **Apps in this category:**
 - `focus-terminal/focus-terminal.html` — FOCUS TERMINAL
 - `chronos/chronos.html` — CHRONOS
+- `staff-terminal/staff-terminal.html` — STAFF TERMINAL
 
 **To start a new terminal-web app:** copy `docs/terminal-web-template.html` to a new subdirectory, rename the `STORAGE_KEY`, and build on top of the stubs.
 
