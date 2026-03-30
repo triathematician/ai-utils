@@ -998,7 +998,7 @@ function renderDAG(sorted, cats, leftCats, rightCats, axisCenter, AXIS_HALF, lef
       svg.appendChild(path);
 
       const arrow = document.createElementNS('http://www.w3.org/2000/svg','polygon');
-      arrow.setAttribute('points', `${tgtX-4},${tgtY-8} ${tgtX+4},${tgtY-8} ${tgtX},${tgtY}`);
+      arrow.setAttribute('points', `${tgtX-4},${tgtY+8} ${tgtX+4},${tgtY+8} ${tgtX},${tgtY}`);
       arrow.setAttribute('fill', accentColor);
       arrow.setAttribute('opacity', '0.6');
       svg.appendChild(arrow);
