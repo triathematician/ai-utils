@@ -1057,6 +1057,7 @@ async function refreshPrices() {
         mo6: manualHighs.mo6 || data.mo6,
         mo3: manualHighs.mo3 || data.mo3,
         mo1: manualHighs.mo1 || data.mo1,
+        wk1: data.wk1,
         raw: data
       };
     }
@@ -1082,6 +1083,7 @@ async function refreshPrices() {
       mo6: spyData.mo6,
       mo3: spyData.mo3,
       mo1: spyData.mo1,
+      wk1: spyData.wk1,
       mo1Open: spyData.mo1Open,
       history: spyData.history
     };
@@ -1097,19 +1099,22 @@ async function refreshPrices() {
   if (vixData) {
     state.prices['__VIX__'] = {
       price: vixData.price, ath: vixData.ath, yr5: vixData.yr5, yr2: vixData.yr2,
-      yr1: vixData.yr1, mo6: vixData.mo6, mo3: vixData.mo3, mo1: vixData.mo1, mo1Open: vixData.mo1Open
+      yr1: vixData.yr1, mo6: vixData.mo6, mo3: vixData.mo3, mo1: vixData.mo1,
+      wk1: vixData.wk1, mo1Open: vixData.mo1Open
     };
   }
   if (tnxData) {
     state.prices['__TNX__'] = {
       price: tnxData.price, ath: tnxData.ath, yr5: tnxData.yr5, yr2: tnxData.yr2,
-      yr1: tnxData.yr1, mo6: tnxData.mo6, mo3: tnxData.mo3, mo1: tnxData.mo1, mo1Open: tnxData.mo1Open
+      yr1: tnxData.yr1, mo6: tnxData.mo6, mo3: tnxData.mo3, mo1: tnxData.mo1,
+      wk1: tnxData.wk1, mo1Open: tnxData.mo1Open
     };
   }
   if (oilData) {
     state.prices['__OIL__'] = {
       price: oilData.price, ath: oilData.ath, yr5: oilData.yr5, yr2: oilData.yr2,
-      yr1: oilData.yr1, mo6: oilData.mo6, mo3: oilData.mo3, mo1: oilData.mo1, mo1Open: oilData.mo1Open
+      yr1: oilData.yr1, mo6: oilData.mo6, mo3: oilData.mo3, mo1: oilData.mo1,
+      wk1: oilData.wk1, mo1Open: oilData.mo1Open
     };
   }
 
@@ -1308,7 +1313,7 @@ function renderDashboard() {
     <td>${spyDecBar(spyP.mo6)}</td>
     <td>${spyDecBar(spyP.mo3)}</td>
     <td>${spyDecBar(spyP.mo1)}</td>
-    <td><span style="color:var(--dim)">—</span></td>
+    <td>${spyDecBar(spyP.wk1)}</td>
     <td><span style="color:var(--dim)">—</span></td>
     <td><span style="color:var(--dim)">—</span></td>
   </tr>`;
@@ -1337,7 +1342,7 @@ function renderDashboard() {
       <td>${decBar(pData.mo6, '6MO')}</td>
       <td>${decBar(pData.mo3, '3MO')}</td>
       <td>${decBar(pData.mo1, '1MO')}</td>
-      <td><span style="color:var(--dim)">—</span></td>
+      <td>${decBar(pData.wk1, '1WK')}</td>
       <td><span style="color:var(--dim)">—</span></td>
       <td><span style="color:var(--dim)">—</span></td>
     </tr>`;
@@ -2743,7 +2748,8 @@ function savePosition() {
         yr1: manualHighs.yr1 || data.yr1,
         mo6: manualHighs.mo6 || data.mo6,
         mo3: manualHighs.mo3 || data.mo3,
-        mo1: manualHighs.mo1 || data.mo1
+        mo1: manualHighs.mo1 || data.mo1,
+        wk1: data.wk1
       };
       save();
       renderAll();
