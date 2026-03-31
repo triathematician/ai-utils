@@ -172,6 +172,8 @@ html, body {
   white-space: nowrap; cursor: pointer;
 }
 .loe-badge:hover { opacity: 0.7; }
+.loe-badge.active { background: var(--fg) !important; color: var(--bg) !important; border-color: var(--fg) !important; font-weight: bold; }
+.loe-dim { opacity: 0.25; }
 #no-group-msg {
   color: var(--dim); font-size: 0.8em;
   display: flex; align-items: center; height: 100%;
@@ -181,7 +183,7 @@ html, body {
    MAIN ROW — strategy/objective columns
    ═══════════════════════════════════════════════ */
 .strategy-col {
-  min-width: 440px; max-width: 520px; width: 480px;
+  min-width: 420px; max-width: 500px; width: 460px;
   border-right: 1px solid var(--border);
   display: flex; flex-direction: column;
   overflow: hidden; flex-shrink: 0;
@@ -222,7 +224,7 @@ html, body {
   font-size: 0.6em; letter-spacing: 1px; padding: 0 3px;
   border: 1px solid; flex-shrink: 0; margin-top: 1px;
 }
-.exec-title { flex: 1; word-break: break-word; }
+.exec-title { word-break: break-word; }
 .exec-loe-tags { display: flex; gap: 2px; flex-wrap: wrap; margin-top: 3px; }
 .exec-loe-chip {
   font-size: 0.55em; padding: 0 3px; border: 1px solid;
@@ -533,6 +535,19 @@ function loeById(loeId) {
   return g.loeDefinitions.find(l => l.id === loeId) || null;
 }
 
+/* ─── LOE FILTER (UI state, not persisted) ────────────── */
+let activeLoeFilter = null;
+
+/* ─── DISPLAY ORDER ───────────────────────────────────── */
+function displayedNodes(groupId) {
+  const result = [];
+  topLevelNodes(groupId).forEach(top => {
+    result.push(top);
+    childNodes(top.id).forEach(child => result.push(child));
+  });
+  return result;
+}
+
 /* ─── STATUS BAR ──────────────────────────────────────── */
 function statusMsg(msg) {
   document.getElementById('console-status').textContent = msg;
@@ -608,17 +623,28 @@ function renderTopRow() {
     vt.style.fontStyle = 'italic';
   }
 
-  // LOE badges
+  // LOE badges — clicking toggles filter
   const loeBadgesEl = document.getElementById('loe-badges');
   loeBadgesEl.innerHTML = '';
+  // Reset filter if the active LOE no longer exists (deleted or group switched)
+  if (activeLoeFilter && !(g.loeDefinitions || []).some(l => l.id === activeLoeFilter)) {
+    activeLoeFilter = null;
+  }
   (g.loeDefinitions || []).forEach((loe, idx) => {
     const badge = document.createElement('span');
-    badge.className = 'loe-badge';
+    badge.className = 'loe-badge' + (activeLoeFilter === loe.id ? ' active' : '');
     const color = `var(${LOE_COLORS[idx % LOE_COLORS.length]})`;
     badge.style.color = color;
     badge.style.borderColor = color;
     badge.textContent = loe.name;
-    addTooltip(badge, 'LOE: ' + loe.name);
+    const tip = activeLoeFilter === loe.id
+      ? 'LOE: ' + loe.name + ' — click to clear filter'
+      : 'LOE: ' + loe.name + ' — click to filter view';
+    addTooltip(badge, tip);
+    badge.onclick = () => {
+      activeLoeFilter = (activeLoeFilter === loe.id) ? null : loe.id;
+      render();
+    };
     loeBadgesEl.appendChild(badge);
   });
   if (!g.loeDefinitions || g.loeDefinitions.length === 0) {
@@ -646,8 +672,10 @@ function renderColumns() {
     msg.innerHTML = '<div style="color:var(--dim);">No strategies or objectives yet.</div><div style="font-size:0.7em;color:var(--dim);">Use /strategy [title] or /objective [title]</div>';
     container.appendChild(msg);
   } else {
-    tops.forEach((node, idx) => {
-      container.appendChild(buildColumn(node, idx + 1));
+    const displayed = displayedNodes(g.id);
+    const nodeNumMap = new Map(displayed.map((n, i) => [n.id, i + 1]));
+    tops.forEach(node => {
+      container.appendChild(buildColumn(node, nodeNumMap));
     });
   }
 
@@ -662,9 +690,18 @@ function renderColumns() {
   container.appendChild(addBtn);
 }
 
-function buildColumn(node, colNum) {
+function buildColumn(node, nodeNumMap) {
   const col = document.createElement('div');
   col.className = 'strategy-col';
+
+  const nodeNum = nodeNumMap.get(node.id);
+
+  // Apply LOE filter dim to entire column if no items in it match
+  if (activeLoeFilter) {
+    const colTagged = (node.loeTagIds || []).includes(activeLoeFilter) ||
+      childNodes(node.id).some(c => (c.loeTagIds || []).includes(activeLoeFilter));
+    if (!colTagged) col.classList.add('loe-dim');
+  }
 
   // Header
   const hdr = document.createElement('div');
@@ -682,7 +719,7 @@ function buildColumn(node, colNum) {
 
   const titleEl = document.createElement('div');
   titleEl.className = 'col-title';
-  titleEl.textContent = '[' + colNum + '] ' + node.title;
+  titleEl.textContent = '[' + nodeNum + '] ' + node.title;
   titleEl.onclick = () => openEditModal(node.id);
 
   const tagRow = document.createElement('div');
@@ -690,8 +727,8 @@ function buildColumn(node, colNum) {
   (node.loeTagIds || []).forEach(lid => {
     const loe = loeById(lid);
     if (!loe) return;
-    const g = activeGroup();
-    const idx = g.loeDefinitions.findIndex(l => l.id === lid);
+    const grp = activeGroup();
+    const idx = grp.loeDefinitions.findIndex(l => l.id === lid);
     const color = `var(${LOE_COLORS[idx % LOE_COLORS.length]})`;
     const chip = document.createElement('span');
     chip.className = 'loe-tag-chip';
@@ -726,7 +763,7 @@ function buildColumn(node, colNum) {
 
   const children = childNodes(node.id);
   children.forEach(child => {
-    body.appendChild(buildExecItem(child));
+    body.appendChild(buildExecItem(child, nodeNumMap.get(child.id)));
   });
 
   col.appendChild(body);
@@ -738,16 +775,21 @@ function buildColumn(node, colNum) {
   addBtn.onclick = (e) => {
     e.stopPropagation();
     const suggestion = node.type === 'Objective' ? '/kr ' : '/exec ';
-    focusConsole(suggestion + colNum + ' ');
+    focusConsole(suggestion + nodeNum + ' ');
   };
   col.appendChild(addBtn);
 
   return col;
 }
 
-function buildExecItem(node) {
+function buildExecItem(node, nodeNum) {
   const item = document.createElement('div');
   item.className = 'exec-item';
+
+  // Apply LOE filter dim if active and item doesn't have the filtered LOE
+  if (activeLoeFilter && !(node.loeTagIds || []).includes(activeLoeFilter)) {
+    item.classList.add('loe-dim');
+  }
 
   const hdr = document.createElement('div');
   hdr.className = 'exec-item-header';
@@ -761,16 +803,16 @@ function buildExecItem(node) {
   typeBadge.className = 'exec-type-badge ' + typeClass(node.type);
   typeBadge.textContent = (node.type || 'EXEC').toUpperCase().slice(0,4);
 
+  // Text block: title + LOE chips aligned together (LOE chips indent under title)
+  const textBlock = document.createElement('div');
+  textBlock.style.cssText = 'flex:1;min-width:0;';
+
   const titleEl = document.createElement('span');
   titleEl.className = 'exec-title';
-  titleEl.textContent = node.title;
+  titleEl.textContent = '[' + nodeNum + '] ' + node.title;
+  textBlock.appendChild(titleEl);
 
-  hdr.appendChild(ragSpan);
-  hdr.appendChild(typeBadge);
-  hdr.appendChild(titleEl);
-  item.appendChild(hdr);
-
-  // LOE chips
+  // LOE chips inside the text block so they indent to match the title
   if (node.loeTagIds && node.loeTagIds.length) {
     const tagRow = document.createElement('div');
     tagRow.className = 'exec-loe-tags';
@@ -787,8 +829,13 @@ function buildExecItem(node) {
       chip.textContent = loe.name;
       tagRow.appendChild(chip);
     });
-    item.appendChild(tagRow);
+    textBlock.appendChild(tagRow);
   }
+
+  hdr.appendChild(ragSpan);
+  hdr.appendChild(typeBadge);
+  hdr.appendChild(textBlock);
+  item.appendChild(hdr);
 
   item.onclick = () => openEditModal(node.id);
   addDetailPanel(item, node);
@@ -1221,20 +1268,28 @@ function cmdAddTop(type, rest) {
 function cmdAddChild(type, rest) {
   const g = activeGroup();
   if (!g) { statusMsg('No active group.'); return; }
-  // /exec [col#] [title]  or  /exec [title] (appends to last top-level node)
+  // /exec [node#] [title]  — node# is the display-order number of the parent strategy/objective
+  // or /exec [title] (appends to last top-level node) if no number is given
   const parts = rest.split(/\s+/);
   const n = parseInt(parts[0]);
   let parentNode, title;
   const tops = topLevelNodes(g.id);
-  if (!isNaN(n) && n >= 1 && n <= tops.length) {
-    parentNode = tops[n - 1];
+  if (!isNaN(n) && n >= 1) {
+    const allNodes = displayedNodes(g.id);
+    const candidate = allNodes[n - 1];
+    if (!candidate) { statusMsg('Node #' + n + ' not found.'); return; }
+    if (candidate.parentId) {
+      statusMsg('Node #' + n + ' is not a strategy/objective. Use the column header node# as the target.');
+      return;
+    }
+    parentNode = candidate;
     title = parts.slice(1).join(' ');
   } else {
     parentNode = tops[tops.length - 1];
     title = rest;
   }
   if (!parentNode) { statusMsg('No strategy/objective to attach to. Add one first.'); return; }
-  if (!title) { statusMsg('Usage: /' + type.toLowerCase() + ' [col#] [title]'); return; }
+  if (!title) { statusMsg('Usage: /' + type.toLowerCase() + ' [node#] [title]'); return; }
   const node = {
     id: uid('node'),
     groupId: g.id,
@@ -1255,7 +1310,7 @@ function cmdAddChild(type, rest) {
 }
 
 function cmdPulse(rest) {
-  // /pulse [node#] [g|a|r] [narrative]
+  // /pulse [node#] [g|a|r] [narrative]  — node# is the displayed order number shown in brackets
   const g = activeGroup();
   if (!g) { statusMsg('No active group.'); return; }
   const parts = rest.split(/\s+/);
@@ -1267,7 +1322,7 @@ function cmdPulse(rest) {
   if (!rag) { statusMsg('RAG must be g/a/r (green/amber/red)'); return; }
   const narrative = parts.slice(2).join(' ');
 
-  const allNodes = nodesForGroup(g.id);
+  const allNodes = displayedNodes(g.id);
   const node = allNodes[n - 1];
   if (!node) { statusMsg('Node #' + n + ' not found.'); return; }
   node.pulses = node.pulses || [];
@@ -1278,7 +1333,7 @@ function cmdPulse(rest) {
 }
 
 function cmdRag(rest) {
-  // /rag [node#] [g|a|r]
+  // /rag [node#] [g|a|r]  — node# is the displayed order number shown in brackets
   const g = activeGroup();
   if (!g) { statusMsg('No active group.'); return; }
   const parts = rest.split(/\s+/);
@@ -1288,7 +1343,7 @@ function cmdRag(rest) {
   const ragMap = { g: 'green', a: 'amber', r: 'red', green: 'green', amber: 'amber', red: 'red' };
   const rag = ragMap[ragChar];
   if (!rag) { statusMsg('RAG must be g/a/r'); return; }
-  const allNodes = nodesForGroup(g.id);
+  const allNodes = displayedNodes(g.id);
   const node = allNodes[n - 1];
   if (!node) { statusMsg('Node #' + n + ' not found.'); return; }
   node.ragStatus = rag;
@@ -1300,7 +1355,7 @@ function cmdRag(rest) {
 }
 
 function cmdTag(rest) {
-  // /tag [node#] [loe name]
+  // /tag [node#] [loe name]  — node# is the displayed order number shown in brackets
   const g = activeGroup();
   if (!g) { statusMsg('No active group.'); return; }
   const parts = rest.split(/\s+/);
@@ -1309,7 +1364,7 @@ function cmdTag(rest) {
   const loeName = parts.slice(1).join(' ');
   const loe = g.loeDefinitions.find(l => l.name.toLowerCase().includes(loeName.toLowerCase()));
   if (!loe) { statusMsg('LOE not found: ' + loeName + '. Use /loe to list/add.'); return; }
-  const allNodes = nodesForGroup(g.id);
+  const allNodes = displayedNodes(g.id);
   const node = allNodes[n - 1];
   if (!node) { statusMsg('Node #' + n + ' not found.'); return; }
   node.loeTagIds = node.loeTagIds || [];
@@ -1327,24 +1382,24 @@ function cmdTag(rest) {
 }
 
 function cmdEdit(rest) {
-  // /edit [node#]
+  // /edit [node#]  — node# is the displayed order number shown in brackets
   const g = activeGroup();
   if (!g) { statusMsg('No active group.'); return; }
   const n = parseInt(rest);
   if (isNaN(n)) { statusMsg('Usage: /edit [node#]'); return; }
-  const allNodes = nodesForGroup(g.id);
+  const allNodes = displayedNodes(g.id);
   const node = allNodes[n - 1];
   if (!node) { statusMsg('Node #' + n + ' not found.'); return; }
   openEditModal(node.id);
 }
 
 function cmdDelete(rest) {
-  // /delete [node#]
+  // /delete [node#]  — node# is the displayed order number shown in brackets
   const g = activeGroup();
   if (!g) { statusMsg('No active group.'); return; }
   const n = parseInt(rest);
   if (isNaN(n)) { statusMsg('Usage: /delete [node#]'); return; }
-  const allNodes = nodesForGroup(g.id);
+  const allNodes = displayedNodes(g.id);
   const node = allNodes[n - 1];
   if (!node) { statusMsg('Node #' + n + ' not found.'); return; }
   deleteNode(node.id);
@@ -1420,9 +1475,9 @@ function showHelp() {
     '── GOAL NODES ───────────────────────────────────────────',
     '/strategy [title]            add top-level Strategy',
     '/objective [title]           add top-level Objective',
-    '/exec [col#] [title]         add Execution item under col#',
-    '/kr [col#] [title]           add Key Result under col#',
-    '/task [col#] [title]         add Task under col#',
+    '/exec [node#] [title]        add Execution item (node# must be a strategy)',
+    '/kr [node#] [title]          add Key Result (node# must be an objective)',
+    '/task [node#] [title]        add Task (node# must be a strategy/objective)',
     '/edit [node#]                open edit modal for node',
     '/delete [node#]              delete node (and children)',
     '',
@@ -1430,6 +1485,8 @@ function showHelp() {
     '/rag [node#] [g|a|r]         quick RAG update',
     '/pulse [node#] [g|a|r] [text]  add pulse with narrative',
     '/tag [node#] [loe name]      toggle LOE tag on a node',
+    '  node# = [N] shown on each item in display order',
+    '  for /exec /kr /task: use the column header node# (strategy/objective)',
     '',
     '── DATA ─────────────────────────────────────────────────',
     '/export                      export current group as JSON',
@@ -1451,7 +1508,7 @@ function showHelp() {
     '── NAVIGATION ───────────────────────────────────────────',
     'Click any column header or item → open edit modal',
     'Click "+ Add item" → pre-fill console with /exec or /kr',
-    'Click LOE badge in top row → (future: filter view)',
+    'Click LOE badge in top row → filter view by LOE; click again to clear',
   ].join('\n');
   const overlay = document.getElementById('help-overlay');
   overlay.classList.add('visible');
