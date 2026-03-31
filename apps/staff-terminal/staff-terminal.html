@@ -607,11 +607,12 @@ function loadDB() {
       m.id   = m.id   || uid();
       m.type = m.type || 'other';
     });
+    const dateOnlyPattern = /^\d{4}-\d{2}-\d{2}$/;
     s.notes.forEach(n => {
       n.id       = n.id       || uid();
       n.noteType = n.noteType || 'general';
       // Migrate date-only strings to ISO datetime; noon UTC avoids date shifts across all timezones
-      if (n.date && /^\d{4}-\d{2}-\d{2}$/.test(n.date)) {
+      if (n.date && dateOnlyPattern.test(n.date)) {
         n.date = n.date + 'T12:00:00.000Z';
       }
     });
@@ -1068,7 +1069,9 @@ function renderSidePanel() {
     let timeDisplay;
     if (n.date && n.date.includes('T')) {
       const d = new Date(n.date);
-      timeDisplay = d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false });
+      timeDisplay = isNaN(d.getTime())
+        ? n.date.slice(0, 10)
+        : d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false });
     } else {
       timeDisplay = n.date || '';
     }
@@ -1162,7 +1165,7 @@ function advanceStaffSetup() {
       milestones: [], notes: [], ldps: []
     };
     if (s.draft._note) {
-      newStaff.notes.push({ id: uid(), date: todayStr(), text: s.draft._note, noteType: 'general' });
+      newStaff.notes.push({ id: uid(), date: nowIso(), text: s.draft._note, noteType: 'general' });
     }
     db.staff.push(newStaff);
     db.activeStaffId = newStaff.id;
@@ -1647,8 +1650,11 @@ function cmdMilestone(arg) {
   let rest = arg;
   const dateMatch = rest.match(/^(\d{4}-\d{2}-\d{2})\s+/);
   if (dateMatch) {
-    date = dateMatch[1];
-    rest = rest.slice(dateMatch[0].length);
+    const parsed = new Date(dateMatch[1]);
+    if (!isNaN(parsed.getTime())) {
+      date = dateMatch[1];
+      rest = rest.slice(dateMatch[0].length);
+    }
   }
 
   // Check for type prefix: /milestone promotion: text
@@ -1888,7 +1894,7 @@ function openNoteDialog(noteId) {
     body.style.whiteSpace = 'normal';
 
     const fullDate = n.date.includes('T')
-      ? new Date(n.date).toLocaleString()
+      ? (() => { const d = new Date(n.date); return isNaN(d.getTime()) ? n.date : d.toLocaleString(); })()
       : n.date;
 
     const typeBtns = NOTE_TYPES.map(t =>
