@@ -225,7 +225,7 @@ html, body {
   gap: 6px;
   padding: 2px 0;
   font-size: 0.82em;
-  cursor: default;
+  cursor: pointer;
   line-height: 1.3;
 }
 .milestone-date { color: var(--dim); flex-shrink: 0; font-size: 0.9em; }
@@ -238,7 +238,7 @@ html, body {
   border-bottom: 1px solid var(--muted);
   font-size: 0.82em;
   line-height: 1.35;
-  cursor: default;
+  cursor: pointer;
 }
 .note-item:last-child { border-bottom: none; }
 .note-header { display: flex; gap: 6px; align-items: baseline; flex-wrap: wrap; }
@@ -403,6 +403,62 @@ html, body {
 }
 #ldp-year-strip .yr-tab:hover { color: var(--fg); }
 #ldp-year-strip .yr-tab.active { border-color: var(--accent); color: var(--accent); }
+
+/* ═══════════════════════════════════════════════
+   DIALOG STYLES
+   ═══════════════════════════════════════════════ */
+.dlg-btn {
+  background: transparent; border: 1px solid var(--border); color: var(--fg);
+  font-family: var(--font); font-size: 0.85em; padding: 3px 10px;
+  cursor: pointer; margin-right: 6px;
+}
+.dlg-btn:hover { background: var(--muted); }
+.dlg-btn-danger { border-color: var(--accent); color: var(--accent); }
+.dlg-btn-primary { border-color: var(--success); color: var(--success); }
+.dlg-input {
+  background: var(--muted); border: 1px solid var(--border); color: var(--fg);
+  font-family: var(--font); font-size: 0.9em; padding: 4px 8px; width: 100%;
+  margin: 3px 0; outline: none;
+}
+.dlg-input:focus { border-color: var(--accent); }
+.dlg-textarea {
+  background: var(--muted); border: 1px solid var(--border); color: var(--fg);
+  font-family: var(--font); font-size: 0.9em; padding: 4px 8px; width: 100%;
+  margin: 3px 0; outline: none; resize: vertical; min-height: 80px;
+}
+.dlg-section { margin-top: 10px; }
+.dlg-label { font-size: 0.75em; color: var(--dim); letter-spacing: 1px; margin-bottom: 3px; }
+.dlg-type-btn {
+  background: transparent; border: 1px solid var(--dim); color: var(--dim);
+  font-family: var(--font); font-size: 0.75em; padding: 2px 7px;
+  cursor: pointer; margin-right: 4px; margin-bottom: 4px;
+}
+.dlg-type-btn.active { border-color: var(--accent); color: var(--accent); }
+.action-item {
+  display: flex; align-items: center; gap: 6px; padding: 2px 0;
+  font-size: 0.85em;
+}
+.action-check { cursor: pointer; color: var(--dim); flex-shrink: 0; }
+.action-check.done { color: var(--success); }
+.action-text { flex: 1; }
+.action-text.done { text-decoration: line-through; color: var(--dim); }
+.action-del { cursor: pointer; color: var(--dim); flex-shrink: 0; font-size: 0.8em; }
+.action-del:hover { color: var(--accent); }
+.profile-section {
+  font-size: 0.78em; padding: 4px 0 6px; border-bottom: 1px solid var(--muted);
+  margin-bottom: 6px; cursor: pointer;
+}
+.profile-section:hover { opacity: 0.85; }
+.profile-label { color: var(--accent); font-size: 0.72em; letter-spacing: 2px; margin-bottom: 2px; }
+.profile-items { color: var(--fg); }
+.highlights-section {
+  margin-top: 6px; border-top: 1px solid var(--muted); padding-top: 4px;
+}
+.highlights-label { font-size: 0.72em; letter-spacing: 2px; color: var(--dim); margin-bottom: 2px; }
+.highlights-item { font-size: 0.78em; color: var(--fg); padding: 1px 0; }
+.milestone-del { cursor: pointer; color: var(--dim); font-size: 0.8em; flex-shrink: 0; margin-left: 4px; }
+.milestone-del:hover { color: var(--accent); }
+.milestone-item:hover .milestone-text { color: var(--accent); }
 </style>
 </head>
 <body>
@@ -454,13 +510,13 @@ html, body {
   <!-- MIDDLE ROW -->
   <div id="main-row">
 
-    <!-- MAIN PANEL — LDP + MILESTONES -->
+    <!-- MAIN PANEL — MILESTONES + LDP -->
     <div id="main-panel">
-      <div class="row-header">◈ LDP GOALS + MILESTONES</div>
-      <div id="ldp-year-strip"></div>
-      <div id="goals-list"></div>
-      <div class="sub-header" id="milestones-header" style="display:none;">▸ RECENT MILESTONES</div>
+      <div class="row-header">◈ MILESTONES + LDP GOALS</div>
+      <div id="ldp-year-strip" style="display:none;"></div>
+      <div class="sub-header" id="milestones-header" style="display:none;">▸ MILESTONES</div>
       <div id="milestones-list"></div>
+      <div id="goals-list"></div>
     </div>
 
     <!-- SIDE PANEL — NOTES -->
@@ -551,9 +607,14 @@ function loadDB() {
       m.id   = m.id   || uid();
       m.type = m.type || 'other';
     });
+    const dateOnlyPattern = /^\d{4}-\d{2}-\d{2}$/;
     s.notes.forEach(n => {
       n.id       = n.id       || uid();
       n.noteType = n.noteType || 'general';
+      // Migrate date-only strings to ISO datetime; noon UTC avoids date shifts across all timezones
+      if (n.date && dateOnlyPattern.test(n.date)) {
+        n.date = n.date + 'T12:00:00.000Z';
+      }
     });
     s.ldps.forEach(l => {
       l.id         = l.id         || uid();
@@ -564,6 +625,8 @@ function loadDB() {
         g.actions    = g.actions    || [];
         g.status     = g.status     || 'active';
         g.targetDate = g.targetDate || '';
+        // Migrate string actions to objects
+        g.actions = g.actions.map(a => typeof a === 'string' ? { text: a, done: false } : a);
       });
     });
   });
@@ -582,6 +645,10 @@ function uid() {
 
 function todayStr() {
   return new Date().toISOString().slice(0, 10);
+}
+
+function nowIso() {
+  return new Date().toISOString();
 }
 
 function escHtml(s) {
@@ -749,7 +816,7 @@ function setHighlightCard(id, label, value, dim) {
 }
 
 /* ═══════════════════════════════════════════════════════════════════
-   RENDER — MAIN PANEL (LDP + MILESTONES)
+   RENDER — MAIN PANEL (MILESTONES + LDP)
    ═══════════════════════════════════════════════════════════════════ */
 function renderMainPanel() {
   const s = getActiveStaff();
@@ -768,9 +835,65 @@ function renderMainPanel() {
     return;
   }
 
-  // Year strip
+  // Milestones FIRST — show ALL
+  if (s.milestones.length) {
+    mHdrEl.style.display = 'block';
+    mHdrEl.textContent = '▸ MILESTONES';
+    const sorted = [...s.milestones].sort((a, b) => b.date.localeCompare(a.date));
+    sorted.forEach(m => {
+      const div = document.createElement('div');
+      div.className = 'milestone-item';
+      const icon = MILESTONE_ICONS[m.type] || '·';
+      const dateDisplay = m.date.length > 10 ? m.date.slice(0, 10) : m.date;
+      div.innerHTML = `
+        <span class="milestone-date">${escHtml(dateDisplay)}</span>
+        <span class="milestone-type mt-${escHtml(m.type)}">${escHtml(icon)}</span>
+        <span class="milestone-text">${escHtml(m.text)}</span>
+        <span class="milestone-del" data-milestone-id="${escHtml(m.id)}" title="Delete">×</span>`;
+      addTooltip(div.querySelector('.milestone-text'), `${m.type.toUpperCase()}: ${m.text}\n${dateDisplay}`);
+      const delBtn = div.querySelector('.milestone-del');
+      delBtn.addEventListener('click', e => {
+        e.stopPropagation();
+        deleteMilestone(m.id);
+      });
+      div.addEventListener('click', e => {
+        if (e.target === delBtn) return;
+        openMilestoneDialog(m.id);
+      });
+      mListEl.appendChild(div);
+    });
+  }
+
+  // LDP section header
+  const ldpHdrDiv = document.createElement('div');
+  ldpHdrDiv.className = 'sub-header';
+  ldpHdrDiv.id = 'ldp-goals-header';
+  ldpHdrDiv.style.marginTop = s.milestones.length ? '8px' : '0';
+  goalsEl.appendChild(ldpHdrDiv);
+
+  // Year strip (inside goals-list area)
+  const yearDiv = document.createElement('div');
+  yearDiv.id = 'ldp-year-strip-inner';
+  yearDiv.style.fontSize = '0.72em';
+  yearDiv.style.letterSpacing = '1px';
+  yearDiv.style.color = 'var(--dim)';
+  yearDiv.style.marginBottom = '4px';
   const years = [...new Set([...s.ldps.map(l => l.year), currentYear()])].sort((a,b) => b - a);
   const activeYr = getViewYear();
+
+  ldpHdrDiv.textContent = '▸ LDP GOALS — ' + activeYr;
+
+  years.forEach(yr => {
+    const span = document.createElement('span');
+    span.className = 'yr-tab' + (yr === activeYr ? ' active' : '');
+    span.textContent = yr;
+    span.addEventListener('click', () => { viewingLdpYear = yr; render(); });
+    yearDiv.appendChild(span);
+    yearDiv.appendChild(document.createTextNode(' '));
+  });
+  goalsEl.appendChild(yearDiv);
+
+  // Also populate the original ldp-year-strip for consistency
   years.forEach(yr => {
     const span = document.createElement('span');
     span.className = 'yr-tab' + (yr === activeYr ? ' active' : '');
@@ -783,7 +906,10 @@ function renderMainPanel() {
   const ldp = getLdpForYear(s, activeYr);
 
   if (!ldp || !ldp.goals.length) {
-    goalsEl.innerHTML = '<div class="empty-msg">No goals for ' + activeYr + '. Use /ldp to build a plan or /goal &lt;text&gt; to quick-add.</div>';
+    const empty = document.createElement('div');
+    empty.className = 'empty-msg';
+    empty.textContent = 'No goals for ' + activeYr + '. Use /ldp to build a plan or /goal <text> to quick-add.';
+    goalsEl.appendChild(empty);
   } else {
     ldp.goals.forEach((g, idx) => {
       const div = document.createElement('div');
@@ -792,40 +918,105 @@ function renderMainPanel() {
       const statusIcon = g.status === 'completed' ? '✓' : g.status === 'deferred' ? '○' : '●';
       const statusCls  = g.status === 'completed' ? 'completed' : g.status === 'deferred' ? 'deferred' : '';
 
-      const actionsStr = g.actions.length ? '→ ' + g.actions.join(' · ') : '';
+      const doneActions = g.actions.filter(a => a.done).length;
+      const totalActions = g.actions.length;
+      const actionsStr = totalActions > 0
+        ? '→ ' + g.actions.map(a => (a.done ? '✓' : '·') + ' ' + a.text).join(' | ')
+        : '';
       const targetStr  = g.targetDate ? g.targetDate : '';
 
       div.innerHTML = `
-        <span class="goal-status ${statusCls}">${escHtml(statusIcon)}</span>
+        <span class="goal-status ${statusCls}" data-goal-id="${escHtml(g.id)}">${escHtml(statusIcon)}</span>
         <div class="goal-body">
           <div class="goal-text">${escHtml('#' + (idx + 1) + ' ' + g.text)}</div>
           ${actionsStr ? `<div class="goal-actions">${escHtml(actionsStr)}</div>` : ''}
         </div>
         ${targetStr ? `<span class="goal-meta">${escHtml(targetStr)}</span>` : ''}`;
 
-      const tip = `Goal #${idx + 1}: ${g.text}\nStatus: ${g.status}${g.targetDate ? '\nTarget: ' + g.targetDate : ''}${g.actions.length ? '\nActions:\n  ' + g.actions.join('\n  ') : ''}`;
+      const actionTip = g.actions.length
+        ? '\nActions:\n' + g.actions.map(a => '  ' + (a.done ? '✓' : '·') + ' ' + a.text).join('\n')
+        : '';
+      const tip = `Goal #${idx + 1}: ${g.text}\nStatus: ${g.status}${g.targetDate ? '\nTarget: ' + g.targetDate : ''}${actionTip}`;
       addTooltip(div, tip);
+
+      // Status icon cycles status without opening dialog
+      const statusEl = div.querySelector('.goal-status');
+      statusEl.addEventListener('click', e => {
+        e.stopPropagation();
+        const nextStatus = { active: 'completed', completed: 'deferred', deferred: 'active' };
+        g.status = nextStatus[g.status] || 'active';
+        saveDB();
+        render();
+      });
+
+      // Clicking the goal opens the edit dialog
+      div.addEventListener('click', e => {
+        if (e.target === statusEl) return;
+        openGoalDialog(g.id);
+      });
+
       goalsEl.appendChild(div);
     });
   }
 
-  // Milestones (last 5)
-  if (s.milestones.length) {
-    mHdrEl.style.display = 'block';
-    const recent = [...s.milestones]
-      .sort((a, b) => b.date.localeCompare(a.date))
-      .slice(0, 5);
-    recent.forEach(m => {
-      const div = document.createElement('div');
-      div.className = 'milestone-item';
-      const icon = MILESTONE_ICONS[m.type] || '·';
-      div.innerHTML = `
-        <span class="milestone-date">${escHtml(m.date)}</span>
-        <span class="milestone-type mt-${escHtml(m.type)}">${escHtml(icon)}</span>
-        <span class="milestone-text">${escHtml(m.text)}</span>`;
-      addTooltip(div, `${m.type.toUpperCase()}: ${m.text}\n${m.date}`);
-      mListEl.appendChild(div);
-    });
+  // Highlights section at bottom
+  if (ldp && ldp.highlights) {
+    const h = ldp.highlights;
+    const hasH = (h.contributions && h.contributions.length) ||
+                 (h.goalsAchieved && h.goalsAchieved.length) ||
+                 (h.actions && h.actions.length);
+    if (hasH) {
+      const hlDiv = document.createElement('div');
+      hlDiv.className = 'highlights-section';
+      const hlLabel = document.createElement('div');
+      hlLabel.className = 'highlights-label';
+      hlLabel.textContent = '▸ HIGHLIGHTS';
+      hlDiv.appendChild(hlLabel);
+
+      if (h.contributions && h.contributions.length) {
+        const lbl = document.createElement('div');
+        lbl.style.fontSize = '0.72em';
+        lbl.style.color = 'var(--accent)';
+        lbl.style.marginTop = '3px';
+        lbl.textContent = 'CONTRIBUTIONS';
+        hlDiv.appendChild(lbl);
+        h.contributions.forEach(c => {
+          const item = document.createElement('div');
+          item.className = 'highlights-item';
+          item.textContent = '· ' + c;
+          hlDiv.appendChild(item);
+        });
+      }
+      if (h.goalsAchieved && h.goalsAchieved.length) {
+        const lbl = document.createElement('div');
+        lbl.style.fontSize = '0.72em';
+        lbl.style.color = 'var(--accent)';
+        lbl.style.marginTop = '3px';
+        lbl.textContent = 'GOALS ACHIEVED';
+        hlDiv.appendChild(lbl);
+        h.goalsAchieved.forEach(c => {
+          const item = document.createElement('div');
+          item.className = 'highlights-item';
+          item.textContent = '· ' + c;
+          hlDiv.appendChild(item);
+        });
+      }
+      if (h.actions && h.actions.length) {
+        const lbl = document.createElement('div');
+        lbl.style.fontSize = '0.72em';
+        lbl.style.color = 'var(--accent)';
+        lbl.style.marginTop = '3px';
+        lbl.textContent = 'NOTABLE ACTIONS';
+        hlDiv.appendChild(lbl);
+        h.actions.forEach(c => {
+          const item = document.createElement('div');
+          item.className = 'highlights-item';
+          item.textContent = '· ' + c;
+          hlDiv.appendChild(item);
+        });
+      }
+      goalsEl.appendChild(hlDiv);
+    }
   }
 }
 
@@ -837,8 +1028,35 @@ function renderSidePanel() {
   const listEl = document.getElementById('notes-list');
   listEl.innerHTML = '';
 
+  // Profile section at top
+  if (s && (s.strengths.length || s.developmentAreas.length)) {
+    const profileDiv = document.createElement('div');
+    profileDiv.className = 'profile-section';
+    const lbl = document.createElement('div');
+    lbl.className = 'profile-label';
+    lbl.textContent = '◈ PROFILE';
+    profileDiv.appendChild(lbl);
+    if (s.strengths.length) {
+      const row = document.createElement('div');
+      row.className = 'profile-items';
+      row.textContent = 'STRENGTHS: · ' + s.strengths.join(' · ');
+      profileDiv.appendChild(row);
+    }
+    if (s.developmentAreas.length) {
+      const row = document.createElement('div');
+      row.className = 'profile-items';
+      row.textContent = 'GROWTH: · ' + s.developmentAreas.join(' · ');
+      profileDiv.appendChild(row);
+    }
+    profileDiv.addEventListener('click', () => openProfileDialog());
+    listEl.appendChild(profileDiv);
+  }
+
   if (!s || !s.notes.length) {
-    listEl.innerHTML = '<div class="empty-msg">No notes. Use /note &lt;text&gt;.</div>';
+    const emptyDiv = document.createElement('div');
+    emptyDiv.className = 'empty-msg';
+    emptyDiv.textContent = 'No notes. Use /note <text>.';
+    listEl.appendChild(emptyDiv);
     return;
   }
 
@@ -847,13 +1065,24 @@ function renderSidePanel() {
     const div = document.createElement('div');
     div.className = 'note-item';
     const abbr = NOTE_TYPE_ABBR[n.noteType] || 'GEN';
+    // Show HH:MM from ISO string (date portion for older entries)
+    let timeDisplay;
+    if (n.date && n.date.includes('T')) {
+      const d = new Date(n.date);
+      timeDisplay = isNaN(d.getTime())
+        ? n.date.slice(0, 10)
+        : d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false });
+    } else {
+      timeDisplay = n.date || '';
+    }
     div.innerHTML = `
       <div class="note-header">
-        <span class="note-date">${escHtml(n.date)}</span>
+        <span class="note-date">${escHtml(timeDisplay)}</span>
         <span class="note-type-badge nt-${escHtml(n.noteType)}">${escHtml(abbr)}</span>
       </div>
       <div class="note-text">${escHtml(n.text)}</div>`;
     addTooltip(div, `[${n.date}] ${n.noteType.toUpperCase()}\n${n.text}`);
+    div.addEventListener('click', () => openNoteDialog(n.id));
     listEl.appendChild(div);
   });
 }
@@ -936,7 +1165,7 @@ function advanceStaffSetup() {
       milestones: [], notes: [], ldps: []
     };
     if (s.draft._note) {
-      newStaff.notes.push({ id: uid(), date: todayStr(), text: s.draft._note, noteType: 'general' });
+      newStaff.notes.push({ id: uid(), date: nowIso(), text: s.draft._note, noteType: 'general' });
     }
     db.staff.push(newStaff);
     db.activeStaffId = newStaff.id;
@@ -1138,7 +1367,7 @@ function handleLdpBuilderInput(inp) {
       w.phase = 4; advanceLdpBuilder(); return;
     }
     if (inp.trim()) {
-      w.currentGoal.actions.push(inp.trim());
+      w.currentGoal.actions.push({ text: inp.trim(), done: false });
       bootLog('info', '  → Action: "' + inp.trim() + '"');
     }
     return;
@@ -1389,32 +1618,59 @@ function cmdNote(arg) {
     return;
   }
 
-  if (!arg) { statusMsg('Usage: /note <text>  or /note list  or /note type <type>'); return; }
+  if (!arg) { statusMsg('Usage: /note [type:] <text>  or /note list  or /note type <type>'); return; }
 
-  s.notes.push({ id: uid(), date: todayStr(), text: arg, noteType: activeNoteType });
+  // Support inline type prefix: /note meeting: team sync
+  let noteType = activeNoteType;
+  let noteText = arg;
+  for (const t of NOTE_TYPES) {
+    if (arg.toLowerCase().startsWith(t + ':')) {
+      noteType = t;
+      noteText = arg.slice(t.length + 1).trim();
+      break;
+    }
+  }
+
+  if (!noteText) { statusMsg('Note text cannot be empty.'); return; }
+
+  s.notes.push({ id: uid(), date: nowIso(), text: noteText, noteType });
   saveDB();
   render();
-  statusMsg('Note added (' + activeNoteType + ')');
+  statusMsg('Note added (' + noteType + ')');
 }
 
 /* ─── /milestone ─── */
 function cmdMilestone(arg) {
   const s = getActiveStaff();
   if (!s) { statusMsg('No staff loaded.'); return; }
-  if (!arg) { statusMsg('Usage: /milestone <text>'); return; }
+  if (!arg) { statusMsg('Usage: /milestone [YYYY-MM-DD] [type:] <text>'); return; }
+
+  // Support optional date prefix: /milestone 2025-01-15 achievement: text
+  let date = todayStr();
+  let rest = arg;
+  const dateMatch = rest.match(/^(\d{4}-\d{2}-\d{2})\s+/);
+  if (dateMatch) {
+    const parsed = new Date(dateMatch[1]);
+    if (!isNaN(parsed.getTime())) {
+      date = dateMatch[1];
+      rest = rest.slice(dateMatch[0].length);
+    }
+  }
 
   // Check for type prefix: /milestone promotion: text
   let type = 'achievement';
-  let text = arg;
+  let text = rest;
   for (const t of MILESTONE_TYPES) {
-    if (arg.toLowerCase().startsWith(t + ':')) {
+    if (rest.toLowerCase().startsWith(t + ':')) {
       type = t;
-      text = arg.slice(t.length + 1).trim();
+      text = rest.slice(t.length + 1).trim();
       break;
     }
   }
 
-  s.milestones.push({ id: uid(), date: todayStr(), text, type });
+  if (!text) { statusMsg('Milestone text cannot be empty.'); return; }
+
+  s.milestones.push({ id: uid(), date, text, type });
   saveDB();
   render();
   statusMsg('Milestone added: ' + MILESTONE_ICONS[type] + ' ' + text);
@@ -1462,6 +1718,297 @@ function changeGoalStatus(s, yr, n, status) {
   statusMsg('Goal #' + n + ' marked ' + status + '.');
 }
 
+/* ─── deleteMilestone ─── */
+function deleteMilestone(id) {
+  const s = getActiveStaff();
+  if (!s) return;
+  s.milestones = s.milestones.filter(m => m.id !== id);
+  saveDB();
+  render();
+  statusMsg('Milestone deleted.');
+}
+
+/* ─── openMilestoneDialog ─── */
+function openMilestoneDialog(id) {
+  const s = getActiveStaff();
+  if (!s) return;
+  const m = s.milestones.find(x => x.id === id);
+  if (!m) return;
+  showOverlay('◈ MILESTONE', () => {
+    const body = document.getElementById('help-body');
+    body.style.whiteSpace = 'normal';
+    body.innerHTML = `
+      <div class="dlg-section">
+        <div class="dlg-label">TYPE</div>
+        <div>${escHtml(m.type.toUpperCase())} ${escHtml(MILESTONE_ICONS[m.type] || '·')}</div>
+      </div>
+      <div class="dlg-section">
+        <div class="dlg-label">DATE</div>
+        <div>${escHtml(m.date.slice(0, 10))}</div>
+      </div>
+      <div class="dlg-section">
+        <div class="dlg-label">TEXT</div>
+        <div>${escHtml(m.text)}</div>
+      </div>
+      <div class="dlg-section" style="margin-top:14px;">
+        <button class="dlg-btn dlg-btn-danger" id="dlg-m-del">Delete Milestone</button>
+        <button class="dlg-btn" id="dlg-m-close">Close</button>
+      </div>`;
+    document.getElementById('dlg-m-del').addEventListener('click', () => {
+      deleteMilestone(id);
+      closeOverlay();
+    });
+    document.getElementById('dlg-m-close').addEventListener('click', closeOverlay);
+  });
+}
+
+/* ─── openGoalDialog ─── */
+function openGoalDialog(goalId) {
+  const s = getActiveStaff();
+  if (!s) return;
+  const yr = getViewYear();
+  const ldp = getLdpForYear(s, yr);
+  if (!ldp) return;
+  const g = ldp.goals.find(x => x.id === goalId);
+  if (!g) return;
+
+  // Working copy of actions
+  let localActions = g.actions.map(a => ({ text: a.text, done: a.done }));
+
+  function renderGoalDlg() {
+    const body = document.getElementById('help-body');
+    body.style.whiteSpace = 'normal';
+
+    const statusBtns = ['active','completed','deferred'].map(st =>
+      `<button class="dlg-type-btn${g.status === st ? ' active' : ''}" data-status="${escHtml(st)}">${escHtml(st.toUpperCase())}</button>`
+    ).join('');
+
+    const actionsHtml = localActions.map((a, i) =>
+      `<div class="action-item" data-action-idx="${i}">
+        <span class="action-check${a.done ? ' done' : ''}" data-check="${i}">${a.done ? '✓' : '·'}</span>
+        <span class="action-text${a.done ? ' done' : ''}">${escHtml(a.text)}</span>
+        <span class="action-del" data-del="${i}">×</span>
+      </div>`
+    ).join('');
+
+    body.innerHTML = `
+      <div class="dlg-section">
+        <div class="dlg-label">GOAL TEXT</div>
+        <input class="dlg-input" id="dlg-goal-text" type="text" value="${escHtml(g.text)}">
+      </div>
+      <div class="dlg-section">
+        <div class="dlg-label">TARGET DATE</div>
+        <input class="dlg-input" id="dlg-goal-date" type="text" value="${escHtml(g.targetDate)}" placeholder="YYYY-MM-DD">
+      </div>
+      <div class="dlg-section">
+        <div class="dlg-label">STATUS</div>
+        <div>${statusBtns}</div>
+      </div>
+      <div class="dlg-section">
+        <div class="dlg-label">ACTIONS</div>
+        <div id="dlg-actions-list">${actionsHtml}</div>
+        <div style="display:flex;gap:6px;margin-top:4px;">
+          <input class="dlg-input" id="dlg-new-action" type="text" placeholder="Add action…" style="flex:1;margin:0;">
+          <button class="dlg-btn" id="dlg-add-action">+</button>
+        </div>
+      </div>
+      <div class="dlg-section" style="margin-top:14px;">
+        <button class="dlg-btn dlg-btn-primary" id="dlg-goal-save">Save</button>
+        <button class="dlg-btn dlg-btn-danger" id="dlg-goal-delete">Delete Goal</button>
+        <button class="dlg-btn" id="dlg-goal-close">Cancel</button>
+      </div>`;
+
+    // Status buttons
+    body.querySelectorAll('[data-status]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        g.status = btn.dataset.status;
+        renderGoalDlg();
+      });
+    });
+
+    // Action check toggle
+    body.querySelectorAll('[data-check]').forEach(el => {
+      el.addEventListener('click', () => {
+        const idx = parseInt(el.dataset.check);
+        localActions[idx].done = !localActions[idx].done;
+        renderGoalDlg();
+      });
+    });
+
+    // Action delete
+    body.querySelectorAll('[data-del]').forEach(el => {
+      el.addEventListener('click', () => {
+        const idx = parseInt(el.dataset.del);
+        localActions.splice(idx, 1);
+        renderGoalDlg();
+      });
+    });
+
+    // Add action
+    document.getElementById('dlg-add-action').addEventListener('click', () => {
+      const val = document.getElementById('dlg-new-action').value.trim();
+      if (val) {
+        localActions.push({ text: val, done: false });
+        renderGoalDlg();
+      }
+    });
+    document.getElementById('dlg-new-action').addEventListener('keydown', e => {
+      if (e.key === 'Enter') document.getElementById('dlg-add-action').click();
+    });
+
+    // Save
+    document.getElementById('dlg-goal-save').addEventListener('click', () => {
+      g.text = document.getElementById('dlg-goal-text').value.trim() || g.text;
+      g.targetDate = document.getElementById('dlg-goal-date').value.trim();
+      g.actions = localActions;
+      saveDB();
+      render();
+      closeOverlay();
+      statusMsg('Goal updated.');
+    });
+
+    // Delete
+    document.getElementById('dlg-goal-delete').addEventListener('click', () => {
+      ldp.goals = ldp.goals.filter(x => x.id !== goalId);
+      saveDB();
+      render();
+      closeOverlay();
+      statusMsg('Goal deleted.');
+    });
+
+    document.getElementById('dlg-goal-close').addEventListener('click', closeOverlay);
+  }
+
+  showOverlay('◈ GOAL — ' + escHtml(g.text.slice(0, 40)) + (g.text.length > 40 ? '…' : ''), renderGoalDlg);
+}
+
+/* ─── openNoteDialog ─── */
+function openNoteDialog(noteId) {
+  const s = getActiveStaff();
+  if (!s) return;
+  const n = s.notes.find(x => x.id === noteId);
+  if (!n) return;
+
+  function renderNoteDlg() {
+    const body = document.getElementById('help-body');
+    body.style.whiteSpace = 'normal';
+
+    const fullDate = n.date.includes('T')
+      ? (() => { const d = new Date(n.date); return isNaN(d.getTime()) ? n.date : d.toLocaleString(); })()
+      : n.date;
+
+    const typeBtns = NOTE_TYPES.map(t =>
+      `<button class="dlg-type-btn${n.noteType === t ? ' active' : ''}" data-type="${escHtml(t)}">${escHtml(t.toUpperCase())}</button>`
+    ).join('');
+
+    body.innerHTML = `
+      <div class="dlg-section">
+        <div class="dlg-label">DATE / TIME</div>
+        <div style="font-size:0.85em;color:var(--dim);">${escHtml(fullDate)}</div>
+      </div>
+      <div class="dlg-section">
+        <div class="dlg-label">TYPE</div>
+        <div>${typeBtns}</div>
+      </div>
+      <div class="dlg-section">
+        <div class="dlg-label">NOTE TEXT</div>
+        <textarea class="dlg-textarea" id="dlg-note-text">${escHtml(n.text)}</textarea>
+      </div>
+      <div class="dlg-section" style="margin-top:14px;">
+        <button class="dlg-btn dlg-btn-primary" id="dlg-note-save">Save</button>
+        <button class="dlg-btn dlg-btn-danger" id="dlg-note-delete">Delete Note</button>
+        <button class="dlg-btn" id="dlg-note-close">Cancel</button>
+      </div>`;
+
+    // Type buttons
+    body.querySelectorAll('[data-type]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        n.noteType = btn.dataset.type;
+        renderNoteDlg();
+      });
+    });
+
+    // Save
+    document.getElementById('dlg-note-save').addEventListener('click', () => {
+      const newText = document.getElementById('dlg-note-text').value.trim();
+      if (newText) n.text = newText;
+      saveDB();
+      render();
+      closeOverlay();
+      statusMsg('Note updated.');
+    });
+
+    // Delete
+    document.getElementById('dlg-note-delete').addEventListener('click', () => {
+      s.notes = s.notes.filter(x => x.id !== noteId);
+      saveDB();
+      render();
+      closeOverlay();
+      statusMsg('Note deleted.');
+    });
+
+    document.getElementById('dlg-note-close').addEventListener('click', closeOverlay);
+  }
+
+  showOverlay('◈ NOTE', renderNoteDlg);
+}
+
+/* ─── openProfileDialog ─── */
+function openProfileDialog() {
+  const s = getActiveStaff();
+  if (!s) return;
+  showOverlay('◈ PROFILE — ' + escHtml(s.name.toUpperCase()), () => {
+    const body = document.getElementById('help-body');
+    body.style.whiteSpace = 'normal';
+    body.innerHTML = `
+      <div class="dlg-section">
+        <div class="dlg-label">NAME</div>
+        <div>${escHtml(s.name)}</div>
+      </div>
+      <div class="dlg-section">
+        <div class="dlg-label">TITLE</div>
+        <div>${escHtml(s.title || '—')}</div>
+      </div>
+      <div class="dlg-section">
+        <div class="dlg-label">TEAM</div>
+        <div>${escHtml(s.team || '—')}</div>
+      </div>
+      <div class="dlg-section">
+        <div class="dlg-label">MANAGER</div>
+        <div>${escHtml(s.manager || '—')}</div>
+      </div>
+      <div class="dlg-section">
+        <div class="dlg-label">START DATE</div>
+        <div>${escHtml(s.startDate || '—')}</div>
+      </div>
+      <div class="dlg-section">
+        <div class="dlg-label">STRENGTHS</div>
+        <textarea class="dlg-textarea" id="dlg-strengths">${escHtml(s.strengths.join('\n'))}</textarea>
+        <div style="font-size:0.75em;color:var(--dim);">one per line</div>
+      </div>
+      <div class="dlg-section">
+        <div class="dlg-label">DEVELOPMENT AREAS</div>
+        <textarea class="dlg-textarea" id="dlg-areas">${escHtml(s.developmentAreas.join('\n'))}</textarea>
+        <div style="font-size:0.75em;color:var(--dim);">one per line</div>
+      </div>
+      <div class="dlg-section" style="margin-top:14px;">
+        <button class="dlg-btn dlg-btn-primary" id="dlg-profile-save">Save</button>
+        <button class="dlg-btn" id="dlg-profile-close">Cancel</button>
+      </div>`;
+    document.getElementById('dlg-profile-save').addEventListener('click', () => {
+      const str = document.getElementById('dlg-strengths').value;
+      const areas = document.getElementById('dlg-areas').value;
+      s.strengths = str.split('\n').map(x => x.trim()).filter(Boolean);
+      s.developmentAreas = areas.split('\n').map(x => x.trim()).filter(Boolean);
+      saveDB();
+      render();
+      closeOverlay();
+      statusMsg('Profile updated.');
+    });
+    document.getElementById('dlg-profile-close').addEventListener('click', closeOverlay);
+  });
+}
+
 /* ─── /ldp ─── */
 function cmdLdp(arg) {
   const s = getActiveStaff();
@@ -1505,7 +2052,7 @@ function showLdpView(s, ldp) {
         <span style="color:${col}">${escHtml(icon)}</span>
         <strong> #${i+1} ${escHtml(g.text)}</strong>
         ${g.targetDate ? `<span style="color:var(--dim);font-size:0.82em;margin-left:8px;">${escHtml(g.targetDate)}</span>` : ''}
-        ${g.actions.length ? `<div style="color:var(--dim);font-size:0.82em;padding-left:16px;">→ ${escHtml(g.actions.join(' · '))}</div>` : ''}
+        ${g.actions.length ? `<div style="color:var(--dim);font-size:0.82em;padding-left:16px;">→ ${escHtml(g.actions.map(a => (a.done?'✓':'·')+' '+a.text).join(' | '))}</div>` : ''}
       </div>`);
     });
 
@@ -1564,7 +2111,7 @@ function cmdExport() {
     l.goals.forEach((g, i) => {
       const st = g.status === 'completed' ? '[✓]' : g.status === 'deferred' ? '[○]' : '[●]';
       lines.push(`${st} #${i+1} ${g.text}` + (g.targetDate ? ' (target: ' + g.targetDate + ')' : ''));
-      g.actions.forEach(a => lines.push('    → ' + a));
+      g.actions.forEach(a => lines.push('    → ' + (typeof a === 'string' ? a : (a.done ? '[✓] ' : '[ ] ') + a.text)));
     });
     if (l.highlights) {
       const h = l.highlights;
@@ -1634,16 +2181,24 @@ function showHelp() {
     '/find <name>             alias for /load',
     '/list                    list all staff members',
     '',
-    '/note <text>             add a dated note to the current staff member',
-    '/note list               show all notes',
-    '/note type <type>        set default note type: general|meeting|performance|concern|highlight',
+    '/note <text>             add a timestamped note (uses current datetime)',
+    '/note [type:] <text>     inline type prefix: /note meeting: team sync',
+    '/note list               show all notes in overlay',
+    '/note type <type>        set default type: general|meeting|performance|concern|highlight',
+    '  → click any note to view/edit/delete it',
     '',
-    '/milestone <text>        add a milestone  (prefix: achievement:|promotion:|certification:|other:)',
+    '/milestone <text>        add a milestone (default type: achievement)',
+    '/milestone [YYYY-MM-DD] [type:] <text>',
+    '  e.g. /milestone 2025-01-15 promotion: promoted to senior',
+    '  types: achievement|promotion|certification|other',
+    '  → click any milestone to view/delete it',
     '',
     '/goal <text>             quick-add an LDP goal to the current year',
     '/goal done <n>           mark goal #n as completed',
     '/goal defer <n>          mark goal #n as deferred',
     '/goal reopen <n>         re-open goal #n',
+    '  → click goal status icon to cycle status',
+    '  → click goal text to open edit dialog (edit, add actions, delete)',
     '',
     '/ldp                     start LDP builder walkthrough for current staff',
     '/ldp view                show current LDP in overlay',
