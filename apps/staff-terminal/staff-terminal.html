@@ -1873,7 +1873,7 @@ function openGoalDialog(goalId) {
     document.getElementById('dlg-goal-close').addEventListener('click', closeOverlay);
   }
 
-  showOverlay('◈ GOAL — ' + escHtml(g.text.slice(0, 40)), renderGoalDlg);
+  showOverlay('◈ GOAL — ' + escHtml(g.text.slice(0, 40)) + (g.text.length > 40 ? '…' : ''), renderGoalDlg);
 }
 
 /* ─── openNoteDialog ─── */
