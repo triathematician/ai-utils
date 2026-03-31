@@ -181,7 +181,7 @@ html, body {
    MAIN ROW — strategy/objective columns
    ═══════════════════════════════════════════════ */
 .strategy-col {
-  min-width: 220px; max-width: 260px; width: 240px;
+  min-width: 440px; max-width: 520px; width: 480px;
   border-right: 1px solid var(--border);
   display: flex; flex-direction: column;
   overflow: hidden; flex-shrink: 0;
@@ -347,7 +347,7 @@ textarea.field-input { resize: vertical; min-height: 50px; }
 .conf-btn.active { border-color: var(--accent); color: var(--accent); }
 
 /* ═══════════════════════════════════════════════
-   TOOLTIP
+   TOOLTIP / DETAIL PANEL
    ═══════════════════════════════════════════════ */
 #tooltip {
   position: fixed; display: none; background: var(--bg);
@@ -355,6 +355,21 @@ textarea.field-input { resize: vertical; min-height: 50px; }
   padding: 3px 8px; font-size: 0.72em; pointer-events: none;
   z-index: 200; white-space: nowrap;
 }
+#detail-panel {
+  position: fixed; display: none; background: var(--bg);
+  border: 1px solid var(--border); color: var(--fg);
+  padding: 10px 14px; font-size: 0.75em; pointer-events: none;
+  z-index: 200; max-width: 360px; line-height: 1.5;
+}
+.dp-type { font-size: 0.85em; letter-spacing: 1px; margin-bottom: 4px; }
+.dp-title { font-weight: bold; font-size: 1.05em; margin-bottom: 6px; word-break: break-word; }
+.dp-vision { font-style: italic; color: var(--fg); margin-bottom: 6px; word-break: break-word; }
+.dp-desc { color: var(--fg); margin-bottom: 6px; word-break: break-word; opacity: 0.85; }
+.dp-field { margin-bottom: 3px; }
+.dp-label { color: var(--dim); margin-right: 4px; }
+.dp-loes { display: flex; gap: 4px; flex-wrap: wrap; margin-top: 4px; }
+.dp-loe-chip { font-size: 0.85em; padding: 0 4px; border: 1px solid; }
+.dp-pulse { margin-top: 6px; padding-top: 6px; border-top: 1px solid var(--muted); font-size: 0.9em; color: var(--fg); opacity: 0.8; }
 </style>
 </head>
 <body>
@@ -414,6 +429,8 @@ textarea.field-input { resize: vertical; min-height: 50px; }
 
 <!-- ═══ TOOLTIP ═══ -->
 <div id="tooltip"></div>
+<!-- ═══ DETAIL PANEL ═══ -->
+<div id="detail-panel"></div>
 
 <script>
 /* ─── CONSTANTS ───────────────────────────────────────── */
@@ -456,7 +473,7 @@ function uid(prefix) {
 function todayStr() { return new Date().toISOString().slice(0,10); }
 
 function escHtml(str) {
-  return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
 
 function downloadBlob(content, filename, type) {
@@ -693,7 +710,14 @@ function buildColumn(node, colNum) {
 
   hdr.appendChild(typeLine);
   hdr.appendChild(titleEl);
+  if (node.vision) {
+    const visionEl = document.createElement('div');
+    visionEl.style.cssText = 'font-size:0.75em;font-style:italic;color:var(--dim);margin-top:3px;word-break:break-word;line-height:1.3;';
+    visionEl.textContent = node.vision;
+    hdr.appendChild(visionEl);
+  }
   if (tagRow.children.length) hdr.appendChild(tagRow);
+  addDetailPanel(hdr, node);
   col.appendChild(hdr);
 
   // Body — execution/KR items
@@ -767,6 +791,7 @@ function buildExecItem(node) {
   }
 
   item.onclick = () => openEditModal(node.id);
+  addDetailPanel(item, node);
   return item;
 }
 
@@ -800,6 +825,12 @@ function openEditModal(nodeId) {
   // Description
   const descRow = mkFieldRow('DESCRIPTION', `<textarea class="field-input" id="ef-desc">${escHtml(node.description || '')}</textarea>`);
   body.appendChild(descRow);
+
+  // Vision (top-level nodes only)
+  if (isTop) {
+    const visionRow = mkFieldRow('VISION STATEMENT', `<textarea class="field-input" id="ef-vision">${escHtml(node.vision || '')}</textarea>`);
+    body.appendChild(visionRow);
+  }
 
   // RAG status
   const ragCurrent = node.ragStatus || 'none';
@@ -953,6 +984,8 @@ function openEditModal(nodeId) {
     nd.title = document.getElementById('ef-title').value.trim() || nd.title;
     nd.type = document.getElementById('ef-type').value;
     nd.description = document.getElementById('ef-desc').value.trim();
+    const visionEl = document.getElementById('ef-vision');
+    if (visionEl) nd.vision = visionEl.value.trim();
     const ragBtn = body.querySelector('#ef-rag .rag-btn[class*="active-"]');
     if (ragBtn) nd.ragStatus = ragBtn.dataset.rag;
     const confBtn = body.querySelector('#ef-conf .conf-btn.active');
@@ -1172,6 +1205,7 @@ function cmdAddTop(type, rest) {
     type,
     title: rest,
     description: '',
+    vision: '',
     loeTagIds: [],
     assumptionNotes: '',
     confidence: 0,
@@ -1456,6 +1490,64 @@ function addTooltip(el, text) {
   el.addEventListener('mouseenter', () => { tooltip.textContent = text; tooltip.style.display = 'block'; });
   el.addEventListener('mousemove', e => { tooltip.style.left = (e.clientX + 14) + 'px'; tooltip.style.top = (e.clientY + 8) + 'px'; });
   el.addEventListener('mouseleave', () => { tooltip.style.display = 'none'; });
+}
+
+/* ─── DETAIL PANEL (rich hover) ───────────────────────── */
+const detailPanel = document.getElementById('detail-panel');
+
+function buildDetailHTML(node) {
+  const g = activeGroup();
+  const rag = latestRag(node);
+  const ragLabel = RAG_SYMBOLS[rag] + ' ' + rag.toUpperCase();
+  const ragClass = RAG_CLASSES[rag] || 'rag-none';
+
+  let html = '';
+  html += `<div class="dp-type ${typeClass(node.type)}">${escHtml((node.type || 'NODE').toUpperCase())}</div>`;
+  html += `<div class="dp-title">${escHtml(node.title)}</div>`;
+  if (node.vision) html += `<div class="dp-vision">${escHtml(node.vision)}</div>`;
+  if (node.description) html += `<div class="dp-desc">${escHtml(node.description)}</div>`;
+  html += `<div class="dp-field"><span class="dp-label">RAG:</span><span class="${ragClass}">${ragLabel}</span></div>`;
+  if (node.confidence) html += `<div class="dp-field"><span class="dp-label">CONFIDENCE:</span>${node.confidence}/5</div>`;
+  if (node.assumptionNotes) html += `<div class="dp-field"><span class="dp-label">NOTES:</span>${escHtml(node.assumptionNotes)}</div>`;
+
+  if (g && node.loeTagIds && node.loeTagIds.length) {
+    html += '<div class="dp-loes">';
+    node.loeTagIds.forEach(lid => {
+      const loe = loeById(lid);
+      if (!loe) return;
+      const idx = g.loeDefinitions.findIndex(l => l.id === lid);
+      const color = `var(${LOE_COLORS[idx % LOE_COLORS.length]})`;
+      html += `<span class="dp-loe-chip" style="color:${color};border-color:${color}">${escHtml(loe.name)}</span>`;
+    });
+    html += '</div>';
+  }
+
+  if (node.pulses && node.pulses.length) {
+    const last = node.pulses[node.pulses.length - 1];
+    html += `<div class="dp-pulse"><span class="dp-label">LAST PULSE (${escHtml(last.date)}):</span>${escHtml(last.narrative || '(no narrative)')}</div>`;
+  }
+
+  return html;
+}
+
+function addDetailPanel(el, node) {
+  el.addEventListener('mouseenter', () => {
+    detailPanel.innerHTML = buildDetailHTML(node);
+    detailPanel.style.display = 'block';
+  });
+  el.addEventListener('mousemove', e => {
+    const pw = detailPanel.offsetWidth;
+    const ph = detailPanel.offsetHeight;
+    const vw = window.innerWidth;
+    const vh = window.innerHeight;
+    let x = e.clientX + 16;
+    let y = e.clientY + 12;
+    if (x + pw > vw - 8) x = e.clientX - pw - 8;
+    if (y + ph > vh - 8) y = e.clientY - ph - 8;
+    detailPanel.style.left = x + 'px';
+    detailPanel.style.top = y + 'px';
+  });
+  el.addEventListener('mouseleave', () => { detailPanel.style.display = 'none'; });
 }
 
 /* ─── BACKLOG ─────────────────────────────────────────── */
