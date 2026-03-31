@@ -610,7 +610,7 @@ function loadDB() {
     s.notes.forEach(n => {
       n.id       = n.id       || uid();
       n.noteType = n.noteType || 'general';
-      // Migrate date-only strings to ISO datetime
+      // Migrate date-only strings to ISO datetime; noon UTC avoids date shifts across all timezones
       if (n.date && /^\d{4}-\d{2}-\d{2}$/.test(n.date)) {
         n.date = n.date + 'T12:00:00.000Z';
       }
@@ -1854,7 +1854,7 @@ function openGoalDialog(goalId) {
     document.getElementById('dlg-goal-save').addEventListener('click', () => {
       g.text = document.getElementById('dlg-goal-text').value.trim() || g.text;
       g.targetDate = document.getElementById('dlg-goal-date').value.trim();
-      g.actions = localActions.map(a => ({ text: a.text, done: a.done }));
+      g.actions = localActions;
       saveDB();
       render();
       closeOverlay();
