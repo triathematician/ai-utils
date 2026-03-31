@@ -97,14 +97,17 @@ html, body {
   position: sticky;
   top: 0;
   z-index: 10;
-  display: flex;
+  display: block;
+  position: relative;
   background: var(--bg);
   border-bottom: 1px solid var(--border);
   height: 28px;
   min-height: 28px;
 }
 .lane-header-cell {
-  flex: 1;
+  position: absolute;
+  top: 0;
+  height: 28px;
   display: flex; align-items: center; justify-content: center;
   font-size: 0.72em; letter-spacing: 2px;
   color: var(--accent);
@@ -114,6 +117,7 @@ html, body {
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
   cursor: pointer;
   transition: background 0.15s;
+  box-sizing: border-box;
 }
 .lane-header-cell:hover { background: var(--muted); }
 .lane-header-cell.hidden-lane { opacity: 0.35; text-decoration: line-through; }
@@ -152,7 +156,7 @@ html, body {
 }
 .tl-node .node-label {
   font-size: 0.9em;
-  max-width: 160px;
+  max-width: 100%;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -652,18 +656,46 @@ function parseTS(str) {
     return Date.now() + sign * n * ms;
   }
   if (str.toLowerCase() === 'now') return Date.now();
+  // Date-only string (YYYY-MM-DD): treat as local midnight, not UTC
+  if (/^\d{4}-\d{2}-\d{2}$/.test(str)) {
+    const d = new Date(str + 'T00:00:00');
+    return isNaN(d) ? null : d.getTime();
+  }
   const d = new Date(str);
   return isNaN(d) ? null : d.getTime();
 }
 
 // zoom: a ZOOM_LEVELS object; format depends on how much detail is visible.
 // mspp=60000 is the 1HR zoom level; mspp=43200000 is the 1MONTH zoom level.
+// All timestamps displayed in local time.
 function fmtTS(ms, zoom) {
   const d = new Date(ms);
   const mspp = zoom.mspp;
-  if (mspp <= 60000)     return d.toISOString().slice(0,19).replace('T',' '); // 1HR or finer: HH:MM:SS
-  if (mspp <= 43200000)  return d.toISOString().slice(0,16).replace('T',' '); // 1MONTH or finer: date+HH:MM
-  return d.toISOString().slice(0,10);                                          // coarser: date only
+  const Y = d.getFullYear();
+  const M = String(d.getMonth()+1).padStart(2,'0');
+  const D = String(d.getDate()).padStart(2,'0');
+  const h = String(d.getHours()).padStart(2,'0');
+  const m = String(d.getMinutes()).padStart(2,'0');
+  const s = String(d.getSeconds()).padStart(2,'0');
+  if (mspp <= 60000)    return `${Y}-${M}-${D} ${h}:${m}:${s}`;
+  if (mspp <= 43200000) return `${Y}-${M}-${D} ${h}:${m}`;
+  return `${Y}-${M}-${D}`;
+}
+
+// Local-time display for detail views.
+// Shows date-only (YYYY-MM-DD) when the time component is midnight.
+function fmtLocalTS(ms) {
+  const d = new Date(ms);
+  const Y = d.getFullYear();
+  const M = String(d.getMonth()+1).padStart(2,'0');
+  const D = String(d.getDate()).padStart(2,'0');
+  if (d.getHours() === 0 && d.getMinutes() === 0 && d.getSeconds() === 0) {
+    return `${Y}-${M}-${D}`;
+  }
+  const h = String(d.getHours()).padStart(2,'0');
+  const m = String(d.getMinutes()).padStart(2,'0');
+  const s = String(d.getSeconds()).padStart(2,'0');
+  return `${Y}-${M}-${D} ${h}:${m}:${s}`;
 }
 
 // ── STATUS ────────────────────────────────────────────────────────────
@@ -713,6 +745,7 @@ const NODE_CARD_H = 36;         // estimated height of a .tl-node card (px) — 
 const TARGET_VIEWPORT_FILL = 0.65; // target fraction of viewport for autoFit
 const MAX_CANVAS_H = 150000;    // max canvas height in px — at finest zoom (1MIN, ~1000 ms/px)
                                   // this limits the loop to ~2500 grid elements and keeps scroll manageable
+const SIDE_PAD_FRAC = 0.05;     // 5% of canvas width reserved as blank boundary on each side
 
 let selectedUID = null;
 
@@ -768,13 +801,34 @@ function render() {
 }
 
 // ── SWIMLANE HEADER ───────────────────────────────────────────────────
+// Computes the lane layout shared by header and timeline rendering.
+// Returns pixel positions based on canvas width + SIDE_PAD_FRAC margins.
+function getLaneLayout() {
+  const canvas = document.getElementById('tl-canvas');
+  const canvasW = canvas.offsetWidth || document.getElementById('swimlane-area').offsetWidth || window.innerWidth;
+  const sidePad = canvasW * SIDE_PAD_FRAC;
+  const axisCenter = canvasW / 2;
+  const leftW  = axisCenter - AXIS_HALF - sidePad;
+  const rightW = canvasW - axisCenter - AXIS_HALF - sidePad;
+  const cats = allCategories();
+  const leftCats  = cats.filter((_, i) => i % 2 === 0);
+  const rightCats = cats.filter((_, i) => i % 2 !== 0);
+  const nL = leftCats.length, nR = rightCats.length;
+  let laneW;
+  if (nL === 0 && nR === 0)  laneW = leftW;
+  else if (nL === 0)         laneW = rightW / nR;
+  else if (nR === 0)         laneW = leftW  / nL;
+  else                       laneW = Math.min(leftW / nL, rightW / nR);
+  return { canvasW, sidePad, axisCenter, leftW, rightW, cats, leftCats, rightCats, laneW };
+}
+
 function renderSwimlaneHeader() {
   const cats = allCategories();
   const header = document.getElementById('swimlane-header');
   header.innerHTML = '';
   if (cats.length === 0) {
     const ph = document.createElement('div');
-    ph.className = 'lane-header-cell';
+    ph.style.cssText = 'display:flex;align-items:center;justify-content:center;height:100%;';
     ph.style.color = 'var(--dim)';
     ph.style.letterSpacing = '2px';
     ph.style.fontSize = '0.7em';
@@ -782,17 +836,27 @@ function renderSwimlaneHeader() {
     header.appendChild(ph);
     return;
   }
+  const { axisCenter, leftCats, rightCats, laneW } = getLaneLayout();
   cats.forEach(cat => {
+    const catIdx = cats.indexOf(cat);
+    const isLeft = catIdx % 2 === 0;
+    let leftPx;
+    if (isLeft) {
+      const li = leftCats.indexOf(cat);
+      leftPx = axisCenter - AXIS_HALF - (li + 1) * laneW;
+    } else {
+      const ri = rightCats.indexOf(cat);
+      leftPx = axisCenter + AXIS_HALF + ri * laneW;
+    }
     const cell = document.createElement('div');
     cell.className = 'lane-header-cell' + (db.hiddenCats.includes(cat) ? ' hidden-lane' : '');
+    cell.style.left  = leftPx + 'px';
+    cell.style.width = laneW  + 'px';
     const color = catColor(cat);
     cell.style.color = color;
     cell.style.borderBottomColor = color;
     cell.textContent = cat.toUpperCase();
-    cell.title = '';
-    cell.addEventListener('click', () => {
-      toggleCat(cat);
-    });
+    cell.addEventListener('click', () => toggleCat(cat));
     cell.addEventListener('mouseenter', e => {
       const evts = db.events.filter(ev => (ev.cats||[]).includes(cat));
       showTooltip(e, `<b style="color:${color}">${cat}</b>\n${evts.length} event(s)\nClick to toggle visibility`);
@@ -843,18 +907,8 @@ function renderTimeline() {
 
   if (cats.length === 0) return;
 
-  // Left/right lane layout
-  const leftCats  = cats.filter((c, i) => i % 2 === 0);
-  const rightCats = cats.filter((c, i) => i % 2 !== 0);
-
-  const canvasW   = canvas.offsetWidth;
-  const axisCenter = canvasW / 2;
-  // AXIS_HALF is defined as a top-level constant (AXIS_WIDTH / 2)
-  const leftW      = axisCenter - AXIS_HALF;
-  const rightW     = canvasW - axisCenter - AXIS_HALF;
-
-  const leftLaneW  = leftCats.length  > 0 ? leftW  / leftCats.length  : leftW;
-  const rightLaneW = rightCats.length > 0 ? rightW / rightCats.length : rightW;
+  // Lane layout: uniform width with 5% side boundary
+  const { canvasW, axisCenter, leftCats, rightCats, laneW } = getLaneLayout();
 
   const sorted = [...db.events].sort((a, b) => a.ts - b.ts);
 
@@ -875,15 +929,15 @@ function renderTimeline() {
 
       if (isLeft) {
         const li = leftCats.indexOf(primaryCat);
-        const rightEdge = axisCenter - AXIS_HALF - li * leftLaneW;
-        const w = leftLaneW - NODE_MARGIN;
+        const rightEdge = axisCenter - AXIS_HALF - li * laneW;
+        const w = laneW - NODE_MARGIN;
         node.style.left  = (rightEdge - w) + 'px';
         node.style.width = w + 'px';
       } else {
         const ri = rightCats.indexOf(primaryCat);
-        const leftEdge = axisCenter + AXIS_HALF + ri * rightLaneW;
+        const leftEdge = axisCenter + AXIS_HALF + ri * laneW;
         node.style.left  = leftEdge + 'px';
-        node.style.width = (rightLaneW - NODE_MARGIN) + 'px';
+        node.style.width = (laneW - NODE_MARGIN) + 'px';
       }
 
       const box = document.createElement('div');
@@ -914,7 +968,7 @@ function renderTimeline() {
         showTooltip(e,
           `<b style="color:${color}">${evt.label}</b>\n` +
           `UID: ${evt.uid}\n` +
-          `TIME: ${new Date(evt.ts).toISOString()}\n` +
+          `TIME: ${fmtLocalTS(evt.ts)}\n` +
           `CATS: ${(evt.cats||[]).join(', ')||'—'}\n` +
           (deps ? `DEPS:\n${deps}\n` : '') +
           (meta ? `META:\n${meta}` : '')
@@ -933,10 +987,10 @@ function renderTimeline() {
       let indX;
       if (isLeftSec) {
         const li2 = leftCats.indexOf(sc);
-        indX = axisCenter - AXIS_HALF - li2 * leftLaneW - leftLaneW / 2;
+        indX = axisCenter - AXIS_HALF - li2 * laneW - laneW / 2;
       } else {
         const ri2 = rightCats.indexOf(sc);
-        indX = axisCenter + AXIS_HALF + ri2 * rightLaneW + rightLaneW / 2;
+        indX = axisCenter + AXIS_HALF + ri2 * laneW + laneW / 2;
       }
       const ind = document.createElement('div');
       ind.className = 'tl-indicator';
@@ -949,10 +1003,10 @@ function renderTimeline() {
   });
 
   // DAG lines
-  renderDAG(sorted, cats, leftCats, rightCats, axisCenter, AXIS_HALF, leftLaneW, rightLaneW, svg);
+  renderDAG(sorted, cats, leftCats, rightCats, axisCenter, laneW, svg);
 }
 
-function renderDAG(sorted, cats, leftCats, rightCats, axisCenter, AXIS_HALF, leftLaneW, rightLaneW, svg) {
+function renderDAG(sorted, cats, leftCats, rightCats, axisCenter, laneW, svg) {
   const accentColor = getCSSVar('--accent');
 
   function eventCenterX(evt) {
@@ -962,12 +1016,12 @@ function renderDAG(sorted, cats, leftCats, rightCats, axisCenter, AXIS_HALF, lef
     const isLeft = catIdx % 2 === 0;
     if (isLeft) {
       const li = leftCats.indexOf(primaryCat);
-      const rightEdge = axisCenter - AXIS_HALF - li * leftLaneW;
-      return rightEdge - (leftLaneW - NODE_MARGIN) / 2;
+      const rightEdge = axisCenter - AXIS_HALF - li * laneW;
+      return rightEdge - (laneW - NODE_MARGIN) / 2;
     } else {
       const ri = rightCats.indexOf(primaryCat);
-      const leftEdge = axisCenter + AXIS_HALF + ri * rightLaneW;
-      return leftEdge + (rightLaneW - NODE_MARGIN) / 2;
+      const leftEdge = axisCenter + AXIS_HALF + ri * laneW;
+      return leftEdge + (laneW - NODE_MARGIN) / 2;
     }
   }
 
@@ -1150,6 +1204,7 @@ function zoomIn() {
     const newCenterY = msToY(centerMs);
     scroll.scrollTop = Math.max(0, newCenterY - scroll.clientHeight / 2);
     db.viewTopMs = yToMs(scroll.scrollTop);
+    ensureEventsVisible();
     statusMsg('ZOOM IN: ' + getZoom().label);
   } else {
     statusMsg('MAX ZOOM');
@@ -1165,9 +1220,27 @@ function zoomOut() {
     const newCenterY = msToY(centerMs);
     scroll.scrollTop = Math.max(0, newCenterY - scroll.clientHeight / 2);
     db.viewTopMs = yToMs(scroll.scrollTop);
+    ensureEventsVisible();
     statusMsg('ZOOM OUT: ' + getZoom().label);
   } else {
     statusMsg('MIN ZOOM');
+  }
+}
+
+// If no events are visible in the current viewport after a zoom change,
+// scroll to bring the nearest event into view.
+function ensureEventsVisible() {
+  if (db.events.length === 0) return;
+  const scroll = document.getElementById('swimlane-scroll');
+  const viewTopMs    = yToMs(scroll.scrollTop);
+  const viewBottomMs = yToMs(scroll.scrollTop + scroll.clientHeight);
+  const hasVisible = db.events.some(e => e.ts <= viewTopMs && e.ts >= viewBottomMs);
+  if (!hasVisible) {
+    const viewCenterMs = (viewTopMs + viewBottomMs) / 2;
+    const nearest = db.events.reduce((best, e) =>
+      Math.abs(e.ts - viewCenterMs) < Math.abs(best.ts - viewCenterMs) ? e : best
+    );
+    scrollToMs(nearest.ts);
   }
 }
 
@@ -1244,7 +1317,7 @@ function openDetail(evtUID) {
   let html = '';
   html += `<div class="detail-field"><div class="detail-label">UID</div><div class="detail-value" style="color:var(--dim)">${evt.uid}</div></div>`;
   html += `<div class="detail-field"><div class="detail-label">LABEL</div><div class="detail-value" style="color:${color}">${evt.label}</div></div>`;
-  html += `<div class="detail-field"><div class="detail-label">TIMESTAMP</div><div class="detail-value">${new Date(evt.ts).toISOString()}</div></div>`;
+  html += `<div class="detail-field"><div class="detail-label">TIMESTAMP</div><div class="detail-value">${fmtLocalTS(evt.ts)}</div></div>`;
 
   if ((evt.cats||[]).length) {
     html += `<div class="detail-field"><div class="detail-label">CATEGORIES</div><div class="detail-cats">`;
@@ -1272,13 +1345,40 @@ function openDetail(evtUID) {
     html += `</div>`;
   }
 
-  // Edit/delete buttons
-  html += `<div style="margin-top:14px;display:flex;gap:8px;">`;
-  html += `<span onclick="deleteEvent('${evt.uid}')" style="cursor:pointer;color:var(--warn);font-size:0.8em;border:1px solid var(--warn);padding:2px 8px">[DEL]</span>`;
+  // Dependency picker: eligible events are those that predate this event and aren't already linked
+  const eligibleDeps = db.events.filter(e =>
+    e.uid !== evt.uid &&
+    e.ts <= evt.ts &&
+    !(evt.deps||[]).includes(e.uid)
+  ).sort((a,b) => a.ts - b.ts);
+  if (eligibleDeps.length > 0) {
+    html += `<div class="detail-field"><div class="detail-label">ADD DEPENDENCY</div>`;
+    html += `<div style="display:flex;gap:4px;margin-top:3px;align-items:center">`;
+    html += `<select id="dep-picker-${escHtml(evt.uid)}" style="flex:1;background:var(--muted);border:1px solid var(--border);color:var(--fg);font-family:var(--font);font-size:0.82em;padding:2px 4px;outline:none">`;
+    html += `<option value="">— pick event —</option>`;
+    eligibleDeps.forEach(e => {
+      html += `<option value="${escHtml(e.uid)}">${escHtml(e.uid)} — ${escHtml(e.label.slice(0,28))}</option>`;
+    });
+    html += `</select>`;
+    html += `<span onclick="addDepFromDetail('${escHtml(evt.uid)}')" style="cursor:pointer;color:var(--accent);font-size:0.8em;padding:2px 6px;white-space:nowrap">[ADD]</span>`;
+    html += `</div></div>`;
+  }
+
+  // Action buttons: EDIT (with border) and DEL (no outline per UI guidelines)
+  html += `<div style="margin-top:14px;display:flex;gap:10px;align-items:center">`;
+  html += `<span onclick="openEdit('${escHtml(evt.uid)}')" style="cursor:pointer;color:var(--accent);font-size:0.8em;border:1px solid var(--accent);padding:2px 8px">[EDIT]</span>`;
+  html += `<span onclick="deleteEvent('${escHtml(evt.uid)}')" style="cursor:pointer;color:var(--warn);font-size:0.8em">[DEL]</span>`;
   html += `</div>`;
 
   content.innerHTML = html;
   panel.classList.add('open');
+}
+
+function addDepFromDetail(tgtUID) {
+  const sel = document.getElementById('dep-picker-' + tgtUID);
+  if (!sel || !sel.value) { statusMsg('SELECT A DEPENDENCY'); return; }
+  cmdLink(sel.value, tgtUID);
+  openDetail(tgtUID);
 }
 
 function closeDetail() {
@@ -1293,6 +1393,7 @@ function deleteEvent(evtUID) {
   if (!evtUID) return;
   const evt = db.events.find(e => e.uid === evtUID);
   if (!evt) return;
+  if (!window.confirm(`Delete event "${evt.label}"?`)) return;
   db.events = db.events.filter(e => e.uid !== evtUID);
   // Remove from others' deps
   db.events.forEach(e => { e.deps = (e.deps||[]).filter(d => d !== evtUID); });
@@ -1514,7 +1615,7 @@ function showEventList() {
 
   sorted.forEach(evt => {
     const cats = (evt.cats||[]).join(',') || '—';
-    const ts = new Date(evt.ts).toISOString().slice(0,19).replace('T',' ');
+    const ts = fmtLocalTS(evt.ts);
     const primaryCat = (evt.cats||[])[0];
     const color = primaryCat ? catColor(primaryCat) : getCSSVar('--fg');
     html += `<tr style="border-bottom:1px solid var(--muted)">`;
@@ -1522,7 +1623,7 @@ function showEventList() {
     html += `<td style="padding:3px 6px;color:var(--dim);white-space:nowrap">${ts}</td>`;
     html += `<td style="padding:3px 6px;color:${color}">${escHtml(cats)}</td>`;
     html += `<td style="padding:3px 6px">${escHtml(evt.label)}</td>`;
-    html += `<td style="padding:3px 6px;white-space:nowrap"><span data-edit-uid="${escHtml(evt.uid)}" style="cursor:pointer;color:var(--warn);border:1px solid var(--warn);padding:0 5px;font-size:0.85em;user-select:none">[EDIT]</span></td>`;
+    html += `<td style="padding:3px 6px;white-space:nowrap"><span data-edit-uid="${escHtml(evt.uid)}" style="cursor:pointer;color:var(--accent);font-size:0.85em;user-select:none">[EDIT]</span></td>`;
     html += `</tr>`;
   });
   html += `</table>`;
@@ -1665,7 +1766,7 @@ document.getElementById('add-input').addEventListener('keydown', e => {
       guidedState.label = val;
     }
     addBootLine(log, 'ans', '  ' + guidedState.label);
-    const keepHint = guidedState.isEdit ? ` (Enter to keep: ${new Date(guidedState.ts).toISOString().slice(0,19)})` : ' (ISO/now/+2d/-3h, Enter=now)';
+    const keepHint = guidedState.isEdit ? ` (Enter to keep: ${fmtLocalTS(guidedState.ts)})` : ' (ISO/now/+2d/-3h, Enter=now)';
     addBootLine(log, 'ask', 'Timestamp' + keepHint + ':');
     document.getElementById('add-prompt').textContent = 'time>';
     guidedStep = 'time';
@@ -1673,7 +1774,7 @@ document.getElementById('add-input').addEventListener('keydown', e => {
     const ms = val ? parseTS(val) : (guidedState.isEdit ? guidedState.ts : Date.now());
     if (!ms) { addBootLine(log, 'warn', 'Cannot parse: ' + val); return; }
     guidedState.ts = ms;
-    addBootLine(log, 'ans', '  ' + new Date(ms).toISOString());
+    addBootLine(log, 'ans', '  ' + fmtLocalTS(ms));
     const catsHint = guidedState.isEdit ? ` (Enter to keep: ${guidedState.cats.join(',') || 'none'})` : '';
     addBootLine(log, 'ask', 'Categories (comma-separated, or Enter to skip' + catsHint + '):');
     document.getElementById('add-prompt').textContent = 'cats>';
@@ -1700,7 +1801,7 @@ document.getElementById('add-input').addEventListener('keydown', e => {
     addBootLine(log, 'ans', '  ' + (ids.join(', ') || '(none)'));
     addBootLine(log, 'sep', '─'.repeat(44));
     addBootLine(log, 'info', `  ${guidedState.label}`);
-    addBootLine(log, 'sys',  `  ${new Date(guidedState.ts).toISOString()}`);
+    addBootLine(log, 'sys',  `  ${fmtLocalTS(guidedState.ts)}`);
     if (guidedState.cats.length) addBootLine(log, 'sys', `  cats: ${guidedState.cats.join(', ')}`);
     if (guidedState.deps.length) addBootLine(log, 'sys', `  deps: ${guidedState.deps.join(', ')}`);
     addBootLine(log, 'ask', 'Confirm? (Enter=yes, n=cancel):');
@@ -1861,21 +1962,23 @@ function exportTXT() {
   if (!cats.length) { statusMsg('NO DATA'); return; }
 
   const sorted = [...db.events].sort((a,b) => a.ts - b.ts);
-  const laneW = 22;
-  const header = cats.map(c => c.toUpperCase().padEnd(laneW)).join('│');
-  const sep = cats.map(() => '─'.repeat(laneW)).join('┼');
+  const laneW  = 22;
+  const dateW  = 20;
+  const dateHdr = 'DATE'.padEnd(dateW);
+  const header = dateHdr + '│' + cats.map(c => c.toUpperCase().padEnd(laneW)).join('│');
+  const sep    = '─'.repeat(dateW) + '┼' + cats.map(() => '─'.repeat(laneW)).join('┼');
   let lines = ['CHRONOS EXPORT — ' + new Date().toISOString(), '─'.repeat(header.length), header, sep];
 
   sorted.forEach(evt => {
-    const row = cats.map((cat, i) => {
-      const isPrimary = (evt.cats||[])[0] === cat;
+    const row = cats.map((cat) => {
+      const isPrimary   = (evt.cats||[])[0] === cat;
       const isSecondary = (evt.cats||[]).slice(1).includes(cat);
-      if (isPrimary) return `┤${evt.label.slice(0,laneW-3)}`.padEnd(laneW);
+      if (isPrimary)   return `┤${evt.label.slice(0,laneW-3)}`.padEnd(laneW);
       if (isSecondary) return '◇'.padEnd(laneW);
       return ' '.repeat(laneW);
     }).join('│');
-    const ts = fmtTS(evt.ts, zoom).padStart(20);
-    lines.push(`${ts} ${row}`);
+    const ts = fmtTS(evt.ts, zoom).padEnd(dateW);
+    lines.push(`${ts}│${row}`);
   });
 
   download('chronos-export.txt', lines.join('\n'), 'text/plain');
