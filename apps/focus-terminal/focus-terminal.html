@@ -25,7 +25,7 @@
   --grid-important-today: #ffb000;
   --grid-important-week: #7a5500;
   --grid-notimportant-today: #ff6600;
-  --grid-notimportant-week: #3a1800;
+  --grid-notimportant-week: #884400;
   --quadrant-ui: #ffb000;
   --quadrant-di: #ff6600;
   --quadrant-un: #00aaff;
@@ -55,7 +55,7 @@
   --grid-important-today: #b58900;
   --grid-important-week: #5a4000;
   --grid-notimportant-today: #cb4b16;
-  --grid-notimportant-week: #3a1a0a;
+  --grid-notimportant-week: #7a2a08;
   --quadrant-ui: #b58900;
   --quadrant-di: #cb4b16;
   --quadrant-un: #268bd2;
@@ -113,7 +113,7 @@
   --grid-important-today: #00ffff;
   --grid-important-week: #005566;
   --grid-notimportant-today: #ff6060;
-  --grid-notimportant-week: #440022;
+  --grid-notimportant-week: #882233;
   --quadrant-ui: #00ffff;
   --quadrant-di: #ff6060;
   --quadrant-un: #a0c0ff;
@@ -142,7 +142,7 @@
   --grid-important-today: #ff00ff;
   --grid-important-week: #660066;
   --grid-notimportant-today: #ffaa00;
-  --grid-notimportant-week: #443300;
+  --grid-notimportant-week: #886600;
   --quadrant-ui: #ff00ff;
   --quadrant-di: #ffaa00;
   --quadrant-un: #00ffff;
@@ -171,7 +171,7 @@
   --grid-important-today: #ffffff;
   --grid-important-week: #aaaaaa;
   --grid-notimportant-today: #ffff55;
-  --grid-notimportant-week: #5500aa;
+  --grid-notimportant-week: #aa8800;
   --quadrant-ui: #ffffff;
   --quadrant-di: #ffff55;
   --quadrant-un: #55ffff;
@@ -799,7 +799,7 @@ html, body {
 <div id="help-overlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:150;align-items:center;justify-content:center;">
   <div style="background:var(--bg);border:1px solid var(--border);padding:16px 20px;min-width:640px;max-width:min(90vw,960px);width:90%;font-family:var(--font);color:var(--fg);font-size:0.9em;">
     <div id="help-title" style="color:var(--accent);font-size:1em;letter-spacing:2px;margin-bottom:10px;border-bottom:1px solid var(--muted);padding-bottom:6px;"></div>
-    <div id="help-body" style="line-height:1.8;white-space:pre;"></div>
+    <div id="help-body" style="line-height:1.8;max-height:60vh;overflow-y:auto;"></div>
     <div style="margin-top:12px;border-top:1px solid var(--muted);padding-top:10px;font-size:0.82em;color:var(--dim);">
       <span id="help-close" style="cursor:pointer;">[ESC] CLOSE</span>
     </div>
@@ -1303,7 +1303,15 @@ function renderTopRow() {
 }
 
 function renderMatrix() {
-  if (!db.today) return;
+  if (!db.today) {
+    ['ui','di','un','ni'].forEach(q => {
+      const el = document.getElementById(`q-${q}`);
+      const label = el.querySelector('.q-label');
+      el.innerHTML = '';
+      el.appendChild(label);
+    });
+    return;
+  }
   const t = db.today;
   const allItems = [...t.intentions, ...t.list];
   // Add one-thing as a pseudo-item
@@ -1654,6 +1662,12 @@ function handleConsoleCmd(raw) {
   if (cmd === '/backlog') {
     handleBacklog(inp.slice('/backlog'.length).trim()); return;
   }
+  if (cmd === '/history') {
+    showHistory(); return;
+  }
+  if (cmd === '/scores') {
+    showScores(); return;
+  }
   statusMsg(`Unknown command: ${cmd}. Type /help`);
 }
 
@@ -1683,6 +1697,8 @@ function showHelp(title, lines) {
     '/backlog archive        move done items to archive',
     '/backlog archive list   show archived batches',
     '/backlog export         download backlog as .txt',
+    '/history         view past session history',
+    '/scores          view balance scores over time',
     '/help            this help',
     '',
     'Click any item to open detail/edit popup.',
@@ -1716,6 +1732,79 @@ function doArchiveDay() {
   saveDB();
   renderDashboard();
   statusMsg('Day archived. Type /boot to begin a new session.');
+}
+
+function showHistory() {
+  const overlay = document.getElementById('help-overlay');
+  document.getElementById('help-title').textContent = 'SESSION HISTORY';
+  const body = document.getElementById('help-body');
+  body.style.whiteSpace = 'normal';
+
+  const cutoff = new Date();
+  cutoff.setDate(cutoff.getDate() - 30);
+  const allDays = [...db.history];
+  if (db.today) allDays.push(db.today);
+  const recent = allDays.filter(d => new Date(d.date) >= cutoff).reverse();
+
+  if (!recent.length) {
+    body.innerHTML = '<div style="color:var(--dim)">No history yet. Archive a session with /next to begin tracking history.</div>';
+    overlay.style.display = 'flex';
+    return;
+  }
+
+  body.innerHTML = recent.map(day => {
+    const allItems = [...(day.intentions||[]), ...(day.list||[])];
+    const done = allItems.filter(i => i.done).length;
+    const total = allItems.length;
+    const scores = DIMS.map(d => {
+      const s = day.scores?.[d.key];
+      return s ? `${d.label}:${s}` : null;
+    }).filter(Boolean).join('  ');
+    const label = day.date === todayStr() ? `<span style="color:var(--accent)">▶ ${day.date}</span>` : `<span style="color:var(--fg)">${day.date}</span>`;
+    const dayType = day.dayType ? `<span style="color:var(--dim)">[${day.dayType.toUpperCase()}]</span>` : '';
+    const completion = total ? `<span style="color:var(--dim)">${done}/${total} done</span>` : '';
+    const oneThing = day.oneThing ? `<div style="color:var(--dim);font-size:0.85em;padding-left:1em">❝ ${escHtml(day.oneThing)} ❞</div>` : '';
+    const scoresHtml = scores ? `<div style="color:var(--dim);font-size:0.85em;padding-left:1em">${escHtml(scores)}</div>` : '';
+    return `<div style="padding:4px 0;border-bottom:1px solid var(--muted)">${label} ${dayType} ${completion}${oneThing}${scoresHtml}</div>`;
+  }).join('');
+
+  overlay.style.display = 'flex';
+}
+
+function showScores() {
+  const overlay = document.getElementById('help-overlay');
+  document.getElementById('help-title').textContent = 'BALANCE SCORES — LAST 30 DAYS';
+  const body = document.getElementById('help-body');
+  body.style.whiteSpace = 'normal';
+
+  const cutoff = new Date();
+  cutoff.setDate(cutoff.getDate() - 30);
+  const allDays = [...db.history];
+  if (db.today) allDays.push(db.today);
+  const recent = allDays.filter(d => new Date(d.date) >= cutoff && d.scores && Object.keys(d.scores).length).reverse();
+
+  if (!recent.length) {
+    body.innerHTML = '<div style="color:var(--dim)">No score data yet. Complete a boot session with scores to begin tracking.</div>';
+    overlay.style.display = 'flex';
+    return;
+  }
+
+  const SCORE_BARS = ['–','▁','▂','▃','▄','▅'];
+  const dimRows = DIMS.map(dim => {
+    const cells = recent.map(day => {
+      const s = day.scores?.[dim.key];
+      const bar = (s >= 1 && s <= 5) ? SCORE_BARS[s] : '·';
+      const col = s >= 4 ? 'var(--success)' : s >= 2 ? 'var(--fg)' : 'var(--warn)';
+      return `<span style="color:${col}" title="${day.date}: ${s||'—'}">${bar}</span>`;
+    }).join('');
+    const vals = recent.map(d => d.scores?.[dim.key]).filter(v => v);
+    const avg = vals.length ? (vals.reduce((a,b)=>a+b,0)/vals.length).toFixed(1) : '—';
+    return `<div style="padding:2px 0;display:flex;align-items:center;gap:8px"><span style="color:var(--dim);width:3em;display:inline-block">${escHtml(dim.label)}</span><span style="letter-spacing:2px">${cells}</span><span style="color:var(--dim);font-size:0.85em">avg ${avg}</span></div>`;
+  });
+
+  const dates = recent.map(d => `<span style="color:var(--dim);writing-mode:horizontal-tb">${d.date.slice(5)}</span>`).join(' ');
+  body.innerHTML = dimRows.join('') + `<div style="margin-top:8px;font-size:0.75em;color:var(--dim);border-top:1px solid var(--muted);padding-top:6px">▁=1  ▂=2  ▃=3  ▄=4  ▅=5  ·=no score  (${recent.length} session${recent.length===1?'':'s'})</div>`;
+  overlay.style.display = 'flex';
 }
 
 function quickAdd(text) {
