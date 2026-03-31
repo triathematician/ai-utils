@@ -209,7 +209,8 @@ html, body {
 
 <script>
 /* ─── STORAGE ─────────────────────────────────────────── */
-const STORAGE_KEY = 'YOUR_APP_NAME_db';  // TODO: change this
+const STORAGE_KEY  = 'YOUR_APP_NAME_db';  // TODO: change this
+const EXPORT_SLUG  = 'appname';           // TODO: change this — used as the download filename prefix
 
 function loadDB() {
   try {
@@ -274,6 +275,8 @@ function handleConsoleCmd(raw) {
   if (cmd === '/help')    return showHelp();
   if (cmd === '/theme')   return applyTheme(arg);
   if (cmd === '/backlog') { handleBacklog(raw.slice('/backlog'.length).trim()); return; }
+  if (cmd === '/export')  return cmdExport(arg);
+  if (cmd === '/import')  return cmdImport();
   // TODO: add app-specific commands here
 
   statusMsg('Unknown command: ' + cmd);
@@ -293,6 +296,8 @@ function showHelp() {
     '/backlog archive         move done items to archive',
     '/backlog archive list    show archived batches',
     '/backlog export          download backlog as .txt',
+    '/export [txt|json]       export app data (omit format to export all)',
+    '/import                  import app data from a .json file',
     // TODO: add your commands here
   ].join('\n');
   const overlay = document.getElementById('help-overlay');
@@ -437,6 +442,60 @@ function exportBacklog() {
     + db.backlog.map(b => `- ${b.done?'[x]':'[ ]'} ${b.text}`).join('\n') + '\n';
   downloadBlob(txt, `backlog-${now}.txt`, 'text/plain');
   statusMsg(`Exported ${db.backlog.length} backlog item${db.backlog.length===1?'':'s'}.`);
+}
+
+/* ─── EXPORT / IMPORT ─────────────────────────────────── */
+// TODO: return a human-readable text representation of your app's data
+function exportDataTxt() {
+  return '# APP DATA — ' + todayStr() + '\n\n(TODO: implement)\n';
+}
+
+// TODO: return a plain object representing your app's data (will be JSON.stringify'd)
+function exportDataJson() {
+  return { schemaVersion: 1, exportedAt: new Date().toISOString() /* TODO: add fields */ };
+}
+
+// TODO: return true if obj is a valid export from this app
+function isValidImport(obj) {
+  return obj && obj.schemaVersion === 1 /* TODO: add field checks */;
+}
+
+// TODO: merge/replace db fields from a validated import object
+function importData(obj) {
+  // e.g. db.items = obj.items;
+}
+
+function cmdExport(format) {
+  const now    = todayStr();
+  const doTxt  = !format || format === 'txt';
+  const doJson = !format || format === 'json';
+  if (!doTxt && !doJson) { statusMsg('Usage: /export [txt|json]'); return; }
+  if (doTxt)  downloadBlob(exportDataTxt(),  `${EXPORT_SLUG}-${now}.txt`,  'text/plain');
+  if (doJson) downloadBlob(JSON.stringify(exportDataJson(), null, 2), `${EXPORT_SLUG}-${now}.json`, 'application/json');
+  statusMsg('Exported' + (format ? ' as .' + format : ' txt + json'));
+}
+
+function cmdImport() {
+  const fileInput = document.createElement('input');
+  fileInput.type = 'file';
+  fileInput.accept = '.json';
+  fileInput.onchange = e => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = evt => {
+      try {
+        const obj = JSON.parse(evt.target.result);
+        if (!isValidImport(obj)) { statusMsg('Invalid import file.'); return; }
+        importData(obj);
+        saveDB(db);
+        render();
+        statusMsg('Imported: ' + file.name);
+      } catch { statusMsg('Failed to parse import file.'); }
+    };
+    reader.readAsText(file);
+  };
+  fileInput.click();
 }
 
 /* ─── BOOT / INIT ─────────────────────────────────────── */
