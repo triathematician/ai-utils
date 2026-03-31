@@ -2260,7 +2260,7 @@ function handleBacklog(arg) {
           <span data-backlog-idx="${i}" style="cursor:pointer;user-select:none;color:var(--accent)">${escHtml(bracket)}</span>
           ${i+1}. ${escHtml(b.text)}
         </div>`;
-      }).join('');
+      }).join('') + '<div style="margin-top:8px;border-top:1px solid var(--muted);padding-top:6px"><span class="backlog-copy-btn" style="cursor:pointer;color:var(--dim);font-size:0.82em;">[C] COPY TO CLIPBOARD</span></div>';
       body.querySelectorAll('[data-backlog-idx]').forEach(el => {
         el.addEventListener('click', () => {
           const idx = parseInt(el.dataset.backlogIdx);
@@ -2269,6 +2269,21 @@ function handleBacklog(arg) {
           handleBacklog('list');
         });
       });
+      const copyBtn = body.querySelector('.backlog-copy-btn');
+      if (copyBtn) {
+        copyBtn.addEventListener('click', () => {
+          const now = todayStr();
+          const txt = '# BACKLOG — ' + now + '\n\n'
+            + db.backlog.map(b => '- ' + (b.done ? '[x]' : '[ ]') + ' ' + b.text).join('\n') + '\n';
+          navigator.clipboard.writeText(txt).then(() => {
+            copyBtn.textContent = 'COPIED!';
+            setTimeout(() => { copyBtn.textContent = '[C] COPY TO CLIPBOARD'; }, 1500);
+          }).catch(() => {
+            copyBtn.textContent = 'COPY FAILED';
+            setTimeout(() => { copyBtn.textContent = '[C] COPY TO CLIPBOARD'; }, 1500);
+          });
+        });
+      }
     });
     return;
   }
