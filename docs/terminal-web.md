@@ -291,6 +291,71 @@ db.backlogArchive = db.backlogArchive || [];
 
 The list popup reuses the app's shared `#help-overlay` element. Clicking a checkbox bracket toggles `done` and re-renders the list in place.
 
+### `/export [format]` — data export
+
+Export the app's current data to a downloadable file. Format may be `txt`, `json`, or omitted to export all available formats at once.
+
+```
+/export           → downloads all formats (txt + json)
+/export txt       → downloads a human-readable .txt file
+/export json      → downloads a machine-readable .json file
+```
+
+Each app provides two format functions that the shared handler calls:
+
+```javascript
+// Return plain-text representation of app data (string)
+function exportDataTxt()  { /* TODO: implement */ }
+
+// Return JSON-serialisable object representing app data
+function exportDataJson() { /* TODO: implement */ }
+```
+
+The shared `cmdExport(format)` function calls these and downloads the result:
+
+```javascript
+function cmdExport(format) {
+  const now    = todayStr();
+  const doTxt  = !format || format === 'txt';
+  const doJson = !format || format === 'json';
+  if (!doTxt && !doJson) { statusMsg('Usage: /export [txt|json]'); return; }
+  if (doTxt)  downloadBlob(exportDataTxt(), `${EXPORT_SLUG}-${now}.txt`, 'text/plain');
+  if (doJson) downloadBlob(JSON.stringify(exportDataJson(), null, 2), `${EXPORT_SLUG}-${now}.json`, 'application/json');
+  statusMsg('Exported' + (format ? ' as .' + format : ' txt + json'));
+}
+```
+
+Set `EXPORT_SLUG` (e.g. `'myapp'`) so filenames read `myapp-2025-06-01.txt`.
+
+### `/import` — data import
+
+Open a file picker and restore app data from a previously exported `.json` file. Validate the file's schema before merging, and reject it with a clear status message on failure.
+
+```javascript
+function cmdImport() {
+  const fileInput = document.createElement('input');
+  fileInput.type = 'file';
+  fileInput.accept = '.json';
+  fileInput.onchange = e => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = evt => {
+      try {
+        const obj = JSON.parse(evt.target.result);
+        if (!isValidImport(obj)) { statusMsg('Invalid import file.'); return; }
+        importData(obj);   // merge/replace db fields
+        saveDB(db);
+        render();
+        statusMsg('Imported: ' + file.name);
+      } catch { statusMsg('Failed to parse import file.'); }
+    };
+    reader.readAsText(file);
+  };
+  fileInput.click();
+}
+```
+
 ---
 
 ## Building a New App in This Ecosystem
@@ -303,9 +368,10 @@ Checklist for starting a new terminal-web category app:
 - [ ] Copy all `[data-theme="X"]` blocks — do not modify the palette
 - [ ] Use `STORAGE_KEY = 'your_app_name_db'` to avoid localStorage collisions
 - [ ] Implement `loadDB()` / `saveDB()` with migration guards (`db.newField = db.newField || default`)
-- [ ] Implement `handleConsoleCmd()` with `/help`, `/theme`, `/backlog`, and app-specific commands
+- [ ] Implement `handleConsoleCmd()` with `/help`, `/theme`, `/backlog`, `/export`, `/import`, and app-specific commands
 - [ ] Use `statusMsg()` for all user feedback — never native dialogs
 - [ ] Wire `addTooltip(el, item)` for hover details — never `title` attributes
 - [ ] Panel headers: `◈ LABEL` pattern with `border-bottom: 1px solid var(--muted)`
 - [ ] All font sizes in `em`, all layout dimensions in `vh`/`vw` or `fr`
 - [ ] Initialise `db.backlog = db.backlog || []` and `db.backlogArchive = db.backlogArchive || []` in `loadDB()` migration guards
+- [ ] Set `EXPORT_SLUG` and implement `exportDataTxt()`, `exportDataJson()`, and `isValidImport()` / `importData()` for `/export` and `/import`
