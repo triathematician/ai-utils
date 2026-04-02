@@ -97,6 +97,19 @@ body { background: var(--cream); color: var(--ink); font-family: var(--font-sans
 .form-actions { display: flex; gap: 8px; margin-top: 12px; }
 .form-actions button[type="submit"] { background: var(--terracotta); color: #fff; border: none; padding: 6px 14px; border-radius: 4px; cursor: pointer; font-family: var(--font-sans); font-size: 13px; }
 .form-actions button[type="button"] { background: none; border: 1px solid var(--border); padding: 6px 14px; border-radius: 4px; cursor: pointer; font-family: var(--font-sans); font-size: 13px; }
+.table-toolbar { display: flex; gap: 10px; padding: 12px 16px; background: var(--parchment); border-bottom: 1px solid var(--border); flex-wrap: wrap; flex-shrink: 0; }
+.table-toolbar input, .table-toolbar select, .table-toolbar button { padding: 6px 10px; border: 1px solid var(--border); border-radius: 4px; background: var(--cream); font-family: var(--font-sans); font-size: 13px; }
+.table-toolbar button { cursor: pointer; }
+.table-wrap { overflow-x: auto; overflow-y: auto; flex: 1; }
+table { width: 100%; border-collapse: collapse; font-size: 13px; }
+thead th { position: sticky; top: 0; background: var(--parchment); padding: 10px 12px; text-align: left; cursor: pointer; user-select: none; border-bottom: 2px solid var(--border); font-family: var(--font-serif); font-weight: 600; white-space: nowrap; }
+thead th:hover { background: var(--unvisited); }
+thead th.sort-asc::after { content: ' ↑'; }
+thead th.sort-desc::after { content: ' ↓'; }
+tbody tr { border-bottom: 1px solid var(--parchment); cursor: pointer; }
+tbody tr:hover { background: var(--parchment); }
+tbody td { padding: 8px 12px; vertical-align: middle; }
+.visited-dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: var(--terracotta); margin-right: 6px; }
 </style>
 </head>
 <body>
@@ -124,9 +137,109 @@ body { background: var(--cream); color: var(--ink); font-family: var(--font-sans
   </div>
   <div id="map-container"></div>
 </div>
-    <div id="tab-states" class="tab-panel">States coming soon</div>
-    <div id="tab-parks" class="tab-panel">Parks coming soon</div>
-    <div id="tab-countries" class="tab-panel">Countries coming soon</div>
+    <div id="tab-states" class="tab-panel">
+  <div class="table-toolbar">
+    <input type="text" id="states-search" placeholder="Filter by name or tag…">
+    <select id="states-region-filter">
+      <option value="">All regions</option>
+      <option>Northeast</option><option>South</option>
+      <option>Midwest</option><option>West</option>
+    </select>
+    <select id="states-visited-filter">
+      <option value="">All</option>
+      <option value="visited">Visited</option>
+      <option value="unvisited">Unvisited</option>
+    </select>
+  </div>
+  <div class="table-wrap">
+    <table id="states-table">
+      <thead>
+        <tr>
+          <th data-col="abbrev">Abbrev</th>
+          <th data-col="name" class="sort-asc">Name</th>
+          <th data-col="region">Region</th>
+          <th data-col="firstVisit">First Visited</th>
+          <th data-col="visits"># Visits</th>
+          <th data-col="tags">Tags</th>
+        </tr>
+      </thead>
+      <tbody id="states-tbody"></tbody>
+    </table>
+  </div>
+</div>
+    <div id="tab-parks" class="tab-panel">
+  <div class="table-toolbar">
+    <input type="text" id="parks-search" placeholder="Filter by name, state, or tag…">
+    <select id="parks-type-filter"><option value="">All types</option></select>
+    <select id="parks-state-filter"><option value="">All states</option></select>
+    <select id="parks-visited-filter">
+      <option value="">All</option>
+      <option value="visited">Visited</option>
+      <option value="unvisited">Unvisited</option>
+    </select>
+    <button id="add-park-btn">+ Add Place</button>
+  </div>
+  <div id="add-park-form" class="hidden" style="padding:12px 16px; background:var(--parchment); border-bottom:1px solid var(--border); flex-shrink:0;">
+    <form id="custom-place-form" style="display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end;">
+      <div><label style="display:block;font-size:12px;margin-bottom:4px;">Name *</label><input type="text" id="cp-name" required style="padding:6px 8px;border:1px solid var(--border);border-radius:4px;font-family:var(--font-sans);font-size:13px;"></div>
+      <div><label style="display:block;font-size:12px;margin-bottom:4px;">Type *</label>
+        <select id="cp-type" style="padding:6px 8px;border:1px solid var(--border);border-radius:4px;font-family:var(--font-sans);font-size:13px;"><option value="custom">Custom</option></select></div>
+      <div><label style="display:block;font-size:12px;margin-bottom:4px;">Lat</label><input type="number" id="cp-lat" step="any" style="width:80px;padding:6px 8px;border:1px solid var(--border);border-radius:4px;font-family:var(--font-sans);font-size:13px;"></div>
+      <div><label style="display:block;font-size:12px;margin-bottom:4px;">Lng</label><input type="number" id="cp-lng" step="any" style="width:80px;padding:6px 8px;border:1px solid var(--border);border-radius:4px;font-family:var(--font-sans);font-size:13px;"></div>
+      <div><label style="display:block;font-size:12px;margin-bottom:4px;">Notes</label><input type="text" id="cp-notes" style="padding:6px 8px;border:1px solid var(--border);border-radius:4px;font-family:var(--font-sans);font-size:13px;"></div>
+      <button type="submit" style="background:var(--terracotta);color:#fff;border:none;padding:6px 14px;border-radius:4px;cursor:pointer;font-family:var(--font-sans);font-size:13px;">Save</button>
+      <button type="button" id="cancel-park-btn" style="background:none;border:1px solid var(--border);padding:6px 14px;border-radius:4px;cursor:pointer;font-family:var(--font-sans);font-size:13px;">Cancel</button>
+    </form>
+  </div>
+  <div class="table-wrap">
+    <table id="parks-table">
+      <thead>
+        <tr>
+          <th data-col="name" class="sort-asc">Name</th>
+          <th data-col="type">Type</th>
+          <th data-col="state">State</th>
+          <th data-col="established">Est.</th>
+          <th data-col="firstVisit">First Visited</th>
+          <th data-col="visits"># Visits</th>
+          <th data-col="tags">Tags</th>
+        </tr>
+      </thead>
+      <tbody id="parks-tbody"></tbody>
+    </table>
+  </div>
+</div>
+    <div id="tab-countries" class="tab-panel">
+  <div class="table-toolbar">
+    <input type="text" id="countries-search" placeholder="Filter by name or tag…">
+    <select id="countries-visited-filter">
+      <option value="">All</option>
+      <option value="visited">Visited</option>
+      <option value="unvisited">Unvisited</option>
+    </select>
+    <button id="add-country-btn">+ Add Country</button>
+  </div>
+  <div id="add-country-form" class="hidden" style="padding:12px 16px;background:var(--parchment);border-bottom:1px solid var(--border);flex-shrink:0;">
+    <form id="country-form" style="display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap;">
+      <div><label style="display:block;font-size:12px;margin-bottom:4px;">Country Name *</label><input type="text" id="country-name" required style="padding:6px 8px;border:1px solid var(--border);border-radius:4px;font-family:var(--font-sans);font-size:13px;"></div>
+      <div><label style="display:block;font-size:12px;margin-bottom:4px;">Notes</label><input type="text" id="country-notes" style="padding:6px 8px;border:1px solid var(--border);border-radius:4px;font-family:var(--font-sans);font-size:13px;"></div>
+      <button type="submit" style="background:var(--terracotta);color:#fff;border:none;padding:6px 14px;border-radius:4px;cursor:pointer;font-family:var(--font-sans);font-size:13px;">Save</button>
+      <button type="button" id="cancel-country-btn" style="background:none;border:1px solid var(--border);padding:6px 14px;border-radius:4px;cursor:pointer;font-family:var(--font-sans);font-size:13px;">Cancel</button>
+    </form>
+  </div>
+  <div class="table-wrap">
+    <table id="countries-table">
+      <thead>
+        <tr>
+          <th data-col="name" class="sort-asc">Country</th>
+          <th data-col="firstVisit">First Visited</th>
+          <th data-col="visits"># Visits</th>
+          <th data-col="tags">Tags</th>
+        </tr>
+      </thead>
+      <tbody id="countries-tbody"></tbody>
+    </table>
+  </div>
+</div>
     <div id="tab-stats" class="tab-panel">Stats coming soon</div>
   </main>
   <div id="drawer-overlay" class="hidden"></div>
@@ -456,6 +569,265 @@ document.getElementById('visit-form').addEventListener('submit', function(e) {
   colorStates();
   renderMap();
 });
+
+// ── States Tab ────────────────────────────────────────────────────────
+let statesSort = { col: 'name', dir: 'asc' };
+
+function renderStatesTable() {
+  const search = document.getElementById('states-search').value.toLowerCase();
+  const region = document.getElementById('states-region-filter').value;
+  const visitedFilter = document.getElementById('states-visited-filter').value;
+  const visits = getVisits();
+  const visitedIds = new Set(visits.map(v => v.placeId));
+
+  let rows = statesData.map(s => ({
+    ...s,
+    firstVisit: firstVisitDate(s.id) || '',
+    visits: getVisitsForPlace(s.id).length,
+    tags: [...new Set(getVisitsForPlace(s.id).flatMap(v => v.tags || []))]
+  }));
+
+  if (region) rows = rows.filter(r => r.region === region);
+  if (visitedFilter === 'visited') rows = rows.filter(r => visitedIds.has(r.id));
+  if (visitedFilter === 'unvisited') rows = rows.filter(r => !visitedIds.has(r.id));
+  if (search) rows = rows.filter(r =>
+    r.name.toLowerCase().includes(search) ||
+    r.tags.some(t => t.includes(search))
+  );
+
+  rows.sort((a, b) => {
+    const va = a[statesSort.col] || '';
+    const vb = b[statesSort.col] || '';
+    return statesSort.dir === 'asc' ? String(va).localeCompare(String(vb)) : String(vb).localeCompare(String(va));
+  });
+
+  const tbody = document.getElementById('states-tbody');
+  tbody.innerHTML = rows.map(r => `
+    <tr data-id="${escapeHtml(r.id)}" data-type="state">
+      <td>${escapeHtml(r.abbrev)}</td>
+      <td>${visitedIds.has(r.id) ? '<span class="visited-dot"></span>' : ''}${escapeHtml(r.name)}</td>
+      <td>${escapeHtml(r.region)}</td>
+      <td>${escapeHtml(r.firstVisit || '—')}</td>
+      <td>${r.visits || '—'}</td>
+      <td>${r.tags.map(t => `<span class="tag-pill">${escapeHtml(t)}</span>`).join(' ')}</td>
+    </tr>
+  `).join('');
+
+  tbody.querySelectorAll('tr').forEach(row => {
+    row.addEventListener('click', () => openDrawer(row.dataset.id, row.dataset.type));
+  });
+}
+
+document.querySelectorAll('#states-table th').forEach(th => {
+  th.addEventListener('click', () => {
+    const col = th.dataset.col;
+    statesSort.dir = statesSort.col === col && statesSort.dir === 'asc' ? 'desc' : 'asc';
+    statesSort.col = col;
+    document.querySelectorAll('#states-table th').forEach(h => h.classList.remove('sort-asc', 'sort-desc'));
+    th.classList.add(statesSort.dir === 'asc' ? 'sort-asc' : 'sort-desc');
+    renderStatesTable();
+  });
+});
+['states-search', 'states-region-filter', 'states-visited-filter'].forEach(id => {
+  document.getElementById(id).addEventListener('input', renderStatesTable);
+});
+document.querySelector('[data-tab="states"]').addEventListener('click', renderStatesTable);
+
+// ── Parks Tab ─────────────────────────────────────────────────────────
+let parksSort = { col: 'name', dir: 'asc' };
+let parksFiltersPopulated = false;
+
+function populateParksFilters() {
+  if (parksFiltersPopulated) return;
+  const types = [...new Set(parksData.map(p => p.type).filter(Boolean))].sort();
+  const typeEl = document.getElementById('parks-type-filter');
+  types.forEach(t => { const o = document.createElement('option'); o.value = t; o.textContent = t; typeEl.appendChild(o); });
+  const states = [...new Set(parksData.map(p => p.state).filter(Boolean))].sort();
+  const stateEl = document.getElementById('parks-state-filter');
+  states.forEach(s => { const o = document.createElement('option'); o.value = s; o.textContent = s; stateEl.appendChild(o); });
+  parksFiltersPopulated = true;
+}
+
+function renderParksTable() {
+  const search = document.getElementById('parks-search').value.toLowerCase();
+  const typeFilter = document.getElementById('parks-type-filter').value;
+  const stateFilter = document.getElementById('parks-state-filter').value;
+  const visitedFilter = document.getElementById('parks-visited-filter').value;
+  const visits = getVisits();
+  const visitedIds = new Set(visits.map(v => v.placeId));
+  const parkIds = new Set(parksData.map(p => p.id));
+  const customParks = getCustomPlaces().filter(p => p.type !== 'country');
+
+  let rows = [...parksData, ...customParks].map(p => ({
+    ...p,
+    firstVisit: firstVisitDate(p.id) || '',
+    visits: getVisitsForPlace(p.id).length,
+    tags: [...new Set(getVisitsForPlace(p.id).flatMap(v => v.tags || []))],
+    isCustom: !parkIds.has(p.id)
+  }));
+
+  if (typeFilter) rows = rows.filter(r => r.type === typeFilter);
+  if (stateFilter) rows = rows.filter(r => r.state === stateFilter);
+  if (visitedFilter === 'visited') rows = rows.filter(r => visitedIds.has(r.id));
+  if (visitedFilter === 'unvisited') rows = rows.filter(r => !visitedIds.has(r.id));
+  if (search) rows = rows.filter(r =>
+    r.name.toLowerCase().includes(search) ||
+    (r.state || '').toLowerCase().includes(search) ||
+    r.tags.some(t => t.includes(search))
+  );
+
+  rows.sort((a, b) => {
+    const va = a[parksSort.col] || '';
+    const vb = b[parksSort.col] || '';
+    return parksSort.dir === 'asc' ? String(va).localeCompare(String(vb)) : String(vb).localeCompare(String(va));
+  });
+
+  const tbody = document.getElementById('parks-tbody');
+  tbody.innerHTML = rows.map(r => `
+    <tr data-id="${escapeHtml(r.id)}" data-type="park">
+      <td>${visitedIds.has(r.id) ? '<span class="visited-dot"></span>' : ''}${escapeHtml(r.name)}${r.isCustom ? ' <span style="font-size:10px;background:var(--border);padding:1px 5px;border-radius:3px;">custom</span>' : ''}</td>
+      <td>${escapeHtml(r.type || '—')}</td>
+      <td>${escapeHtml(r.state || '—')}</td>
+      <td>${escapeHtml(r.established || '—')}</td>
+      <td>${escapeHtml(r.firstVisit || '—')}</td>
+      <td>${r.visits || '—'}</td>
+      <td>${r.tags.map(t => `<span class="tag-pill">${escapeHtml(t)}</span>`).join(' ')}</td>
+    </tr>
+  `).join('');
+
+  tbody.querySelectorAll('tr').forEach(row => {
+    row.addEventListener('click', () => openDrawer(row.dataset.id, row.dataset.type));
+  });
+}
+
+document.querySelectorAll('#parks-table th').forEach(th => {
+  th.addEventListener('click', () => {
+    const col = th.dataset.col;
+    parksSort.dir = parksSort.col === col && parksSort.dir === 'asc' ? 'desc' : 'asc';
+    parksSort.col = col;
+    document.querySelectorAll('#parks-table th').forEach(h => h.classList.remove('sort-asc', 'sort-desc'));
+    th.classList.add(parksSort.dir === 'asc' ? 'sort-asc' : 'sort-desc');
+    renderParksTable();
+  });
+});
+['parks-search','parks-type-filter','parks-state-filter','parks-visited-filter'].forEach(id => {
+  document.getElementById(id).addEventListener('input', renderParksTable);
+});
+
+document.getElementById('add-park-btn').addEventListener('click', () => {
+  document.getElementById('add-park-form').classList.toggle('hidden');
+});
+document.getElementById('cancel-park-btn').addEventListener('click', () => {
+  document.getElementById('add-park-form').classList.add('hidden');
+});
+document.getElementById('custom-place-form').addEventListener('submit', function(e) {
+  e.preventDefault();
+  const place = {
+    id: generateId(),
+    name: document.getElementById('cp-name').value.trim(),
+    type: 'custom',
+    lat: parseFloat(document.getElementById('cp-lat').value) || null,
+    lng: parseFloat(document.getElementById('cp-lng').value) || null,
+    notes: document.getElementById('cp-notes').value.trim()
+  };
+  const places = getCustomPlaces();
+  places.push(place);
+  saveCustomPlaces(places);
+  document.getElementById('add-park-form').classList.add('hidden');
+  this.reset();
+  renderParksTable();
+  renderMap();
+});
+
+document.querySelector('[data-tab="parks"]').addEventListener('click', () => {
+  populateParksFilters();
+  renderParksTable();
+});
+
+// ── Countries Tab ─────────────────────────────────────────────────────
+let countriesSort = { col: 'name', dir: 'asc' };
+
+function renderCountriesTable() {
+  const search = document.getElementById('countries-search').value.toLowerCase();
+  const visitedFilter = document.getElementById('countries-visited-filter').value;
+  const visitedIds = new Set(getVisits().map(v => v.placeId));
+  const countries = getCustomPlaces().filter(p => p.type === 'country');
+
+  let rows = countries.map(c => ({
+    ...c,
+    firstVisit: firstVisitDate(c.id) || '',
+    visits: getVisitsForPlace(c.id).length,
+    tags: [...new Set(getVisitsForPlace(c.id).flatMap(v => v.tags || []))]
+  }));
+
+  if (visitedFilter === 'visited') rows = rows.filter(r => visitedIds.has(r.id));
+  if (visitedFilter === 'unvisited') rows = rows.filter(r => !visitedIds.has(r.id));
+  if (search) rows = rows.filter(r =>
+    r.name.toLowerCase().includes(search) ||
+    r.tags.some(t => t.includes(search))
+  );
+
+  rows.sort((a, b) => {
+    const va = a[countriesSort.col] || '';
+    const vb = b[countriesSort.col] || '';
+    return countriesSort.dir === 'asc' ? String(va).localeCompare(String(vb)) : String(vb).localeCompare(String(va));
+  });
+
+  const tbody = document.getElementById('countries-tbody');
+  tbody.innerHTML = rows.length ? rows.map(r => `
+    <tr data-id="${escapeHtml(r.id)}" data-type="country">
+      <td>${visitedIds.has(r.id) ? '<span class="visited-dot"></span>' : ''}${escapeHtml(r.name)}</td>
+      <td>${escapeHtml(r.firstVisit || '—')}</td>
+      <td>${r.visits || '—'}</td>
+      <td>${r.tags.map(t => `<span class="tag-pill">${escapeHtml(t)}</span>`).join(' ')}</td>
+    </tr>
+  `).join('') : '<tr><td colspan="4" style="text-align:center;padding:24px;color:var(--ink-light);font-style:italic;">No countries added yet</td></tr>';
+
+  tbody.querySelectorAll('tr[data-id]').forEach(row => {
+    row.addEventListener('click', () => openDrawer(row.dataset.id, 'country'));
+  });
+}
+
+// Note: findPlace already handles 'country' type via its fallback to getCustomPlaces(),
+// so no patching is needed.
+
+document.querySelectorAll('#countries-table th').forEach(th => {
+  th.addEventListener('click', () => {
+    const col = th.dataset.col;
+    countriesSort.dir = countriesSort.col === col && countriesSort.dir === 'asc' ? 'desc' : 'asc';
+    countriesSort.col = col;
+    document.querySelectorAll('#countries-table th').forEach(h => h.classList.remove('sort-asc','sort-desc'));
+    th.classList.add(countriesSort.dir === 'asc' ? 'sort-asc' : 'sort-desc');
+    renderCountriesTable();
+  });
+});
+['countries-search','countries-visited-filter'].forEach(id =>
+  document.getElementById(id).addEventListener('input', renderCountriesTable)
+);
+
+document.getElementById('add-country-btn').addEventListener('click', () => {
+  document.getElementById('add-country-form').classList.toggle('hidden');
+});
+document.getElementById('cancel-country-btn').addEventListener('click', () => {
+  document.getElementById('add-country-form').classList.add('hidden');
+});
+document.getElementById('country-form').addEventListener('submit', function(e) {
+  e.preventDefault();
+  const place = {
+    id: generateId(),
+    name: document.getElementById('country-name').value.trim(),
+    type: 'country',
+    notes: document.getElementById('country-notes').value.trim()
+  };
+  const places = getCustomPlaces();
+  places.push(place);
+  saveCustomPlaces(places);
+  document.getElementById('add-country-form').classList.add('hidden');
+  this.reset();
+  renderCountriesTable();
+});
+
+document.querySelector('[data-tab="countries"]').addEventListener('click', renderCountriesTable);
 
 // ── Map ──────────────────────────────────────────────────────────────
 const US_ATLAS = 'https://cdn.jsdelivr.net/npm/us-atlas@3/states-10m.json';
