@@ -1250,12 +1250,14 @@ function renderPhasesModalList() {
       if (idx === 0) return;
       syncPhaseRowToWorkingCopy();
       [_phasesWorkingCopy[idx - 1], _phasesWorkingCopy[idx]] = [_phasesWorkingCopy[idx], _phasesWorkingCopy[idx - 1]];
+      recomputePhaseColumns();
       renderPhasesModalList();
     });
     row.querySelector('.ph-down').addEventListener('click', () => {
       if (idx === _phasesWorkingCopy.length - 1) return;
       syncPhaseRowToWorkingCopy();
       [_phasesWorkingCopy[idx], _phasesWorkingCopy[idx + 1]] = [_phasesWorkingCopy[idx + 1], _phasesWorkingCopy[idx]];
+      recomputePhaseColumns();
       renderPhasesModalList();
     });
     row.querySelector('.ph-remove').addEventListener('click', () => {
@@ -1274,6 +1276,16 @@ function syncPhaseRowToWorkingCopy() {
     _phasesWorkingCopy[idx].label    = row.querySelector('.ph-name').value;
     _phasesWorkingCopy[idx].startCol = parseInt(row.querySelector('.ph-start').value, 10) || 0;
     _phasesWorkingCopy[idx].endCol   = parseInt(row.querySelector('.ph-end').value,   10) || 0;
+  });
+}
+
+function recomputePhaseColumns() {
+  let col = 0;
+  _phasesWorkingCopy.forEach(ph => {
+    const span = Math.max(0, ph.endCol - ph.startCol);
+    ph.startCol = col;
+    ph.endCol   = col + span;
+    col = ph.endCol + 1;
   });
 }
 
@@ -1357,6 +1369,36 @@ function renderTreesModalList() {
     });
     container.appendChild(row);
   });
+
+  // ── Example Trees section ──
+  const importable = SAMPLE_TREES.filter(s => !trees.some(t => t.id === s.id));
+  if (importable.length) {
+    const sep = document.createElement('div');
+    sep.innerHTML = `<div style="font-size:9px;font-weight:700;letter-spacing:0.14em;color:var(--text-dim);text-transform:uppercase;padding:14px 0 6px">Example Trees</div>`;
+    container.appendChild(sep);
+    importable.forEach(sample => {
+      const exRow = document.createElement('div');
+      exRow.className = 'tree-row';
+      exRow.style.cssText = 'opacity:0.7';
+      exRow.innerHTML = `
+        <span class="tree-row-name" style="color:var(--text-muted)">${escHtml(sample.name)}</span>
+        <div class="tree-row-actions">
+          <button class="m-btn primary tr-import" style="padding:3px 10px;font-size:10px">Import</button>
+        </div>
+      `;
+      exRow.querySelector('.tr-import').addEventListener('click', e => {
+        e.stopPropagation();
+        const copy = JSON.parse(JSON.stringify(sample));
+        trees.push(copy);
+        setActiveTree(copy.id);
+        render();
+        save();
+        closeTreesModal();
+        toast(`Imported "${copy.name}"`);
+      });
+      container.appendChild(exRow);
+    });
+  }
 }
 
 // ═══════════════════════════════════════════════════════════════
