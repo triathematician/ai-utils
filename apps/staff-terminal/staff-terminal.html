@@ -157,6 +157,8 @@ html, body {
   padding: 4px 8px;
   overflow: hidden;
   min-height: 0;
+  display: flex;
+  flex-direction: column;
 }
 .highlight-card .hc-label {
   font-size: 0.65em;
@@ -164,6 +166,7 @@ html, body {
   color: var(--accent);
   display: block;
   margin-bottom: 2px;
+  flex-shrink: 0;
 }
 .highlight-card .hc-value {
   font-size: 0.82em;
@@ -171,8 +174,27 @@ html, body {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  flex: 1;
+  min-height: 0;
 }
 .highlight-card .hc-value.dim { color: var(--dim); }
+.highlight-card .hc-value.hc-list {
+  white-space: normal;
+  text-overflow: clip;
+  overflow-y: auto;
+  font-size: 0.78em;
+}
+.hc-m-entry {
+  display: flex;
+  gap: 4px;
+  padding: 1px 0;
+  border-bottom: 1px solid var(--muted);
+  align-items: baseline;
+  min-width: 0;
+}
+.hc-m-entry:last-child { border-bottom: none; }
+.hc-m-date { color: var(--dim); flex-shrink: 0; }
+.hc-m-text { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
 /* ═══════════════════════════════════════════════
    MIDDLE ROW — MAIN + SIDE PANELS
@@ -510,12 +532,9 @@ html, body {
   <!-- MIDDLE ROW -->
   <div id="main-row">
 
-    <!-- MAIN PANEL — MILESTONES + LDP -->
+    <!-- MAIN PANEL — LDP GOALS + HIGHLIGHTS -->
     <div id="main-panel">
-      <div class="row-header">◈ MILESTONES + LDP GOALS</div>
-      <div id="ldp-year-strip" style="display:none;"></div>
-      <div class="sub-header" id="milestones-header" style="display:none;">▸ MILESTONES</div>
-      <div id="milestones-list"></div>
+      <div class="row-header">◈ DEVELOPMENT GOALS + HIGHLIGHTS</div>
       <div id="goals-list"></div>
     </div>
 
@@ -786,8 +805,9 @@ function renderTopRow() {
   if (sortedNotes.length) {
     const n = sortedNotes[0];
     const ds = daysSince(n.date);
+    const dateOnly = n.date.slice(0, 10);
     const snippet = n.text.length > 50 ? n.text.slice(0, 50) + '…' : n.text;
-    setHighlightCard('hc-note', `◈ LAST NOTE (${ds}d ago)`, `[${n.date}] ${snippet}`, false);
+    setHighlightCard('hc-note', `◈ LAST NOTE (${ds}d ago)`, `[${dateOnly}] ${snippet}`, false);
   } else {
     setHighlightCard('hc-note', '◈ LAST NOTE', 'no notes yet', true);
   }
@@ -801,10 +821,26 @@ function renderTopRow() {
     setHighlightCard('hc-goals', '◈ LDP GOALS', 'no LDP yet — use /ldp', true);
   }
 
-  setHighlightCard('hc-milestones', '◈ MILESTONES',
-    s.milestones.length
-      ? `${s.milestones.length} total`
-      : 'none yet', s.milestones.length === 0);
+  // Milestones card: show full list
+  const hcMs = document.getElementById('hc-milestones');
+  hcMs.querySelector('.hc-label').textContent = '◈ MILESTONES';
+  const msValue = hcMs.querySelector('.hc-value');
+  if (!s.milestones.length) {
+    msValue.textContent = 'none yet';
+    msValue.className = 'hc-value dim';
+  } else {
+    msValue.className = 'hc-value hc-list';
+    const sorted = [...s.milestones].sort((a, b) => b.date.localeCompare(a.date));
+    msValue.innerHTML = sorted.map(m => {
+      const icon = MILESTONE_ICONS[m.type] || '·';
+      const dateOnly = m.date.slice(0, 10);
+      return `<div class="hc-m-entry">` +
+        `<span class="hc-m-date">${escHtml(dateOnly)}</span>` +
+        `<span class="mt-${escHtml(m.type)}">${escHtml(icon)}</span>` +
+        `<span class="hc-m-text">${escHtml(m.text)}</span>` +
+        `</div>`;
+    }).join('');
+  }
 }
 
 function setHighlightCard(id, label, value, dim) {
@@ -816,73 +852,29 @@ function setHighlightCard(id, label, value, dim) {
 }
 
 /* ═══════════════════════════════════════════════════════════════════
-   RENDER — MAIN PANEL (MILESTONES + LDP)
+   RENDER — MAIN PANEL (LDP GOALS + HIGHLIGHTS)
    ═══════════════════════════════════════════════════════════════════ */
 function renderMainPanel() {
   const s = getActiveStaff();
-  const stripEl    = document.getElementById('ldp-year-strip');
-  const goalsEl    = document.getElementById('goals-list');
-  const mHdrEl     = document.getElementById('milestones-header');
-  const mListEl    = document.getElementById('milestones-list');
+  const goalsEl = document.getElementById('goals-list');
 
   goalsEl.innerHTML = '';
-  mListEl.innerHTML = '';
-  stripEl.innerHTML = '';
-  mHdrEl.style.display = 'none';
 
   if (!s) {
     goalsEl.innerHTML = '<div class="empty-msg">No staff loaded.</div>';
     return;
   }
 
-  // Milestones FIRST — show ALL
-  if (s.milestones.length) {
-    mHdrEl.style.display = 'block';
-    mHdrEl.textContent = '▸ MILESTONES';
-    const sorted = [...s.milestones].sort((a, b) => b.date.localeCompare(a.date));
-    sorted.forEach(m => {
-      const div = document.createElement('div');
-      div.className = 'milestone-item';
-      const icon = MILESTONE_ICONS[m.type] || '·';
-      const dateDisplay = m.date.length > 10 ? m.date.slice(0, 10) : m.date;
-      div.innerHTML = `
-        <span class="milestone-date">${escHtml(dateDisplay)}</span>
-        <span class="milestone-type mt-${escHtml(m.type)}">${escHtml(icon)}</span>
-        <span class="milestone-text">${escHtml(m.text)}</span>
-        <span class="milestone-del" data-milestone-id="${escHtml(m.id)}" title="Delete">×</span>`;
-      addTooltip(div.querySelector('.milestone-text'), `${m.type.toUpperCase()}: ${m.text}\n${dateDisplay}`);
-      const delBtn = div.querySelector('.milestone-del');
-      delBtn.addEventListener('click', e => {
-        e.stopPropagation();
-        deleteMilestone(m.id);
-      });
-      div.addEventListener('click', e => {
-        if (e.target === delBtn) return;
-        openMilestoneDialog(m.id);
-      });
-      mListEl.appendChild(div);
-    });
-  }
+  const years = [...new Set([...s.ldps.map(l => l.year), currentYear()])].sort((a,b) => b - a);
+  const activeYr = getViewYear();
 
-  // LDP section header
-  const ldpHdrDiv = document.createElement('div');
-  ldpHdrDiv.className = 'sub-header';
-  ldpHdrDiv.id = 'ldp-goals-header';
-  ldpHdrDiv.style.marginTop = s.milestones.length ? '8px' : '0';
-  goalsEl.appendChild(ldpHdrDiv);
-
-  // Year strip (inside goals-list area)
+  // Year strip FIRST — above subsection heading
   const yearDiv = document.createElement('div');
   yearDiv.id = 'ldp-year-strip-inner';
   yearDiv.style.fontSize = '0.72em';
   yearDiv.style.letterSpacing = '1px';
   yearDiv.style.color = 'var(--dim)';
   yearDiv.style.marginBottom = '4px';
-  const years = [...new Set([...s.ldps.map(l => l.year), currentYear()])].sort((a,b) => b - a);
-  const activeYr = getViewYear();
-
-  ldpHdrDiv.textContent = '▸ LDP GOALS — ' + activeYr;
-
   years.forEach(yr => {
     const span = document.createElement('span');
     span.className = 'yr-tab' + (yr === activeYr ? ' active' : '');
@@ -893,15 +885,12 @@ function renderMainPanel() {
   });
   goalsEl.appendChild(yearDiv);
 
-  // Also populate the original ldp-year-strip for consistency
-  years.forEach(yr => {
-    const span = document.createElement('span');
-    span.className = 'yr-tab' + (yr === activeYr ? ' active' : '');
-    span.textContent = yr;
-    span.addEventListener('click', () => { viewingLdpYear = yr; render(); });
-    stripEl.appendChild(span);
-    stripEl.appendChild(document.createTextNode(' '));
-  });
+  // LDP section header (below year strip)
+  const ldpHdrDiv = document.createElement('div');
+  ldpHdrDiv.className = 'sub-header';
+  ldpHdrDiv.id = 'ldp-goals-header';
+  ldpHdrDiv.textContent = '▸ LDP GOALS — ' + activeYr;
+  goalsEl.appendChild(ldpHdrDiv);
 
   const ldp = getLdpForYear(s, activeYr);
 
@@ -1734,32 +1723,70 @@ function openMilestoneDialog(id) {
   if (!s) return;
   const m = s.milestones.find(x => x.id === id);
   if (!m) return;
-  showOverlay('◈ MILESTONE', () => {
+
+  // Work with a draft type so Cancel leaves the original unchanged
+  let draftType = m.type;
+
+  function renderMilestoneDlg() {
     const body = document.getElementById('help-body');
     body.style.whiteSpace = 'normal';
+
+    const typeBtns = MILESTONE_TYPES.map(t =>
+      `<button class="dlg-type-btn${draftType === t ? ' active' : ''}" data-mtype="${escHtml(t)}">${escHtml(t.toUpperCase())}</button>`
+    ).join('');
+
     body.innerHTML = `
       <div class="dlg-section">
         <div class="dlg-label">TYPE</div>
-        <div>${escHtml(m.type.toUpperCase())} ${escHtml(MILESTONE_ICONS[m.type] || '·')}</div>
+        <div>${typeBtns}</div>
       </div>
       <div class="dlg-section">
         <div class="dlg-label">DATE</div>
-        <div>${escHtml(m.date.slice(0, 10))}</div>
+        <input class="dlg-input" id="dlg-m-date" type="text" value="${escHtml(m.date.slice(0, 10))}" placeholder="YYYY-MM-DD">
       </div>
       <div class="dlg-section">
         <div class="dlg-label">TEXT</div>
-        <div>${escHtml(m.text)}</div>
+        <input class="dlg-input" id="dlg-m-text" type="text" value="${escHtml(m.text)}">
       </div>
       <div class="dlg-section" style="margin-top:14px;">
+        <button class="dlg-btn dlg-btn-primary" id="dlg-m-save">Save</button>
         <button class="dlg-btn dlg-btn-danger" id="dlg-m-del">Delete Milestone</button>
-        <button class="dlg-btn" id="dlg-m-close">Close</button>
+        <button class="dlg-btn" id="dlg-m-close">Cancel</button>
       </div>`;
+
+    body.querySelectorAll('[data-mtype]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        draftType = btn.dataset.mtype;
+        renderMilestoneDlg();
+      });
+    });
+
+    document.getElementById('dlg-m-save').addEventListener('click', () => {
+      const newDate = document.getElementById('dlg-m-date').value.trim();
+      const newText = document.getElementById('dlg-m-text').value.trim();
+      if (!newText) { statusMsg('Milestone text cannot be empty.'); return; }
+      if (newDate) {
+        if (!/^\d{4}-\d{2}-\d{2}$/.test(newDate) || isNaN(new Date(newDate).getTime())) {
+          statusMsg('Date must be a valid YYYY-MM-DD date.'); return;
+        }
+        m.date = newDate;
+      }
+      m.text = newText;
+      m.type = draftType;
+      saveDB();
+      render();
+      closeOverlay();
+      statusMsg('Milestone updated.');
+    });
+
     document.getElementById('dlg-m-del').addEventListener('click', () => {
       deleteMilestone(id);
       closeOverlay();
     });
     document.getElementById('dlg-m-close').addEventListener('click', closeOverlay);
-  });
+  }
+
+  showOverlay('◈ MILESTONE', renderMilestoneDlg);
 }
 
 /* ─── openGoalDialog ─── */
