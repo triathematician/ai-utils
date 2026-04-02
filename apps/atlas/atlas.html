@@ -82,6 +82,71 @@ document.querySelectorAll('.tab').forEach(btn => {
   });
 });
 
+// ── Data Layer ────────────────────────────────────────────────────────
+let statesData = [];
+let parksData = [];
+
+async function loadData() {
+  [statesData, parksData] = await Promise.all([
+    fetch('./states.json').then(r => r.json()),
+    fetch('./parks.json').then(r => r.json())
+  ]);
+  statesData = statesData.map(s => ({ ...s, placeType: 'state' }));
+  parksData = parksData.map(p => ({ ...p, placeType: 'park' }));
+}
+
+function getVisits() {
+  return JSON.parse(localStorage.getItem(STORAGE.VISITS) || '[]');
+}
+function saveVisits(visits) {
+  localStorage.setItem(STORAGE.VISITS, JSON.stringify(visits));
+}
+function getCustomPlaces() {
+  return JSON.parse(localStorage.getItem(STORAGE.PLACES) || '[]');
+}
+function saveCustomPlaces(places) {
+  localStorage.setItem(STORAGE.PLACES, JSON.stringify(places));
+}
+function getPhotos() {
+  return JSON.parse(localStorage.getItem(STORAGE.PHOTOS) || '{}');
+}
+function savePhoto(placeId, dataUrl) {
+  const photos = getPhotos();
+  photos[placeId] = dataUrl;
+  localStorage.setItem(STORAGE.PHOTOS, JSON.stringify(photos));
+}
+
+// Returns all visits for a given placeId, sorted newest first
+function getVisitsForPlace(placeId) {
+  return getVisits().filter(v => v.placeId === placeId)
+    .sort((a, b) => new Date(b.date) - new Date(a.date));
+}
+
+// Returns all unique tags ever used across all visits
+function getAllTags() {
+  return [...new Set(getVisits().flatMap(v => v.tags))].sort();
+}
+
+// Returns first visit date for a placeId, or null
+function firstVisitDate(placeId) {
+  const visits = getVisitsForPlace(placeId);
+  if (!visits.length) return null;
+  return visits.reduce((earliest, v) =>
+    new Date(v.date) < new Date(earliest) ? v.date : earliest, visits[0].date);
+}
+
+function generateId() {
+  return Date.now().toString(36) + Math.random().toString(36).slice(2);
+}
+
+function allPlaces() {
+  return [
+    ...statesData,
+    ...parksData,
+    ...getCustomPlaces()
+  ];
+}
+
 // ── Map ──────────────────────────────────────────────────────────────
 const US_ATLAS = 'https://cdn.jsdelivr.net/npm/us-atlas@3/states-10m.json';
 
@@ -121,7 +186,11 @@ function renderMap() {
       .on('click', (event, d) => console.log('clicked state FIPS:', d.id));
 }
 
-loadMap();
+async function init() {
+  await loadData();
+  loadMap();
+}
+init();
 window.addEventListener('resize', () => { if (topoData) renderMap(); });
 </script>
 </body>
