@@ -110,6 +110,11 @@ tbody tr { border-bottom: 1px solid var(--parchment); cursor: pointer; }
 tbody tr:hover { background: var(--parchment); }
 tbody td { padding: 8px 12px; vertical-align: middle; }
 .visited-dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: var(--terracotta); margin-right: 6px; }
+.stat-card { background: var(--drawer-bg); border: 1px solid var(--border); border-radius: 8px; padding: 20px 24px; min-width: 180px; }
+.stat-card .stat-number { font-family: var(--font-serif); font-size: 36px; font-weight: 700; color: var(--terracotta); }
+.stat-card .stat-label { font-size: 13px; color: var(--ink-light); margin-bottom: 8px; }
+.stat-progress { height: 4px; background: var(--parchment); border-radius: 2px; margin-top: 8px; }
+.stat-progress-fill { height: 100%; background: var(--terracotta); border-radius: 2px; transition: width 0.3s; }
 </style>
 </head>
 <body>
@@ -240,7 +245,17 @@ tbody td { padding: 8px 12px; vertical-align: middle; }
     </table>
   </div>
 </div>
-    <div id="tab-stats" class="tab-panel">Stats coming soon</div>
+    <div id="tab-stats" class="tab-panel" style="padding:24px;overflow-y:auto;">
+  <div style="display:flex;gap:24px;margin-bottom:32px;flex-wrap:wrap;">
+    <div class="stat-card" id="stat-states"></div>
+    <div class="stat-card" id="stat-parks"></div>
+    <div class="stat-card" id="stat-countries"></div>
+  </div>
+  <div style="max-width:700px;">
+    <h3 style="font-family:var(--font-serif);margin-bottom:16px;">Visits per Year</h3>
+    <canvas id="visits-chart"></canvas>
+  </div>
+</div>
   </main>
   <div id="drawer-overlay" class="hidden"></div>
   <aside id="detail-drawer" class="hidden">
@@ -877,6 +892,168 @@ document.getElementById('country-form').addEventListener('submit', function(e) {
 
 document.querySelector('[data-tab="countries"]').addEventListener('click', renderCountriesTable);
 
+// ── Stats Tab ─────────────────────────────────────────────────────────
+let visitsChart = null;
+
+function renderStats() {
+  const visits = getVisits();
+  const visitedIds = new Set(visits.map(v => v.placeId));
+  const parkIdSet = new Set(parksData.map(p => p.id));
+
+  const statesVisited = statesData.filter(s => visitedIds.has(s.id)).length;
+  const parksVisited = parksData.filter(p => visitedIds.has(p.id)).length;
+  const allCustom = getCustomPlaces();
+  const countries = allCustom.filter(p => p.type === 'country');
+  const countriesVisited = countries.filter(p => visitedIds.has(p.id)).length;
+
+  const pct = (n, d) => d ? Math.min(100, (n / d * 100)).toFixed(1) : 0;
+
+  document.getElementById('stat-states').innerHTML = `
+    <div class="stat-label">States visited</div>
+    <div class="stat-number">${statesVisited}</div>
+    <div style="font-size:12px;color:var(--ink-light);">of ${statesData.length}</div>
+    <div class="stat-progress"><div class="stat-progress-fill" style="width:${pct(statesVisited, statesData.length)}%"></div></div>`;
+
+  document.getElementById('stat-parks').innerHTML = `
+    <div class="stat-label">Parks visited</div>
+    <div class="stat-number">${parksVisited}</div>
+    <div style="font-size:12px;color:var(--ink-light);">of ${parksData.length}</div>
+    <div class="stat-progress"><div class="stat-progress-fill" style="width:${pct(parksVisited, parksData.length)}%"></div></div>`;
+
+  document.getElementById('stat-countries').innerHTML = `
+    <div class="stat-label">Countries visited</div>
+    <div class="stat-number">${countriesVisited}</div>
+    <div style="font-size:12px;color:var(--ink-light);">of ${countries.length} tracked</div>`;
+
+  // Build year buckets
+  const byYear = {};
+  visits.forEach(v => {
+    const year = v.date ? v.date.slice(0, 4) : 'Unknown';
+    if (!byYear[year]) byYear[year] = { state: 0, park: 0, country: 0, custom: 0 };
+    let placeType;
+    if (statesData.find(s => s.id === v.placeId)) placeType = 'state';
+    else if (parkIdSet.has(v.placeId)) placeType = 'park';
+    else {
+      const cp = allCustom.find(p => p.id === v.placeId);
+      placeType = cp?.type === 'country' ? 'country' : 'custom';
+    }
+    byYear[year][placeType]++;
+  });
+
+  const years = Object.keys(byYear).filter(y => y !== 'Unknown').sort();
+  if (visitsChart) { visitsChart.destroy(); visitsChart = null; }
+  if (!years.length) return;
+
+  visitsChart = new Chart(document.getElementById('visits-chart'), {
+    type: 'bar',
+    data: {
+      labels: years,
+      datasets: [
+        { label: 'States',    data: years.map(y => byYear[y].state),   backgroundColor: 'rgba(196,98,45,0.75)' },
+        { label: 'Parks',     data: years.map(y => byYear[y].park),    backgroundColor: 'rgba(61,107,71,0.75)' },
+        { label: 'Countries', data: years.map(y => byYear[y].country), backgroundColor: 'rgba(42,106,138,0.75)' },
+        { label: 'Custom',    data: years.map(y => byYear[y].custom),  backgroundColor: 'rgba(139,105,20,0.75)' }
+      ]
+    },
+    options: {
+      responsive: true,
+      plugins: { legend: { position: 'bottom' } },
+      scales: {
+        x: { stacked: true },
+        y: { stacked: true, beginAtZero: true, ticks: { stepSize: 1, precision: 0 } }
+      }
+    }
+  });
+}
+
+document.querySelector('[data-tab="stats"]').addEventListener('click', renderStats);
+
+// ── Photo ─────────────────────────────────────────────────────────────
+const photoZone = document.getElementById('drawer-photo-zone');
+
+function handlePhotoFile(file) {
+  if (!file || !file.type.startsWith('image/')) return;
+  if (file.size > 500 * 1024) {
+    alert(`Image is ${(file.size / 1024).toFixed(0)}KB — please use an image under 500KB to avoid filling localStorage.`);
+    return;
+  }
+  const reader = new FileReader();
+  reader.onload = ev => {
+    savePhoto(currentPlaceId, ev.target.result);
+    renderDrawerPhoto(currentPlaceId);
+  };
+  reader.readAsDataURL(file);
+}
+
+photoZone.addEventListener('dragover', e => {
+  e.preventDefault();
+  photoZone.classList.add('drag-over');
+});
+photoZone.addEventListener('dragleave', () => photoZone.classList.remove('drag-over'));
+photoZone.addEventListener('drop', e => {
+  e.preventDefault();
+  photoZone.classList.remove('drag-over');
+  handlePhotoFile(e.dataTransfer.files[0]);
+});
+
+photoZone.addEventListener('click', () => {
+  // Only open file picker if no photo yet
+  if (document.getElementById('drawer-photo').style.display !== 'none') return;
+  const input = document.createElement('input');
+  input.type = 'file';
+  input.accept = 'image/*';
+  input.onchange = e => handlePhotoFile(e.target.files[0]);
+  input.click();
+});
+
+// ── Map Tag Filter ────────────────────────────────────────────────────
+function applyMapTagFilter() {
+  const tag = document.getElementById('map-filter-input').value.trim().toLowerCase();
+  const visits = getVisits();
+
+  // Build lookup: placeId → visits
+  const visitsByPlace = new Map();
+  visits.forEach(v => {
+    if (!visitsByPlace.has(v.placeId)) visitsByPlace.set(v.placeId, []);
+    visitsByPlace.get(v.placeId).push(v);
+  });
+
+  d3.selectAll('.state-path').each(function(d) {
+    const fips = String(d.id).padStart(2, '0');
+    const abbrev = FIPS_TO_ABBREV[fips];
+    if (!abbrev) return;
+    const stateVisits = visitsByPlace.get(abbrev) || [];
+    const isVisited = stateVisits.length > 0;
+    const hasTag = !tag || stateVisits.some(v => (v.tags || []).includes(tag));
+    d3.select(this)
+      .classed('visited', isVisited && (!tag || hasTag))
+      .style('opacity', tag && isVisited && !hasTag ? 0.25 : null);
+  });
+
+  d3.selectAll('.park-dot').each(function(d) {
+    const parkVisits = visitsByPlace.get(d.id) || [];
+    const isVisited = parkVisits.length > 0;
+    const hasTag = !tag || parkVisits.some(v => (v.tags || []).includes(tag));
+    d3.select(this)
+      .classed('visited', isVisited && (!tag || hasTag))
+      .style('opacity', tag && isVisited && !hasTag ? 0.2 : null);
+  });
+}
+
+// Add datalist for tag autocomplete on the map filter
+function updateMapFilterDatalist() {
+  let dl = document.getElementById('map-filter-datalist');
+  if (!dl) {
+    dl = document.createElement('datalist');
+    dl.id = 'map-filter-datalist';
+    document.body.appendChild(dl);
+    document.getElementById('map-filter-input').setAttribute('list', 'map-filter-datalist');
+  }
+  dl.innerHTML = getAllTags().map(t => `<option value="${escapeHtml(t)}">`).join('');
+}
+
+document.getElementById('map-filter-input').addEventListener('input', applyMapTagFilter);
+
 // ── Map ──────────────────────────────────────────────────────────────
 const US_ATLAS = 'https://cdn.jsdelivr.net/npm/us-atlas@3/states-10m.json';
 
@@ -961,6 +1138,7 @@ function colorStates() {
 async function init() {
   await loadData();
   loadMap();
+  updateMapFilterDatalist();
 }
 init();
 window.addEventListener('resize', () => { if (topoData) renderMap(); });
