@@ -101,14 +101,14 @@
     }
     .node:hover { border-color: var(--text-muted); }
     .node.selected {
-      border-color: var(--accent); background: rgba(79,209,255,0.05);
-      box-shadow: 0 0 0 1px rgba(79,209,255,0.2);
+      background: rgba(79,209,255,0.08);
+      box-shadow: 0 0 0 3px rgba(79,209,255,0.55);
     }
     .node.is-next {
       border-color: var(--next);
       box-shadow: 0 0 14px rgba(79,209,255,0.45), 0 0 28px rgba(79,209,255,0.15);
     }
-    .node.is-next.selected { box-shadow: 0 0 14px rgba(79,209,255,0.6), 0 0 0 1px rgba(79,209,255,0.3); }
+    .node.is-next.selected { box-shadow: 0 0 14px rgba(79,209,255,0.6), 0 0 0 3px rgba(79,209,255,0.55); }
     .node.optional { border-style: dashed; }
 
     /* Gate */
@@ -129,10 +129,6 @@
     .node.complete   { border-color: var(--complete);    background: rgba(46,204,113,0.06); }
     .node.in-progress { border-color: var(--in-progress); background: rgba(255,176,32,0.06); }
     .node.blocked    { border-color: var(--blocked);     background: rgba(255,77,77,0.06); }
-    .node.selected.complete, .node.selected.in-progress, .node.selected.blocked {
-      border-color: var(--accent); box-shadow: 0 0 0 1px rgba(79,209,255,0.2);
-    }
-
     /* NEXT floating label */
     .next-label {
       position: absolute; top: -22px; left: 0; right: 0; text-align: center;
@@ -142,8 +138,8 @@
 
     .node-header { display: flex; align-items: center; gap: 5px; margin-bottom: 3px; }
     .node-kind-badge {
-      font-size: 8px; font-weight: 700; letter-spacing: 0.1em;
-      padding: 1px 4px; border-radius: 2px;
+      display: inline-flex; align-items: center; justify-content: center;
+      width: 20px; height: 20px; border-radius: 2px;
       background: var(--border-bright); color: var(--text-dim); flex-shrink: 0;
     }
     .node.gate   .node-kind-badge { background: rgba(79,209,255,0.15); color: var(--accent); }
@@ -297,6 +293,42 @@
     .m-btn.danger { border-color: var(--blocked); color: var(--blocked); background: rgba(255,77,77,0.06); }
     .m-btn.danger:hover { background: rgba(255,77,77,0.14); }
 
+    /* ─── Phase Editor Rows ─── */
+    .phase-row {
+      display: flex; align-items: center; gap: 8px; padding: 6px 0;
+      border-bottom: 1px solid var(--border);
+    }
+    .phase-row:last-child { border-bottom: none; }
+    .phase-row input {
+      background: var(--surface2); border: 1px solid var(--border); border-radius: 3px;
+      color: var(--text); font-family: 'JetBrains Mono', monospace; font-size: 11px;
+      padding: 4px 7px; outline: none; transition: border-color 0.12s;
+    }
+    .phase-row input:focus { border-color: var(--accent); }
+    .phases-header { display: flex; gap: 8px; padding: 0 0 4px 0; }
+    .phases-header span { font-size: 9px; font-weight: 700; color: var(--text-dim); letter-spacing: 0.12em; text-transform: uppercase; }
+
+    /* ─── Tree Selector ─── */
+    .tree-selector {
+      display: flex; align-items: center; gap: 6px;
+      background: var(--surface2); border: 1px solid var(--border-bright);
+      border-radius: 4px; padding: 4px 10px; cursor: pointer; position: relative;
+      font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--text-muted);
+      transition: all 0.15s; max-width: 180px;
+    }
+    .tree-selector:hover { background: var(--border); color: var(--text); }
+    #tree-name-label { color: var(--text); font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 130px; }
+
+    /* ─── Trees Modal List ─── */
+    .tree-row {
+      display: flex; align-items: center; gap: 8px; padding: 8px 0;
+      border-bottom: 1px solid var(--border); cursor: pointer;
+    }
+    .tree-row:last-child { border-bottom: none; }
+    .tree-row-name { flex: 1; font-size: 12px; color: var(--text); }
+    .tree-row.active .tree-row-name { color: var(--accent); font-weight: 700; }
+    .tree-row-actions { display: flex; gap: 4px; }
+
     /* Export text */
     #export-ta {
       font-family: 'JetBrains Mono', monospace; font-size: 11px; line-height: 1.6;
@@ -342,7 +374,7 @@
 <div id="topbar">
   <div class="topbar-brand">
     <span class="topbar-title">SKILL PATHWAYS</span>
-    <span class="topbar-subtitle">Blueprint Rail Map</span>
+    <span class="topbar-subtitle" id="topbar-tree-name">Blueprint Rail Map</span>
   </div>
   <div class="topbar-sep"></div>
   <div class="topbar-stats">
@@ -352,6 +384,7 @@
   <div class="topbar-spacer"></div>
   <button class="topbar-btn" id="btn-new-step">+ Step</button>
   <button class="topbar-btn" id="btn-add-phase">+ Phase</button>
+  <button class="topbar-btn" id="btn-trees">⟁ Trees</button>
   <button class="topbar-btn accent" id="btn-export">⬇ Export</button>
   <button class="topbar-btn" id="btn-help">?</button>
 </div>
@@ -430,6 +463,7 @@
   <span class="hint"><kbd>P</kbd> prereq link</span>
   <span class="hint"><kbd>N</kbd> jump next</span>
   <span class="hint"><kbd>⇧N</kbd> set next</span>
+  <span class="hint"><kbd>↑↓←→</kbd> navigate</span>
   <span class="hint"><kbd>Del</kbd> delete</span>
   <span class="hint"><kbd>?</kbd> help</span>
 </div>
@@ -506,7 +540,8 @@
       <div class="sc-row"><div class="sc-keys"><kbd>P</kbd></div><span class="sc-desc">Enter prereq link mode</span></div>
       <div class="sc-row"><div class="sc-keys"><kbd>N</kbd></div><span class="sc-desc">Jump to NEXT node</span></div>
       <div class="sc-row"><div class="sc-keys"><kbd>⇧</kbd><kbd>N</kbd></div><span class="sc-desc">Set node as NEXT</span></div>
-      <div class="sc-row"><div class="sc-keys"><kbd>⇧</kbd><kbd>G</kbd></div><span class="sc-desc">Add phase for node</span></div>
+      <div class="sc-row"><div class="sc-keys"><kbd>⇧</kbd><kbd>G</kbd></div><span class="sc-desc">Edit phases</span></div>
+      <div class="sc-row"><div class="sc-keys"><kbd>↑</kbd><kbd>↓</kbd><kbd>←</kbd><kbd>→</kbd></div><span class="sc-desc">Navigate nodes</span></div>
       <div class="sc-row"><div class="sc-keys"><kbd>Del</kbd></div><span class="sc-desc">Delete selected node</span></div>
       <div class="sc-row"><div class="sc-keys"><kbd>Esc</kbd></div><span class="sc-desc">Deselect / cancel</span></div>
       <div class="sc-row"><div class="sc-keys"><kbd>Ctrl</kbd><kbd>E</kbd></div><span class="sc-desc">Export markdown</span></div>
@@ -515,7 +550,7 @@
     <div style="margin-top:16px; font-size:10px; color: var(--text-dim); line-height:1.8;">
       <strong style="color:var(--text-muted)">Tips:</strong><br>
       Middle-mouse drag to pan · Double-click node to edit · Click empty canvas to deselect<br>
-      Nodes are positioned by <em>col</em> (X) and <em>lane</em> (Y offset from mainline).
+      Arrow keys navigate between nodes · Nodes are positioned by <em>col</em> (X) and <em>lane</em> (Y offset from mainline).
     </div>
     <div class="modal-actions"><button class="m-btn primary" id="help-close">Close</button></div>
   </div>
@@ -530,6 +565,41 @@
     <div class="modal-actions">
       <button class="m-btn" id="prompt-cancel">Cancel</button>
       <button class="m-btn primary" id="prompt-ok">OK</button>
+    </div>
+  </div>
+</div>
+
+<!-- Phases Modal -->
+<div class="overlay" id="phases-modal">
+  <div class="modal wide">
+    <h2>Edit Phases</h2>
+    <div class="phases-header">
+      <span style="flex:1">Name</span>
+      <span style="width:60px; text-align:center">Start Col</span>
+      <span style="width:60px; text-align:center; margin-left:8px">End Col</span>
+      <span style="width:88px"></span>
+    </div>
+    <div id="phases-list"></div>
+    <div style="margin-top:12px">
+      <button class="m-btn" id="ph-add-row">+ Add Phase</button>
+    </div>
+    <div class="modal-actions">
+      <button class="m-btn" id="ph-cancel">Cancel</button>
+      <button class="m-btn primary" id="ph-save">Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- Trees Modal -->
+<div class="overlay" id="trees-modal">
+  <div class="modal wide">
+    <h2>Skill Trees</h2>
+    <div id="trees-list"></div>
+    <div style="margin-top:12px">
+      <button class="m-btn" id="tr-add">+ New Tree</button>
+    </div>
+    <div class="modal-actions">
+      <button class="m-btn primary" id="tr-close">Close</button>
     </div>
   </div>
 </div>
@@ -551,6 +621,8 @@ const NH = { step: 80,  gate: 92,  quest: 72  };
 // ═══════════════════════════════════════════════════════════════
 // State
 // ═══════════════════════════════════════════════════════════════
+let trees        = [];
+let activeTreeId = null;
 let nodes        = [];
 let phases       = [];
 let selectedId   = null;
@@ -585,9 +657,25 @@ function toast(msg, dur = 2600) {
 // Persistence
 // ═══════════════════════════════════════════════════════════════
 function save() {
+  const tree = trees.find(t => t.id === activeTreeId);
+  if (tree) {
+    tree.nodes  = nodes;
+    tree.phases = phases;
+  }
   try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify({ nodes, phases }));
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({ trees, activeTreeId }));
   } catch(e) { /* storage full, ignore */ }
+}
+
+function setActiveTree(id) {
+  const tree = trees.find(t => t.id === id);
+  if (!tree) return;
+  activeTreeId = id;
+  nodes  = tree.nodes;
+  phases = tree.phases;
+  selectedId = null;
+  const label = document.getElementById('topbar-tree-name');
+  if (label) label.textContent = tree.name;
 }
 
 function load() {
@@ -595,9 +683,17 @@ function load() {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (!raw) return false;
     const data = JSON.parse(raw);
-    if (!Array.isArray(data.nodes)) return false;
-    nodes  = data.nodes;
-    phases = data.phases || [];
+    // Backward-compat: old format had { nodes, phases }
+    if (Array.isArray(data.nodes)) {
+      trees = [{ id: uid('t'), name: 'My Skill Tree', nodes: data.nodes, phases: data.phases || [] }];
+      activeTreeId = trees[0].id;
+      setActiveTree(activeTreeId);
+      return true;
+    }
+    if (!Array.isArray(data.trees) || !data.trees.length) return false;
+    trees = data.trees;
+    activeTreeId = data.activeTreeId || trees[0].id;
+    setActiveTree(activeTreeId);
     return true;
   } catch(e) { return false; }
 }
@@ -628,20 +724,105 @@ function getCanvasSize() {
 // ═══════════════════════════════════════════════════════════════
 // Sample Data
 // ═══════════════════════════════════════════════════════════════
-const SAMPLE_NODES = [
-  { id:'n1', kind:'gate',  label:'Project Start',       notes:'Kickoff milestone',            estimate:'',       status:'complete',    required:true,  lane:0,  col:0, prereqs:[],       isNext:false, phaseId:'p1' },
-  { id:'n2', kind:'step',  label:'Requirements',        notes:'Gather all requirements',      estimate:'3 days', status:'complete',    required:true,  lane:0,  col:1, prereqs:['n1'],   isNext:false, phaseId:'p1' },
-  { id:'n3', kind:'quest', label:'Stakeholder Review',  notes:'Optional review cycle',        estimate:'1 day',  status:'none',        required:false, lane:-1, col:1, prereqs:['n2'],   isNext:false, phaseId:'p1' },
-  { id:'n4', kind:'step',  label:'Design',              notes:'Architecture & wireframes',    estimate:'5 days', status:'in-progress', required:true,  lane:0,  col:2, prereqs:['n2'],   isNext:true,  phaseId:'p2' },
-  { id:'n5', kind:'quest', label:'Prototype',           notes:'Optional prototype for validation', estimate:'3 days', status:'none',   required:false, lane:1,  col:2, prereqs:['n4'],   isNext:false, phaseId:'p2' },
-  { id:'n6', kind:'step',  label:'Implementation',      notes:'Build the core features',      estimate:'10 days',status:'none',        required:true,  lane:0,  col:3, prereqs:['n4'],   isNext:false, phaseId:'p2' },
-  { id:'n7', kind:'step',  label:'Testing',             notes:'Unit and integration tests',   estimate:'4 days', status:'blocked',     required:true,  lane:0,  col:4, prereqs:['n6'],   isNext:false, phaseId:'p3' },
-  { id:'n8', kind:'gate',  label:'Release',             notes:'Ship it!',                     estimate:'',       status:'none',        required:true,  lane:0,  col:5, prereqs:['n7'],   isNext:false, phaseId:'p3' },
-];
-const SAMPLE_PHASES = [
-  { id:'p1', label:'Discovery',          startCol:0, endCol:1 },
-  { id:'p2', label:'Design & Build',     startCol:2, endCol:3 },
-  { id:'p3', label:'Quality & Release',  startCol:4, endCol:5 },
+const SAMPLE_TREES = [
+  {
+    id: 'tree-web', name: 'Web Dev Fundamentals',
+    nodes: [
+      { id:'wn1', kind:'gate',  label:'Start',             notes:'Begin your web journey',          estimate:'',       status:'complete',    required:true,  lane:0,  col:0, prereqs:[],        isNext:false, phaseId:'wp1' },
+      { id:'wn2', kind:'step',  label:'HTML Basics',       notes:'Structure of the web — elements, attributes, semantics', estimate:'1 week', status:'complete', required:true, lane:0, col:1, prereqs:['wn1'], isNext:false, phaseId:'wp1' },
+      { id:'wn3', kind:'quest', label:'CSS Tricks',        notes:'Flexbox, Grid, animations',       estimate:'3 days', status:'none',        required:false, lane:-1, col:1, prereqs:['wn2'],   isNext:false, phaseId:'wp1' },
+      { id:'wn4', kind:'step',  label:'JavaScript',        notes:'Variables, functions, DOM, async/await', estimate:'2 weeks', status:'in-progress', required:true, lane:0, col:2, prereqs:['wn2'], isNext:true, phaseId:'wp2' },
+      { id:'wn5', kind:'step',  label:'DOM Manipulation',  notes:'Query selectors, events, dynamic UI', estimate:'1 week', status:'none', required:true, lane:0, col:3, prereqs:['wn4'], isNext:false, phaseId:'wp2' },
+      { id:'wn6', kind:'gate',  label:'Frontend Ready',    notes:'Can build interactive web pages', estimate:'',       status:'none',        required:true,  lane:0,  col:4, prereqs:['wn5'],   isNext:false, phaseId:'wp2' },
+    ],
+    phases: [
+      { id:'wp1', label:'Foundations', startCol:0, endCol:1 },
+      { id:'wp2', label:'Building',    startCol:2, endCol:4 },
+    ]
+  },
+  {
+    id: 'tree-ml', name: 'ML Engineering Path',
+    nodes: [
+      { id:'mn1',  kind:'gate',  label:'ML Kickoff',           notes:'Orientation and environment setup', estimate:'', status:'complete', required:true, lane:0, col:0, prereqs:[], isNext:false, phaseId:'mp1' },
+      { id:'mn2',  kind:'step',  label:'Linear Algebra',       notes:'Vectors, matrices, eigenvalues', estimate:'2 weeks', status:'complete', required:true, lane:0, col:1, prereqs:['mn1'], isNext:false, phaseId:'mp1' },
+      { id:'mn3',  kind:'quest', label:'Calculus Review',      notes:'Derivatives, gradients, chain rule', estimate:'1 week', status:'complete', required:false, lane:-1, col:1, prereqs:['mn1'], isNext:false, phaseId:'mp1' },
+      { id:'mn4',  kind:'step',  label:'Statistics & Prob',    notes:'Distributions, Bayes, hypothesis testing', estimate:'2 weeks', status:'complete', required:true, lane:0, col:2, prereqs:['mn2'], isNext:false, phaseId:'mp2' },
+      { id:'mn5',  kind:'step',  label:'Python for ML',        notes:'NumPy, Pandas, Matplotlib', estimate:'1 week', status:'complete', required:true, lane:0, col:3, prereqs:['mn4'], isNext:false, phaseId:'mp2' },
+      { id:'mn6',  kind:'quest', label:'Data Wrangling',       notes:'Cleaning, imputation, feature engineering', estimate:'1 week', status:'in-progress', required:false, lane:1, col:3, prereqs:['mn5'], isNext:false, phaseId:'mp2' },
+      { id:'mn7',  kind:'gate',  label:'Core ML Gate',         notes:'Supervised + unsupervised fundamentals mastered', estimate:'', status:'in-progress', required:true, lane:0, col:4, prereqs:['mn5'], isNext:true, phaseId:'mp3' },
+      { id:'mn8',  kind:'step',  label:'Neural Networks',      notes:'Perceptron, backprop, activation functions', estimate:'2 weeks', status:'none', required:true, lane:0, col:5, prereqs:['mn7'], isNext:false, phaseId:'mp3' },
+      { id:'mn9',  kind:'step',  label:'CNNs',                 notes:'Convolutional nets, image classification', estimate:'2 weeks', status:'none', required:true, lane:0, col:6, prereqs:['mn8'], isNext:false, phaseId:'mp3' },
+      { id:'mn10', kind:'quest', label:'Transfer Learning',    notes:'Fine-tune pretrained models', estimate:'1 week', status:'none', required:false, lane:-1, col:6, prereqs:['mn9'], isNext:false, phaseId:'mp3' },
+      { id:'mn11', kind:'step',  label:'NLP Basics',           notes:'Tokenization, embeddings, transformers intro', estimate:'2 weeks', status:'none', required:true, lane:0, col:7, prereqs:['mn9'], isNext:false, phaseId:'mp4' },
+      { id:'mn12', kind:'quest', label:'LLM Fine-tuning',      notes:'LoRA, PEFT, prompt engineering', estimate:'2 weeks', status:'none', required:false, lane:1, col:7, prereqs:['mn11'], isNext:false, phaseId:'mp4' },
+      { id:'mn13', kind:'step',  label:'Model Serving',        notes:'FastAPI, ONNX, TorchServe', estimate:'1 week', status:'none', required:true, lane:0, col:8, prereqs:['mn11'], isNext:false, phaseId:'mp4' },
+      { id:'mn14', kind:'gate',  label:'Production Ready',     notes:'Models deployed and monitored', estimate:'', status:'none', required:true, lane:0, col:9, prereqs:['mn13'], isNext:false, phaseId:'mp4' },
+    ],
+    phases: [
+      { id:'mp1', label:'Math Foundations', startCol:0, endCol:1 },
+      { id:'mp2', label:'Core ML',          startCol:2, endCol:3 },
+      { id:'mp3', label:'Deep Learning',    startCol:4, endCol:7 },
+      { id:'mp4', label:'Production',       startCol:8, endCol:9 },
+    ]
+  },
+  {
+    id: 'tree-product', name: 'Product Launch',
+    nodes: [
+      { id:'pn1',  kind:'gate',  label:'Launch Kickoff',      notes:'Align stakeholders, define success metrics', estimate:'', status:'complete', required:true, lane:0, col:0, prereqs:[], isNext:false, phaseId:'pp1' },
+      { id:'pn2',  kind:'step',  label:'User Research',       notes:'Interviews, surveys, competitive analysis', estimate:'2 weeks', status:'complete', required:true, lane:0, col:1, prereqs:['pn1'], isNext:false, phaseId:'pp1' },
+      { id:'pn3',  kind:'quest', label:'Market Analysis',     notes:'Size, segments, positioning', estimate:'1 week', status:'complete', required:false, lane:-1, col:1, prereqs:['pn1'], isNext:false, phaseId:'pp1' },
+      { id:'pn4',  kind:'step',  label:'Problem Definition',  notes:'Job-to-be-done, pain points, opportunity', estimate:'1 week', status:'complete', required:true, lane:0, col:2, prereqs:['pn2'], isNext:false, phaseId:'pp2' },
+      { id:'pn5',  kind:'step',  label:'Solution Design',     notes:'Wireframes, user flows, prototypes', estimate:'2 weeks', status:'in-progress', required:true, lane:0, col:3, prereqs:['pn4'], isNext:true, phaseId:'pp2' },
+      { id:'pn6',  kind:'quest', label:'Tech Spike',          notes:'Validate key technical assumptions', estimate:'3 days', status:'none', required:false, lane:1, col:3, prereqs:['pn4'], isNext:false, phaseId:'pp2' },
+      { id:'pn7',  kind:'step',  label:'Build MVP',           notes:'Minimum viable product, core loop only', estimate:'4 weeks', status:'none', required:true, lane:0, col:4, prereqs:['pn5'], isNext:false, phaseId:'pp2' },
+      { id:'pn8',  kind:'gate',  label:'Beta Ready',          notes:'Internal + closed beta testing complete', estimate:'', status:'none', required:true, lane:0, col:5, prereqs:['pn7'], isNext:false, phaseId:'pp3' },
+      { id:'pn9',  kind:'step',  label:'Beta Testing',        notes:'Recruit testers, collect feedback', estimate:'2 weeks', status:'none', required:true, lane:0, col:6, prereqs:['pn8'], isNext:false, phaseId:'pp3' },
+      { id:'pn10', kind:'quest', label:'PR & Press Kit',      notes:'Blog post, press release, screenshots', estimate:'1 week', status:'none', required:false, lane:-1, col:6, prereqs:['pn8'], isNext:false, phaseId:'pp3' },
+      { id:'pn11', kind:'step',  label:'Launch Campaign',     notes:'Email, social, product hunt', estimate:'1 week', status:'none', required:true, lane:0, col:7, prereqs:['pn9'], isNext:false, phaseId:'pp3' },
+      { id:'pn12', kind:'gate',  label:'Public Launch',       notes:'🚀 Ship it!', estimate:'', status:'none', required:true, lane:0, col:8, prereqs:['pn11'], isNext:false, phaseId:'pp3' },
+    ],
+    phases: [
+      { id:'pp1', label:'Discovery', startCol:0, endCol:1 },
+      { id:'pp2', label:'Build',     startCol:2, endCol:4 },
+      { id:'pp3', label:'Launch',    startCol:5, endCol:8 },
+    ]
+  },
+  {
+    id: 'tree-fullstack', name: 'Full-Stack Mastery',
+    nodes: [
+      { id:'fs1',  kind:'gate',  label:'Dev Setup',            notes:'Git, VS Code, terminals, SSH keys', estimate:'', status:'complete', required:true, lane:0, col:0, prereqs:[], isNext:false, phaseId:'fp1' },
+      { id:'fs2',  kind:'step',  label:'HTML & CSS',           notes:'Semantic HTML, responsive CSS, Flexbox', estimate:'2 weeks', status:'complete', required:true, lane:0, col:1, prereqs:['fs1'], isNext:false, phaseId:'fp1' },
+      { id:'fs3',  kind:'quest', label:'Design Systems',       notes:'Figma basics, component libraries', estimate:'1 week', status:'none', required:false, lane:-1, col:1, prereqs:['fs2'], isNext:false, phaseId:'fp1' },
+      { id:'fs4',  kind:'step',  label:'JavaScript ES6+',      notes:'Closures, promises, modules, classes', estimate:'2 weeks', status:'complete', required:true, lane:0, col:2, prereqs:['fs2'], isNext:false, phaseId:'fp1' },
+      { id:'fs5',  kind:'step',  label:'Node.js Fundamentals', notes:'Event loop, streams, modules, npm', estimate:'1 week', status:'complete', required:true, lane:0, col:3, prereqs:['fs4'], isNext:false, phaseId:'fp2' },
+      { id:'fs6',  kind:'step',  label:'REST APIs',            notes:'Express, routing, middleware, auth', estimate:'2 weeks', status:'in-progress', required:true, lane:0, col:4, prereqs:['fs5'], isNext:true, phaseId:'fp2' },
+      { id:'fs7',  kind:'quest', label:'GraphQL',              notes:'Schema, resolvers, Apollo', estimate:'1 week', status:'none', required:false, lane:1, col:4, prereqs:['fs5'], isNext:false, phaseId:'fp2' },
+      { id:'fs8',  kind:'step',  label:'Databases',            notes:'PostgreSQL, ORMs, migrations, indexing', estimate:'2 weeks', status:'none', required:true, lane:0, col:5, prereqs:['fs6'], isNext:false, phaseId:'fp2' },
+      { id:'fs9',  kind:'quest', label:'Redis & Caching',      notes:'Session store, pub/sub, cache patterns', estimate:'1 week', status:'none', required:false, lane:-1, col:5, prereqs:['fs8'], isNext:false, phaseId:'fp2' },
+      { id:'fs10', kind:'gate',  label:'Backend Gate',         notes:'Can build secure REST APIs with DB', estimate:'', status:'none', required:true, lane:0, col:6, prereqs:['fs8'], isNext:false, phaseId:'fp2' },
+      { id:'fs11', kind:'step',  label:'React Fundamentals',   notes:'Components, hooks, context, state', estimate:'2 weeks', status:'none', required:true, lane:0, col:7, prereqs:['fs10'], isNext:false, phaseId:'fp3' },
+      { id:'fs12', kind:'quest', label:'TypeScript',           notes:'Types, interfaces, generics, decorators', estimate:'1 week', status:'none', required:false, lane:-1, col:7, prereqs:['fs4'], isNext:false, phaseId:'fp3' },
+      { id:'fs13', kind:'step',  label:'State Management',     notes:'Zustand / Redux, async state, devtools', estimate:'1 week', status:'none', required:true, lane:0, col:8, prereqs:['fs11'], isNext:false, phaseId:'fp3' },
+      { id:'fs14', kind:'quest', label:'Testing Frontend',     notes:'Vitest, React Testing Library, Cypress', estimate:'1 week', status:'none', required:false, lane:1, col:8, prereqs:['fs11'], isNext:false, phaseId:'fp3' },
+      { id:'fs15', kind:'gate',  label:'Frontend Gate',        notes:'Can build complete React applications', estimate:'', status:'none', required:true, lane:0, col:9, prereqs:['fs13'], isNext:false, phaseId:'fp3' },
+      { id:'fs16', kind:'step',  label:'Docker',               notes:'Images, containers, Compose, volumes', estimate:'1 week', status:'none', required:true, lane:0, col:10, prereqs:['fs15'], isNext:false, phaseId:'fp4' },
+      { id:'fs17', kind:'step',  label:'CI/CD Pipelines',      notes:'GitHub Actions, automated tests & deploys', estimate:'1 week', status:'none', required:true, lane:0, col:11, prereqs:['fs16'], isNext:false, phaseId:'fp4' },
+      { id:'fs18', kind:'quest', label:'Kubernetes Basics',    notes:'Pods, services, deployments, Helm', estimate:'2 weeks', status:'none', required:false, lane:-1, col:11, prereqs:['fs16'], isNext:false, phaseId:'fp4' },
+      { id:'fs19', kind:'step',  label:'Cloud Deployment',     notes:'AWS/GCP/Vercel, env vars, secrets, monitoring', estimate:'1 week', status:'none', required:true, lane:0, col:12, prereqs:['fs17'], isNext:false, phaseId:'fp4' },
+      { id:'fs20', kind:'step',  label:'System Design',        notes:'Load balancers, CDN, microservices, queues', estimate:'2 weeks', status:'none', required:true, lane:0, col:13, prereqs:['fs19'], isNext:false, phaseId:'fp5' },
+      { id:'fs21', kind:'quest', label:'WebSockets & Realtime',notes:'Socket.io, SSE, WebRTC basics', estimate:'1 week', status:'none', required:false, lane:1, col:13, prereqs:['fs19'], isNext:false, phaseId:'fp5' },
+      { id:'fs22', kind:'step',  label:'Performance',          notes:'Profiling, lazy loading, Core Web Vitals', estimate:'1 week', status:'none', required:true, lane:0, col:14, prereqs:['fs20'], isNext:false, phaseId:'fp5' },
+      { id:'fs23', kind:'quest', label:'Security Deep Dive',   notes:'OWASP Top 10, auth hardening, pen testing', estimate:'1 week', status:'none', required:false, lane:-1, col:14, prereqs:['fs20'], isNext:false, phaseId:'fp5' },
+      { id:'fs24', kind:'gate',  label:'Full-Stack Master',    notes:'🏆 End-to-end production systems', estimate:'', status:'none', required:true, lane:0, col:15, prereqs:['fs22'], isNext:false, phaseId:'fp5' },
+    ],
+    phases: [
+      { id:'fp1', label:'Foundations', startCol:0,  endCol:4  },
+      { id:'fp2', label:'Backend',     startCol:5,  endCol:6  },
+      { id:'fp3', label:'Frontend',    startCol:7,  endCol:9  },
+      { id:'fp4', label:'DevOps',      startCol:10, endCol:12 },
+      { id:'fp5', label:'Advanced',    startCol:13, endCol:15 },
+    ]
+  }
 ];
 
 // ═══════════════════════════════════════════════════════════════
@@ -765,14 +946,18 @@ function buildNodes() {
       }
     })();
 
-    const kindLabel = { step: 'STEP', gate: 'GATE', quest: 'SIDE' }[nd.kind] || nd.kind.toUpperCase();
+    const kindIcon = {
+      step: `<svg width="12" height="12" viewBox="0 0 12 12" fill="none" title="Step"><path d="M2 3 L7 6 L2 9" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><line x1="9" y1="3" x2="9" y2="9" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>`,
+      gate: `<svg width="12" height="12" viewBox="0 0 12 12" fill="none" title="Gate"><path d="M6 1 L11 6 L6 11 L1 6 Z" stroke="currentColor" stroke-width="1.5" fill="rgba(79,209,255,0.2)"/></svg>`,
+      quest: `<svg width="12" height="12" viewBox="0 0 12 12" fill="none" title="Side Quest"><path d="M2 2 L2 6 Q2 10 6 10 L10 10" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" fill="none"/><path d="M8 8 L10 10 L8 12" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" fill="none"/></svg>`
+    }[nd.kind] || '';
     const estHTML   = nd.estimate ? `<span class="meta-estimate">⏱ ${escHtml(nd.estimate)}</span>` : '';
     const notesHTML = nd.notes    ? `<div class="node-notes">${escHtml(nd.notes)}</div>` : '';
 
     el.innerHTML = `
       ${nd.isNext ? `<div class="next-label">→ NEXT</div>` : ''}
       <div class="node-header">
-        <span class="node-kind-badge">${kindLabel}</span>
+        <span class="node-kind-badge">${kindIcon}</span>
         <span class="node-label">${escHtml(nd.label)}</span>
       </div>
       ${notesHTML}
@@ -893,7 +1078,11 @@ function render() {
 // ═══════════════════════════════════════════════════════════════
 function selectNode(id, scrollTo = false) {
   selectedId = id;
-  render();
+  // Lightweight: only update CSS classes, no DOM rebuild
+  document.querySelectorAll('#nodes-layer .node').forEach(el => {
+    el.classList.toggle('selected', el.dataset.id === id);
+  });
+  updateInfoPanel();
   if (scrollTo && id) {
     const nd = nodes.find(n => n.id === id);
     if (nd) {
@@ -942,7 +1131,7 @@ function addStep(afterId) {
   nodes.push(nd);
   selectedId = nd.id;
   save(); render();
-  toast(`Step added at col ${col}`);
+  openEditModal(nd.id);
 }
 
 function addSideQuest(srcId) {
@@ -957,7 +1146,7 @@ function addSideQuest(srcId) {
   nodes.push(nd);
   selectedId = nd.id;
   save(); render();
-  toast('Side quest added');
+  openEditModal(nd.id);
 }
 
 function deleteNode(id) {
@@ -1033,24 +1222,139 @@ function applyPrereqLink(targetId) {
 // ═══════════════════════════════════════════════════════════════
 // Phase Operations
 // ═══════════════════════════════════════════════════════════════
-function addPhase(atNodeId) {
-  const nd = nodes.find(n => n.id === (atNodeId || selectedId));
-  const startCol = nd ? nd.col : (nodes.length ? Math.max(...nodes.map(n => n.col)) + 1 : 0);
-  const endCol   = nd ? nd.col : startCol;
-  showPrompt(
-    'New Phase',
-    'Enter a name for this phase:',
-    `Phase ${phases.length + 1}`,
-    name => {
-      if (!name.trim()) return;
-      const ph = { id: uid('p'), label: name.trim(), startCol, endCol };
-      phases.push(ph);
-      // Assign selected node to this phase
-      if (nd) nd.phaseId = ph.id;
-      save(); render();
-      toast(`Phase "${ph.label}" added`);
-    }
-  );
+let _phasesWorkingCopy = [];
+
+function openPhasesModal() {
+  _phasesWorkingCopy = JSON.parse(JSON.stringify(phases));
+  renderPhasesModalList();
+  document.getElementById('phases-modal').classList.add('show');
+}
+
+function renderPhasesModalList() {
+  const container = document.getElementById('phases-list');
+  container.innerHTML = '';
+  _phasesWorkingCopy.forEach((ph, idx) => {
+    const row = document.createElement('div');
+    row.className = 'phase-row';
+    row.dataset.idx = idx;
+    row.innerHTML = `
+      <input type="text"   class="ph-name"   value="${escHtml(ph.label)}"    style="flex:1" placeholder="Phase name">
+      <input type="number" class="ph-start"  value="${ph.startCol}" style="width:60px" min="0">
+      <input type="number" class="ph-end"    value="${ph.endCol}"   style="width:60px" min="0">
+      <button class="ph-up m-btn"    style="padding:3px 8px" title="Move up"   ${idx === 0 ? 'disabled' : ''}>↑</button>
+      <button class="ph-down m-btn"  style="padding:3px 8px" title="Move down" ${idx === _phasesWorkingCopy.length - 1 ? 'disabled' : ''}>↓</button>
+      <button class="ph-remove m-btn danger" style="padding:3px 8px" title="Remove">✕</button>
+    `;
+    row.querySelector('.ph-up').addEventListener('click', () => {
+      if (idx === 0) return;
+      syncPhaseRowToWorkingCopy();
+      [_phasesWorkingCopy[idx - 1], _phasesWorkingCopy[idx]] = [_phasesWorkingCopy[idx], _phasesWorkingCopy[idx - 1]];
+      renderPhasesModalList();
+    });
+    row.querySelector('.ph-down').addEventListener('click', () => {
+      if (idx === _phasesWorkingCopy.length - 1) return;
+      syncPhaseRowToWorkingCopy();
+      [_phasesWorkingCopy[idx], _phasesWorkingCopy[idx + 1]] = [_phasesWorkingCopy[idx + 1], _phasesWorkingCopy[idx]];
+      renderPhasesModalList();
+    });
+    row.querySelector('.ph-remove').addEventListener('click', () => {
+      syncPhaseRowToWorkingCopy();
+      _phasesWorkingCopy.splice(idx, 1);
+      renderPhasesModalList();
+    });
+    container.appendChild(row);
+  });
+}
+
+function syncPhaseRowToWorkingCopy() {
+  document.querySelectorAll('#phases-list .phase-row').forEach(row => {
+    const idx = parseInt(row.dataset.idx, 10);
+    if (idx >= _phasesWorkingCopy.length) return;
+    _phasesWorkingCopy[idx].label    = row.querySelector('.ph-name').value;
+    _phasesWorkingCopy[idx].startCol = parseInt(row.querySelector('.ph-start').value, 10) || 0;
+    _phasesWorkingCopy[idx].endCol   = parseInt(row.querySelector('.ph-end').value,   10) || 0;
+  });
+}
+
+function savePhasesModal() {
+  syncPhaseRowToWorkingCopy();
+  phases.length = 0;
+  _phasesWorkingCopy.forEach(ph => phases.push(ph));
+  // Sync to active tree
+  const tree = trees.find(t => t.id === activeTreeId);
+  if (tree) tree.phases = phases;
+  closePhasesModal();
+  save(); render();
+  toast('Phases updated');
+}
+
+function closePhasesModal() {
+  document.getElementById('phases-modal').classList.remove('show');
+}
+
+// ═══════════════════════════════════════════════════════════════
+// Tree Management
+// ═══════════════════════════════════════════════════════════════
+function openTreesModal() {
+  renderTreesModalList();
+  document.getElementById('trees-modal').classList.add('show');
+}
+
+function closeTreesModal() {
+  document.getElementById('trees-modal').classList.remove('show');
+}
+
+function renderTreesModalList() {
+  const container = document.getElementById('trees-list');
+  container.innerHTML = '';
+  trees.forEach(tree => {
+    const row = document.createElement('div');
+    row.className = 'tree-row' + (tree.id === activeTreeId ? ' active' : '');
+    row.innerHTML = `
+      <span class="tree-row-name">${escHtml(tree.name)}${tree.id === activeTreeId ? ' ✓' : ''}</span>
+      <div class="tree-row-actions">
+        <button class="m-btn tr-rename" style="padding:3px 8px" title="Rename">✎</button>
+        <button class="m-btn danger tr-delete" style="padding:3px 8px" title="Delete" ${trees.length === 1 ? 'disabled' : ''}>✕</button>
+      </div>
+    `;
+    row.querySelector('.tr-rename').addEventListener('click', e => {
+      e.stopPropagation();
+      showPrompt('Rename Tree', 'Enter new name:', tree.name, name => {
+        if (!name.trim()) return;
+        tree.name = name.trim();
+        if (tree.id === activeTreeId) {
+          const label = document.getElementById('topbar-tree-name');
+          if (label) label.textContent = tree.name;
+        }
+        save();
+        renderTreesModalList();
+        toast('Tree renamed');
+      });
+    });
+    row.querySelector('.tr-delete').addEventListener('click', e => {
+      e.stopPropagation();
+      if (trees.length === 1) return;
+      if (!confirm(`Delete tree "${tree.name}"? This cannot be undone.`)) return;
+      const idx = trees.indexOf(tree);
+      trees.splice(idx, 1);
+      if (activeTreeId === tree.id) {
+        setActiveTree(trees[Math.max(0, idx - 1)].id);
+        render();
+      }
+      save();
+      renderTreesModalList();
+      toast('Tree deleted');
+    });
+    row.addEventListener('click', () => {
+      if (tree.id === activeTreeId) return;
+      setActiveTree(tree.id);
+      render();
+      save();
+      closeTreesModal();
+      toast(`Switched to "${tree.name}"`);
+    });
+    container.appendChild(row);
+  });
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -1147,7 +1451,8 @@ function closeEditModal() {
 // ═══════════════════════════════════════════════════════════════
 function generateMarkdown() {
   const date = new Date().toLocaleDateString('en-US', { year:'numeric', month:'long', day:'numeric' });
-  const lines = [`# Skill Pathways — ${date}`, ''];
+  const activeName = trees.find(t => t.id === activeTreeId)?.name || 'Skill Pathways';
+  const lines = [`# ${activeName} — ${date}`, ''];
   const nodeMap = Object.fromEntries(nodes.map(n => [n.id, n]));
 
   const sortedPhases = [...phases].sort((a, b) => a.startCol - b.startCol);
@@ -1325,12 +1630,48 @@ document.addEventListener('keydown', e => {
 
   if (!selectedId) return;
 
+  // Arrow key navigation
+  if (['ArrowLeft','ArrowRight','ArrowUp','ArrowDown'].includes(e.key) && selectedId) {
+    e.preventDefault();
+    const cur = nodes.find(n => n.id === selectedId);
+    if (cur) {
+      let target = null;
+      if (e.key === 'ArrowRight') {
+        const candidates = nodes.filter(n => n.col === cur.col + 1);
+        target = candidates.find(n => n.lane === cur.lane)
+               || candidates.find(n => n.lane === 0)
+               || candidates.sort((a,b) => Math.abs(a.lane - cur.lane) - Math.abs(b.lane - cur.lane))[0];
+      } else if (e.key === 'ArrowLeft') {
+        const candidates = nodes.filter(n => n.col === cur.col - 1);
+        target = candidates.find(n => n.lane === cur.lane)
+               || candidates.find(n => n.lane === 0)
+               || candidates.sort((a,b) => Math.abs(a.lane - cur.lane) - Math.abs(b.lane - cur.lane))[0];
+      } else if (e.key === 'ArrowUp') {
+        const samecol = nodes.filter(n => n.col === cur.col && n.lane < cur.lane).sort((a,b) => b.lane - a.lane);
+        target = samecol[0];
+        if (!target) {
+          const adj = nodes.filter(n => Math.abs(n.col - cur.col) <= 1 && n.lane < cur.lane).sort((a,b) => b.lane - a.lane);
+          target = adj[0];
+        }
+      } else if (e.key === 'ArrowDown') {
+        const samecol = nodes.filter(n => n.col === cur.col && n.lane > cur.lane).sort((a,b) => a.lane - b.lane);
+        target = samecol[0];
+        if (!target) {
+          const adj = nodes.filter(n => Math.abs(n.col - cur.col) <= 1 && n.lane > cur.lane).sort((a,b) => a.lane - b.lane);
+          target = adj[0];
+        }
+      }
+      if (target) selectNode(target.id, true);
+    }
+    return;
+  }
+
   switch(e.key) {
     case 'a':         addStep(selectedId);              break;
     case 's':         addSideQuest(selectedId);         break;
     case 'e':         openEditModal(selectedId);        break;
     case 'g':         toggleGate(selectedId);           break;
-    case 'G':         addPhase(selectedId);             break; // shift+g
+    case 'G':         openPhasesModal();                break; // shift+g
     case 'x':         toggleStatus(selectedId,'complete');    break;
     case 'b':         toggleStatus(selectedId,'blocked');     break;
     case 'r':         toggleStatus(selectedId,'in-progress'); break;
@@ -1367,9 +1708,35 @@ document.getElementById('panel-toggle').addEventListener('click', () => {
 // Topbar buttons
 // ═══════════════════════════════════════════════════════════════
 document.getElementById('btn-new-step').addEventListener('click', () => addStep(selectedId));
-document.getElementById('btn-add-phase').addEventListener('click', () => addPhase(selectedId));
+document.getElementById('btn-add-phase').addEventListener('click', () => openPhasesModal());
+document.getElementById('btn-trees').addEventListener('click', () => openTreesModal());
 document.getElementById('btn-export').addEventListener('click', openExportModal);
 document.getElementById('btn-help').addEventListener('click', openHelpModal);
+
+// Phases modal buttons
+document.getElementById('ph-add-row').addEventListener('click', () => {
+  syncPhaseRowToWorkingCopy();
+  const maxEnd = _phasesWorkingCopy.length ? Math.max(..._phasesWorkingCopy.map(p => p.endCol)) + 1 : 0;
+  _phasesWorkingCopy.push({ id: uid('p'), label: `Phase ${_phasesWorkingCopy.length + 1}`, startCol: maxEnd, endCol: maxEnd });
+  renderPhasesModalList();
+});
+document.getElementById('ph-save').addEventListener('click', savePhasesModal);
+document.getElementById('ph-cancel').addEventListener('click', closePhasesModal);
+
+// Trees modal buttons
+document.getElementById('tr-add').addEventListener('click', () => {
+  showPrompt('New Tree', 'Enter a name for the new tree:', `Tree ${trees.length + 1}`, name => {
+    if (!name.trim()) return;
+    const tree = { id: uid('t'), name: name.trim(), nodes: [], phases: [] };
+    trees.push(tree);
+    setActiveTree(tree.id);
+    render();
+    save();
+    closeTreesModal();
+    toast(`Tree "${tree.name}" created`);
+  });
+});
+document.getElementById('tr-close').addEventListener('click', closeTreesModal);
 
 // ═══════════════════════════════════════════════════════════════
 // Edit Modal buttons
@@ -1438,8 +1805,9 @@ document.querySelectorAll('.overlay').forEach(overlay => {
 (function init() {
   const loaded = load();
   if (!loaded) {
-    nodes  = JSON.parse(JSON.stringify(SAMPLE_NODES));
-    phases = JSON.parse(JSON.stringify(SAMPLE_PHASES));
+    trees = JSON.parse(JSON.stringify(SAMPLE_TREES));
+    activeTreeId = trees[0].id;
+    setActiveTree(activeTreeId);
     save();
   }
   render();
