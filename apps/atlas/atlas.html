@@ -223,6 +223,15 @@ function generateId() {
   return Date.now().toString(36) + Math.random().toString(36).slice(2);
 }
 
+function escapeHtml(str) {
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
 function allPlaces() {
   return [
     ...statesData,
@@ -259,7 +268,7 @@ function renderDrawerFacts(place) {
   if (place.region) rows.push(['Region', place.region]);
   if (place.description) rows.push(['About', place.description.length > 80 ? place.description.slice(0, 80) + '…' : place.description]);
   container.innerHTML = rows.map(([l, v]) =>
-    `<div class="fact-row"><span class="fact-label">${l}</span><span>${v}</span></div>`
+    `<div class="fact-row"><span class="fact-label">${escapeHtml(String(l))}</span><span>${escapeHtml(String(v))}</span></div>`
   ).join('');
 }
 
@@ -286,10 +295,10 @@ function renderVisitsList(placeId) {
   }
   container.innerHTML = visits.map(v => `
     <div class="visit-entry">
-      <span class="visit-date">${v.date}</span>
+      <span class="visit-date">${escapeHtml(v.date)}</span>
       ${v.estimated ? '<span class="visit-estimated">(estimated)</span>' : ''}
-      <div class="visit-tags">${(v.tags || []).map(t => `<span class="tag-pill">${t}</span>`).join('')}</div>
-      ${v.notes ? `<p class="visit-notes">${v.notes}</p>` : ''}
+      <div class="visit-tags">${(v.tags || []).map(t => `<span class="tag-pill">${escapeHtml(t)}</span>`).join('')}</div>
+      ${v.notes ? `<p class="visit-notes">${escapeHtml(v.notes)}</p>` : ''}
     </div>
   `).join('');
 }
