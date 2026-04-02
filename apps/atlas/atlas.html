@@ -587,8 +587,10 @@ document.getElementById('visit-form').addEventListener('submit', function(e) {
   saveVisits(visits);
   document.getElementById('add-visit-form').classList.add('hidden');
   renderVisitsList(currentPlaceId);
+  const place = findPlace(currentPlaceId, currentPlaceType);
+  if (place) renderDrawerFacts(place);
   colorStates();
-  renderMap();
+  colorParks();
 });
 
 // ── States Tab ────────────────────────────────────────────────────────
@@ -905,6 +907,7 @@ function renderStats() {
   const visits = getVisits();
   const visitedIds = new Set(visits.map(v => v.placeId));
   const parkIdSet = new Set(parksData.map(p => p.id));
+  const stateIdSet = new Set(statesData.map(s => s.id));
 
   const statesVisited = statesData.filter(s => visitedIds.has(s.id)).length;
   const parksVisited = parksData.filter(p => visitedIds.has(p.id)).length;
@@ -938,7 +941,7 @@ function renderStats() {
     const year = v.date ? v.date.slice(0, 4) : 'Unknown';
     if (!byYear[year]) byYear[year] = { state: 0, park: 0, country: 0, custom: 0 };
     let placeType;
-    if (statesData.find(s => s.id === v.placeId)) placeType = 'state';
+    if (stateIdSet.has(v.placeId)) placeType = 'state';
     else if (parkIdSet.has(v.placeId)) placeType = 'park';
     else {
       const cp = allCustom.find(p => p.id === v.placeId);
@@ -1170,6 +1173,12 @@ function renderMap() {
     .on('mouseleave', () => tooltip.style('display', 'none'));
 
   colorStates();
+}
+
+function colorParks() {
+  const visits = getVisits();
+  const visitedIds = new Set(visits.map(v => v.placeId));
+  d3.selectAll('.park-dot').classed('visited', d => visitedIds.has(d.id));
 }
 
 function colorStates() {
