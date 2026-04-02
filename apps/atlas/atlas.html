@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ATLAS</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/d3@7"></script>
+<script src="https://cdn.jsdelivr.net/npm/topojson-client@3"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
+<style>
+:root {
+  --cream: #f5f0e8;
+  --parchment: #e8e0d0;
+  --ink: #2c2416;
+  --ink-light: #6b5c42;
+  --terracotta: #c4622d;
+  --forest: #3d6b47;
+  --unvisited: #d4c9b5;
+  --border: #c4b89a;
+  --drawer-bg: #faf6ef;
+  --font-serif: 'Playfair Display', Georgia, serif;
+  --font-sans: 'Inter', system-ui, sans-serif;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { background: var(--cream); color: var(--ink); font-family: var(--font-sans); font-size: 14px; height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
+</style>
+</head>
+<body>
+<div id="app">
+  <header id="top-bar">
+    <h1>ATLAS</h1>
+    <nav id="tabs">
+      <button class="tab active" data-tab="map">Map</button>
+      <button class="tab" data-tab="states">States</button>
+      <button class="tab" data-tab="parks">Parks</button>
+      <button class="tab" data-tab="countries">Countries</button>
+      <button class="tab" data-tab="stats">Stats</button>
+    </nav>
+  </header>
+  <main id="content">
+    <div id="tab-map" class="tab-panel active">Map coming soon</div>
+    <div id="tab-states" class="tab-panel">States coming soon</div>
+    <div id="tab-parks" class="tab-panel">Parks coming soon</div>
+    <div id="tab-countries" class="tab-panel">Countries coming soon</div>
+    <div id="tab-stats" class="tab-panel">Stats coming soon</div>
+  </main>
+</div>
+<script>
+const STORAGE = { VISITS: 'atlas_visits', PLACES: 'atlas_places', PHOTOS: 'atlas_photos' };
+
+// Tab switching
+document.querySelectorAll('.tab').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.tab, .tab-panel').forEach(el => el.classList.remove('active'));
+    btn.classList.add('active');
+    document.getElementById('tab-' + btn.dataset.tab).classList.add('active');
+  });
+});
+</script>
+</body>
+</html>
