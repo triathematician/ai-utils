@@ -188,27 +188,22 @@ function renderParkDots(svg, projection) {
   const visits = getVisits();
   const visitedIds = new Set(visits.map(v => v.placeId));
 
+  const projected = parksData
+    .filter(p => p.lat && p.lng)
+    .map(p => ({ ...p, _proj: projection([p.lng, p.lat]) }));
+
   const dotsLayer = svg.append('g').attr('id', 'parks-layer');
 
   dotsLayer.selectAll('circle')
-    .data(parksData.filter(p => p.lat && p.lng))
+    .data(projected)
     .join('circle')
       .attr('class', 'park-dot')
       .attr('data-npstype', d => d.type)
       .attr('r', 4)
-      .attr('cx', d => {
-        const proj = projection([d.lng, d.lat]);
-        return proj ? proj[0] : -999;
-      })
-      .attr('cy', d => {
-        const proj = projection([d.lng, d.lat]);
-        return proj ? proj[1] : -999;
-      })
+      .attr('cx', d => d._proj ? d._proj[0] : -999)
+      .attr('cy', d => d._proj ? d._proj[1] : -999)
       .classed('visited', d => visitedIds.has(d.id))
-      .style('display', d => {
-        const proj = projection([d.lng, d.lat]);
-        return proj ? null : 'none';
-      })
+      .style('display', d => d._proj ? null : 'none')
       .on('click', (event, d) => openDrawer(d.id, 'park'));
 }
 
