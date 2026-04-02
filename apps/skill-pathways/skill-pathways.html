@@ -1,0 +1,1455 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Skill Pathways — Blueprint Rail Map</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:ital,wght@0,400;0,500;0,700&family=Syne:wght@400;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #071018;
+      --surface: #0c1825;
+      --surface2: #111e2d;
+      --border: #1a2d42;
+      --border-bright: #2a4060;
+      --text: #E7EEF5;
+      --text-muted: #A8B6C3;
+      --text-dim: #4a6070;
+      --next: #4FD1FF;
+      --in-progress: #FFB020;
+      --complete: #2ECC71;
+      --blocked: #FF4D4D;
+      --accent: #4FD1FF;
+      --grid: rgba(140, 180, 210, 0.08);
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { height: 100%; overflow: hidden; font-family: 'JetBrains Mono', monospace; background: var(--bg); color: var(--text); }
+
+    body::before {
+      content: ''; position: fixed; inset: 0; pointer-events: none; z-index: 0;
+      background-image: radial-gradient(circle, rgba(140,180,210,0.15) 1px, transparent 1px);
+      background-size: 32px 32px;
+    }
+
+    /* ─── Topbar ─── */
+    #topbar {
+      position: relative; z-index: 10; height: 48px;
+      background: var(--surface); border-bottom: 1px solid var(--border);
+      display: flex; align-items: center; padding: 0 16px; gap: 12px; flex-shrink: 0;
+    }
+    .topbar-brand { display: flex; align-items: baseline; gap: 8px; }
+    .topbar-title {
+      font-family: 'Syne', sans-serif; font-weight: 800; font-size: 16px;
+      color: var(--accent); letter-spacing: 0.12em; text-transform: uppercase;
+    }
+    .topbar-subtitle { font-size: 10px; color: var(--text-dim); letter-spacing: 0.08em; }
+    .topbar-sep { width: 1px; height: 24px; background: var(--border); }
+    .topbar-stats { font-size: 11px; color: var(--text-muted); display: flex; gap: 16px; }
+    .topbar-stat span { color: var(--text); font-weight: 500; }
+    .topbar-spacer { flex: 1; }
+    .topbar-btn {
+      background: var(--surface2); border: 1px solid var(--border-bright);
+      color: var(--text-muted); font-family: 'JetBrains Mono', monospace; font-size: 11px;
+      padding: 5px 12px; border-radius: 4px; cursor: pointer; letter-spacing: 0.05em;
+      transition: all 0.15s; white-space: nowrap;
+    }
+    .topbar-btn:hover { background: var(--border); color: var(--text); }
+    .topbar-btn.accent { border-color: var(--accent); color: var(--accent); }
+    .topbar-btn.accent:hover { background: rgba(79,209,255,0.1); }
+
+    /* ─── Prereq mode bar ─── */
+    #prereq-bar {
+      position: relative; z-index: 9; display: none;
+      background: rgba(79,209,255,0.08); border-bottom: 2px solid var(--accent);
+      padding: 6px 20px; font-size: 11px; color: var(--accent); letter-spacing: 0.06em;
+    }
+    #prereq-bar.show { display: block; }
+
+    /* ─── Workspace ─── */
+    #workspace { display: flex; position: relative; z-index: 1; }
+    #workspace { height: calc(100vh - 48px - 36px); }
+
+    /* ─── Canvas ─── */
+    #canvas-container {
+      flex: 1; overflow: auto; position: relative; cursor: default; outline: none;
+      min-width: 0;
+    }
+    #canvas-container::-webkit-scrollbar { width: 8px; height: 8px; }
+    #canvas-container::-webkit-scrollbar-track { background: var(--bg); }
+    #canvas-container::-webkit-scrollbar-thumb { background: var(--border-bright); border-radius: 4px; }
+    #canvas-inner { position: relative; min-width: 1400px; min-height: 700px; }
+    #svg-layer {
+      position: absolute; inset: 0; pointer-events: none; z-index: 1; overflow: visible;
+    }
+    #phase-labels { position: absolute; top: 0; left: 0; z-index: 3; pointer-events: none; }
+    .phase-label {
+      position: absolute; top: 8px;
+      font-family: 'Syne', sans-serif; font-size: 10px; font-weight: 700;
+      color: var(--text-dim); letter-spacing: 0.18em; text-transform: uppercase;
+      text-align: center; padding: 3px 0; border-bottom: 1px solid var(--border);
+    }
+    #nodes-layer { position: absolute; inset: 0; z-index: 2; }
+
+    /* ─── Nodes ─── */
+    .node {
+      position: absolute; border: 2px solid var(--border-bright); background: var(--surface);
+      border-radius: 6px; padding: 8px 10px 6px; cursor: pointer;
+      transition: border-color 0.15s, box-shadow 0.15s, background 0.15s;
+      overflow: hidden; user-select: none;
+    }
+    .node:hover { border-color: var(--text-muted); }
+    .node.selected {
+      border-color: var(--accent); background: rgba(79,209,255,0.05);
+      box-shadow: 0 0 0 1px rgba(79,209,255,0.2);
+    }
+    .node.is-next {
+      border-color: var(--next);
+      box-shadow: 0 0 14px rgba(79,209,255,0.45), 0 0 28px rgba(79,209,255,0.15);
+    }
+    .node.is-next.selected { box-shadow: 0 0 14px rgba(79,209,255,0.6), 0 0 0 1px rgba(79,209,255,0.3); }
+    .node.optional { border-style: dashed; }
+
+    /* Gate */
+    .node.gate { border-radius: 8px; background: var(--surface2); }
+    .node.gate::before {
+      content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px;
+      background: var(--accent); border-radius: 6px 6px 0 0;
+    }
+    .node.gate.complete::before  { background: var(--complete); }
+    .node.gate.in-progress::before { background: var(--in-progress); }
+    .node.gate.blocked::before   { background: var(--blocked); }
+
+    /* Quest */
+    .node.quest { background: rgba(10,20,32,0.9); border-color: var(--border); }
+    .node.quest:hover { border-color: var(--border-bright); }
+
+    /* Status fills */
+    .node.complete   { border-color: var(--complete);    background: rgba(46,204,113,0.06); }
+    .node.in-progress { border-color: var(--in-progress); background: rgba(255,176,32,0.06); }
+    .node.blocked    { border-color: var(--blocked);     background: rgba(255,77,77,0.06); }
+    .node.selected.complete, .node.selected.in-progress, .node.selected.blocked {
+      border-color: var(--accent); box-shadow: 0 0 0 1px rgba(79,209,255,0.2);
+    }
+
+    /* NEXT floating label */
+    .next-label {
+      position: absolute; top: -22px; left: 0; right: 0; text-align: center;
+      font-size: 9px; font-weight: 700; color: var(--next); letter-spacing: 0.15em;
+      pointer-events: none;
+    }
+
+    .node-header { display: flex; align-items: center; gap: 5px; margin-bottom: 3px; }
+    .node-kind-badge {
+      font-size: 8px; font-weight: 700; letter-spacing: 0.1em;
+      padding: 1px 4px; border-radius: 2px;
+      background: var(--border-bright); color: var(--text-dim); flex-shrink: 0;
+    }
+    .node.gate   .node-kind-badge { background: rgba(79,209,255,0.15); color: var(--accent); }
+    .node.quest  .node-kind-badge { background: var(--border); color: var(--text-muted); }
+    .node-label {
+      font-size: 12px; font-weight: 500; color: var(--text); line-height: 1.3;
+      overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1; min-width: 0;
+    }
+    .node.quest .node-label { font-size: 11px; color: var(--text-muted); }
+    .node-notes {
+      font-size: 10px; color: var(--text-dim); line-height: 1.4; margin-top: 1px;
+      overflow: hidden; display: -webkit-box; -webkit-line-clamp: 1; -webkit-box-orient: vertical;
+    }
+    .node-meta { display: flex; gap: 8px; margin-top: 4px; }
+    .meta-estimate { font-size: 9px; color: var(--text-dim); }
+
+    /* Status badges (corner) */
+    .status-badge {
+      position: absolute; top: 5px; right: 5px;
+      width: 17px; height: 17px; border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 9px; font-weight: 700; pointer-events: none;
+    }
+    .status-badge.complete    { background: var(--complete);    color: #071018; }
+    .status-badge.in-progress { background: var(--in-progress); color: #071018; }
+    .status-badge.blocked     { background: var(--blocked);     color: #fff; }
+
+    /* ─── Info Panel ─── */
+    #info-panel {
+      width: 224px; flex-shrink: 0; background: var(--surface);
+      border-left: 1px solid var(--border);
+      display: flex; flex-direction: column; transition: width 0.22s; overflow: hidden;
+      position: relative; z-index: 5;
+    }
+    #info-panel.collapsed { width: 30px; }
+    #panel-toggle {
+      position: absolute; top: 50%; transform: translateY(-50%);
+      left: -16px; width: 16px; height: 40px;
+      background: var(--surface2); border: 1px solid var(--border);
+      border-right: none; border-radius: 4px 0 0 4px;
+      cursor: pointer; display: flex; align-items: center; justify-content: center;
+      color: var(--text-dim); font-size: 11px; font-weight: bold; z-index: 6;
+      transition: color 0.12s;
+    }
+    #panel-toggle:hover { color: var(--text); }
+    #info-panel.collapsed #panel-toggle { left: -16px; }
+    #info-content { flex: 1; overflow-y: auto; padding: 14px 12px; }
+    #info-content::-webkit-scrollbar { width: 4px; }
+    #info-content::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+    #info-panel.collapsed #info-content { visibility: hidden; }
+
+    .info-empty { font-size: 11px; color: var(--text-dim); text-align: center; padding: 32px 4px; line-height: 1.7; }
+    .info-title { font-family: 'Syne', sans-serif; font-size: 14px; font-weight: 700; color: var(--text); margin-bottom: 4px; word-break: break-word; line-height: 1.3; }
+    .info-kind-badge {
+      display: inline-block; font-size: 9px; font-weight: 700; letter-spacing: 0.1em;
+      padding: 2px 6px; border-radius: 3px; background: var(--border-bright); color: var(--text-muted);
+      margin-bottom: 10px;
+    }
+    .info-sec { margin-bottom: 14px; }
+    .info-lbl {
+      font-size: 9px; font-weight: 700; letter-spacing: 0.15em; color: var(--text-dim);
+      text-transform: uppercase; margin-bottom: 4px;
+    }
+    .info-val { font-size: 11px; color: var(--text); line-height: 1.5; }
+    .info-val.muted { color: var(--text-muted); }
+    .status-btns { display: flex; flex-wrap: wrap; gap: 4px; }
+    .s-btn {
+      font-family: 'JetBrains Mono', monospace; font-size: 9px;
+      padding: 3px 6px; border-radius: 3px; border: 1px solid var(--border);
+      background: transparent; color: var(--text-muted); cursor: pointer; transition: all 0.12s;
+    }
+    .s-btn:hover { background: var(--border); color: var(--text); }
+    .s-btn.active-complete    { border-color: var(--complete);    color: var(--complete);    background: rgba(46,204,113,0.1); }
+    .s-btn.active-in-progress { border-color: var(--in-progress); color: var(--in-progress); background: rgba(255,176,32,0.1); }
+    .s-btn.active-blocked     { border-color: var(--blocked);     color: var(--blocked);     background: rgba(255,77,77,0.1); }
+    .info-actions { display: flex; flex-direction: column; gap: 5px; margin-top: 4px; }
+    .info-act {
+      font-family: 'JetBrains Mono', monospace; font-size: 10px;
+      padding: 6px 10px; border-radius: 4px; border: 1px solid var(--border);
+      background: var(--surface2); color: var(--text-muted); cursor: pointer;
+      text-align: left; transition: all 0.12s;
+    }
+    .info-act:hover { border-color: var(--border-bright); color: var(--text); }
+    .info-act.danger:hover { border-color: var(--blocked); color: var(--blocked); }
+
+    /* ─── Hints Strip ─── */
+    #hints {
+      position: relative; z-index: 10; height: 36px;
+      background: var(--surface); border-top: 1px solid var(--border);
+      display: flex; align-items: center; padding: 0 16px; gap: 14px; overflow: hidden; flex-shrink: 0;
+    }
+    .hint { display: flex; align-items: center; gap: 4px; font-size: 10px; color: var(--text-dim); white-space: nowrap; }
+    kbd {
+      display: inline-flex; align-items: center; justify-content: center;
+      min-width: 18px; height: 18px; padding: 0 4px;
+      background: var(--surface2); border: 1px solid var(--border-bright); border-bottom-width: 2px;
+      border-radius: 3px; font-family: 'JetBrains Mono', monospace; font-size: 9px; font-weight: 600;
+      color: var(--text-muted);
+    }
+
+    /* ─── Modals ─── */
+    .overlay {
+      position: fixed; inset: 0; background: rgba(7,16,24,0.82);
+      z-index: 100; display: flex; align-items: center; justify-content: center;
+      backdrop-filter: blur(3px);
+      opacity: 0; pointer-events: none; transition: opacity 0.16s;
+    }
+    .overlay.show { opacity: 1; pointer-events: all; }
+    .modal {
+      background: var(--surface); border: 1px solid var(--border-bright);
+      border-radius: 8px; padding: 24px; width: 420px; max-height: 86vh;
+      overflow-y: auto; box-shadow: 0 24px 64px rgba(0,0,0,0.55);
+    }
+    .modal.wide { width: 620px; }
+    .modal::-webkit-scrollbar { width: 4px; }
+    .modal::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+    .modal h2 {
+      font-family: 'Syne', sans-serif; font-size: 16px; font-weight: 800;
+      color: var(--text); margin-bottom: 20px; letter-spacing: 0.05em;
+    }
+    .form-row { margin-bottom: 14px; }
+    .form-row label {
+      display: block; font-size: 10px; font-weight: 700; letter-spacing: 0.12em;
+      color: var(--text-dim); text-transform: uppercase; margin-bottom: 5px;
+    }
+    .form-row input[type="text"],
+    .form-row input[type="number"],
+    .form-row textarea,
+    .form-row select {
+      width: 100%; background: var(--surface2); border: 1px solid var(--border);
+      border-radius: 4px; color: var(--text); font-family: 'JetBrains Mono', monospace;
+      font-size: 12px; padding: 8px 10px; outline: none; transition: border-color 0.12s;
+    }
+    .form-row input:focus, .form-row textarea:focus, .form-row select:focus { border-color: var(--accent); }
+    .form-row textarea { resize: vertical; min-height: 64px; line-height: 1.5; }
+    .form-row select { appearance: none; }
+    .form-row select option { background: var(--surface2); }
+    .form-inline { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; }
+    .form-inline label { font-size: 10px; font-weight: 700; letter-spacing: 0.12em; color: var(--text-dim); text-transform: uppercase; flex: 1; }
+    .form-inline input[type="checkbox"] { width: 16px; height: 16px; accent-color: var(--accent); cursor: pointer; }
+    .form-half { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .modal-actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 20px; }
+    .m-btn {
+      font-family: 'JetBrains Mono', monospace; font-size: 11px; padding: 7px 16px;
+      border-radius: 4px; cursor: pointer; border: 1px solid var(--border);
+      background: var(--surface2); color: var(--text-muted); transition: all 0.12s;
+    }
+    .m-btn:hover { border-color: var(--border-bright); color: var(--text); }
+    .m-btn.primary { background: rgba(79,209,255,0.08); border-color: var(--accent); color: var(--accent); }
+    .m-btn.primary:hover { background: rgba(79,209,255,0.18); }
+    .m-btn.danger { border-color: var(--blocked); color: var(--blocked); background: rgba(255,77,77,0.06); }
+    .m-btn.danger:hover { background: rgba(255,77,77,0.14); }
+
+    /* Export text */
+    #export-ta {
+      font-family: 'JetBrains Mono', monospace; font-size: 11px; line-height: 1.6;
+      color: var(--text); background: var(--bg); border: 1px solid var(--border);
+      border-radius: 4px; padding: 12px; width: 100%; height: 320px; resize: none; outline: none;
+    }
+
+    /* Help shortcuts */
+    .sc-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px 20px; }
+    .sc-row { display: flex; align-items: center; gap: 8px; padding: 5px 0; border-bottom: 1px solid var(--border); }
+    .sc-row:last-child { border-bottom: none; }
+    .sc-keys { display: flex; gap: 3px; min-width: 82px; flex-wrap: wrap; }
+    .sc-desc { font-size: 11px; color: var(--text-muted); }
+
+    /* Prompt modal */
+    #prompt-modal .modal { width: 340px; }
+    #prompt-modal p { font-size: 12px; color: var(--text-muted); margin-bottom: 10px; }
+    #prompt-input {
+      width: 100%; background: var(--surface2); border: 1px solid var(--border); border-radius: 4px;
+      color: var(--text); font-family: 'JetBrains Mono', monospace; font-size: 13px;
+      padding: 9px 10px; outline: none;
+    }
+    #prompt-input:focus { border-color: var(--accent); }
+
+    /* Toast */
+    #toast {
+      position: fixed; bottom: 50px; left: 50%; transform: translateX(-50%) translateY(6px);
+      background: var(--surface2); border: 1px solid var(--border-bright);
+      color: var(--text); font-family: 'JetBrains Mono', monospace; font-size: 12px;
+      padding: 8px 18px; border-radius: 6px; z-index: 300;
+      opacity: 0; pointer-events: none; transition: opacity 0.2s, transform 0.2s; white-space: nowrap;
+    }
+    #toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+    /* Prereq mode cursor */
+    .prereq-active #canvas-container { cursor: crosshair; }
+    .prereq-active .node { box-shadow: 0 0 0 2px rgba(79,209,255,0.25); }
+  </style>
+</head>
+<body>
+
+<!-- Topbar -->
+<div id="topbar">
+  <div class="topbar-brand">
+    <span class="topbar-title">SKILL PATHWAYS</span>
+    <span class="topbar-subtitle">Blueprint Rail Map</span>
+  </div>
+  <div class="topbar-sep"></div>
+  <div class="topbar-stats">
+    <span class="topbar-stat"><span id="stat-nodes">0</span> nodes</span>
+    <span class="topbar-stat"><span id="stat-edges">0</span> edges</span>
+  </div>
+  <div class="topbar-spacer"></div>
+  <button class="topbar-btn" id="btn-new-step">+ Step</button>
+  <button class="topbar-btn" id="btn-add-phase">+ Phase</button>
+  <button class="topbar-btn accent" id="btn-export">⬇ Export</button>
+  <button class="topbar-btn" id="btn-help">?</button>
+</div>
+
+<!-- Prereq mode banner -->
+<div id="prereq-bar">→ PREREQ LINK MODE — Click a target node to add the prerequisite link &nbsp;·&nbsp; <strong>Esc</strong> to cancel</div>
+
+<!-- Workspace -->
+<div id="workspace">
+  <div id="canvas-container" tabindex="0">
+    <div id="canvas-inner">
+      <svg id="svg-layer"></svg>
+      <div id="phase-labels"></div>
+      <div id="nodes-layer"></div>
+    </div>
+  </div>
+
+  <!-- Info Panel -->
+  <div id="info-panel">
+    <div id="panel-toggle" title="Toggle panel">›</div>
+    <div id="info-content">
+      <div id="info-empty" class="info-empty">
+        Click a node<br>to see details.<br><br>
+        <span style="font-size:10px; opacity:0.6">Press <kbd>?</kbd> for shortcuts</span>
+      </div>
+      <div id="info-node" style="display:none">
+        <div class="info-sec">
+          <div id="p-title" class="info-title"></div>
+          <span id="p-kind" class="info-kind-badge"></span>
+        </div>
+        <div class="info-sec">
+          <div class="info-lbl">Status</div>
+          <div class="status-btns">
+            <button class="s-btn" data-s="complete">✓ Done</button>
+            <button class="s-btn" data-s="in-progress">▶ WIP</button>
+            <button class="s-btn" data-s="blocked">✕ Block</button>
+            <button class="s-btn" data-s="none">○ None</button>
+          </div>
+        </div>
+        <div class="info-sec" id="p-notes-sec" style="display:none">
+          <div class="info-lbl">Notes</div>
+          <div id="p-notes" class="info-val muted"></div>
+        </div>
+        <div class="info-sec" id="p-est-sec" style="display:none">
+          <div class="info-lbl">Estimate</div>
+          <div id="p-est" class="info-val"></div>
+        </div>
+        <div class="info-sec">
+          <div class="info-lbl">Position</div>
+          <div id="p-pos" class="info-val muted"></div>
+        </div>
+        <div class="info-sec" id="p-prereq-sec" style="display:none">
+          <div class="info-lbl">Prerequisites</div>
+          <div id="p-prereqs" class="info-val muted"></div>
+        </div>
+        <div class="info-actions">
+          <button class="info-act" id="p-edit">✎ Edit Node</button>
+          <button class="info-act" id="p-set-next">→ Set as NEXT</button>
+          <button class="info-act" id="p-prereq-btn">⟵ Add Prereq Link</button>
+          <button class="info-act danger" id="p-delete">✕ Delete Node</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Hints Strip -->
+<div id="hints">
+  <span class="hint"><kbd>A</kbd> add step</span>
+  <span class="hint"><kbd>S</kbd> side quest</span>
+  <span class="hint"><kbd>E</kbd> edit</span>
+  <span class="hint"><kbd>G</kbd> gate</span>
+  <span class="hint"><kbd>X</kbd> complete</span>
+  <span class="hint"><kbd>B</kbd> blocked</span>
+  <span class="hint"><kbd>R</kbd> in-progress</span>
+  <span class="hint"><kbd>P</kbd> prereq link</span>
+  <span class="hint"><kbd>N</kbd> jump next</span>
+  <span class="hint"><kbd>⇧N</kbd> set next</span>
+  <span class="hint"><kbd>Del</kbd> delete</span>
+  <span class="hint"><kbd>?</kbd> help</span>
+</div>
+
+<!-- Toast -->
+<div id="toast"></div>
+
+<!-- Edit Modal -->
+<div class="overlay" id="edit-modal">
+  <div class="modal">
+    <h2>Edit Node</h2>
+    <div class="form-row"><label>Label</label><input type="text" id="e-label" placeholder="Node label"></div>
+    <div class="form-row">
+      <label>Kind</label>
+      <select id="e-kind">
+        <option value="step">Step — Mainline task</option>
+        <option value="gate">Gate — Milestone / checkpoint</option>
+        <option value="quest">Quest — Side branch</option>
+      </select>
+    </div>
+    <div class="form-row"><label>Notes</label><textarea id="e-notes" rows="3" placeholder="Description or acceptance criteria…"></textarea></div>
+    <div class="form-row"><label>Estimate</label><input type="text" id="e-estimate" placeholder="e.g. 2 days, 1 week"></div>
+    <div class="form-row">
+      <label>Status</label>
+      <select id="e-status">
+        <option value="none">None</option>
+        <option value="complete">Complete</option>
+        <option value="in-progress">In Progress</option>
+        <option value="blocked">Blocked</option>
+      </select>
+    </div>
+    <div class="form-half">
+      <div class="form-row"><label>Column</label><input type="number" id="e-col" min="0"></div>
+      <div class="form-row"><label>Lane</label><input type="number" id="e-lane"></div>
+    </div>
+    <div class="form-row">
+      <label>Phase</label>
+      <select id="e-phase"></select>
+    </div>
+    <div class="form-inline"><label>Required (non-optional)</label><input type="checkbox" id="e-required"></div>
+    <div class="form-inline"><label>Mark as NEXT</label><input type="checkbox" id="e-is-next"></div>
+    <div class="modal-actions">
+      <button class="m-btn danger" id="e-delete">Delete</button>
+      <button class="m-btn" id="e-cancel">Cancel</button>
+      <button class="m-btn primary" id="e-save">Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- Export Modal -->
+<div class="overlay" id="export-modal">
+  <div class="modal wide">
+    <h2>Export — Markdown</h2>
+    <textarea id="export-ta" readonly spellcheck="false"></textarea>
+    <div class="modal-actions">
+      <button class="m-btn primary" id="export-copy">Copy to Clipboard</button>
+      <button class="m-btn" id="export-close">Close</button>
+    </div>
+  </div>
+</div>
+
+<!-- Help Modal -->
+<div class="overlay" id="help-modal">
+  <div class="modal">
+    <h2>Keyboard Shortcuts</h2>
+    <div class="sc-grid">
+      <div class="sc-row"><div class="sc-keys"><kbd>A</kbd></div><span class="sc-desc">Add step after selected</span></div>
+      <div class="sc-row"><div class="sc-keys"><kbd>S</kbd></div><span class="sc-desc">Add side quest</span></div>
+      <div class="sc-row"><div class="sc-keys"><kbd>E</kbd></div><span class="sc-desc">Edit selected node</span></div>
+      <div class="sc-row"><div class="sc-keys"><kbd>G</kbd></div><span class="sc-desc">Toggle gate/step</span></div>
+      <div class="sc-row"><div class="sc-keys"><kbd>X</kbd></div><span class="sc-desc">Toggle complete</span></div>
+      <div class="sc-row"><div class="sc-keys"><kbd>B</kbd></div><span class="sc-desc">Toggle blocked</span></div>
+      <div class="sc-row"><div class="sc-keys"><kbd>R</kbd></div><span class="sc-desc">Toggle in-progress</span></div>
+      <div class="sc-row"><div class="sc-keys"><kbd>P</kbd></div><span class="sc-desc">Enter prereq link mode</span></div>
+      <div class="sc-row"><div class="sc-keys"><kbd>N</kbd></div><span class="sc-desc">Jump to NEXT node</span></div>
+      <div class="sc-row"><div class="sc-keys"><kbd>⇧</kbd><kbd>N</kbd></div><span class="sc-desc">Set node as NEXT</span></div>
+      <div class="sc-row"><div class="sc-keys"><kbd>⇧</kbd><kbd>G</kbd></div><span class="sc-desc">Add phase for node</span></div>
+      <div class="sc-row"><div class="sc-keys"><kbd>Del</kbd></div><span class="sc-desc">Delete selected node</span></div>
+      <div class="sc-row"><div class="sc-keys"><kbd>Esc</kbd></div><span class="sc-desc">Deselect / cancel</span></div>
+      <div class="sc-row"><div class="sc-keys"><kbd>Ctrl</kbd><kbd>E</kbd></div><span class="sc-desc">Export markdown</span></div>
+      <div class="sc-row"><div class="sc-keys"><kbd>?</kbd></div><span class="sc-desc">Show this help</span></div>
+    </div>
+    <div style="margin-top:16px; font-size:10px; color: var(--text-dim); line-height:1.8;">
+      <strong style="color:var(--text-muted)">Tips:</strong><br>
+      Middle-mouse drag to pan · Double-click node to edit · Click empty canvas to deselect<br>
+      Nodes are positioned by <em>col</em> (X) and <em>lane</em> (Y offset from mainline).
+    </div>
+    <div class="modal-actions"><button class="m-btn primary" id="help-close">Close</button></div>
+  </div>
+</div>
+
+<!-- Prompt Modal (generic input) -->
+<div class="overlay" id="prompt-modal">
+  <div class="modal">
+    <h2 id="prompt-title">Enter value</h2>
+    <p id="prompt-desc"></p>
+    <input type="text" id="prompt-input" autocomplete="off">
+    <div class="modal-actions">
+      <button class="m-btn" id="prompt-cancel">Cancel</button>
+      <button class="m-btn primary" id="prompt-ok">OK</button>
+    </div>
+  </div>
+</div>
+
+<script>
+'use strict';
+
+// ═══════════════════════════════════════════════════════════════
+// Constants
+// ═══════════════════════════════════════════════════════════════
+const STORAGE_KEY  = 'skill_pathways_db';
+const COL_WIDTH    = 280;
+const PAD_LEFT     = 80;
+const BASELINE_Y   = 380;
+const LANE_OFFSET  = 160;
+const NW = { step: 230, gate: 230, quest: 200 };
+const NH = { step: 80,  gate: 92,  quest: 72  };
+
+// ═══════════════════════════════════════════════════════════════
+// State
+// ═══════════════════════════════════════════════════════════════
+let nodes        = [];
+let phases       = [];
+let selectedId   = null;
+let prereqMode   = false;
+let prereqSrcId  = null;
+let infoPanelOpen = true;
+let editingId    = null;   // id being edited in modal
+
+// ═══════════════════════════════════════════════════════════════
+// Utilities
+// ═══════════════════════════════════════════════════════════════
+function uid(prefix = 'n') {
+  return prefix + Math.random().toString(36).slice(2, 9);
+}
+
+function escHtml(str) {
+  return String(str ?? '')
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
+
+let _toastTimer;
+function toast(msg, dur = 2600) {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.classList.add('show');
+  clearTimeout(_toastTimer);
+  _toastTimer = setTimeout(() => el.classList.remove('show'), dur);
+}
+
+// ═══════════════════════════════════════════════════════════════
+// Persistence
+// ═══════════════════════════════════════════════════════════════
+function save() {
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({ nodes, phases }));
+  } catch(e) { /* storage full, ignore */ }
+}
+
+function load() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return false;
+    const data = JSON.parse(raw);
+    if (!Array.isArray(data.nodes)) return false;
+    nodes  = data.nodes;
+    phases = data.phases || [];
+    return true;
+  } catch(e) { return false; }
+}
+
+// ═══════════════════════════════════════════════════════════════
+// Layout Engine
+// ═══════════════════════════════════════════════════════════════
+function getRect(node) {
+  const w = NW[node.kind] || 230;
+  const h = NH[node.kind] || 80;
+  const x = PAD_LEFT + node.col * COL_WIDTH;
+  const y = BASELINE_Y + node.lane * LANE_OFFSET - h / 2;
+  return { x, y, w, h, cx: x + w / 2, cy: y + h / 2, rx: x + w, by: y + h };
+}
+
+function getCanvasSize() {
+  if (!nodes.length) return { w: 1400, h: 700 };
+  const maxCol  = Math.max(...nodes.map(n => n.col));
+  const maxLane = Math.max(...nodes.map(n => n.lane));
+  const minLane = Math.min(...nodes.map(n => n.lane));
+  const w = Math.max((maxCol + 2) * COL_WIDTH + PAD_LEFT + 200, 1400);
+  const topY = BASELINE_Y + minLane * LANE_OFFSET - 80;
+  const botY = BASELINE_Y + maxLane * LANE_OFFSET + 160;
+  const extra = topY < 0 ? -topY : 0;
+  return { w, h: Math.max(700, botY + extra) };
+}
+
+// ═══════════════════════════════════════════════════════════════
+// Sample Data
+// ═══════════════════════════════════════════════════════════════
+const SAMPLE_NODES = [
+  { id:'n1', kind:'gate',  label:'Project Start',       notes:'Kickoff milestone',            estimate:'',       status:'complete',    required:true,  lane:0,  col:0, prereqs:[],       isNext:false, phaseId:'p1' },
+  { id:'n2', kind:'step',  label:'Requirements',        notes:'Gather all requirements',      estimate:'3 days', status:'complete',    required:true,  lane:0,  col:1, prereqs:['n1'],   isNext:false, phaseId:'p1' },
+  { id:'n3', kind:'quest', label:'Stakeholder Review',  notes:'Optional review cycle',        estimate:'1 day',  status:'none',        required:false, lane:-1, col:1, prereqs:['n2'],   isNext:false, phaseId:'p1' },
+  { id:'n4', kind:'step',  label:'Design',              notes:'Architecture & wireframes',    estimate:'5 days', status:'in-progress', required:true,  lane:0,  col:2, prereqs:['n2'],   isNext:true,  phaseId:'p2' },
+  { id:'n5', kind:'quest', label:'Prototype',           notes:'Optional prototype for validation', estimate:'3 days', status:'none',   required:false, lane:1,  col:2, prereqs:['n4'],   isNext:false, phaseId:'p2' },
+  { id:'n6', kind:'step',  label:'Implementation',      notes:'Build the core features',      estimate:'10 days',status:'none',        required:true,  lane:0,  col:3, prereqs:['n4'],   isNext:false, phaseId:'p2' },
+  { id:'n7', kind:'step',  label:'Testing',             notes:'Unit and integration tests',   estimate:'4 days', status:'blocked',     required:true,  lane:0,  col:4, prereqs:['n6'],   isNext:false, phaseId:'p3' },
+  { id:'n8', kind:'gate',  label:'Release',             notes:'Ship it!',                     estimate:'',       status:'none',        required:true,  lane:0,  col:5, prereqs:['n7'],   isNext:false, phaseId:'p3' },
+];
+const SAMPLE_PHASES = [
+  { id:'p1', label:'Discovery',          startCol:0, endCol:1 },
+  { id:'p2', label:'Design & Build',     startCol:2, endCol:3 },
+  { id:'p3', label:'Quality & Release',  startCol:4, endCol:5 },
+];
+
+// ═══════════════════════════════════════════════════════════════
+// SVG Rendering
+// ═══════════════════════════════════════════════════════════════
+function buildSVG() {
+  const { w, h } = getCanvasSize();
+  const svg = document.getElementById('svg-layer');
+  svg.setAttribute('width',   w);
+  svg.setAttribute('height',  h);
+  svg.setAttribute('viewBox', `0 0 ${w} ${h}`);
+
+  const parts = [];
+
+  // Marker defs
+  parts.push(`<defs>
+    <marker id="arr-main"   markerWidth="10" markerHeight="8" refX="9" refY="4" orient="auto" markerUnits="userSpaceOnUse">
+      <path d="M0,0 L10,4 L0,8 Z" fill="#2a4060"/>
+    </marker>
+    <marker id="arr-prereq" markerWidth="8"  markerHeight="6" refX="7" refY="3" orient="auto" markerUnits="userSpaceOnUse">
+      <path d="M0,0 L8,3 L0,6 Z" fill="rgba(140,180,210,0.4)"/>
+    </marker>
+  </defs>`);
+
+  // ── Phase bands
+  const sph = [...phases].sort((a, b) => a.startCol - b.startCol);
+  sph.forEach((ph, i) => {
+    const x1 = PAD_LEFT + ph.startCol * COL_WIDTH - COL_WIDTH * 0.14;
+    const x2 = PAD_LEFT + (ph.endCol + 1) * COL_WIDTH - COL_WIDTH * 0.14;
+    const fill = i % 2 === 0 ? 'rgba(79,209,255,0.022)' : 'rgba(140,180,210,0.014)';
+    parts.push(`<rect x="${x1}" y="0" width="${x2 - x1}" height="${h}" fill="${fill}"/>`);
+    parts.push(`<line x1="${x1}" y1="0" x2="${x1}" y2="${h}" stroke="#1a2d42" stroke-width="1" stroke-dasharray="4 8" opacity="0.7"/>`);
+    if (i === sph.length - 1) {
+      parts.push(`<line x1="${x2}" y1="0" x2="${x2}" y2="${h}" stroke="#1a2d42" stroke-width="1" stroke-dasharray="4 8" opacity="0.7"/>`);
+    }
+  });
+
+  // ── Mainline connectors (consecutive lane-0 nodes by col)
+  const main = nodes.filter(n => n.lane === 0).sort((a, b) => a.col - b.col);
+  for (let i = 0; i < main.length - 1; i++) {
+    const ra = getRect(main[i]);
+    const rb = getRect(main[i + 1]);
+    const x1 = ra.rx, y1 = ra.cy;
+    const x2 = rb.x,  y2 = rb.cy;
+    const mx = (x1 + x2) / 2;
+    parts.push(`<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="#2a4060" stroke-width="3" marker-end="url(#arr-main)"/>`);
+    // Midpoint tick
+    parts.push(`<line x1="${mx}" y1="${y1 - 7}" x2="${mx}" y2="${y1 + 7}" stroke="#2a4060" stroke-width="1.5" opacity="0.55"/>`);
+  }
+
+  // ── Side-quest connectors
+  nodes.filter(n => n.lane !== 0).forEach(qn => {
+    // Find mainline node at same col
+    const mn = nodes.find(n => n.lane === 0 && n.col === qn.col);
+    if (!mn) return;
+    const rm = getRect(mn);
+    const rq = getRect(qn);
+    // Junction point: top or bottom center of mainline node
+    const jx = rm.cx;
+    const jy = qn.lane < 0 ? rm.y : rm.by;
+    // Target: left-center of quest node
+    const tx = rq.x, ty = rq.cy;
+    // L-shape: vertical from junction to quest Y, then horizontal to quest left
+    parts.push(`<path d="M${jx},${jy} L${jx},${ty} L${tx},${ty}" stroke="#1a3050" stroke-width="2" fill="none"/>`);
+    // Junction dot
+    parts.push(`<circle cx="${jx}" cy="${jy}" r="4" fill="#2a4060"/>`);
+  });
+
+  // ── Prereq links (dashed, skip "natural" connections already drawn)
+  const nodeMap = Object.fromEntries(nodes.map(n => [n.id, n]));
+  nodes.forEach(dn => {
+    if (!dn.prereqs?.length) return;
+    const rd = getRect(dn);
+    dn.prereqs.forEach(pid => {
+      const sn = nodeMap[pid];
+      if (!sn) return;
+      // Skip natural mainline connection (consecutive cols, both lane-0)
+      if (dn.lane === 0 && sn.lane === 0 && dn.col === sn.col + 1) return;
+      // Skip side-quest to same-col mainline (already drawn above)
+      if (dn.lane !== 0 && sn.lane === 0 && dn.col === sn.col) return;
+      const rs = getRect(sn);
+      const x1 = rs.rx, y1 = rs.cy;
+      const x2 = rd.x,  y2 = rd.cy;
+      const cpx = (x1 + x2) / 2;
+      parts.push(`<path d="M${x1},${y1} C${cpx},${y1} ${cpx},${y2} ${x2},${y2}" stroke="rgba(140,180,210,0.28)" stroke-width="1" stroke-dasharray="4 4" fill="none" marker-end="url(#arr-prereq)"/>`);
+    });
+  });
+
+  svg.innerHTML = parts.join('\n');
+}
+
+// ═══════════════════════════════════════════════════════════════
+// Node Rendering
+// ═══════════════════════════════════════════════════════════════
+function buildNodes() {
+  const layer = document.getElementById('nodes-layer');
+  layer.innerHTML = '';
+
+  nodes.forEach(nd => {
+    const { x, y, w, h } = getRect(nd);
+    const el = document.createElement('div');
+    const cls = ['node', nd.kind];
+    if (nd.status && nd.status !== 'none') cls.push(nd.status);
+    if (nd.id === selectedId) cls.push('selected');
+    if (nd.isNext)    cls.push('is-next');
+    if (!nd.required) cls.push('optional');
+    el.className  = cls.join(' ');
+    el.style.left = `${x}px`;
+    el.style.top  = `${y}px`;
+    el.style.width = `${w}px`;
+    el.style.height = `${h}px`;
+    el.dataset.id = nd.id;
+    el.tabIndex = -1;
+
+    const badgeHTML = (() => {
+      switch(nd.status) {
+        case 'complete':    return `<div class="status-badge complete"    title="Complete">✓</div>`;
+        case 'in-progress': return `<div class="status-badge in-progress" title="In Progress">▶</div>`;
+        case 'blocked':     return `<div class="status-badge blocked"     title="Blocked">✕</div>`;
+        default: return '';
+      }
+    })();
+
+    const kindLabel = { step: 'STEP', gate: 'GATE', quest: 'SIDE' }[nd.kind] || nd.kind.toUpperCase();
+    const estHTML   = nd.estimate ? `<span class="meta-estimate">⏱ ${escHtml(nd.estimate)}</span>` : '';
+    const notesHTML = nd.notes    ? `<div class="node-notes">${escHtml(nd.notes)}</div>` : '';
+
+    el.innerHTML = `
+      ${nd.isNext ? `<div class="next-label">→ NEXT</div>` : ''}
+      <div class="node-header">
+        <span class="node-kind-badge">${kindLabel}</span>
+        <span class="node-label">${escHtml(nd.label)}</span>
+      </div>
+      ${notesHTML}
+      <div class="node-meta">${estHTML}</div>
+      ${badgeHTML}
+    `;
+
+    layer.appendChild(el);
+  });
+}
+
+// ═══════════════════════════════════════════════════════════════
+// Phase Labels
+// ═══════════════════════════════════════════════════════════════
+function buildPhaseLabels() {
+  const div = document.getElementById('phase-labels');
+  div.innerHTML = '';
+  phases.forEach(ph => {
+    const x1 = PAD_LEFT + ph.startCol * COL_WIDTH - COL_WIDTH * 0.14;
+    const x2 = PAD_LEFT + (ph.endCol + 1) * COL_WIDTH - COL_WIDTH * 0.14;
+    const el = document.createElement('div');
+    el.className  = 'phase-label';
+    el.style.left  = `${x1}px`;
+    el.style.width = `${x2 - x1}px`;
+    el.textContent = ph.label;
+    div.appendChild(el);
+  });
+}
+
+// ═══════════════════════════════════════════════════════════════
+// Stats
+// ═══════════════════════════════════════════════════════════════
+function updateStats() {
+  document.getElementById('stat-nodes').textContent = nodes.length;
+  // Count edges: mainline consecutive + side-quest branches + explicit prereqs
+  const mainline = nodes.filter(n => n.lane === 0).sort((a, b) => a.col - b.col);
+  let edges = Math.max(0, mainline.length - 1);
+  edges += nodes.filter(n => n.lane !== 0 && nodes.some(m => m.lane === 0 && m.col === n.col)).length;
+  const nodeMap = new Set(nodes.map(n => n.id));
+  nodes.forEach(n => {
+    (n.prereqs || []).forEach(pid => {
+      if (!nodeMap.has(pid)) return;
+      const sn = nodes.find(x => x.id === pid);
+      if (!sn) return;
+      if (n.lane === 0 && sn.lane === 0 && n.col === sn.col + 1) return;
+      if (n.lane !== 0 && sn.lane === 0 && n.col === sn.col) return;
+      edges++;
+    });
+  });
+  document.getElementById('stat-edges').textContent = edges;
+}
+
+// ═══════════════════════════════════════════════════════════════
+// Info Panel
+// ═══════════════════════════════════════════════════════════════
+function updateInfoPanel() {
+  const empty   = document.getElementById('info-empty');
+  const nodeDiv = document.getElementById('info-node');
+  const nd = nodes.find(n => n.id === selectedId);
+  if (!nd) {
+    empty.style.display   = '';
+    nodeDiv.style.display = 'none';
+    return;
+  }
+  empty.style.display   = 'none';
+  nodeDiv.style.display = '';
+
+  document.getElementById('p-title').textContent = nd.label;
+  const kb = document.getElementById('p-kind');
+  kb.textContent = { step:'STEP', gate:'GATE', quest:'SIDE QUEST' }[nd.kind] || nd.kind;
+
+  // Status buttons highlight
+  document.querySelectorAll('.s-btn').forEach(btn => {
+    btn.className = 's-btn';
+    if (btn.dataset.s === nd.status) btn.classList.add(`active-${nd.status}`);
+  });
+
+  const notesSec = document.getElementById('p-notes-sec');
+  const notesEl  = document.getElementById('p-notes');
+  notesSec.style.display = nd.notes ? '' : 'none';
+  notesEl.textContent = nd.notes || '';
+
+  const estSec = document.getElementById('p-est-sec');
+  const estEl  = document.getElementById('p-est');
+  estSec.style.display = nd.estimate ? '' : 'none';
+  estEl.textContent    = nd.estimate || '';
+
+  document.getElementById('p-pos').textContent =
+    `col ${nd.col}, lane ${nd.lane}${nd.required ? '' : ' · optional'}${nd.isNext ? ' · NEXT' : ''}`;
+
+  const prereqSec = document.getElementById('p-prereq-sec');
+  const prereqEl  = document.getElementById('p-prereqs');
+  const prereqLabels = (nd.prereqs || []).map(pid => {
+    const pn = nodes.find(x => x.id === pid);
+    return pn ? pn.label : `[${pid}]`;
+  });
+  prereqSec.style.display = prereqLabels.length ? '' : 'none';
+  prereqEl.textContent    = prereqLabels.join(', ');
+}
+
+// ═══════════════════════════════════════════════════════════════
+// Main Render
+// ═══════════════════════════════════════════════════════════════
+function render() {
+  const { w, h } = getCanvasSize();
+  const inner = document.getElementById('canvas-inner');
+  inner.style.width  = `${w}px`;
+  inner.style.height = `${h}px`;
+  buildSVG();
+  buildNodes();
+  buildPhaseLabels();
+  updateStats();
+  updateInfoPanel();
+}
+
+// ═══════════════════════════════════════════════════════════════
+// Selection
+// ═══════════════════════════════════════════════════════════════
+function selectNode(id, scrollTo = false) {
+  selectedId = id;
+  render();
+  if (scrollTo && id) {
+    const nd = nodes.find(n => n.id === id);
+    if (nd) {
+      const { x, y } = getRect(nd);
+      const cc = document.getElementById('canvas-container');
+      cc.scrollTo({ left: x - cc.clientWidth / 2 + 115, top: y - cc.clientHeight / 2 + 45, behavior: 'smooth' });
+    }
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════
+// Node Operations
+// ═══════════════════════════════════════════════════════════════
+function findFreeLane(col) {
+  const used = new Set(nodes.filter(n => n.col === col && n.lane !== 0).map(n => n.lane));
+  for (let i = 1; i <= 10; i++) {
+    if (!used.has(-i)) return -i;
+    if (!used.has(i))  return i;
+  }
+  return -11;
+}
+
+function addStep(afterId) {
+  let col = 0;
+  let prereqs = [];
+  let phaseId = phases.length ? phases[phases.length - 1].id : null;
+
+  if (afterId) {
+    const after = nodes.find(n => n.id === afterId);
+    if (!after) return;
+    col = after.col + 1;
+    prereqs = [afterId];
+    phaseId = after.phaseId;
+    // Avoid collision with existing mainline
+    while (nodes.some(n => n.lane === 0 && n.col === col)) col++;
+  } else {
+    // No selection — add at end of mainline or col 0
+    const mainline = nodes.filter(n => n.lane === 0);
+    col = mainline.length ? Math.max(...mainline.map(n => n.col)) + 1 : 0;
+  }
+
+  const nd = {
+    id: uid(), kind: 'step', label: 'New Step', notes: '', estimate: '',
+    status: 'none', required: true, lane: 0, col, prereqs, isNext: false, phaseId
+  };
+  nodes.push(nd);
+  selectedId = nd.id;
+  save(); render();
+  toast(`Step added at col ${col}`);
+}
+
+function addSideQuest(srcId) {
+  const src = nodes.find(n => n.id === srcId);
+  if (!src) { toast('Select a node first'); return; }
+  const lane = findFreeLane(src.col);
+  const nd = {
+    id: uid(), kind: 'quest', label: 'New Side Quest', notes: '', estimate: '',
+    status: 'none', required: false, lane, col: src.col,
+    prereqs: [srcId], isNext: false, phaseId: src.phaseId
+  };
+  nodes.push(nd);
+  selectedId = nd.id;
+  save(); render();
+  toast('Side quest added');
+}
+
+function deleteNode(id) {
+  const nd = nodes.find(n => n.id === id);
+  if (!nd) return;
+  const label = nd.label;
+  nodes = nodes.filter(n => n.id !== id);
+  // Remove from all prereq lists
+  nodes.forEach(n => { n.prereqs = (n.prereqs || []).filter(p => p !== id); });
+  if (selectedId === id) selectedId = null;
+  save(); render();
+  toast(`Deleted: "${label}"`);
+}
+
+function toggleStatus(id, status) {
+  const nd = nodes.find(n => n.id === id);
+  if (!nd) return;
+  nd.status = nd.status === status ? 'none' : status;
+  save(); render();
+}
+
+function toggleGate(id) {
+  const nd = nodes.find(n => n.id === id);
+  if (!nd) return;
+  nd.kind = nd.kind === 'gate' ? 'step' : 'gate';
+  save(); render();
+  toast(`Node is now a ${nd.kind}`);
+}
+
+function setAsNext(id) {
+  nodes.forEach(n => { n.isNext = (n.id === id); });
+  save(); render();
+  toast('NEXT node updated');
+}
+
+function jumpToNext() {
+  const nd = nodes.find(n => n.isNext);
+  if (!nd) { toast('No NEXT node set — use Shift+N to set one'); return; }
+  selectNode(nd.id, true);
+}
+
+// ═══════════════════════════════════════════════════════════════
+// Prereq Link Mode
+// ═══════════════════════════════════════════════════════════════
+function enterPrereqMode(srcId) {
+  if (!srcId) { toast('Select a node first'); return; }
+  prereqMode   = true;
+  prereqSrcId  = srcId;
+  document.getElementById('prereq-bar').classList.add('show');
+  document.body.classList.add('prereq-active');
+  toast('Click a target node to add it as a prerequisite');
+}
+
+function cancelPrereqMode() {
+  prereqMode  = false;
+  prereqSrcId = null;
+  document.getElementById('prereq-bar').classList.remove('show');
+  document.body.classList.remove('prereq-active');
+}
+
+function applyPrereqLink(targetId) {
+  const src = nodes.find(n => n.id === prereqSrcId);
+  if (!src) { cancelPrereqMode(); return; }
+  if (targetId === prereqSrcId) { toast('Cannot link a node to itself'); cancelPrereqMode(); return; }
+  if ((src.prereqs || []).includes(targetId)) { toast('Link already exists'); cancelPrereqMode(); return; }
+  src.prereqs = [...(src.prereqs || []), targetId];
+  cancelPrereqMode();
+  selectNode(src.id);
+  save(); render();
+  toast('Prerequisite link added');
+}
+
+// ═══════════════════════════════════════════════════════════════
+// Phase Operations
+// ═══════════════════════════════════════════════════════════════
+function addPhase(atNodeId) {
+  const nd = nodes.find(n => n.id === (atNodeId || selectedId));
+  const startCol = nd ? nd.col : (nodes.length ? Math.max(...nodes.map(n => n.col)) + 1 : 0);
+  const endCol   = nd ? nd.col : startCol;
+  showPrompt(
+    'New Phase',
+    'Enter a name for this phase:',
+    `Phase ${phases.length + 1}`,
+    name => {
+      if (!name.trim()) return;
+      const ph = { id: uid('p'), label: name.trim(), startCol, endCol };
+      phases.push(ph);
+      // Assign selected node to this phase
+      if (nd) nd.phaseId = ph.id;
+      save(); render();
+      toast(`Phase "${ph.label}" added`);
+    }
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════
+// Prompt Modal
+// ═══════════════════════════════════════════════════════════════
+let _promptCb = null;
+function showPrompt(title, desc, defaultVal, cb) {
+  _promptCb = cb;
+  document.getElementById('prompt-title').textContent = title;
+  document.getElementById('prompt-desc').textContent  = desc;
+  const inp = document.getElementById('prompt-input');
+  inp.value = defaultVal || '';
+  document.getElementById('prompt-modal').classList.add('show');
+  requestAnimationFrame(() => { inp.focus(); inp.select(); });
+}
+function confirmPrompt() {
+  const val = document.getElementById('prompt-input').value;
+  document.getElementById('prompt-modal').classList.remove('show');
+  if (_promptCb) { _promptCb(val); _promptCb = null; }
+}
+function cancelPrompt() {
+  document.getElementById('prompt-modal').classList.remove('show');
+  _promptCb = null;
+}
+
+// ═══════════════════════════════════════════════════════════════
+// Edit Modal
+// ═══════════════════════════════════════════════════════════════
+function openEditModal(id) {
+  const nd = nodes.find(n => n.id === id);
+  if (!nd) return;
+  editingId = id;
+
+  document.getElementById('e-label').value   = nd.label;
+  document.getElementById('e-kind').value    = nd.kind;
+  document.getElementById('e-notes').value   = nd.notes || '';
+  document.getElementById('e-estimate').value = nd.estimate || '';
+  document.getElementById('e-status').value  = nd.status || 'none';
+  document.getElementById('e-col').value     = nd.col;
+  document.getElementById('e-lane').value    = nd.lane;
+  document.getElementById('e-required').checked = !!nd.required;
+  document.getElementById('e-is-next').checked  = !!nd.isNext;
+
+  // Populate phase select
+  const pSel = document.getElementById('e-phase');
+  pSel.innerHTML = '<option value="">— None —</option>';
+  phases.forEach(ph => {
+    const opt = document.createElement('option');
+    opt.value = ph.id; opt.textContent = ph.label;
+    if (ph.id === nd.phaseId) opt.selected = true;
+    pSel.appendChild(opt);
+  });
+
+  document.getElementById('edit-modal').classList.add('show');
+  requestAnimationFrame(() => document.getElementById('e-label').focus());
+}
+
+function saveEditModal() {
+  const nd = nodes.find(n => n.id === editingId);
+  if (!nd) { closeEditModal(); return; }
+
+  const wasNext = nd.isNext;
+  const isNextNow = document.getElementById('e-is-next').checked;
+
+  nd.label    = document.getElementById('e-label').value.trim() || nd.label;
+  nd.kind     = document.getElementById('e-kind').value;
+  nd.notes    = document.getElementById('e-notes').value.trim();
+  nd.estimate = document.getElementById('e-estimate').value.trim();
+  nd.status   = document.getElementById('e-status').value;
+  nd.col      = parseInt(document.getElementById('e-col').value,  10) || 0;
+  nd.lane     = parseInt(document.getElementById('e-lane').value, 10) || 0;
+  nd.required = document.getElementById('e-required').checked;
+  nd.phaseId  = document.getElementById('e-phase').value || null;
+  nd.isNext   = isNextNow;
+
+  // Clear isNext from all others if setting this one
+  if (isNextNow && !wasNext) {
+    nodes.forEach(n => { if (n.id !== nd.id) n.isNext = false; });
+  }
+
+  closeEditModal();
+  selectedId = nd.id;
+  save(); render();
+  toast('Node updated');
+}
+
+function closeEditModal() {
+  document.getElementById('edit-modal').classList.remove('show');
+  editingId = null;
+}
+
+// ═══════════════════════════════════════════════════════════════
+// Export
+// ═══════════════════════════════════════════════════════════════
+function generateMarkdown() {
+  const date = new Date().toLocaleDateString('en-US', { year:'numeric', month:'long', day:'numeric' });
+  const lines = [`# Skill Pathways — ${date}`, ''];
+  const nodeMap = Object.fromEntries(nodes.map(n => [n.id, n]));
+
+  const sortedPhases = [...phases].sort((a, b) => a.startCol - b.startCol);
+  sortedPhases.forEach(ph => {
+    lines.push(`## Phase: ${ph.label}`, '');
+    const phNodes = nodes
+      .filter(n => n.phaseId === ph.id && n.lane === 0)
+      .sort((a, b) => a.col - b.col);
+    phNodes.forEach(nd => {
+      const kl = nd.kind === 'gate' ? 'GATE' : 'Step';
+      lines.push(`### [${kl}] ${nd.label}`);
+      lines.push(`- Status: ${nd.status || 'none'}`);
+      lines.push(`- Estimate: ${nd.estimate || '—'}`);
+      if (nd.notes) lines.push(`- Notes: ${nd.notes}`);
+      lines.push('');
+    });
+  });
+
+  const orphans = nodes.filter(n => !n.phaseId && n.lane === 0).sort((a, b) => a.col - b.col);
+  if (orphans.length) {
+    lines.push('## Ungrouped', '');
+    orphans.forEach(nd => {
+      lines.push(`### ${nd.label}`);
+      lines.push(`- Status: ${nd.status || 'none'}`);
+      lines.push(`- Estimate: ${nd.estimate || '—'}`);
+      if (nd.notes) lines.push(`- Notes: ${nd.notes}`);
+      lines.push('');
+    });
+  }
+
+  const quests = nodes.filter(n => n.lane !== 0);
+  if (quests.length) {
+    lines.push('---', '', '## Branches (Side Quests)', '');
+    quests.forEach(qn => {
+      // Find parent: prefer same-col mainline node; fall back to first mainline prereq
+      const mn = nodes.find(n => n.lane === 0 && n.col === qn.col)
+        || (qn.prereqs || []).map(pid => nodeMap[pid]).find(n => n && n.lane === 0);
+      lines.push(`### Attached to: ${mn ? mn.label : '(unattached)'}`);
+      lines.push(`- [SIDE] ${qn.label}${!qn.required ? ' (optional)' : ''}`);
+      lines.push(`  - Status: ${qn.status || 'none'}`);
+      if (qn.estimate) lines.push(`  - Estimate: ${qn.estimate}`);
+      if (qn.notes)    lines.push(`  - Notes: ${qn.notes}`);
+      lines.push('');
+    });
+  }
+
+  const prereqLinks = [];
+  nodes.forEach(dn => {
+    (dn.prereqs || []).forEach(pid => {
+      const sn = nodeMap[pid];
+      if (sn) prereqLinks.push(`${sn.label} → ${dn.label}`);
+    });
+  });
+  if (prereqLinks.length) {
+    lines.push('---', '', '## Prerequisites', '');
+    prereqLinks.forEach(l => lines.push(`- ${l}`));
+  }
+
+  return lines.join('\n');
+}
+
+function openExportModal() {
+  document.getElementById('export-ta').value = generateMarkdown();
+  document.getElementById('export-modal').classList.add('show');
+}
+function closeExportModal() {
+  document.getElementById('export-modal').classList.remove('show');
+}
+
+// ═══════════════════════════════════════════════════════════════
+// Help Modal
+// ═══════════════════════════════════════════════════════════════
+function openHelpModal()  { document.getElementById('help-modal').classList.add('show'); }
+function closeHelpModal() { document.getElementById('help-modal').classList.remove('show'); }
+
+// ═══════════════════════════════════════════════════════════════
+// Close all overlays
+// ═══════════════════════════════════════════════════════════════
+function anyModalOpen() {
+  return !!document.querySelector('.overlay.show');
+}
+function closeAllModals() {
+  document.querySelectorAll('.overlay.show').forEach(el => el.classList.remove('show'));
+  editingId = null;
+  _promptCb = null;
+}
+
+// ═══════════════════════════════════════════════════════════════
+// Canvas Panning (middle mouse)
+// ═══════════════════════════════════════════════════════════════
+let panning = false, panStart = {};
+const cc = document.getElementById('canvas-container');
+
+cc.addEventListener('mousedown', e => {
+  if (e.button === 1) {
+    panning = true;
+    panStart = { x: e.clientX, y: e.clientY, sl: cc.scrollLeft, st: cc.scrollTop };
+    e.preventDefault();
+  }
+});
+document.addEventListener('mousemove', e => {
+  if (!panning) return;
+  cc.scrollLeft = panStart.sl - (e.clientX - panStart.x);
+  cc.scrollTop  = panStart.st - (e.clientY - panStart.y);
+});
+document.addEventListener('mouseup', () => { panning = false; });
+
+// ═══════════════════════════════════════════════════════════════
+// Canvas click — deselect on empty click
+// ═══════════════════════════════════════════════════════════════
+cc.addEventListener('click', e => {
+  const isNode = e.target.closest('.node');
+  if (!isNode) {
+    if (prereqMode) cancelPrereqMode();
+    else selectNode(null);
+  }
+});
+
+// ═══════════════════════════════════════════════════════════════
+// Node click delegation
+// ═══════════════════════════════════════════════════════════════
+document.getElementById('nodes-layer').addEventListener('click', e => {
+  const el = e.target.closest('.node');
+  if (!el) return;
+  const id = el.dataset.id;
+  if (prereqMode) {
+    applyPrereqLink(id);
+  } else {
+    selectNode(id);
+  }
+  e.stopPropagation();
+});
+
+document.getElementById('nodes-layer').addEventListener('dblclick', e => {
+  const el = e.target.closest('.node');
+  if (el) { openEditModal(el.dataset.id); e.stopPropagation(); }
+});
+
+// ═══════════════════════════════════════════════════════════════
+// Keyboard Shortcuts
+// ═══════════════════════════════════════════════════════════════
+document.addEventListener('keydown', e => {
+  const tag = document.activeElement?.tagName;
+  const inInput = ['INPUT','TEXTAREA','SELECT'].includes(tag);
+
+  // Escape always works
+  if (e.key === 'Escape') {
+    if (anyModalOpen()) { closeAllModals(); e.preventDefault(); return; }
+    if (prereqMode)     { cancelPrereqMode(); return; }
+    if (selectedId)     { selectNode(null); return; }
+    return;
+  }
+
+  // Enter in prompt modal
+  if (e.key === 'Enter' && document.getElementById('prompt-modal').classList.contains('show')) {
+    confirmPrompt(); e.preventDefault(); return;
+  }
+
+  // Enter in edit modal text inputs
+  if (e.key === 'Enter' && document.getElementById('edit-modal').classList.contains('show') && tag !== 'TEXTAREA') {
+    saveEditModal(); e.preventDefault(); return;
+  }
+
+  if (inInput) return;
+  if (anyModalOpen()) return;
+
+  const ctrl = e.ctrlKey || e.metaKey;
+
+  if (ctrl && e.key === 'e') { e.preventDefault(); openExportModal(); return; }
+  if (e.key === '?' || (e.key === '/' && !e.shiftKey && !ctrl)) { openHelpModal(); return; }
+
+  // Shortcuts that DON'T need a selection
+  if (e.key === 'n' && !e.shiftKey) { jumpToNext(); return; }
+  if (e.key === 'a' && !selectedId) { addStep(null); return; }
+
+  if (!selectedId) return;
+
+  switch(e.key) {
+    case 'a':         addStep(selectedId);              break;
+    case 's':         addSideQuest(selectedId);         break;
+    case 'e':         openEditModal(selectedId);        break;
+    case 'g':         toggleGate(selectedId);           break;
+    case 'G':         addPhase(selectedId);             break; // shift+g
+    case 'x':         toggleStatus(selectedId,'complete');    break;
+    case 'b':         toggleStatus(selectedId,'blocked');     break;
+    case 'r':         toggleStatus(selectedId,'in-progress'); break;
+    case 'p':         enterPrereqMode(selectedId);      break;
+    case 'N':         setAsNext(selectedId);            break; // shift+n
+    case 'Delete':
+    case 'Backspace': e.preventDefault(); deleteNode(selectedId); break;
+  }
+});
+
+// ═══════════════════════════════════════════════════════════════
+// Info Panel — button wiring
+// ═══════════════════════════════════════════════════════════════
+document.getElementById('p-edit').addEventListener('click', () => { if (selectedId) openEditModal(selectedId); });
+document.getElementById('p-delete').addEventListener('click', () => { if (selectedId) deleteNode(selectedId); });
+document.getElementById('p-set-next').addEventListener('click', () => { if (selectedId) setAsNext(selectedId); });
+document.getElementById('p-prereq-btn').addEventListener('click', () => { if (selectedId) enterPrereqMode(selectedId); });
+
+document.querySelectorAll('.s-btn').forEach(btn => {
+  btn.addEventListener('click', () => { if (selectedId) toggleStatus(selectedId, btn.dataset.s); });
+});
+
+// ═══════════════════════════════════════════════════════════════
+// Info Panel — collapse toggle
+// ═══════════════════════════════════════════════════════════════
+document.getElementById('panel-toggle').addEventListener('click', () => {
+  const panel = document.getElementById('info-panel');
+  infoPanelOpen = !infoPanelOpen;
+  panel.classList.toggle('collapsed', !infoPanelOpen);
+  document.getElementById('panel-toggle').textContent = infoPanelOpen ? '›' : '‹';
+});
+
+// ═══════════════════════════════════════════════════════════════
+// Topbar buttons
+// ═══════════════════════════════════════════════════════════════
+document.getElementById('btn-new-step').addEventListener('click', () => addStep(selectedId));
+document.getElementById('btn-add-phase').addEventListener('click', () => addPhase(selectedId));
+document.getElementById('btn-export').addEventListener('click', openExportModal);
+document.getElementById('btn-help').addEventListener('click', openHelpModal);
+
+// ═══════════════════════════════════════════════════════════════
+// Edit Modal buttons
+// ═══════════════════════════════════════════════════════════════
+document.getElementById('e-save').addEventListener('click', saveEditModal);
+document.getElementById('e-cancel').addEventListener('click', closeEditModal);
+document.getElementById('e-delete').addEventListener('click', () => {
+  const id = editingId;
+  closeEditModal();
+  if (id) deleteNode(id);
+});
+// Enter key in non-textarea fields
+document.querySelectorAll('#edit-modal input[type="text"], #edit-modal input[type="number"], #edit-modal select').forEach(el => {
+  el.addEventListener('keydown', ev => { if (ev.key === 'Enter') { ev.preventDefault(); saveEditModal(); } });
+});
+
+// ═══════════════════════════════════════════════════════════════
+// Export Modal
+// ═══════════════════════════════════════════════════════════════
+document.getElementById('export-close').addEventListener('click', closeExportModal);
+document.getElementById('export-copy').addEventListener('click', () => {
+  const ta = document.getElementById('export-ta');
+  ta.select();
+  try {
+    navigator.clipboard.writeText(ta.value).then(
+      () => toast('Copied to clipboard ✓'),
+      () => { document.execCommand('copy'); toast('Copied to clipboard ✓'); }
+    );
+  } catch(e) {
+    document.execCommand('copy');
+    toast('Copied to clipboard ✓');
+  }
+});
+
+// ═══════════════════════════════════════════════════════════════
+// Help Modal
+// ═══════════════════════════════════════════════════════════════
+document.getElementById('help-close').addEventListener('click', closeHelpModal);
+
+// ═══════════════════════════════════════════════════════════════
+// Prompt Modal
+// ═══════════════════════════════════════════════════════════════
+document.getElementById('prompt-ok').addEventListener('click', confirmPrompt);
+document.getElementById('prompt-cancel').addEventListener('click', cancelPrompt);
+document.getElementById('prompt-input').addEventListener('keydown', e => {
+  if (e.key === 'Enter')  confirmPrompt();
+  if (e.key === 'Escape') cancelPrompt();
+});
+
+// ═══════════════════════════════════════════════════════════════
+// Click-outside to close modals
+// ═══════════════════════════════════════════════════════════════
+document.querySelectorAll('.overlay').forEach(overlay => {
+  overlay.addEventListener('click', e => {
+    if (e.target === overlay) {
+      overlay.classList.remove('show');
+      if (overlay.id === 'prompt-modal') _promptCb = null;
+      if (overlay.id === 'edit-modal') editingId = null;
+    }
+  });
+});
+
+// ═══════════════════════════════════════════════════════════════
+// Init
+// ═══════════════════════════════════════════════════════════════
+(function init() {
+  const loaded = load();
+  if (!loaded) {
+    nodes  = JSON.parse(JSON.stringify(SAMPLE_NODES));
+    phases = JSON.parse(JSON.stringify(SAMPLE_PHASES));
+    save();
+  }
+  render();
+
+  // Scroll canvas to a reasonable starting position
+  requestAnimationFrame(() => {
+    cc.scrollLeft = 0;
+    cc.scrollTop  = Math.max(0, BASELINE_Y - cc.clientHeight / 2 - 40);
+  });
+})();
+</script>
+</body>
+</html>
