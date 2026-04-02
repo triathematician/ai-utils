@@ -1,0 +1,1205 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ATLAS</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/d3@7"></script>
+<script src="https://cdn.jsdelivr.net/npm/topojson-client@3"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
+<style>
+:root {
+  --cream: #f5f0e8;
+  --parchment: #e8e0d0;
+  --ink: #2c2416;
+  --ink-light: #6b5c42;
+  --terracotta: #c4622d;
+  --forest: #3d6b47;
+  --unvisited: #d4c9b5;
+  --border: #c4b89a;
+  --drawer-bg: #faf6ef;
+  --font-serif: 'Playfair Display', Georgia, serif;
+  --font-sans: 'Inter', system-ui, sans-serif;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { background: var(--cream); color: var(--ink); font-family: var(--font-sans); font-size: 14px; height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
+#tab-map { display: flex; flex-direction: column; height: 100%; }
+#map-toolbar { display: flex; align-items: center; gap: 16px; padding: 10px 16px; background: var(--parchment); border-bottom: 1px solid var(--border); }
+.layer-btn { padding: 4px 12px; border: 1px solid var(--border); background: var(--cream); color: var(--ink); border-radius: 4px; cursor: pointer; font-family: var(--font-sans); font-size: 13px; }
+.layer-btn.active { background: var(--ink); color: var(--cream); }
+#map-container { flex: 1; overflow: hidden; }
+#map-container svg { width: 100%; height: 100%; }
+.state-path { fill: var(--unvisited); stroke: #fff; stroke-width: 0.5px; cursor: pointer; transition: fill 0.2s; }
+.state-path:hover { fill: var(--border); }
+.state-path.visited { fill: var(--terracotta); }
+.park-dot { cursor: pointer; transition: r 0.15s, opacity 0.2s; fill: #888; }
+.park-dot:hover { r: 6px; }
+[data-npstype="National Park"] { fill: var(--forest); }
+[data-npstype="National Monument"] { fill: #8b6914; }
+[data-npstype="National Recreation Area"] { fill: #2a6a8a; }
+[data-npstype="National Seashore"] { fill: #1a7a6a; }
+[data-npstype="National Historic Site"] { fill: #7a3a6a; }
+[data-npstype="National Battlefield"] { fill: #8a2a2a; }
+[data-npstype="National Memorial"] { fill: #4a4a8a; }
+.park-dot.visited { stroke: var(--ink); stroke-width: 1.5px; }
+.tab-panel { display: none; flex-direction: column; height: 100%; overflow: hidden; }
+.tab-panel.active { display: flex; }
+#content { flex: 1; overflow: hidden; display: flex; flex-direction: column; }
+#drawer-overlay { position: fixed; inset: 0; background: rgba(44,36,22,0.3); z-index: 100; }
+#drawer-overlay.hidden, #detail-drawer.hidden { display: none; }
+#detail-drawer {
+  position: fixed; top: 0; right: 0; bottom: 0; width: 380px;
+  background: var(--drawer-bg); border-left: 1px solid var(--border);
+  z-index: 101; overflow-y: auto; padding: 0;
+  box-shadow: -4px 0 24px rgba(44,36,22,0.15);
+}
+#drawer-header { display: flex; justify-content: space-between; align-items: flex-start; padding: 20px 20px 12px; border-bottom: 1px solid var(--border); }
+#drawer-name { font-family: var(--font-serif); font-size: 20px; font-weight: 600; color: var(--ink); }
+#drawer-subtitle { font-size: 12px; color: var(--ink-light); margin-top: 4px; }
+#drawer-close { background: none; border: none; font-size: 18px; cursor: pointer; color: var(--ink-light); padding: 4px; }
+.photo-zone { margin: 16px; border: 2px dashed var(--border); border-radius: 6px; min-height: 140px; display: flex; align-items: center; justify-content: center; cursor: pointer; position: relative; overflow: hidden; }
+.photo-zone.drag-over { border-color: var(--terracotta); background: rgba(196,98,45,0.05); }
+#photo-placeholder { color: var(--ink-light); font-size: 13px; text-align: center; padding: 20px; }
+#drawer-photo { width: 100%; height: 140px; object-fit: cover; display: block; }
+#drawer-facts { padding: 0 20px 16px; border-bottom: 1px solid var(--border); }
+.fact-row { display: flex; justify-content: space-between; padding: 4px 0; font-size: 13px; }
+.fact-label { color: var(--ink-light); }
+#drawer-visits-section { padding: 16px 20px; }
+#drawer-visits-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; font-family: var(--font-serif); font-size: 15px; font-weight: 600; }
+#add-visit-btn { font-size: 12px; padding: 4px 10px; background: var(--terracotta); color: #fff; border: none; border-radius: 4px; cursor: pointer; }
+.visit-entry { border-bottom: 1px solid var(--parchment); padding: 10px 0; }
+.visit-date { font-size: 13px; font-weight: 600; color: var(--ink); }
+.visit-estimated { font-size: 11px; color: var(--ink-light); margin-left: 6px; }
+.visit-tags { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 6px; }
+.tag-pill { background: var(--parchment); border: 1px solid var(--border); border-radius: 12px; padding: 2px 8px; font-size: 11px; color: var(--ink); }
+.visit-notes { font-size: 12px; color: var(--ink-light); margin-top: 6px; line-height: 1.5; }
+.plan-visit-prompt { color: var(--ink-light); font-size: 13px; text-align: center; padding: 20px 0; font-style: italic; }
+#add-visit-form { background: var(--parchment); border-radius: 6px; padding: 14px; margin-bottom: 14px; }
+.form-row { margin-bottom: 10px; }
+.form-row > label { display: block; font-size: 12px; font-weight: 600; margin-bottom: 4px; color: var(--ink-light); }
+.required { color: var(--terracotta); }
+.hint { font-weight: 400; color: var(--ink-light); }
+.date-row { display: flex; gap: 10px; align-items: center; }
+.est-label { font-size: 12px; font-weight: 400; display: flex; align-items: center; gap: 4px; }
+#add-visit-form input[type="date"],
+#add-visit-form textarea { width: 100%; padding: 6px 8px; border: 1px solid var(--border); border-radius: 4px; background: var(--cream); font-family: var(--font-sans); font-size: 13px; }
+#tag-input-container { border: 1px solid var(--border); border-radius: 4px; background: var(--cream); padding: 4px 6px; position: relative; }
+#tag-chips { display: flex; flex-wrap: wrap; gap: 4px; margin-bottom: 4px; }
+#tag-input { border: none; outline: none; background: transparent; font-family: var(--font-sans); font-size: 13px; width: 100%; }
+.chip { background: var(--terracotta); color: #fff; border-radius: 12px; padding: 2px 8px; font-size: 11px; display: flex; align-items: center; gap: 4px; }
+.chip-remove { cursor: pointer; font-size: 14px; line-height: 1; }
+#tag-suggestions { position: absolute; top: 100%; left: 0; right: 0; background: var(--cream); border: 1px solid var(--border); border-radius: 4px; z-index: 200; max-height: 140px; overflow-y: auto; }
+#tag-suggestions.hidden { display: none; }
+.tag-suggestion { padding: 6px 10px; cursor: pointer; font-size: 13px; }
+.tag-suggestion:hover { background: var(--parchment); }
+.form-actions { display: flex; gap: 8px; margin-top: 12px; }
+.form-actions button[type="submit"] { background: var(--terracotta); color: #fff; border: none; padding: 6px 14px; border-radius: 4px; cursor: pointer; font-family: var(--font-sans); font-size: 13px; }
+.form-actions button[type="button"] { background: none; border: 1px solid var(--border); padding: 6px 14px; border-radius: 4px; cursor: pointer; font-family: var(--font-sans); font-size: 13px; }
+.table-toolbar { display: flex; gap: 10px; padding: 12px 16px; background: var(--parchment); border-bottom: 1px solid var(--border); flex-wrap: wrap; flex-shrink: 0; }
+.table-toolbar input, .table-toolbar select, .table-toolbar button { padding: 6px 10px; border: 1px solid var(--border); border-radius: 4px; background: var(--cream); font-family: var(--font-sans); font-size: 13px; }
+.table-toolbar button { cursor: pointer; }
+.table-wrap { overflow-x: auto; overflow-y: auto; flex: 1; }
+table { width: 100%; border-collapse: collapse; font-size: 13px; }
+thead th { position: sticky; top: 0; background: var(--parchment); padding: 10px 12px; text-align: left; cursor: pointer; user-select: none; border-bottom: 2px solid var(--border); font-family: var(--font-serif); font-weight: 600; white-space: nowrap; }
+thead th:hover { background: var(--unvisited); }
+thead th.sort-asc::after { content: ' ↑'; }
+thead th.sort-desc::after { content: ' ↓'; }
+tbody tr { border-bottom: 1px solid var(--parchment); cursor: pointer; }
+tbody tr:hover { background: var(--parchment); }
+tbody td { padding: 8px 12px; vertical-align: middle; }
+.visited-dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: var(--terracotta); margin-right: 6px; }
+.stat-card { background: var(--drawer-bg); border: 1px solid var(--border); border-radius: 8px; padding: 20px 24px; min-width: 180px; }
+.stat-card .stat-number { font-family: var(--font-serif); font-size: 36px; font-weight: 700; color: var(--terracotta); }
+.stat-card .stat-label { font-size: 13px; color: var(--ink-light); margin-bottom: 8px; }
+.stat-progress { height: 4px; background: var(--parchment); border-radius: 2px; margin-top: 8px; }
+.stat-progress-fill { height: 100%; background: var(--terracotta); border-radius: 2px; transition: width 0.3s; }
+#top-bar { display: flex; align-items: center; gap: 24px; padding: 0 20px; background: var(--ink); border-bottom: 1px solid #3a2e1e; flex-shrink: 0; }
+#top-bar h1 { font-family: var(--font-serif); font-size: 22px; color: var(--cream); letter-spacing: 3px; padding: 14px 0; font-weight: 600; }
+#tabs { display: flex; gap: 2px; }
+.tab { background: none; border: none; padding: 14px 16px; color: rgba(245,240,232,0.6); cursor: pointer; font-family: var(--font-sans); font-size: 13px; font-weight: 500; letter-spacing: 0.5px; border-bottom: 2px solid transparent; transition: color 0.15s; }
+.tab:hover { color: var(--cream); }
+.tab.active { color: var(--cream); border-bottom-color: var(--terracotta); }
+</style>
+</head>
+<body>
+<div id="app">
+  <header id="top-bar">
+    <h1>ATLAS</h1>
+    <nav id="tabs">
+      <button class="tab active" data-tab="map">Map</button>
+      <button class="tab" data-tab="states">States</button>
+      <button class="tab" data-tab="parks">Parks</button>
+      <button class="tab" data-tab="countries">Countries</button>
+      <button class="tab" data-tab="stats">Stats</button>
+    </nav>
+  </header>
+  <main id="content">
+    <div id="tab-map" class="tab-panel active">
+  <div id="map-toolbar">
+    <div id="layer-toggles">
+      <button class="layer-btn active" data-layer="states">States</button>
+      <button class="layer-btn active" data-layer="parks">Parks</button>
+    </div>
+    <div id="map-tag-filter">
+      <input type="text" id="map-filter-input" placeholder="Filter by tag…">
+    </div>
+  </div>
+  <div id="map-container"></div>
+</div>
+    <div id="tab-states" class="tab-panel">
+  <div class="table-toolbar">
+    <input type="text" id="states-search" placeholder="Filter by name or tag…">
+    <select id="states-region-filter">
+      <option value="">All regions</option>
+      <option>Northeast</option><option>South</option>
+      <option>Midwest</option><option>West</option>
+    </select>
+    <select id="states-visited-filter">
+      <option value="">All</option>
+      <option value="visited">Visited</option>
+      <option value="unvisited">Unvisited</option>
+    </select>
+  </div>
+  <div class="table-wrap">
+    <table id="states-table">
+      <thead>
+        <tr>
+          <th data-col="abbrev">Abbrev</th>
+          <th data-col="name" class="sort-asc">Name</th>
+          <th data-col="region">Region</th>
+          <th data-col="firstVisit">First Visited</th>
+          <th data-col="visits"># Visits</th>
+          <th data-col="tags">Tags</th>
+        </tr>
+      </thead>
+      <tbody id="states-tbody"></tbody>
+    </table>
+  </div>
+</div>
+    <div id="tab-parks" class="tab-panel">
+  <div class="table-toolbar">
+    <input type="text" id="parks-search" placeholder="Filter by name, state, or tag…">
+    <select id="parks-type-filter"><option value="">All types</option></select>
+    <select id="parks-state-filter"><option value="">All states</option></select>
+    <select id="parks-visited-filter">
+      <option value="">All</option>
+      <option value="visited">Visited</option>
+      <option value="unvisited">Unvisited</option>
+    </select>
+    <button id="add-park-btn">+ Add Place</button>
+  </div>
+  <div id="add-park-form" class="hidden" style="padding:12px 16px; background:var(--parchment); border-bottom:1px solid var(--border); flex-shrink:0;">
+    <form id="custom-place-form" style="display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end;">
+      <div><label style="display:block;font-size:12px;margin-bottom:4px;">Name *</label><input type="text" id="cp-name" required style="padding:6px 8px;border:1px solid var(--border);border-radius:4px;font-family:var(--font-sans);font-size:13px;"></div>
+      <div><label style="display:block;font-size:12px;margin-bottom:4px;">Type *</label>
+        <select id="cp-type" style="padding:6px 8px;border:1px solid var(--border);border-radius:4px;font-family:var(--font-sans);font-size:13px;"><option value="custom">Custom</option></select></div>
+      <div><label style="display:block;font-size:12px;margin-bottom:4px;">Lat</label><input type="number" id="cp-lat" step="any" style="width:80px;padding:6px 8px;border:1px solid var(--border);border-radius:4px;font-family:var(--font-sans);font-size:13px;"></div>
+      <div><label style="display:block;font-size:12px;margin-bottom:4px;">Lng</label><input type="number" id="cp-lng" step="any" style="width:80px;padding:6px 8px;border:1px solid var(--border);border-radius:4px;font-family:var(--font-sans);font-size:13px;"></div>
+      <div><label style="display:block;font-size:12px;margin-bottom:4px;">Notes</label><input type="text" id="cp-notes" style="padding:6px 8px;border:1px solid var(--border);border-radius:4px;font-family:var(--font-sans);font-size:13px;"></div>
+      <button type="submit" style="background:var(--terracotta);color:#fff;border:none;padding:6px 14px;border-radius:4px;cursor:pointer;font-family:var(--font-sans);font-size:13px;">Save</button>
+      <button type="button" id="cancel-park-btn" style="background:none;border:1px solid var(--border);padding:6px 14px;border-radius:4px;cursor:pointer;font-family:var(--font-sans);font-size:13px;">Cancel</button>
+    </form>
+  </div>
+  <div class="table-wrap">
+    <table id="parks-table">
+      <thead>
+        <tr>
+          <th data-col="name" class="sort-asc">Name</th>
+          <th data-col="type">Type</th>
+          <th data-col="state">State</th>
+          <th data-col="established">Est.</th>
+          <th data-col="firstVisit">First Visited</th>
+          <th data-col="visits"># Visits</th>
+          <th data-col="tags">Tags</th>
+        </tr>
+      </thead>
+      <tbody id="parks-tbody"></tbody>
+    </table>
+  </div>
+</div>
+    <div id="tab-countries" class="tab-panel">
+  <div class="table-toolbar">
+    <input type="text" id="countries-search" placeholder="Filter by name or tag…">
+    <select id="countries-visited-filter">
+      <option value="">All</option>
+      <option value="visited">Visited</option>
+      <option value="unvisited">Unvisited</option>
+    </select>
+    <button id="add-country-btn">+ Add Country</button>
+  </div>
+  <div id="add-country-form" class="hidden" style="padding:12px 16px;background:var(--parchment);border-bottom:1px solid var(--border);flex-shrink:0;">
+    <form id="country-form" style="display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap;">
+      <div><label style="display:block;font-size:12px;margin-bottom:4px;">Country Name *</label><input type="text" id="country-name" required style="padding:6px 8px;border:1px solid var(--border);border-radius:4px;font-family:var(--font-sans);font-size:13px;"></div>
+      <div><label style="display:block;font-size:12px;margin-bottom:4px;">Notes</label><input type="text" id="country-notes" style="padding:6px 8px;border:1px solid var(--border);border-radius:4px;font-family:var(--font-sans);font-size:13px;"></div>
+      <button type="submit" style="background:var(--terracotta);color:#fff;border:none;padding:6px 14px;border-radius:4px;cursor:pointer;font-family:var(--font-sans);font-size:13px;">Save</button>
+      <button type="button" id="cancel-country-btn" style="background:none;border:1px solid var(--border);padding:6px 14px;border-radius:4px;cursor:pointer;font-family:var(--font-sans);font-size:13px;">Cancel</button>
+    </form>
+  </div>
+  <div class="table-wrap">
+    <table id="countries-table">
+      <thead>
+        <tr>
+          <th data-col="name" class="sort-asc">Country</th>
+          <th data-col="firstVisit">First Visited</th>
+          <th data-col="visits"># Visits</th>
+          <th data-col="tags">Tags</th>
+        </tr>
+      </thead>
+      <tbody id="countries-tbody"></tbody>
+    </table>
+  </div>
+</div>
+    <div id="tab-stats" class="tab-panel" style="padding:24px;overflow-y:auto;">
+  <div style="display:flex;gap:24px;margin-bottom:32px;flex-wrap:wrap;">
+    <div class="stat-card" id="stat-states"></div>
+    <div class="stat-card" id="stat-parks"></div>
+    <div class="stat-card" id="stat-countries"></div>
+  </div>
+  <div style="max-width:700px;">
+    <h3 style="font-family:var(--font-serif);margin-bottom:16px;">Visits per Year</h3>
+    <canvas id="visits-chart"></canvas>
+  </div>
+</div>
+  </main>
+  <div id="drawer-overlay" class="hidden"></div>
+  <aside id="detail-drawer" class="hidden">
+    <div id="drawer-header">
+      <div>
+        <h2 id="drawer-name"></h2>
+        <p id="drawer-subtitle"></p>
+      </div>
+      <button id="drawer-close">✕</button>
+    </div>
+    <div id="drawer-photo-zone" class="photo-zone">
+      <div id="photo-placeholder">Drop a photo here</div>
+      <img id="drawer-photo" style="display:none" alt="Place photo">
+    </div>
+    <div id="drawer-facts"></div>
+    <div id="drawer-visits-section">
+      <div id="drawer-visits-header">
+        <span>Visits</span>
+        <button id="add-visit-btn">+ Add Visit</button>
+      </div>
+      <div id="add-visit-form" class="hidden">
+  <form id="visit-form">
+    <div class="form-row">
+      <label>Date <span class="required">*</span></label>
+      <div class="date-row">
+        <input type="date" id="visit-date" required>
+        <label class="est-label"><input type="checkbox" id="visit-estimated"> Estimated</label>
+      </div>
+    </div>
+    <div class="form-row">
+      <label>Tags <span class="required">*</span> <span class="hint">(at least one)</span></label>
+      <div id="tag-input-container">
+        <div id="tag-chips"></div>
+        <input type="text" id="tag-input" placeholder="Add tag…" autocomplete="off">
+        <div id="tag-suggestions" class="hidden"></div>
+      </div>
+    </div>
+    <div class="form-row">
+      <label>Notes</label>
+      <textarea id="visit-notes" rows="3" placeholder="Optional notes…"></textarea>
+    </div>
+    <div class="form-actions">
+      <button type="submit">Save Visit</button>
+      <button type="button" id="cancel-visit-btn">Cancel</button>
+    </div>
+  </form>
+</div>
+      <div id="drawer-visits-list"></div>
+    </div>
+  </aside>
+</div>
+<script>
+const STORAGE = { VISITS: 'atlas_visits', PLACES: 'atlas_places', PHOTOS: 'atlas_photos' };
+
+// FIPS code → state abbrev mapping (standard US FIPS state codes)
+const FIPS_TO_ABBREV = {
+  "01":"AL","02":"AK","04":"AZ","05":"AR","06":"CA","08":"CO","09":"CT",
+  "10":"DE","11":"DC","12":"FL","13":"GA","15":"HI","16":"ID","17":"IL",
+  "18":"IN","19":"IA","20":"KS","21":"KY","22":"LA","23":"ME","24":"MD",
+  "25":"MA","26":"MI","27":"MN","28":"MS","29":"MO","30":"MT","31":"NE",
+  "32":"NV","33":"NH","34":"NJ","35":"NM","36":"NY","37":"NC","38":"ND",
+  "39":"OH","40":"OK","41":"OR","42":"PA","44":"RI","45":"SC","46":"SD",
+  "47":"TN","48":"TX","49":"UT","50":"VT","51":"VA","53":"WA","54":"WV",
+  "55":"WI","56":"WY"
+};
+
+// Tab switching
+document.querySelectorAll('.tab').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.tab, .tab-panel').forEach(el => el.classList.remove('active'));
+    btn.classList.add('active');
+    document.getElementById('tab-' + btn.dataset.tab).classList.add('active');
+  });
+});
+
+// Layer toggles
+document.querySelectorAll('.layer-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    btn.classList.toggle('active');
+    const layer = btn.dataset.layer;
+    const layerEl = document.getElementById(layer + '-layer');
+    if (layerEl) layerEl.style.display = btn.classList.contains('active') ? null : 'none';
+  });
+});
+
+// ── Data Layer ────────────────────────────────────────────────────────
+let statesData = [];
+let parksData = [];
+
+async function loadData() {
+  [statesData, parksData] = await Promise.all([
+    fetch('./states.json').then(r => r.json()),
+    fetch('./parks.json').then(r => r.json())
+  ]);
+  statesData = statesData.map(s => ({ ...s, placeType: 'state' }));
+  parksData = parksData.map(p => ({ ...p, placeType: 'park' }));
+}
+
+function getVisits() {
+  return JSON.parse(localStorage.getItem(STORAGE.VISITS) || '[]');
+}
+function saveVisits(visits) {
+  localStorage.setItem(STORAGE.VISITS, JSON.stringify(visits));
+}
+function getCustomPlaces() {
+  return JSON.parse(localStorage.getItem(STORAGE.PLACES) || '[]');
+}
+function saveCustomPlaces(places) {
+  localStorage.setItem(STORAGE.PLACES, JSON.stringify(places));
+}
+function getPhotos() {
+  return JSON.parse(localStorage.getItem(STORAGE.PHOTOS) || '{}');
+}
+function savePhoto(placeId, dataUrl) {
+  const photos = getPhotos();
+  photos[placeId] = dataUrl;
+  localStorage.setItem(STORAGE.PHOTOS, JSON.stringify(photos));
+}
+
+// Returns all visits for a given placeId, sorted newest first
+function getVisitsForPlace(placeId) {
+  return getVisits().filter(v => v.placeId === placeId)
+    .sort((a, b) => new Date(b.date) - new Date(a.date));
+}
+
+// Returns all unique tags ever used across all visits
+function getAllTags() {
+  return [...new Set(getVisits().flatMap(v => v.tags || []))].sort();
+}
+
+// Returns first visit date for a placeId, or null
+function firstVisitDate(placeId) {
+  const visits = getVisitsForPlace(placeId);
+  if (!visits.length) return null;
+  return visits.reduce((earliest, v) =>
+    new Date(v.date) < new Date(earliest) ? v.date : earliest, visits[0].date);
+}
+
+function generateId() {
+  return Date.now().toString(36) + Math.random().toString(36).slice(2);
+}
+
+function escapeHtml(str) {
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+function allPlaces() {
+  return [
+    ...statesData,
+    ...parksData,
+    ...getCustomPlaces()
+  ];
+}
+
+// ── Drawer ────────────────────────────────────────────────────────────
+let currentPlaceId = null;
+let currentPlaceType = null;
+
+function findPlace(id, placeType) {
+  if (placeType === 'state') return statesData.find(s => s.id === id);
+  if (placeType === 'park') return parksData.find(p => p.id === id);
+  return getCustomPlaces().find(p => p.id === id);
+}
+
+function buildSubtitle(place) {
+  if (place.placeType === 'state' || place.abbrev) return `State · Capital: ${place.capital}`;
+  if (place.type && place.state) return `${place.type} · ${place.state}${place.established ? ' · Est. ' + place.established : ''}`;
+  return place.type || 'Custom Place';
+}
+
+function renderDrawerFacts(place) {
+  const container = document.getElementById('drawer-facts');
+  const firstVisit = firstVisitDate(place.id);
+  const visitCount = getVisitsForPlace(place.id).length;
+  const rows = [
+    ['First visited', firstVisit || '—'],
+    ['Total visits', visitCount || '—'],
+  ];
+  if (place.capital) rows.push(['Capital', place.capital]);
+  if (place.region) rows.push(['Region', place.region]);
+  if (place.description) rows.push(['About', place.description.length > 80 ? place.description.slice(0, 80) + '…' : place.description]);
+  container.innerHTML = rows.map(([l, v]) =>
+    `<div class="fact-row"><span class="fact-label">${escapeHtml(String(l))}</span><span>${escapeHtml(String(v))}</span></div>`
+  ).join('');
+}
+
+function renderDrawerPhoto(placeId) {
+  const photos = getPhotos();
+  const img = document.getElementById('drawer-photo');
+  const placeholder = document.getElementById('photo-placeholder');
+  if (photos[placeId]) {
+    img.src = photos[placeId];
+    img.style.display = 'block';
+    placeholder.style.display = 'none';
+  } else {
+    img.style.display = 'none';
+    placeholder.style.display = 'block';
+  }
+}
+
+function renderVisitsList(placeId) {
+  const visits = getVisitsForPlace(placeId);
+  const container = document.getElementById('drawer-visits-list');
+  if (!visits.length) {
+    container.innerHTML = '<p class="plan-visit-prompt">No visits yet — plan a visit?</p>';
+    return;
+  }
+  container.innerHTML = visits.map(v => `
+    <div class="visit-entry">
+      <span class="visit-date">${escapeHtml(v.date)}</span>
+      ${v.estimated ? '<span class="visit-estimated">(estimated)</span>' : ''}
+      <div class="visit-tags">${(v.tags || []).map(t => `<span class="tag-pill">${escapeHtml(t)}</span>`).join('')}</div>
+      ${v.notes ? `<p class="visit-notes">${escapeHtml(v.notes)}</p>` : ''}
+    </div>
+  `).join('');
+}
+
+function openDrawer(placeId, placeType) {
+  currentPlaceId = placeId;
+  currentPlaceType = placeType;
+  const place = findPlace(placeId, placeType);
+  if (!place) return;
+
+  document.getElementById('drawer-name').textContent = place.name;
+  document.getElementById('drawer-subtitle').textContent = buildSubtitle(place);
+  renderDrawerFacts(place);
+  renderDrawerPhoto(placeId);
+  renderVisitsList(placeId);
+
+  document.getElementById('detail-drawer').classList.remove('hidden');
+  document.getElementById('drawer-overlay').classList.remove('hidden');
+  document.getElementById('add-visit-form').classList.add('hidden');
+}
+
+function closeDrawer() {
+  document.getElementById('detail-drawer').classList.add('hidden');
+  document.getElementById('drawer-overlay').classList.add('hidden');
+  currentPlaceId = null;
+  currentPlaceType = null;
+}
+
+document.getElementById('drawer-close').addEventListener('click', closeDrawer);
+document.getElementById('drawer-overlay').addEventListener('click', closeDrawer);
+
+// ── Add Visit Form ────────────────────────────────────────────────────
+let currentVisitTags = [];
+
+function openAddVisitForm() {
+  currentVisitTags = [];
+  document.getElementById('visit-date').value = new Date().toISOString().slice(0, 10);
+  document.getElementById('visit-estimated').checked = false;
+  document.getElementById('visit-notes').value = '';
+  document.getElementById('tag-chips').innerHTML = '';
+  document.getElementById('tag-input').value = '';
+  document.getElementById('tag-suggestions').classList.add('hidden');
+  document.getElementById('add-visit-form').classList.remove('hidden');
+}
+
+function addTagChip(tag) {
+  tag = tag.trim().toLowerCase();
+  if (!tag || currentVisitTags.includes(tag)) return;
+  currentVisitTags.push(tag);
+  const chips = document.getElementById('tag-chips');
+  const chip = document.createElement('span');
+  chip.className = 'chip';
+  chip.innerHTML = escapeHtml(tag) + ' <span class="chip-remove" data-tag="' + escapeHtml(tag) + '">×</span>';
+  chip.querySelector('.chip-remove').addEventListener('click', () => {
+    currentVisitTags = currentVisitTags.filter(t => t !== tag);
+    chip.remove();
+  });
+  chips.appendChild(chip);
+  document.getElementById('tag-input').value = '';
+  document.getElementById('tag-suggestions').classList.add('hidden');
+}
+
+document.getElementById('tag-input').addEventListener('input', function() {
+  const val = this.value.trim().toLowerCase();
+  const suggestions = document.getElementById('tag-suggestions');
+  if (!val) { suggestions.classList.add('hidden'); return; }
+  const matches = getAllTags().filter(t => t.startsWith(val) && !currentVisitTags.includes(t));
+  if (!matches.length) { suggestions.classList.add('hidden'); return; }
+  suggestions.innerHTML = matches.map(t => `<div class="tag-suggestion">${escapeHtml(t)}</div>`).join('');
+  suggestions.classList.remove('hidden');
+  suggestions.querySelectorAll('.tag-suggestion').forEach((el, i) => {
+    el.addEventListener('click', () => addTagChip(matches[i]));
+  });
+});
+
+document.getElementById('tag-input').addEventListener('keydown', function(e) {
+  if (e.key === 'Enter' || e.key === ',') {
+    e.preventDefault();
+    addTagChip(this.value);
+  }
+});
+
+document.getElementById('add-visit-btn').addEventListener('click', openAddVisitForm);
+
+document.getElementById('cancel-visit-btn').addEventListener('click', () => {
+  document.getElementById('add-visit-form').classList.add('hidden');
+});
+
+document.getElementById('visit-form').addEventListener('submit', function(e) {
+  e.preventDefault();
+  if (!currentVisitTags.length) {
+    alert('Please add at least one tag.');
+    return;
+  }
+  const visit = {
+    id: generateId(),
+    placeId: currentPlaceId,
+    date: document.getElementById('visit-date').value,
+    estimated: document.getElementById('visit-estimated').checked,
+    tags: [...currentVisitTags],
+    notes: document.getElementById('visit-notes').value.trim()
+  };
+  const visits = getVisits();
+  visits.push(visit);
+  saveVisits(visits);
+  document.getElementById('add-visit-form').classList.add('hidden');
+  renderVisitsList(currentPlaceId);
+  const place = findPlace(currentPlaceId, currentPlaceType);
+  if (place) renderDrawerFacts(place);
+  colorStates();
+  colorParks();
+});
+
+// ── States Tab ────────────────────────────────────────────────────────
+let statesSort = { col: 'name', dir: 'asc' };
+
+function renderStatesTable() {
+  const search = document.getElementById('states-search').value.toLowerCase();
+  const region = document.getElementById('states-region-filter').value;
+  const visitedFilter = document.getElementById('states-visited-filter').value;
+  const allVisits = getVisits();
+  const visitedIds = new Set(allVisits.map(v => v.placeId));
+
+  // Build a map of placeId → sorted visits (newest first)
+  const visitsByPlace = new Map();
+  allVisits.forEach(v => {
+    if (!visitsByPlace.has(v.placeId)) visitsByPlace.set(v.placeId, []);
+    visitsByPlace.get(v.placeId).push(v);
+  });
+  visitsByPlace.forEach((visits, id) => {
+    visits.sort((a, b) => new Date(b.date) - new Date(a.date));
+  });
+  function getVisitsFor(id) { return visitsByPlace.get(id) || []; }
+  function firstVisitFor(id) {
+    const v = getVisitsFor(id);
+    return v.length ? v.reduce((e, x) => new Date(x.date) < new Date(e) ? x.date : e, v[0].date) : null;
+  }
+
+  let rows = statesData.map(s => ({
+    ...s,
+    firstVisit: firstVisitFor(s.id) || '',
+    visits: getVisitsFor(s.id).length,
+    tags: [...new Set(getVisitsFor(s.id).flatMap(v => v.tags || []))]
+  }));
+
+  if (region) rows = rows.filter(r => r.region === region);
+  if (visitedFilter === 'visited') rows = rows.filter(r => visitedIds.has(r.id));
+  if (visitedFilter === 'unvisited') rows = rows.filter(r => !visitedIds.has(r.id));
+  if (search) rows = rows.filter(r =>
+    r.name.toLowerCase().includes(search) ||
+    r.tags.some(t => t.includes(search))
+  );
+
+  rows.sort((a, b) => {
+    const va = a[statesSort.col] || '';
+    const vb = b[statesSort.col] || '';
+    return statesSort.dir === 'asc' ? String(va).localeCompare(String(vb)) : String(vb).localeCompare(String(va));
+  });
+
+  const tbody = document.getElementById('states-tbody');
+  tbody.innerHTML = rows.map(r => `
+    <tr data-id="${escapeHtml(r.id)}" data-type="state">
+      <td>${escapeHtml(r.abbrev)}</td>
+      <td>${visitedIds.has(r.id) ? '<span class="visited-dot"></span>' : ''}${escapeHtml(r.name)}</td>
+      <td>${escapeHtml(r.region)}</td>
+      <td>${escapeHtml(r.firstVisit || '—')}</td>
+      <td>${r.visits || '—'}</td>
+      <td>${r.tags.map(t => `<span class="tag-pill">${escapeHtml(t)}</span>`).join(' ')}</td>
+    </tr>
+  `).join('');
+
+  tbody.querySelectorAll('tr').forEach(row => {
+    row.addEventListener('click', () => openDrawer(row.dataset.id, row.dataset.type));
+  });
+}
+
+document.querySelectorAll('#states-table th').forEach(th => {
+  th.addEventListener('click', () => {
+    const col = th.dataset.col;
+    statesSort.dir = statesSort.col === col && statesSort.dir === 'asc' ? 'desc' : 'asc';
+    statesSort.col = col;
+    document.querySelectorAll('#states-table th').forEach(h => h.classList.remove('sort-asc', 'sort-desc'));
+    th.classList.add(statesSort.dir === 'asc' ? 'sort-asc' : 'sort-desc');
+    renderStatesTable();
+  });
+});
+['states-search', 'states-region-filter', 'states-visited-filter'].forEach(id => {
+  document.getElementById(id).addEventListener('input', renderStatesTable);
+});
+document.querySelector('[data-tab="states"]').addEventListener('click', renderStatesTable);
+
+// ── Parks Tab ─────────────────────────────────────────────────────────
+let parksSort = { col: 'name', dir: 'asc' };
+let parksFiltersPopulated = false;
+
+function populateParksFilters() {
+  if (parksFiltersPopulated) return;
+  const types = [...new Set(parksData.map(p => p.type).filter(Boolean))].sort();
+  const typeEl = document.getElementById('parks-type-filter');
+  types.forEach(t => { const o = document.createElement('option'); o.value = t; o.textContent = t; typeEl.appendChild(o); });
+  const states = [...new Set(parksData.map(p => p.state).filter(Boolean))].sort();
+  const stateEl = document.getElementById('parks-state-filter');
+  states.forEach(s => { const o = document.createElement('option'); o.value = s; o.textContent = s; stateEl.appendChild(o); });
+  parksFiltersPopulated = true;
+}
+
+function renderParksTable() {
+  const search = document.getElementById('parks-search').value.toLowerCase();
+  const typeFilter = document.getElementById('parks-type-filter').value;
+  const stateFilter = document.getElementById('parks-state-filter').value;
+  const visitedFilter = document.getElementById('parks-visited-filter').value;
+  const allVisits = getVisits();
+  const visitedIds = new Set(allVisits.map(v => v.placeId));
+
+  // Build a map of placeId → sorted visits (newest first)
+  const visitsByPlace = new Map();
+  allVisits.forEach(v => {
+    if (!visitsByPlace.has(v.placeId)) visitsByPlace.set(v.placeId, []);
+    visitsByPlace.get(v.placeId).push(v);
+  });
+  visitsByPlace.forEach((visits, id) => {
+    visits.sort((a, b) => new Date(b.date) - new Date(a.date));
+  });
+  function getVisitsFor(id) { return visitsByPlace.get(id) || []; }
+  function firstVisitFor(id) {
+    const v = getVisitsFor(id);
+    return v.length ? v.reduce((e, x) => new Date(x.date) < new Date(e) ? x.date : e, v[0].date) : null;
+  }
+
+  const parkIds = new Set(parksData.map(p => p.id));
+  const customParks = getCustomPlaces().filter(p => p.type !== 'country');
+
+  let rows = [...parksData, ...customParks].map(p => ({
+    ...p,
+    firstVisit: firstVisitFor(p.id) || '',
+    visits: getVisitsFor(p.id).length,
+    tags: [...new Set(getVisitsFor(p.id).flatMap(v => v.tags || []))],
+    isCustom: !parkIds.has(p.id)
+  }));
+
+  if (typeFilter) rows = rows.filter(r => r.type === typeFilter);
+  if (stateFilter) rows = rows.filter(r => r.state === stateFilter);
+  if (visitedFilter === 'visited') rows = rows.filter(r => visitedIds.has(r.id));
+  if (visitedFilter === 'unvisited') rows = rows.filter(r => !visitedIds.has(r.id));
+  if (search) rows = rows.filter(r =>
+    r.name.toLowerCase().includes(search) ||
+    (r.state || '').toLowerCase().includes(search) ||
+    r.tags.some(t => t.includes(search))
+  );
+
+  rows.sort((a, b) => {
+    const va = a[parksSort.col] || '';
+    const vb = b[parksSort.col] || '';
+    return parksSort.dir === 'asc' ? String(va).localeCompare(String(vb)) : String(vb).localeCompare(String(va));
+  });
+
+  const tbody = document.getElementById('parks-tbody');
+  tbody.innerHTML = rows.map(r => `
+    <tr data-id="${escapeHtml(r.id)}" data-type="park">
+      <td>${visitedIds.has(r.id) ? '<span class="visited-dot"></span>' : ''}${escapeHtml(r.name)}${r.isCustom ? ' <span style="font-size:10px;background:var(--border);padding:1px 5px;border-radius:3px;">custom</span>' : ''}</td>
+      <td>${escapeHtml(r.type || '—')}</td>
+      <td>${escapeHtml(r.state || '—')}</td>
+      <td>${escapeHtml(r.established || '—')}</td>
+      <td>${escapeHtml(r.firstVisit || '—')}</td>
+      <td>${r.visits || '—'}</td>
+      <td>${r.tags.map(t => `<span class="tag-pill">${escapeHtml(t)}</span>`).join(' ')}</td>
+    </tr>
+  `).join('');
+
+  tbody.querySelectorAll('tr').forEach(row => {
+    row.addEventListener('click', () => openDrawer(row.dataset.id, row.dataset.type));
+  });
+}
+
+document.querySelectorAll('#parks-table th').forEach(th => {
+  th.addEventListener('click', () => {
+    const col = th.dataset.col;
+    parksSort.dir = parksSort.col === col && parksSort.dir === 'asc' ? 'desc' : 'asc';
+    parksSort.col = col;
+    document.querySelectorAll('#parks-table th').forEach(h => h.classList.remove('sort-asc', 'sort-desc'));
+    th.classList.add(parksSort.dir === 'asc' ? 'sort-asc' : 'sort-desc');
+    renderParksTable();
+  });
+});
+['parks-search','parks-type-filter','parks-state-filter','parks-visited-filter'].forEach(id => {
+  document.getElementById(id).addEventListener('input', renderParksTable);
+});
+
+document.getElementById('add-park-btn').addEventListener('click', () => {
+  document.getElementById('add-park-form').classList.toggle('hidden');
+});
+document.getElementById('cancel-park-btn').addEventListener('click', () => {
+  document.getElementById('add-park-form').classList.add('hidden');
+});
+document.getElementById('custom-place-form').addEventListener('submit', function(e) {
+  e.preventDefault();
+  const place = {
+    id: generateId(),
+    name: document.getElementById('cp-name').value.trim(),
+    type: 'custom',
+    lat: parseFloat(document.getElementById('cp-lat').value) || null,
+    lng: parseFloat(document.getElementById('cp-lng').value) || null,
+    notes: document.getElementById('cp-notes').value.trim()
+  };
+  const places = getCustomPlaces();
+  places.push(place);
+  saveCustomPlaces(places);
+  document.getElementById('add-park-form').classList.add('hidden');
+  this.reset();
+  renderParksTable();
+  renderMap();
+});
+
+document.querySelector('[data-tab="parks"]').addEventListener('click', () => {
+  populateParksFilters();
+  renderParksTable();
+});
+
+// ── Countries Tab ─────────────────────────────────────────────────────
+let countriesSort = { col: 'name', dir: 'asc' };
+
+function renderCountriesTable() {
+  const search = document.getElementById('countries-search').value.toLowerCase();
+  const visitedFilter = document.getElementById('countries-visited-filter').value;
+  const allVisits = getVisits();
+  const visitedIds = new Set(allVisits.map(v => v.placeId));
+
+  // Build a map of placeId → sorted visits (newest first)
+  const visitsByPlace = new Map();
+  allVisits.forEach(v => {
+    if (!visitsByPlace.has(v.placeId)) visitsByPlace.set(v.placeId, []);
+    visitsByPlace.get(v.placeId).push(v);
+  });
+  visitsByPlace.forEach((visits, id) => {
+    visits.sort((a, b) => new Date(b.date) - new Date(a.date));
+  });
+  function getVisitsFor(id) { return visitsByPlace.get(id) || []; }
+  function firstVisitFor(id) {
+    const v = getVisitsFor(id);
+    return v.length ? v.reduce((e, x) => new Date(x.date) < new Date(e) ? x.date : e, v[0].date) : null;
+  }
+
+  const countries = getCustomPlaces().filter(p => p.type === 'country');
+
+  let rows = countries.map(c => ({
+    ...c,
+    firstVisit: firstVisitFor(c.id) || '',
+    visits: getVisitsFor(c.id).length,
+    tags: [...new Set(getVisitsFor(c.id).flatMap(v => v.tags || []))]
+  }));
+
+  if (visitedFilter === 'visited') rows = rows.filter(r => visitedIds.has(r.id));
+  if (visitedFilter === 'unvisited') rows = rows.filter(r => !visitedIds.has(r.id));
+  if (search) rows = rows.filter(r =>
+    r.name.toLowerCase().includes(search) ||
+    r.tags.some(t => t.includes(search))
+  );
+
+  rows.sort((a, b) => {
+    const va = a[countriesSort.col] || '';
+    const vb = b[countriesSort.col] || '';
+    return countriesSort.dir === 'asc' ? String(va).localeCompare(String(vb)) : String(vb).localeCompare(String(va));
+  });
+
+  const tbody = document.getElementById('countries-tbody');
+  tbody.innerHTML = rows.length ? rows.map(r => `
+    <tr data-id="${escapeHtml(r.id)}" data-type="country">
+      <td>${visitedIds.has(r.id) ? '<span class="visited-dot"></span>' : ''}${escapeHtml(r.name)}</td>
+      <td>${escapeHtml(r.firstVisit || '—')}</td>
+      <td>${r.visits || '—'}</td>
+      <td>${r.tags.map(t => `<span class="tag-pill">${escapeHtml(t)}</span>`).join(' ')}</td>
+    </tr>
+  `).join('') : '<tr><td colspan="4" style="text-align:center;padding:24px;color:var(--ink-light);font-style:italic;">No countries added yet</td></tr>';
+
+  tbody.querySelectorAll('tr[data-id]').forEach(row => {
+    row.addEventListener('click', () => openDrawer(row.dataset.id, 'country'));
+  });
+}
+
+// Note: findPlace already handles 'country' type via its fallback to getCustomPlaces(),
+// so no patching is needed.
+
+document.querySelectorAll('#countries-table th').forEach(th => {
+  th.addEventListener('click', () => {
+    const col = th.dataset.col;
+    countriesSort.dir = countriesSort.col === col && countriesSort.dir === 'asc' ? 'desc' : 'asc';
+    countriesSort.col = col;
+    document.querySelectorAll('#countries-table th').forEach(h => h.classList.remove('sort-asc','sort-desc'));
+    th.classList.add(countriesSort.dir === 'asc' ? 'sort-asc' : 'sort-desc');
+    renderCountriesTable();
+  });
+});
+['countries-search','countries-visited-filter'].forEach(id =>
+  document.getElementById(id).addEventListener('input', renderCountriesTable)
+);
+
+document.getElementById('add-country-btn').addEventListener('click', () => {
+  document.getElementById('add-country-form').classList.toggle('hidden');
+});
+document.getElementById('cancel-country-btn').addEventListener('click', () => {
+  document.getElementById('add-country-form').classList.add('hidden');
+});
+document.getElementById('country-form').addEventListener('submit', function(e) {
+  e.preventDefault();
+  const place = {
+    id: generateId(),
+    name: document.getElementById('country-name').value.trim(),
+    type: 'country',
+    notes: document.getElementById('country-notes').value.trim()
+  };
+  const places = getCustomPlaces();
+  places.push(place);
+  saveCustomPlaces(places);
+  document.getElementById('add-country-form').classList.add('hidden');
+  this.reset();
+  renderCountriesTable();
+});
+
+document.querySelector('[data-tab="countries"]').addEventListener('click', renderCountriesTable);
+
+// ── Stats Tab ─────────────────────────────────────────────────────────
+let visitsChart = null;
+
+function renderStats() {
+  const visits = getVisits();
+  const visitedIds = new Set(visits.map(v => v.placeId));
+  const parkIdSet = new Set(parksData.map(p => p.id));
+  const stateIdSet = new Set(statesData.map(s => s.id));
+
+  const statesVisited = statesData.filter(s => visitedIds.has(s.id)).length;
+  const parksVisited = parksData.filter(p => visitedIds.has(p.id)).length;
+  const allCustom = getCustomPlaces();
+  const countries = allCustom.filter(p => p.type === 'country');
+  const countriesVisited = countries.filter(p => visitedIds.has(p.id)).length;
+
+  const pct = (n, d) => d ? Math.min(100, (n / d * 100)).toFixed(1) : 0;
+
+  document.getElementById('stat-states').innerHTML = `
+    <div class="stat-label">States visited</div>
+    <div class="stat-number">${statesVisited}</div>
+    <div style="font-size:12px;color:var(--ink-light);">of ${statesData.length}</div>
+    <div class="stat-progress"><div class="stat-progress-fill" style="width:${pct(statesVisited, statesData.length)}%"></div></div>`;
+
+  document.getElementById('stat-parks').innerHTML = `
+    <div class="stat-label">Parks visited</div>
+    <div class="stat-number">${parksVisited}</div>
+    <div style="font-size:12px;color:var(--ink-light);">of ${parksData.length}</div>
+    <div class="stat-progress"><div class="stat-progress-fill" style="width:${pct(parksVisited, parksData.length)}%"></div></div>`;
+
+  document.getElementById('stat-countries').innerHTML = `
+    <div class="stat-label">Countries visited</div>
+    <div class="stat-number">${countriesVisited}</div>
+    <div style="font-size:12px;color:var(--ink-light);">of ${countries.length} tracked</div>
+    ${countries.length ? `<div class="stat-progress"><div class="stat-progress-fill" style="width:${pct(countriesVisited, countries.length)}%"></div></div>` : ''}`;
+
+  // Build year buckets
+  const byYear = {};
+  visits.forEach(v => {
+    const year = v.date ? v.date.slice(0, 4) : 'Unknown';
+    if (!byYear[year]) byYear[year] = { state: 0, park: 0, country: 0, custom: 0 };
+    let placeType;
+    if (stateIdSet.has(v.placeId)) placeType = 'state';
+    else if (parkIdSet.has(v.placeId)) placeType = 'park';
+    else {
+      const cp = allCustom.find(p => p.id === v.placeId);
+      placeType = cp?.type === 'country' ? 'country' : 'custom';
+    }
+    byYear[year][placeType]++;
+  });
+
+  const years = Object.keys(byYear).filter(y => y !== 'Unknown').sort();
+  if (visitsChart) { visitsChart.destroy(); visitsChart = null; }
+  if (!years.length) return;
+
+  visitsChart = new Chart(document.getElementById('visits-chart'), {
+    type: 'bar',
+    data: {
+      labels: years,
+      datasets: [
+        { label: 'States',    data: years.map(y => byYear[y].state),   backgroundColor: 'rgba(196,98,45,0.75)' },
+        { label: 'Parks',     data: years.map(y => byYear[y].park),    backgroundColor: 'rgba(61,107,71,0.75)' },
+        { label: 'Countries', data: years.map(y => byYear[y].country), backgroundColor: 'rgba(42,106,138,0.75)' },
+        { label: 'Custom',    data: years.map(y => byYear[y].custom),  backgroundColor: 'rgba(139,105,20,0.75)' }
+      ]
+    },
+    options: {
+      responsive: true,
+      plugins: { legend: { position: 'bottom' } },
+      scales: {
+        x: { stacked: true },
+        y: { stacked: true, beginAtZero: true, ticks: { stepSize: 1, precision: 0 } }
+      }
+    }
+  });
+}
+
+document.querySelector('[data-tab="stats"]').addEventListener('click', renderStats);
+
+// ── Photo ─────────────────────────────────────────────────────────────
+const photoZone = document.getElementById('drawer-photo-zone');
+
+function handlePhotoFile(file) {
+  if (!file || !file.type.startsWith('image/')) return;
+  if (file.size > 500 * 1024) {
+    alert(`Image is ${(file.size / 1024).toFixed(0)}KB — please use an image under 500KB to avoid filling localStorage.`);
+    return;
+  }
+  const reader = new FileReader();
+  reader.onload = ev => {
+    savePhoto(currentPlaceId, ev.target.result);
+    renderDrawerPhoto(currentPlaceId);
+  };
+  reader.readAsDataURL(file);
+}
+
+photoZone.addEventListener('dragover', e => {
+  e.preventDefault();
+  photoZone.classList.add('drag-over');
+});
+photoZone.addEventListener('dragleave', () => photoZone.classList.remove('drag-over'));
+photoZone.addEventListener('drop', e => {
+  e.preventDefault();
+  photoZone.classList.remove('drag-over');
+  handlePhotoFile(e.dataTransfer.files[0]);
+});
+
+photoZone.addEventListener('click', () => {
+  // Only open file picker if no photo yet
+  if (document.getElementById('drawer-photo').style.display !== 'none') return;
+  const input = document.createElement('input');
+  input.type = 'file';
+  input.accept = 'image/*';
+  input.onchange = e => handlePhotoFile(e.target.files[0]);
+  input.click();
+});
+
+// ── Map Tag Filter ────────────────────────────────────────────────────
+function applyMapTagFilter() {
+  const tag = document.getElementById('map-filter-input').value.trim().toLowerCase();
+  const visits = getVisits();
+
+  // Build lookup: placeId → visits
+  const visitsByPlace = new Map();
+  visits.forEach(v => {
+    if (!visitsByPlace.has(v.placeId)) visitsByPlace.set(v.placeId, []);
+    visitsByPlace.get(v.placeId).push(v);
+  });
+
+  d3.selectAll('.state-path').each(function(d) {
+    const fips = String(d.id).padStart(2, '0');
+    const abbrev = FIPS_TO_ABBREV[fips];
+    if (!abbrev) return;
+    const stateVisits = visitsByPlace.get(abbrev) || [];
+    const isVisited = stateVisits.length > 0;
+    const hasTag = !tag || stateVisits.some(v => (v.tags || []).includes(tag));
+    d3.select(this)
+      .classed('visited', isVisited && (!tag || hasTag))
+      .style('opacity', tag && isVisited && !hasTag ? 0.25 : null);
+  });
+
+  d3.selectAll('.park-dot').each(function(d) {
+    const parkVisits = visitsByPlace.get(d.id) || [];
+    const isVisited = parkVisits.length > 0;
+    const hasTag = !tag || parkVisits.some(v => (v.tags || []).includes(tag));
+    d3.select(this)
+      .classed('visited', isVisited && (!tag || hasTag))
+      .style('opacity', tag && isVisited && !hasTag ? 0.2 : null);
+  });
+}
+
+// Add datalist for tag autocomplete on the map filter
+function updateMapFilterDatalist() {
+  let dl = document.getElementById('map-filter-datalist');
+  if (!dl) {
+    dl = document.createElement('datalist');
+    dl.id = 'map-filter-datalist';
+    document.body.appendChild(dl);
+    document.getElementById('map-filter-input').setAttribute('list', 'map-filter-datalist');
+  }
+  dl.innerHTML = getAllTags().map(t => `<option value="${escapeHtml(t)}">`).join('');
+}
+
+document.getElementById('map-filter-input').addEventListener('input', applyMapTagFilter);
+
+// ── Map ──────────────────────────────────────────────────────────────
+const US_ATLAS = 'https://cdn.jsdelivr.net/npm/us-atlas@3/states-10m.json';
+
+let topoData = null;
+
+function renderParkDots(svg, projection) {
+  const visits = getVisits();
+  const visitedIds = new Set(visits.map(v => v.placeId));
+
+  const projected = parksData
+    .filter(p => p.lat && p.lng)
+    .map(p => ({ ...p, _proj: projection([p.lng, p.lat]) }));
+
+  const dotsLayer = svg.append('g').attr('id', 'parks-layer');
+
+  dotsLayer.selectAll('circle')
+    .data(projected)
+    .join('circle')
+      .attr('class', 'park-dot')
+      .attr('data-npstype', d => d.type)
+      .attr('r', 4)
+      .attr('cx', d => d._proj ? d._proj[0] : -999)
+      .attr('cy', d => d._proj ? d._proj[1] : -999)
+      .classed('visited', d => visitedIds.has(d.id))
+      .style('display', d => d._proj ? null : 'none')
+      .on('click', (event, d) => openDrawer(d.id, 'park'));
+}
+
+async function loadMap() {
+  topoData = await d3.json(US_ATLAS);
+  renderMap();
+}
+
+function renderMap() {
+  const container = document.getElementById('map-container');
+  container.innerHTML = '';
+  const { width, height } = container.getBoundingClientRect();
+
+  const states = topojson.feature(topoData, topoData.objects.states);
+
+  const projection = d3.geoAlbersUsa();
+  projection.fitSize([width * 0.95, height * 0.9], states);
+  projection.translate([projection.translate()[0], projection.translate()[1] + height * 0.05]);
+
+  const path = d3.geoPath().projection(projection);
+  const svg = d3.select('#map-container').append('svg')
+    .attr('viewBox', `0 0 ${width} ${height}`)
+    .attr('preserveAspectRatio', 'xMidYMid meet');
+
+  // Background rect for parchment texture
+  svg.append('rect').attr('width', width).attr('height', height).attr('fill', '#e8e0d0');
+
+  svg.append('g').attr('id', 'states-layer')
+    .selectAll('path')
+    .data(states.features)
+    .join('path')
+      .attr('class', 'state-path')
+      .attr('d', path)
+      .attr('data-fips', d => d.id)
+      .on('click', (event, d) => {
+        const fips = String(d.id).padStart(2, '0');
+        const abbrev = FIPS_TO_ABBREV[fips];
+        if (abbrev) openDrawer(abbrev, 'state');
+      });
+
+  renderParkDots(svg, projection);
+
+  // Tooltip
+  const tooltip = d3.select('body').select('#map-tooltip').empty()
+    ? d3.select('body').append('div').attr('id', 'map-tooltip')
+    : d3.select('#map-tooltip');
+
+  tooltip
+    .style('position', 'fixed')
+    .style('background', 'rgba(44,36,22,0.85)')
+    .style('color', '#f5f0e8')
+    .style('padding', '6px 10px')
+    .style('border-radius', '4px')
+    .style('font-size', '12px')
+    .style('pointer-events', 'none')
+    .style('display', 'none')
+    .style('z-index', '500');
+
+  // Wire tooltips to state paths
+  svg.selectAll('.state-path')
+    .on('mousemove', (event, d) => {
+      const fips = String(d.id).padStart(2, '0');
+      const abbrev = FIPS_TO_ABBREV[fips];
+      const state = statesData.find(s => s.id === abbrev);
+      const vCount = abbrev ? getVisitsForPlace(abbrev).length : 0;
+      tooltip.style('display', 'block')
+        .style('left', (event.clientX + 12) + 'px')
+        .style('top', (event.clientY - 28) + 'px')
+        .text(state ? `${state.name}${vCount ? ` · ${vCount} visit${vCount > 1 ? 's' : ''}` : ''}` : '');
+    })
+    .on('mouseleave', () => tooltip.style('display', 'none'));
+
+  // Wire tooltips to park dots
+  svg.selectAll('.park-dot')
+    .on('mousemove', (event, d) => {
+      const vCount = getVisitsForPlace(d.id).length;
+      tooltip.style('display', 'block')
+        .style('left', (event.clientX + 12) + 'px')
+        .style('top', (event.clientY - 28) + 'px')
+        .text(`${d.name}${vCount ? ` · ${vCount} visit${vCount > 1 ? 's' : ''}` : ''}`);
+    })
+    .on('mouseleave', () => tooltip.style('display', 'none'));
+
+  colorStates();
+}
+
+function colorParks() {
+  const visits = getVisits();
+  const visitedIds = new Set(visits.map(v => v.placeId));
+  d3.selectAll('.park-dot').classed('visited', d => visitedIds.has(d.id));
+}
+
+function colorStates() {
+  const visits = getVisits();
+  const visitedIds = new Set(visits.map(v => v.placeId));
+
+  d3.selectAll('.state-path').each(function(d) {
+    const fips = String(d.id).padStart(2, '0');
+    const abbrev = FIPS_TO_ABBREV[fips];
+    const isVisited = abbrev && visitedIds.has(abbrev);
+    d3.select(this).classed('visited', isVisited);
+  });
+}
+
+async function init() {
+  await loadData();
+  await loadMap();
+  updateMapFilterDatalist();
+}
+init();
+window.addEventListener('resize', () => { if (topoData) renderMap(); });
+</script>
+</body>
+</html>
