@@ -577,14 +577,29 @@ function renderStatesTable() {
   const search = document.getElementById('states-search').value.toLowerCase();
   const region = document.getElementById('states-region-filter').value;
   const visitedFilter = document.getElementById('states-visited-filter').value;
-  const visits = getVisits();
-  const visitedIds = new Set(visits.map(v => v.placeId));
+  const allVisits = getVisits();
+  const visitedIds = new Set(allVisits.map(v => v.placeId));
+
+  // Build a map of placeId → sorted visits (newest first)
+  const visitsByPlace = new Map();
+  allVisits.forEach(v => {
+    if (!visitsByPlace.has(v.placeId)) visitsByPlace.set(v.placeId, []);
+    visitsByPlace.get(v.placeId).push(v);
+  });
+  visitsByPlace.forEach((visits, id) => {
+    visits.sort((a, b) => new Date(b.date) - new Date(a.date));
+  });
+  function getVisitsFor(id) { return visitsByPlace.get(id) || []; }
+  function firstVisitFor(id) {
+    const v = getVisitsFor(id);
+    return v.length ? v.reduce((e, x) => new Date(x.date) < new Date(e) ? x.date : e, v[0].date) : null;
+  }
 
   let rows = statesData.map(s => ({
     ...s,
-    firstVisit: firstVisitDate(s.id) || '',
-    visits: getVisitsForPlace(s.id).length,
-    tags: [...new Set(getVisitsForPlace(s.id).flatMap(v => v.tags || []))]
+    firstVisit: firstVisitFor(s.id) || '',
+    visits: getVisitsFor(s.id).length,
+    tags: [...new Set(getVisitsFor(s.id).flatMap(v => v.tags || []))]
   }));
 
   if (region) rows = rows.filter(r => r.region === region);
@@ -653,16 +668,32 @@ function renderParksTable() {
   const typeFilter = document.getElementById('parks-type-filter').value;
   const stateFilter = document.getElementById('parks-state-filter').value;
   const visitedFilter = document.getElementById('parks-visited-filter').value;
-  const visits = getVisits();
-  const visitedIds = new Set(visits.map(v => v.placeId));
+  const allVisits = getVisits();
+  const visitedIds = new Set(allVisits.map(v => v.placeId));
+
+  // Build a map of placeId → sorted visits (newest first)
+  const visitsByPlace = new Map();
+  allVisits.forEach(v => {
+    if (!visitsByPlace.has(v.placeId)) visitsByPlace.set(v.placeId, []);
+    visitsByPlace.get(v.placeId).push(v);
+  });
+  visitsByPlace.forEach((visits, id) => {
+    visits.sort((a, b) => new Date(b.date) - new Date(a.date));
+  });
+  function getVisitsFor(id) { return visitsByPlace.get(id) || []; }
+  function firstVisitFor(id) {
+    const v = getVisitsFor(id);
+    return v.length ? v.reduce((e, x) => new Date(x.date) < new Date(e) ? x.date : e, v[0].date) : null;
+  }
+
   const parkIds = new Set(parksData.map(p => p.id));
   const customParks = getCustomPlaces().filter(p => p.type !== 'country');
 
   let rows = [...parksData, ...customParks].map(p => ({
     ...p,
-    firstVisit: firstVisitDate(p.id) || '',
-    visits: getVisitsForPlace(p.id).length,
-    tags: [...new Set(getVisitsForPlace(p.id).flatMap(v => v.tags || []))],
+    firstVisit: firstVisitFor(p.id) || '',
+    visits: getVisitsFor(p.id).length,
+    tags: [...new Set(getVisitsFor(p.id).flatMap(v => v.tags || []))],
     isCustom: !parkIds.has(p.id)
   }));
 
@@ -750,14 +781,31 @@ let countriesSort = { col: 'name', dir: 'asc' };
 function renderCountriesTable() {
   const search = document.getElementById('countries-search').value.toLowerCase();
   const visitedFilter = document.getElementById('countries-visited-filter').value;
-  const visitedIds = new Set(getVisits().map(v => v.placeId));
+  const allVisits = getVisits();
+  const visitedIds = new Set(allVisits.map(v => v.placeId));
+
+  // Build a map of placeId → sorted visits (newest first)
+  const visitsByPlace = new Map();
+  allVisits.forEach(v => {
+    if (!visitsByPlace.has(v.placeId)) visitsByPlace.set(v.placeId, []);
+    visitsByPlace.get(v.placeId).push(v);
+  });
+  visitsByPlace.forEach((visits, id) => {
+    visits.sort((a, b) => new Date(b.date) - new Date(a.date));
+  });
+  function getVisitsFor(id) { return visitsByPlace.get(id) || []; }
+  function firstVisitFor(id) {
+    const v = getVisitsFor(id);
+    return v.length ? v.reduce((e, x) => new Date(x.date) < new Date(e) ? x.date : e, v[0].date) : null;
+  }
+
   const countries = getCustomPlaces().filter(p => p.type === 'country');
 
   let rows = countries.map(c => ({
     ...c,
-    firstVisit: firstVisitDate(c.id) || '',
-    visits: getVisitsForPlace(c.id).length,
-    tags: [...new Set(getVisitsForPlace(c.id).flatMap(v => v.tags || []))]
+    firstVisit: firstVisitFor(c.id) || '',
+    visits: getVisitsFor(c.id).length,
+    tags: [...new Set(getVisitsFor(c.id).flatMap(v => v.tags || []))]
   }));
 
   if (visitedFilter === 'visited') rows = rows.filter(r => visitedIds.has(r.id));
