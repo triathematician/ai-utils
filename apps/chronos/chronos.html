@@ -397,7 +397,7 @@ html, body {
   background: var(--bg);
   border: 1px solid var(--border);
   padding: 20px 24px;
-  width: min(90vw, 560px);
+  width: min(90vw, 700px);
   font-family: var(--font);
 }
 #add-log {
@@ -590,6 +590,7 @@ const ZOOM_LEVELS = [
 let db = {
   events: [],          // { uid, ts, label, cats, deps, meta }
   hiddenCats: [],
+  laneOrder: [],       // custom lane order; empty = insertion order
   zoomIdx: 10,         // default: 1WEEK
   viewTopMs: null,     // ms at the top of the current viewport (null = auto-fit)
   theme: 'space',
@@ -604,6 +605,7 @@ function loadDB() {
       const saved = JSON.parse(raw);
       db.events   = saved.events   || [];
       db.hiddenCats = saved.hiddenCats || [];
+      db.laneOrder  = saved.laneOrder  || [];
       db.zoomIdx    = saved.zoomIdx    ?? 10;
       db.viewTopMs  = saved.viewTopMs  ?? null;
       db.theme    = saved.theme    || 'space';
@@ -636,7 +638,12 @@ function catColor(catName) {
 function allCategories() {
   const seen = new Set();
   db.events.forEach(e => (e.cats||[]).forEach(c => seen.add(c)));
-  return Array.from(seen);
+  const inEvents = Array.from(seen);
+  if (!db.laneOrder || db.laneOrder.length === 0) return inEvents;
+  // Put ordered lanes first (only those that exist in events), then any new ones
+  const ordered   = db.laneOrder.filter(c => inEvents.includes(c));
+  const remainder = inEvents.filter(c => !db.laneOrder.includes(c));
+  return [...ordered, ...remainder];
 }
 
 function visibleCategories() {
@@ -1201,7 +1208,10 @@ function zoomIn() {
     const centerMs = yToMs(scroll.scrollTop + scroll.clientHeight / 2);
     db.zoomIdx++;
     render();
-    const newCenterY = msToY(centerMs);
+    // Clamp to canvas range so we don't scroll off into empty space at fine zoom
+    const { topMs, bottomMs } = getCanvasBounds();
+    const clampedMs = Math.min(topMs, Math.max(bottomMs, centerMs));
+    const newCenterY = msToY(clampedMs);
     scroll.scrollTop = Math.max(0, newCenterY - scroll.clientHeight / 2);
     db.viewTopMs = yToMs(scroll.scrollTop);
     ensureEventsVisible();
@@ -1217,7 +1227,10 @@ function zoomOut() {
     const centerMs = yToMs(scroll.scrollTop + scroll.clientHeight / 2);
     db.zoomIdx--;
     render();
-    const newCenterY = msToY(centerMs);
+    // Clamp to canvas range so we don't scroll off into empty space
+    const { topMs, bottomMs } = getCanvasBounds();
+    const clampedMs = Math.min(topMs, Math.max(bottomMs, centerMs));
+    const newCenterY = msToY(clampedMs);
     scroll.scrollTop = Math.max(0, newCenterY - scroll.clientHeight / 2);
     db.viewTopMs = yToMs(scroll.scrollTop);
     ensureEventsVisible();
@@ -1229,15 +1242,21 @@ function zoomOut() {
 
 // If no events are visible in the current viewport after a zoom change,
 // scroll to bring the nearest event into view.
+// Only considers events within the (possibly MAX_CANVAS_H-capped) canvas range.
 function ensureEventsVisible() {
   if (db.events.length === 0) return;
   const scroll = document.getElementById('swimlane-scroll');
+  if (!scroll || !scroll.clientHeight) return;
+  const { topMs, bottomMs } = getCanvasBounds();
   const viewTopMs    = yToMs(scroll.scrollTop);
   const viewBottomMs = yToMs(scroll.scrollTop + scroll.clientHeight);
-  const hasVisible = db.events.some(e => e.ts <= viewTopMs && e.ts >= viewBottomMs);
+  // Events within the canvas range (MAX_CANVAS_H cap may exclude the oldest ones)
+  const canvasEvents = db.events.filter(e => e.ts <= topMs && e.ts >= bottomMs);
+  const eventsToSearch = canvasEvents.length > 0 ? canvasEvents : db.events;
+  const hasVisible = eventsToSearch.some(e => e.ts <= viewTopMs && e.ts >= viewBottomMs);
   if (!hasVisible) {
     const viewCenterMs = (viewTopMs + viewBottomMs) / 2;
-    const nearest = db.events.reduce((best, e) =>
+    const nearest = eventsToSearch.reduce((best, e) =>
       Math.abs(e.ts - viewCenterMs) < Math.abs(best.ts - viewCenterMs) ? e : best
     );
     scrollToMs(nearest.ts);
@@ -1364,9 +1383,8 @@ function openDetail(evtUID) {
     html += `</div></div>`;
   }
 
-  // Action buttons: EDIT (with border) and DEL (no outline per UI guidelines)
   html += `<div style="margin-top:14px;display:flex;gap:10px;align-items:center">`;
-  html += `<span onclick="openEdit('${escHtml(evt.uid)}')" style="cursor:pointer;color:var(--accent);font-size:0.8em;border:1px solid var(--accent);padding:2px 8px">[EDIT]</span>`;
+  html += `<span onclick="openEdit('${escHtml(evt.uid)}')" style="cursor:pointer;color:var(--accent);font-size:0.8em">[EDIT]</span>`;
   html += `<span onclick="deleteEvent('${escHtml(evt.uid)}')" style="cursor:pointer;color:var(--warn);font-size:0.8em">[DEL]</span>`;
   html += `</div>`;
 
@@ -1444,6 +1462,11 @@ const HELP_TEXT = `
 /backlog archive        Move done items to archive.
 /backlog archive list   Show archived batches.
 /backlog export         Download backlog as .txt.
+
+/lane list              List current lane order.
+/lane order cat1,cat2,... Set a custom lane order.
+/lane swap cat1 cat2    Swap two lanes.
+/lane reset             Reset to insertion order.
 
 /help         Show this reference.
 ───────────────────────────────────────────────────────
@@ -1583,6 +1606,11 @@ function handleConsoleCmd(raw) {
 
   if (cmd === '/backlog') {
     handleBacklog(raw.slice('/backlog'.length).trim());
+    return;
+  }
+
+  if (cmd === '/lane') {
+    handleLane(parts.slice(1));
     return;
   }
 
@@ -1962,6 +1990,44 @@ function exportBacklog() {
   statusMsg(`Exported ${db.backlog.length} backlog item${db.backlog.length===1?'':'s'}.`);
 }
 
+// ── LANE ORDER ────────────────────────────────────────────────────────
+function handleLane(args) {
+  if (!args.length || args[0] === 'list') {
+    const cats = allCategories();
+    if (!cats.length) { statusMsg('NO LANES'); return; }
+    statusMsg('LANES: ' + cats.join(' | '));
+    return;
+  }
+  if (args[0] === 'reset') {
+    db.laneOrder = [];
+    render();
+    statusMsg('LANE ORDER: RESET');
+    return;
+  }
+  if (args[0] === 'order') {
+    const raw = args.slice(1).join(' ');
+    const cats = raw.split(',').map(s => s.trim()).filter(Boolean);
+    if (!cats.length) { statusMsg('USAGE: /lane order cat1,cat2,...'); return; }
+    db.laneOrder = cats;
+    render();
+    statusMsg('LANE ORDER: ' + cats.join(' | '));
+    return;
+  }
+  if (args[0] === 'swap' && args[1] && args[2]) {
+    const a = args[1], b = args[2];
+    const cats = allCategories();
+    if (!cats.includes(a)) { statusMsg('NOT FOUND: ' + a); return; }
+    if (!cats.includes(b)) { statusMsg('NOT FOUND: ' + b); return; }
+    const order = [...cats];
+    const ia = order.indexOf(a), ib = order.indexOf(b);
+    [order[ia], order[ib]] = [order[ib], order[ia]];
+    db.laneOrder = order;
+    render();
+    statusMsg(`SWAPPED: ${a} ↔ ${b}`);
+    return;
+  }
+  statusMsg('USAGE: /lane list | /lane order cat1,cat2,... | /lane swap cat1 cat2 | /lane reset');
+}
 // ══════════════════════════════════════════════════════════════════════
 // EXPORT
 // ══════════════════════════════════════════════════════════════════════
