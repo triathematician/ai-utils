@@ -416,8 +416,8 @@ document.getElementById('tag-input').addEventListener('input', function() {
   if (!matches.length) { suggestions.classList.add('hidden'); return; }
   suggestions.innerHTML = matches.map(t => `<div class="tag-suggestion">${escapeHtml(t)}</div>`).join('');
   suggestions.classList.remove('hidden');
-  suggestions.querySelectorAll('.tag-suggestion').forEach(el => {
-    el.addEventListener('click', () => addTagChip(el.textContent));
+  suggestions.querySelectorAll('.tag-suggestion').forEach((el, i) => {
+    el.addEventListener('click', () => addTagChip(matches[i]));
   });
 });
 
