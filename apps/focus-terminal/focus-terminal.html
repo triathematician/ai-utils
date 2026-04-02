@@ -834,6 +834,7 @@ const DIM_ALIASES = {
 };
 const DAY_TYPES = ['Work','Personal','Travel'];
 const STORAGE_KEY = 'focus_terminal_db';
+const MAX_INLINE_NOTE_LENGTH = 28;
 const NORTH_STAR_QUESTIONS = [
   "What 10% move serves this goal today?",
   "What's the smallest action today that builds toward this?",
@@ -868,6 +869,8 @@ function loadDB() {
   } catch(e) {}
   db.backlog = db.backlog || [];
   db.backlogArchive = db.backlogArchive || [];
+  if (db.today) db.today.scoreNotes = db.today.scoreNotes || {};
+  db.history.forEach(d => { d.scoreNotes = d.scoreNotes || {}; });
 }
 
 /* ═══════════════════════════════════════════════════════════════════
@@ -956,6 +959,7 @@ function initBoot(editMode=false) {
       oneThing: '',
       list: [],
       scores: {},
+      scoreNotes: {},
       priorityFocus: []
     };
   }
@@ -1079,6 +1083,10 @@ function advanceBoot() {
       advanceBoot();
       return;
     }
+    if (s.awaitingConfirm === 'score_note') {
+      // Already asked for score, now awaiting note — should not happen via advanceBoot
+      return;
+    }
     if (s.subIndex === 0) {
       bootLog('sep','──────────────────────────────────────────────────────');
       bootLog('ask','◈ DIMENSION SCORES: Rate each dimension today (1-5)');
@@ -1134,7 +1142,7 @@ function handleBootInput(raw) {
   bootLog('ans', '> ' + (inp || (s.scoreEditMode ? '(keep)' : '(skip)')));
 
   // Global skips
-  if (low==='/skip' || low==='') {
+  if ((low==='/skip' || low==='') && s.awaitingConfirm !== 'score_note') {
     if (phase==='one_thing' && !t.oneThing) {
       bootLog('warn','⚠ ONE THING is required. Please enter a response.');
       return;
@@ -1149,8 +1157,8 @@ function handleBootInput(raw) {
       s.phase++; s.subIndex=0; advanceBoot(); return;
     }
     if (phase==='scores') {
-      // In score-edit mode, empty = keep existing; /skip = clear existing
       if (s.scoreEditMode && low==='') {
+        // In score-edit mode, empty on score prompt = keep existing
         const d = DIMS[s.subIndex];
         const existing = t.scores[d.key];
         if (existing) bootLog('info', `  → ${d.full}: kept at ${existing}/5`);
@@ -1161,6 +1169,7 @@ function handleBootInput(raw) {
       if (s.scoreEditMode && low==='/skip') {
         const d = DIMS[s.subIndex];
         delete t.scores[d.key];
+        delete (t.scoreNotes||{})[d.key];
         bootLog('info', `  → ${d.full}: cleared`);
         s.subIndex++;
         advanceBoot(); return;
@@ -1170,8 +1179,6 @@ function handleBootInput(raw) {
     }
     s.phase++; s.subIndex=0; advanceBoot(); return;
   }
-
-  // /next in list mode
   if ((low==='/next'||low==='/done') && phase==='list') {
     s.phase++; s.subIndex=0; advanceBoot(); return;
   }
@@ -1241,12 +1248,33 @@ function handleBootInput(raw) {
     const d = DIMS[s.subIndex];
     if (n>=1 && n<=5) {
       t.scores[d.key] = n;
+      t.scoreNotes = t.scoreNotes || {};
       bootLog('info',`  → ${d.full}: ${n}/5`);
+      // Ask for optional note
+      const existingNote = t.scoreNotes[d.key] || '';
+      const keepHint = existingNote ? ` (ENTER to keep: "${existingNote}")` : ' (optional — ENTER to skip)';
+      bootLog('ask',`  Note for ${d.full}?${keepHint}`);
+      s.awaitingConfirm = 'score_note';
     } else {
       bootLog('warn','  Value must be 1-5. Try again or /skip');
-      return;
+    }
+    return;
+  }
+
+  // SCORE NOTE (optional)
+  if (s.awaitingConfirm==='score_note') {
+    const d = DIMS[s.subIndex];
+    t.scoreNotes = t.scoreNotes || {};
+    if (inp) {
+      t.scoreNotes[d.key] = inp;
+      bootLog('info',`  → Note: "${inp}"`);
+    } else if (s.scoreEditMode && inp === '') {
+      // Empty in edit mode = keep existing note (preserved by not deleting it)
+    } else {
+      delete t.scoreNotes[d.key];
     }
     s.subIndex++;
+    s.awaitingConfirm = 'score';
     advanceBoot(); return;
   }
 
@@ -1409,6 +1437,8 @@ function renderBalanceGrid() {
     const row = document.createElement('div');
     row.className = 'balance-row';
 
+    const note = (t.scoreNotes && t.scoreNotes[dim.key]) || '';
+
     const lbl = document.createElement('span');
     lbl.className = 'dim-label';
     lbl.textContent = dim.label;
@@ -1418,7 +1448,7 @@ function renderBalanceGrid() {
       ttEl.style.display = 'block';
       ttEl.style.left = Math.min(e.clientX+12, window.innerWidth-320)+'px';
       ttEl.style.top  = Math.min(e.clientY+12, window.innerHeight-100)+'px';
-      ttEl.textContent = `${dim.full} — click to edit score`;
+      ttEl.textContent = note ? `${dim.full}: ${score||'—'}/5\n"${note}"` : `${dim.full} — click to edit score`;
     });
     lbl.addEventListener('mouseleave', () => { ttEl.style.display = 'none'; });
     lbl.addEventListener('click', () => openScorePopup(dim.key));
@@ -1431,6 +1461,14 @@ function renderBalanceGrid() {
       ? Array.from({length:5}, (_,i) => i === score-1 ? '■' : '–').join('')
       : '–––––';
     scr.textContent = marker + '|';
+    scr.addEventListener('mousemove', (e) => {
+      if (!note) return;
+      ttEl.style.display = 'block';
+      ttEl.style.left = Math.min(e.clientX+12, window.innerWidth-320)+'px';
+      ttEl.style.top  = Math.min(e.clientY+12, window.innerHeight-100)+'px';
+      ttEl.textContent = `${dim.full}: ${score||'—'}/5\n"${note}"`;
+    });
+    scr.addEventListener('mouseleave', () => { ttEl.style.display = 'none'; });
     scr.addEventListener('click', () => openScorePopup(dim.key));
 
     const sqs = document.createElement('div');
@@ -1445,6 +1483,24 @@ function renderBalanceGrid() {
         sqs.appendChild(s);
       });
     };
+
+    // Inline note display (truncated)
+    if (note) {
+      const noteEl = document.createElement('span');
+      noteEl.style.color = 'var(--dim)';
+      noteEl.style.fontSize = '0.82em';
+      noteEl.style.fontStyle = 'italic';
+      noteEl.style.marginLeft = '4px';
+      noteEl.style.overflow = 'hidden';
+      noteEl.style.textOverflow = 'ellipsis';
+      noteEl.style.whiteSpace = 'nowrap';
+      noteEl.style.flex = '1';
+      noteEl.style.cursor = 'pointer';
+      noteEl.textContent = note.length > MAX_INLINE_NOTE_LENGTH ? note.slice(0, MAX_INLINE_NOTE_LENGTH - 1) + '…' : note;
+      noteEl.title = note;
+      noteEl.addEventListener('click', () => openScorePopup(dim.key));
+      sqs.appendChild(noteEl);
+    }
 
     addSqItems('sq-imp-today', impTodayItems);
     addSqItems('sq-imp-week',  impWeekItems);
@@ -1595,6 +1651,11 @@ function savePopup() {
     const activeOpt = body.querySelector('.popup-option.active[data-key="score"]');
     if (activeOpt && db.today) {
       db.today.scores[key] = parseInt(activeOpt.dataset.val);
+      db.today.scoreNotes = db.today.scoreNotes || {};
+      const noteTa = body.querySelector('textarea[data-key="scoreNote"]');
+      const noteVal = noteTa ? noteTa.value.trim() : '';
+      if (noteVal) db.today.scoreNotes[key] = noteVal;
+      else delete db.today.scoreNotes[key];
       saveDB();
     }
     closePopup();
@@ -1637,11 +1698,13 @@ function openScorePopup(dimKey) {
   const dim = DIMS.find(d => d.key === dimKey);
   if (!dim) return;
   const current = db.today.scores[dimKey] || 0;
+  const currentNote = (db.today.scoreNotes && db.today.scoreNotes[dimKey]) || '';
 
   document.getElementById('popup-title').textContent = `EDIT SCORE — ${dim.full.toUpperCase()} (1–5)`;
   const body = document.getElementById('popup-body');
   body.innerHTML = '';
 
+  // Score options
   const row = document.createElement('div');
   row.className = 'popup-field';
   const l = document.createElement('label'); l.textContent = 'SCORE';
@@ -1662,9 +1725,13 @@ function openScorePopup(dimKey) {
   row.appendChild(l); row.appendChild(opts);
   body.appendChild(row);
 
+  // Note field
+  addPopupField(body, 'NOTE', 'textarea', 'scoreNote', currentNote);
+
   activePopupItem = { _scoreKey: dimKey };
   activePopupList = null;
   document.getElementById('popup-overlay').classList.add('active');
+  body.querySelector('textarea')?.focus();
 }
 
 document.getElementById('popup-save').addEventListener('click', savePopup);
@@ -1762,10 +1829,17 @@ function handleConsoleCmd(raw) {
     if (!scoreParts[1]) { openScorePopup(dimKey); return; }
     if (isNaN(val) || val < 1 || val > 5) { statusMsg('Score must be 1–5.'); return; }
     db.today.scores[dimKey] = val;
+    db.today.scoreNotes = db.today.scoreNotes || {};
+    // Optional note: everything after dim and value tokens, handles multiple spaces
+    const noteStr = scoreParts.slice(2).join(' ').trim();
+    if (noteStr) {
+      db.today.scoreNotes[dimKey] = noteStr;
+    }
     saveDB();
     renderDashboard();
     const dim = DIMS.find(d => d.key === dimKey);
-    statusMsg(`Score updated: ${dim.full} = ${val}/5`);
+    const noteSuffix = noteStr ? ` — "${noteStr}"` : '';
+    statusMsg(`Score updated: ${dim.full} = ${val}/5${noteSuffix}`);
     return;
   }
   statusMsg(`Unknown command: ${cmd}. Type /help`);
@@ -1784,8 +1858,8 @@ function showHelp(title, lines) {
   body.textContent = (lines || [
     '/boot            start morning boot sequence',
     '/edit            re-enter boot to modify today',
-    '/score           re-enter score prompts for today',
-    '/score [dim] [n] set one dimension score (1-5)',
+    '/score           re-enter score prompts for today (includes note)',
+    '/score [dim] [n] [note]  set score + optional note, e.g. /score phy 4 felt strong',
     '/next            archive today, start fresh',
     '/export          download history (.txt + .json)',
     '/goals           manage north star goals',
@@ -1896,13 +1970,18 @@ function showScores() {
   const dimRows = DIMS.map(dim => {
     const cells = recent.map(day => {
       const s = day.scores?.[dim.key];
+      const note = day.scoreNotes?.[dim.key];
       const bar = (s >= 1 && s <= 5) ? SCORE_BARS[s] : '·';
       const col = s >= 4 ? 'var(--success)' : s >= 2 ? 'var(--fg)' : 'var(--warn)';
-      return `<span style="color:${col}" title="${day.date}: ${s||'—'}">${bar}</span>`;
+      const titleText = note ? `${day.date}: ${s||'—'} — "${note}"` : `${day.date}: ${s||'—'}`;
+      return `<span style="color:${col}" title="${escHtml(titleText)}">${bar}</span>`;
     }).join('');
     const vals = recent.map(d => d.scores?.[dim.key]).filter(v => v);
     const avg = vals.length ? (vals.reduce((a,b)=>a+b,0)/vals.length).toFixed(1) : '—';
-    return `<div style="padding:2px 0;display:flex;align-items:center;gap:8px"><span style="color:var(--dim);width:3em;display:inline-block">${escHtml(dim.label)}</span><span style="letter-spacing:2px">${cells}</span><span style="color:var(--dim);font-size:0.85em">avg ${avg}</span></div>`;
+    // Show today's note if present
+    const todayNote = recent[0]?.scoreNotes?.[dim.key];
+    const noteHtml = todayNote ? `<span style="color:var(--dim);font-size:0.82em;font-style:italic"> "${escHtml(todayNote)}"</span>` : '';
+    return `<div style="padding:2px 0;display:flex;align-items:center;gap:8px;flex-wrap:wrap"><span style="color:var(--dim);width:3em;display:inline-block">${escHtml(dim.label)}</span><span style="letter-spacing:2px">${cells}</span><span style="color:var(--dim);font-size:0.85em">avg ${avg}</span>${noteHtml}</div>`;
   });
 
   const dates = recent.map(d => `<span style="color:var(--dim);writing-mode:horizontal-tb">${d.date.slice(5)}</span>`).join(' ');
@@ -2056,7 +2135,9 @@ function editScoresBoot() {
   bootLog('sys','Current scores (press ENTER to keep, /skip to clear):');
   DIMS.forEach(d => {
     const s = t.scores[d.key];
-    bootLog('sys', `  ${d.label}  ${d.full}: ${s || '—'}`);
+    const note = t.scoreNotes && t.scoreNotes[d.key];
+    const noteStr = note ? `  "${note}"` : '';
+    bootLog('sys', `  ${d.label}  ${d.full}: ${s || '—'}${noteStr}`);
   });
   bootLog('sep','──────────────────────────────────────────────────────');
   advanceBoot();
@@ -2094,7 +2175,11 @@ function exportData() {
     txt += `LIST ITEMS:\n`;
     day.list?.forEach(i=>{ txt += `  [${i.done?'✓':' '}] ${i.text} [${i.dim||'—'}]\n`; });
     txt += `SCORES:\n`;
-    DIMS.forEach(d=>{ txt += `  ${d.full}: ${day.scores?.[d.key]||'—'}\n`; });
+    DIMS.forEach(d=>{
+      const score = day.scores?.[d.key];
+      const note = day.scoreNotes?.[d.key];
+      txt += `  ${d.full}: ${score||'—'}${note ? `  "${note}"` : ''}\n`;
+    });
     txt += '\n'+'─'.repeat(60)+'\n\n';
   });
   downloadBlob(txt, `focus-terminal-${now}.txt`, 'text/plain');
