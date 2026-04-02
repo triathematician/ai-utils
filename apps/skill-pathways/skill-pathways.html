@@ -1729,13 +1729,13 @@ document.getElementById('ph-cancel').addEventListener('click', closePhasesModal)
 document.getElementById('tr-add').addEventListener('click', () => {
   showPrompt('New Tree', 'Enter a name for the new tree:', `Tree ${trees.length + 1}`, name => {
     if (!name.trim()) return;
-    const tree = { id: uid('t'), name: name.trim(), nodes: [], phases: [] };
-    trees.push(tree);
-    setActiveTree(tree.id);
+    const newTree = { id: uid('t'), name: name.trim(), nodes: [], phases: [] };
+    trees.push(newTree);
+    setActiveTree(newTree.id);
     render();
     save();
     closeTreesModal();
-    toast(`Tree "${tree.name}" created`);
+    toast(`Tree "${newTree.name}" created`);
   });
 });
 document.getElementById('tr-close').addEventListener('click', closeTreesModal);
