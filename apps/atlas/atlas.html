@@ -26,7 +26,7 @@
 * { box-sizing: border-box; margin: 0; padding: 0; }
 body { background: var(--cream); color: var(--ink); font-family: var(--font-sans); font-size: 14px; height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
 #app { flex: 1; display: flex; flex-direction: column; overflow: hidden; min-height: 0; }
-#tab-map { display: flex; flex-direction: column; height: 100%; }
+#tab-map { flex-direction: column; height: 100%; }
 #map-toolbar { display: flex; align-items: center; gap: 16px; padding: 10px 16px; background: var(--parchment); border-bottom: 1px solid var(--border); }
 .layer-btn { padding: 4px 12px; border: 1px solid var(--border); background: var(--cream); color: var(--ink); border-radius: 4px; cursor: pointer; font-family: var(--font-sans); font-size: 13px; }
 .layer-btn.active { background: var(--ink); color: var(--cream); }
@@ -126,8 +126,9 @@ tbody td { padding: 8px 12px; vertical-align: middle; }
   width: 38%; flex-shrink: 0; overflow: hidden;
   border-right: 1px solid var(--border);
   background: var(--parchment);
+  display: flex; flex-direction: column;
 }
-.tab-map-pane svg { width: 100%; height: 100%; display: block; }
+.tab-map-pane svg { width: 100%; flex: 1; display: block; min-height: 0; }
 .tab-table-pane { flex: 1; display: flex; flex-direction: column; overflow: hidden; min-width: 0; }
 @media (max-width: 700px) { .tab-map-pane { display: none; } }
 .world-country-path { fill: var(--unvisited); stroke: #fff; stroke-width: 0.5px; cursor: pointer; transition: fill 0.2s; }
@@ -167,21 +168,22 @@ tbody td { padding: 8px 12px; vertical-align: middle; }
   <div id="map-container"></div>
 </div>
     <div id="tab-states" class="tab-panel split-tab">
-  <div id="states-map-pane" class="tab-map-pane"></div>
-  <div class="tab-table-pane">
-  <div class="table-toolbar">
-    <input type="text" id="states-search" placeholder="Filter by name or tag…">
-    <select id="states-region-filter">
-      <option value="">All regions</option>
-      <option>Northeast</option><option>South</option>
-      <option>Midwest</option><option>West</option>
-    </select>
-    <select id="states-visited-filter">
-      <option value="">All</option>
-      <option value="visited">Visited</option>
-      <option value="unvisited">Unvisited</option>
-    </select>
+  <div id="states-map-pane" class="tab-map-pane">
+    <div class="table-toolbar">
+      <input type="text" id="states-search" placeholder="Filter by name or tag…">
+      <select id="states-region-filter">
+        <option value="">All regions</option>
+        <option>Northeast</option><option>South</option>
+        <option>Midwest</option><option>West</option>
+      </select>
+      <select id="states-visited-filter">
+        <option value="">All</option>
+        <option value="visited">Visited</option>
+        <option value="unvisited">Unvisited</option>
+      </select>
+    </div>
   </div>
+  <div class="tab-table-pane">
   <div class="table-wrap">
     <table id="states-table">
       <thead>
@@ -200,19 +202,20 @@ tbody td { padding: 8px 12px; vertical-align: middle; }
   </div>
 </div>
     <div id="tab-parks" class="tab-panel split-tab">
-  <div id="parks-map-pane" class="tab-map-pane"></div>
-  <div class="tab-table-pane">
-  <div class="table-toolbar">
-    <input type="text" id="parks-search" placeholder="Filter by name, state, or tag…">
-    <select id="parks-type-filter"><option value="">All types</option></select>
-    <select id="parks-state-filter"><option value="">All states</option></select>
-    <select id="parks-visited-filter">
-      <option value="">All</option>
-      <option value="visited">Visited</option>
-      <option value="unvisited">Unvisited</option>
-    </select>
-    <button id="add-park-btn">+ Add Place</button>
+  <div id="parks-map-pane" class="tab-map-pane">
+    <div class="table-toolbar">
+      <input type="text" id="parks-search" placeholder="Filter by name, state, or tag…">
+      <select id="parks-type-filter"><option value="">All types</option></select>
+      <select id="parks-state-filter"><option value="">All states</option></select>
+      <select id="parks-visited-filter">
+        <option value="">All</option>
+        <option value="visited">Visited</option>
+        <option value="unvisited">Unvisited</option>
+      </select>
+      <button id="add-park-btn">+ Add Place</button>
+    </div>
   </div>
+  <div class="tab-table-pane">
   <div id="add-park-form" class="hidden" style="padding:12px 16px; background:var(--parchment); border-bottom:1px solid var(--border); flex-shrink:0;">
     <form id="custom-place-form" style="display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end;">
       <div><label style="display:block;font-size:12px;margin-bottom:4px;">Name *</label><input type="text" id="cp-name" required style="padding:6px 8px;border:1px solid var(--border);border-radius:4px;font-family:var(--font-sans);font-size:13px;"></div>
@@ -245,17 +248,18 @@ tbody td { padding: 8px 12px; vertical-align: middle; }
   </div>
 </div>
     <div id="tab-countries" class="tab-panel split-tab">
-  <div id="countries-map-pane" class="tab-map-pane"></div>
-  <div class="tab-table-pane">
-  <div class="table-toolbar">
-    <input type="text" id="countries-search" placeholder="Filter by name or tag…">
-    <select id="countries-visited-filter">
-      <option value="">All</option>
-      <option value="visited">Visited</option>
-      <option value="unvisited">Unvisited</option>
-    </select>
-    <button id="add-country-btn">+ Add Country</button>
+  <div id="countries-map-pane" class="tab-map-pane">
+    <div class="table-toolbar">
+      <input type="text" id="countries-search" placeholder="Filter by name or tag…">
+      <select id="countries-visited-filter">
+        <option value="">All</option>
+        <option value="visited">Visited</option>
+        <option value="unvisited">Unvisited</option>
+      </select>
+      <button id="add-country-btn">+ Add Country</button>
+    </div>
   </div>
+  <div class="tab-table-pane">
   <div id="add-country-form" class="hidden" style="padding:12px 16px;background:var(--parchment);border-bottom:1px solid var(--border);flex-shrink:0;">
     <form id="country-form" style="display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap;">
       <div><label style="display:block;font-size:12px;margin-bottom:4px;">Country Name *</label><input type="text" id="country-name" required style="padding:6px 8px;border:1px solid var(--border);border-radius:4px;font-family:var(--font-sans);font-size:13px;"></div>
