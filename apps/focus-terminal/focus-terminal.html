@@ -1066,6 +1066,15 @@ function advanceBoot() {
 
   if (phase === 'scores') {
     if (s.subIndex >= DIMS.length) {
+      if (s.scoreEditMode) {
+        bootLog('sep','════════════════════════════════════════════════════════');
+        bootLog('info','✓ SCORES UPDATED');
+        bootLog('sys','Balance Grid refreshed.');
+        bootLog('sep','════════════════════════════════════════════════════════');
+        saveDB();
+        setTimeout(()=>{ hideBootOverlay(); renderDashboard(); }, 800);
+        return;
+      }
       s.phase++;
       advanceBoot();
       return;
@@ -1076,7 +1085,9 @@ function advanceBoot() {
       bootLog('sys','  ' + DIMS.map(d=>`${d.label}=${d.full}`).join('  ·  '));
     }
     const d = DIMS[s.subIndex];
-    bootLog('ask',`  ${d.full}: [1-5] or /skip`);
+    const existing = db.today && db.today.scores[d.key];
+    const hint = existing ? ` (current: ${existing})` : '';
+    bootLog('ask',`  ${d.full}: [1-5] or /skip${hint}`);
     s.awaitingConfirm = 'score';
     return;
   }
@@ -1120,7 +1131,7 @@ function handleBootInput(raw) {
   const low = inp.toLowerCase();
   const phase = Q_SEQUENCES[s.phase];
 
-  bootLog('ans', '> ' + (inp||'(skip)'));
+  bootLog('ans', '> ' + (inp || (s.scoreEditMode ? '(keep)' : '(skip)')));
 
   // Global skips
   if (low==='/skip' || low==='') {
@@ -1138,6 +1149,22 @@ function handleBootInput(raw) {
       s.phase++; s.subIndex=0; advanceBoot(); return;
     }
     if (phase==='scores') {
+      // In score-edit mode, empty = keep existing; /skip = clear existing
+      if (s.scoreEditMode && low==='') {
+        const d = DIMS[s.subIndex];
+        const existing = t.scores[d.key];
+        if (existing) bootLog('info', `  → ${d.full}: kept at ${existing}/5`);
+        else bootLog('info', `  → ${d.full}: no score`);
+        s.subIndex++;
+        advanceBoot(); return;
+      }
+      if (s.scoreEditMode && low==='/skip') {
+        const d = DIMS[s.subIndex];
+        delete t.scores[d.key];
+        bootLog('info', `  → ${d.full}: cleared`);
+        s.subIndex++;
+        advanceBoot(); return;
+      }
       s.subIndex++;
       advanceBoot(); return;
     }
@@ -1385,21 +1412,26 @@ function renderBalanceGrid() {
     const lbl = document.createElement('span');
     lbl.className = 'dim-label';
     lbl.textContent = dim.label;
-    lbl.style.cursor = 'default';
+    lbl.style.cursor = 'pointer';
+    lbl.title = `Click to edit ${dim.full} score`;
     lbl.addEventListener('mousemove', (e) => {
       ttEl.style.display = 'block';
       ttEl.style.left = Math.min(e.clientX+12, window.innerWidth-320)+'px';
       ttEl.style.top  = Math.min(e.clientY+12, window.innerHeight-100)+'px';
-      ttEl.textContent = dim.full;
+      ttEl.textContent = `${dim.full} — click to edit score`;
     });
     lbl.addEventListener('mouseleave', () => { ttEl.style.display = 'none'; });
+    lbl.addEventListener('click', () => openScorePopup(dim.key));
 
     const scr = document.createElement('span');
     scr.className = 'dim-score';
+    scr.style.cursor = 'pointer';
+    scr.title = `Click to edit ${dim.full} score`;
     const marker = score >= 1 && score <= 5
       ? Array.from({length:5}, (_,i) => i === score-1 ? '■' : '–').join('')
       : '–––––';
     scr.textContent = marker + '|';
+    scr.addEventListener('click', () => openScorePopup(dim.key));
 
     const sqs = document.createElement('div');
     sqs.className = 'balance-squares';
@@ -1480,6 +1512,7 @@ function openPopup(id) {
   activePopupItem = found.item;
   activePopupList = found.list;
 
+  document.getElementById('popup-title').textContent = 'EDIT ITEM';
   const body = document.getElementById('popup-body');
   body.innerHTML = '';
 
@@ -1556,6 +1589,18 @@ function addPopupCheckRow(body, lbl, val, key) {
 
 function savePopup() {
   if (!activePopupItem) return;
+  if (activePopupItem._scoreKey) {
+    const key = activePopupItem._scoreKey;
+    const body = document.getElementById('popup-body');
+    const activeOpt = body.querySelector('.popup-option.active[data-key="score"]');
+    if (activeOpt && db.today) {
+      db.today.scores[key] = parseInt(activeOpt.dataset.val);
+      saveDB();
+    }
+    closePopup();
+    renderDashboard();
+    return;
+  }
   const body = document.getElementById('popup-body');
   const ta = body.querySelector('textarea[data-key="text"]');
   if (ta) activePopupItem.text = ta.value.trim();
@@ -1585,6 +1630,41 @@ function closePopup() {
   document.getElementById('popup-overlay').classList.remove('active');
   activePopupItem = null;
   activePopupList = null;
+}
+
+function openScorePopup(dimKey) {
+  if (!db.today) { statusMsg('No active session. Type /boot first.'); return; }
+  const dim = DIMS.find(d => d.key === dimKey);
+  if (!dim) return;
+  const current = db.today.scores[dimKey] || 0;
+
+  document.getElementById('popup-title').textContent = `EDIT SCORE — ${dim.full.toUpperCase()} (1–5)`;
+  const body = document.getElementById('popup-body');
+  body.innerHTML = '';
+
+  const row = document.createElement('div');
+  row.className = 'popup-field';
+  const l = document.createElement('label'); l.textContent = 'SCORE';
+  const opts = document.createElement('div');
+  opts.className = 'popup-options';
+  [1,2,3,4,5].forEach(n => {
+    const s = document.createElement('span');
+    s.className = 'popup-option' + (n === current ? ' active' : '');
+    s.textContent = String(n);
+    s.dataset.key = 'score';
+    s.dataset.val = String(n);
+    s.addEventListener('click', () => {
+      opts.querySelectorAll('.popup-option').forEach(x => x.classList.remove('active'));
+      s.classList.add('active');
+    });
+    opts.appendChild(s);
+  });
+  row.appendChild(l); row.appendChild(opts);
+  body.appendChild(row);
+
+  activePopupItem = { _scoreKey: dimKey };
+  activePopupList = null;
+  document.getElementById('popup-overlay').classList.add('active');
 }
 
 document.getElementById('popup-save').addEventListener('click', savePopup);
@@ -1668,6 +1748,26 @@ function handleConsoleCmd(raw) {
   if (cmd === '/scores') {
     showScores(); return;
   }
+  if (cmd === '/score') {
+    if (!db.today) { statusMsg('No active session. Type /boot first.'); return; }
+    const rest = inp.slice('/score'.length).trim();
+    if (!rest) {
+      editScoresBoot(); return;
+    }
+    const scoreParts = rest.split(/\s+/);
+    if (!scoreParts[0]) { editScoresBoot(); return; }
+    const dimKey = DIM_ALIASES[scoreParts[0].toLowerCase()];
+    const val = parseInt(scoreParts[1]);
+    if (!dimKey) { statusMsg(`Unknown dimension. Try: phy mnt idn rel voc fin grw pla pce`); return; }
+    if (!scoreParts[1]) { openScorePopup(dimKey); return; }
+    if (isNaN(val) || val < 1 || val > 5) { statusMsg('Score must be 1–5.'); return; }
+    db.today.scores[dimKey] = val;
+    saveDB();
+    renderDashboard();
+    const dim = DIMS.find(d => d.key === dimKey);
+    statusMsg(`Score updated: ${dim.full} = ${val}/5`);
+    return;
+  }
   statusMsg(`Unknown command: ${cmd}. Type /help`);
 }
 
@@ -1684,6 +1784,8 @@ function showHelp(title, lines) {
   body.textContent = (lines || [
     '/boot            start morning boot sequence',
     '/edit            re-enter boot to modify today',
+    '/score           re-enter score prompts for today',
+    '/score [dim] [n] set one dimension score (1-5)',
     '/next            archive today, start fresh',
     '/export          download history (.txt + .json)',
     '/goals           manage north star goals',
@@ -1702,6 +1804,7 @@ function showHelp(title, lines) {
     '/help            this help',
     '',
     'Click any item to open detail/edit popup.',
+    'Click a dimension score in the Balance Grid to edit that score.',
   ]).join('\n');
   overlay.style.display = 'flex';
 }
@@ -1931,6 +2034,32 @@ function editGoals() {
     saveDB();
     statusMsg('Goal added.');
   }
+}
+
+function editScoresBoot() {
+  if (!db.today) { statusMsg('No active session. Type /boot first.'); return; }
+  bootState = {
+    phase: Q_SEQUENCES.indexOf('scores'),
+    subIndex: 0,
+    pendingItem: null,
+    awaitingConfirm: false,
+    editMode: true,
+    goalPromptDone: true,
+    scoreEditMode: true
+  };
+  document.getElementById('boot-log').innerHTML = '';
+  showBootOverlay();
+  bootLog('sys','════════════════════════════════════════════════════════');
+  bootLog('sys',`EDIT BALANCE SCORES — ${new Date().toDateString()}`);
+  bootLog('sys','════════════════════════════════════════════════════════');
+  const t = db.today;
+  bootLog('sys','Current scores (press ENTER to keep, /skip to clear):');
+  DIMS.forEach(d => {
+    const s = t.scores[d.key];
+    bootLog('sys', `  ${d.label}  ${d.full}: ${s || '—'}`);
+  });
+  bootLog('sep','──────────────────────────────────────────────────────');
+  advanceBoot();
 }
 
 function setTheme(name) {
