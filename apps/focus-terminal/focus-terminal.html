@@ -834,6 +834,7 @@ const DIM_ALIASES = {
 };
 const DAY_TYPES = ['Work','Personal','Travel'];
 const STORAGE_KEY = 'focus_terminal_db';
+const MAX_INLINE_NOTE_LENGTH = 28;
 const NORTH_STAR_QUESTIONS = [
   "What 10% move serves this goal today?",
   "What's the smallest action today that builds toward this?",
@@ -868,6 +869,8 @@ function loadDB() {
   } catch(e) {}
   db.backlog = db.backlog || [];
   db.backlogArchive = db.backlogArchive || [];
+  if (db.today) db.today.scoreNotes = db.today.scoreNotes || {};
+  db.history.forEach(d => { d.scoreNotes = d.scoreNotes || {}; });
 }
 
 /* ═══════════════════════════════════════════════════════════════════
@@ -956,6 +959,7 @@ function initBoot(editMode=false) {
       oneThing: '',
       list: [],
       scores: {},
+      scoreNotes: {},
       priorityFocus: []
     };
   }
@@ -1066,17 +1070,30 @@ function advanceBoot() {
 
   if (phase === 'scores') {
     if (s.subIndex >= DIMS.length) {
+      if (s.scoreEditMode) {
+        bootLog('sep','════════════════════════════════════════════════════════');
+        bootLog('info','✓ SCORES UPDATED');
+        bootLog('sys','Balance Grid refreshed.');
+        bootLog('sep','════════════════════════════════════════════════════════');
+        saveDB();
+        setTimeout(()=>{ hideBootOverlay(); renderDashboard(); }, 800);
+        return;
+      }
       s.phase++;
       advanceBoot();
       return;
     }
     if (s.subIndex === 0) {
       bootLog('sep','──────────────────────────────────────────────────────');
-      bootLog('ask','◈ DIMENSION SCORES: Rate each dimension today (1-5)');
+      bootLog('ask','◈ DIMENSION SCORES: Rate each dimension today (1-5, optional note)');
       bootLog('sys','  ' + DIMS.map(d=>`${d.label}=${d.full}`).join('  ·  '));
     }
     const d = DIMS[s.subIndex];
-    bootLog('ask',`  ${d.full}: [1-5] or /skip`);
+    const existing = db.today && db.today.scores[d.key];
+    const existingNote = db.today && db.today.scoreNotes && db.today.scoreNotes[d.key];
+    const noteHint = existingNote ? `, "${existingNote}"` : '';
+    const hint = existing ? ` (current: ${existing}${noteHint})` : '';
+    bootLog('ask',`  ${d.full}: [score note] or /skip${hint}`);
     s.awaitingConfirm = 'score';
     return;
   }
@@ -1120,7 +1137,7 @@ function handleBootInput(raw) {
   const low = inp.toLowerCase();
   const phase = Q_SEQUENCES[s.phase];
 
-  bootLog('ans', '> ' + (inp||'(skip)'));
+  bootLog('ans', '> ' + (inp || (s.scoreEditMode ? '(keep)' : '(skip)')));
 
   // Global skips
   if (low==='/skip' || low==='') {
@@ -1138,13 +1155,28 @@ function handleBootInput(raw) {
       s.phase++; s.subIndex=0; advanceBoot(); return;
     }
     if (phase==='scores') {
+      if (s.scoreEditMode && low==='') {
+        // In score-edit mode, empty on score prompt = keep existing
+        const d = DIMS[s.subIndex];
+        const existing = t.scores[d.key];
+        if (existing) bootLog('info', `  → ${d.full}: kept at ${existing}/5`);
+        else bootLog('info', `  → ${d.full}: no score`);
+        s.subIndex++;
+        advanceBoot(); return;
+      }
+      if (s.scoreEditMode && low==='/skip') {
+        const d = DIMS[s.subIndex];
+        delete t.scores[d.key];
+        delete (t.scoreNotes||{})[d.key];
+        bootLog('info', `  → ${d.full}: cleared`);
+        s.subIndex++;
+        advanceBoot(); return;
+      }
       s.subIndex++;
       advanceBoot(); return;
     }
     s.phase++; s.subIndex=0; advanceBoot(); return;
   }
-
-  // /next in list mode
   if ((low==='/next'||low==='/done') && phase==='list') {
     s.phase++; s.subIndex=0; advanceBoot(); return;
   }
@@ -1208,19 +1240,36 @@ function handleBootInput(raw) {
     return;
   }
 
-  // SCORE
+  // SCORE (score + optional note on one line, e.g. "4 felt sore today")
   if (s.awaitingConfirm==='score') {
-    const n = parseInt(inp);
+    const tokens = inp.split(/\s+/);
+    const n = parseInt(tokens[0]);
     const d = DIMS[s.subIndex];
     if (n>=1 && n<=5) {
       t.scores[d.key] = n;
-      bootLog('info',`  → ${d.full}: ${n}/5`);
+      t.scoreNotes = t.scoreNotes || {};
+      const noteStr = tokens.slice(1).join(' ').trim();
+      if (noteStr) {
+        t.scoreNotes[d.key] = noteStr;
+        bootLog('info',`  → ${d.full}: ${n}/5  "${noteStr}"`);
+      } else {
+        // No note supplied: in edit mode, preserve existing note; in new-session mode, clear it
+        if (s.scoreEditMode) {
+          const kept = (t.scoreNotes || {})[d.key];
+          if (kept) bootLog('info',`  → ${d.full}: ${n}/5  (note kept: "${kept}")`);
+          else bootLog('info',`  → ${d.full}: ${n}/5`);
+        } else {
+          t.scoreNotes = t.scoreNotes || {};
+          delete t.scoreNotes[d.key];
+          bootLog('info',`  → ${d.full}: ${n}/5`);
+        }
+      }
+      s.subIndex++;
+      advanceBoot();
     } else {
       bootLog('warn','  Value must be 1-5. Try again or /skip');
-      return;
     }
-    s.subIndex++;
-    advanceBoot(); return;
+    return;
   }
 
   // ONE THING
@@ -1382,24 +1431,39 @@ function renderBalanceGrid() {
     const row = document.createElement('div');
     row.className = 'balance-row';
 
+    const note = (t.scoreNotes && t.scoreNotes[dim.key]) || '';
+
     const lbl = document.createElement('span');
     lbl.className = 'dim-label';
     lbl.textContent = dim.label;
-    lbl.style.cursor = 'default';
+    lbl.style.cursor = 'pointer';
+    lbl.title = `Click to edit ${dim.full} score`;
     lbl.addEventListener('mousemove', (e) => {
       ttEl.style.display = 'block';
       ttEl.style.left = Math.min(e.clientX+12, window.innerWidth-320)+'px';
       ttEl.style.top  = Math.min(e.clientY+12, window.innerHeight-100)+'px';
-      ttEl.textContent = dim.full;
+      ttEl.textContent = note ? `${dim.full}: ${score||'—'}/5\n"${note}"` : `${dim.full} — click to edit score`;
     });
     lbl.addEventListener('mouseleave', () => { ttEl.style.display = 'none'; });
+    lbl.addEventListener('click', () => openScorePopup(dim.key));
 
     const scr = document.createElement('span');
     scr.className = 'dim-score';
+    scr.style.cursor = 'pointer';
+    scr.title = `Click to edit ${dim.full} score`;
     const marker = score >= 1 && score <= 5
       ? Array.from({length:5}, (_,i) => i === score-1 ? '■' : '–').join('')
       : '–––––';
     scr.textContent = marker + '|';
+    scr.addEventListener('mousemove', (e) => {
+      if (!note) return;
+      ttEl.style.display = 'block';
+      ttEl.style.left = Math.min(e.clientX+12, window.innerWidth-320)+'px';
+      ttEl.style.top  = Math.min(e.clientY+12, window.innerHeight-100)+'px';
+      ttEl.textContent = `${dim.full}: ${score||'—'}/5\n"${note}"`;
+    });
+    scr.addEventListener('mouseleave', () => { ttEl.style.display = 'none'; });
+    scr.addEventListener('click', () => openScorePopup(dim.key));
 
     const sqs = document.createElement('div');
     sqs.className = 'balance-squares';
@@ -1413,6 +1477,24 @@ function renderBalanceGrid() {
         sqs.appendChild(s);
       });
     };
+
+    // Inline note display (truncated)
+    if (note) {
+      const noteEl = document.createElement('span');
+      noteEl.style.color = 'var(--dim)';
+      noteEl.style.fontSize = '0.82em';
+      noteEl.style.fontStyle = 'italic';
+      noteEl.style.marginLeft = '4px';
+      noteEl.style.overflow = 'hidden';
+      noteEl.style.textOverflow = 'ellipsis';
+      noteEl.style.whiteSpace = 'nowrap';
+      noteEl.style.flex = '1';
+      noteEl.style.cursor = 'pointer';
+      noteEl.textContent = note.length > MAX_INLINE_NOTE_LENGTH ? note.slice(0, MAX_INLINE_NOTE_LENGTH - 1) + '…' : note;
+      noteEl.title = note;
+      noteEl.addEventListener('click', () => openScorePopup(dim.key));
+      sqs.appendChild(noteEl);
+    }
 
     addSqItems('sq-imp-today', impTodayItems);
     addSqItems('sq-imp-week',  impWeekItems);
@@ -1480,6 +1562,7 @@ function openPopup(id) {
   activePopupItem = found.item;
   activePopupList = found.list;
 
+  document.getElementById('popup-title').textContent = 'EDIT ITEM';
   const body = document.getElementById('popup-body');
   body.innerHTML = '';
 
@@ -1556,6 +1639,23 @@ function addPopupCheckRow(body, lbl, val, key) {
 
 function savePopup() {
   if (!activePopupItem) return;
+  if (activePopupItem._scoreKey) {
+    const key = activePopupItem._scoreKey;
+    const body = document.getElementById('popup-body');
+    const activeOpt = body.querySelector('.popup-option.active[data-key="score"]');
+    if (activeOpt && db.today) {
+      db.today.scores[key] = parseInt(activeOpt.dataset.val);
+      db.today.scoreNotes = db.today.scoreNotes || {};
+      const noteTa = body.querySelector('textarea[data-key="scoreNote"]');
+      const noteVal = noteTa ? noteTa.value.trim() : '';
+      if (noteVal) db.today.scoreNotes[key] = noteVal;
+      else delete db.today.scoreNotes[key];
+      saveDB();
+    }
+    closePopup();
+    renderDashboard();
+    return;
+  }
   const body = document.getElementById('popup-body');
   const ta = body.querySelector('textarea[data-key="text"]');
   if (ta) activePopupItem.text = ta.value.trim();
@@ -1585,6 +1685,47 @@ function closePopup() {
   document.getElementById('popup-overlay').classList.remove('active');
   activePopupItem = null;
   activePopupList = null;
+}
+
+function openScorePopup(dimKey) {
+  if (!db.today) { statusMsg('No active session. Type /boot first.'); return; }
+  const dim = DIMS.find(d => d.key === dimKey);
+  if (!dim) return;
+  const current = db.today.scores[dimKey] || 0;
+  const currentNote = (db.today.scoreNotes && db.today.scoreNotes[dimKey]) || '';
+
+  document.getElementById('popup-title').textContent = `EDIT SCORE — ${dim.full.toUpperCase()} (1–5)`;
+  const body = document.getElementById('popup-body');
+  body.innerHTML = '';
+
+  // Score options
+  const row = document.createElement('div');
+  row.className = 'popup-field';
+  const l = document.createElement('label'); l.textContent = 'SCORE';
+  const opts = document.createElement('div');
+  opts.className = 'popup-options';
+  [1,2,3,4,5].forEach(n => {
+    const s = document.createElement('span');
+    s.className = 'popup-option' + (n === current ? ' active' : '');
+    s.textContent = String(n);
+    s.dataset.key = 'score';
+    s.dataset.val = String(n);
+    s.addEventListener('click', () => {
+      opts.querySelectorAll('.popup-option').forEach(x => x.classList.remove('active'));
+      s.classList.add('active');
+    });
+    opts.appendChild(s);
+  });
+  row.appendChild(l); row.appendChild(opts);
+  body.appendChild(row);
+
+  // Note field
+  addPopupField(body, 'NOTE', 'textarea', 'scoreNote', currentNote);
+
+  activePopupItem = { _scoreKey: dimKey };
+  activePopupList = null;
+  document.getElementById('popup-overlay').classList.add('active');
+  body.querySelector('textarea')?.focus();
 }
 
 document.getElementById('popup-save').addEventListener('click', savePopup);
@@ -1668,6 +1809,33 @@ function handleConsoleCmd(raw) {
   if (cmd === '/scores') {
     showScores(); return;
   }
+  if (cmd === '/score') {
+    if (!db.today) { statusMsg('No active session. Type /boot first.'); return; }
+    const rest = inp.slice('/score'.length).trim();
+    if (!rest) {
+      editScoresBoot(); return;
+    }
+    const scoreParts = rest.split(/\s+/);
+    if (!scoreParts[0]) { editScoresBoot(); return; }
+    const dimKey = DIM_ALIASES[scoreParts[0].toLowerCase()];
+    const val = parseInt(scoreParts[1]);
+    if (!dimKey) { statusMsg(`Unknown dimension. Try: phy mnt idn rel voc fin grw pla pce`); return; }
+    if (!scoreParts[1]) { openScorePopup(dimKey); return; }
+    if (isNaN(val) || val < 1 || val > 5) { statusMsg('Score must be 1–5.'); return; }
+    db.today.scores[dimKey] = val;
+    db.today.scoreNotes = db.today.scoreNotes || {};
+    // Optional note: everything after dim and value tokens, handles multiple spaces
+    const noteStr = scoreParts.slice(2).join(' ').trim();
+    if (noteStr) {
+      db.today.scoreNotes[dimKey] = noteStr;
+    }
+    saveDB();
+    renderDashboard();
+    const dim = DIMS.find(d => d.key === dimKey);
+    const noteSuffix = noteStr ? ` — "${noteStr}"` : '';
+    statusMsg(`Score updated: ${dim.full} = ${val}/5${noteSuffix}`);
+    return;
+  }
   statusMsg(`Unknown command: ${cmd}. Type /help`);
 }
 
@@ -1684,6 +1852,8 @@ function showHelp(title, lines) {
   body.textContent = (lines || [
     '/boot            start morning boot sequence',
     '/edit            re-enter boot to modify today',
+    '/score           re-enter score prompts for today (includes note)',
+    '/score [dim] [n] [note]  set score + optional note, e.g. /score phy 4 felt strong',
     '/next            archive today, start fresh',
     '/export          download history (.txt + .json)',
     '/goals           manage north star goals',
@@ -1702,6 +1872,7 @@ function showHelp(title, lines) {
     '/help            this help',
     '',
     'Click any item to open detail/edit popup.',
+    'Click a dimension score in the Balance Grid to edit that score.',
   ]).join('\n');
   overlay.style.display = 'flex';
 }
@@ -1793,13 +1964,18 @@ function showScores() {
   const dimRows = DIMS.map(dim => {
     const cells = recent.map(day => {
       const s = day.scores?.[dim.key];
+      const note = day.scoreNotes?.[dim.key];
       const bar = (s >= 1 && s <= 5) ? SCORE_BARS[s] : '·';
       const col = s >= 4 ? 'var(--success)' : s >= 2 ? 'var(--fg)' : 'var(--warn)';
-      return `<span style="color:${col}" title="${day.date}: ${s||'—'}">${bar}</span>`;
+      const titleText = note ? `${day.date}: ${s||'—'} — "${note}"` : `${day.date}: ${s||'—'}`;
+      return `<span style="color:${col}" title="${escHtml(titleText)}">${bar}</span>`;
     }).join('');
     const vals = recent.map(d => d.scores?.[dim.key]).filter(v => v);
     const avg = vals.length ? (vals.reduce((a,b)=>a+b,0)/vals.length).toFixed(1) : '—';
-    return `<div style="padding:2px 0;display:flex;align-items:center;gap:8px"><span style="color:var(--dim);width:3em;display:inline-block">${escHtml(dim.label)}</span><span style="letter-spacing:2px">${cells}</span><span style="color:var(--dim);font-size:0.85em">avg ${avg}</span></div>`;
+    // Show today's note if present
+    const todayNote = recent[0]?.scoreNotes?.[dim.key];
+    const noteHtml = todayNote ? `<span style="color:var(--dim);font-size:0.82em;font-style:italic"> "${escHtml(todayNote)}"</span>` : '';
+    return `<div style="padding:2px 0;display:flex;align-items:center;gap:8px;flex-wrap:wrap"><span style="color:var(--dim);width:3em;display:inline-block">${escHtml(dim.label)}</span><span style="letter-spacing:2px">${cells}</span><span style="color:var(--dim);font-size:0.85em">avg ${avg}</span>${noteHtml}</div>`;
   });
 
   const dates = recent.map(d => `<span style="color:var(--dim);writing-mode:horizontal-tb">${d.date.slice(5)}</span>`).join(' ');
@@ -1933,6 +2109,34 @@ function editGoals() {
   }
 }
 
+function editScoresBoot() {
+  if (!db.today) { statusMsg('No active session. Type /boot first.'); return; }
+  bootState = {
+    phase: Q_SEQUENCES.indexOf('scores'),
+    subIndex: 0,
+    pendingItem: null,
+    awaitingConfirm: false,
+    editMode: true,
+    goalPromptDone: true,
+    scoreEditMode: true
+  };
+  document.getElementById('boot-log').innerHTML = '';
+  showBootOverlay();
+  bootLog('sys','════════════════════════════════════════════════════════');
+  bootLog('sys',`EDIT BALANCE SCORES — ${new Date().toDateString()}`);
+  bootLog('sys','════════════════════════════════════════════════════════');
+  const t = db.today;
+  bootLog('sys','Current scores (press ENTER to keep, /skip to clear):');
+  DIMS.forEach(d => {
+    const s = t.scores[d.key];
+    const note = t.scoreNotes && t.scoreNotes[d.key];
+    const noteStr = note ? `  "${note}"` : '';
+    bootLog('sys', `  ${d.label}  ${d.full}: ${s || '—'}${noteStr}`);
+  });
+  bootLog('sep','──────────────────────────────────────────────────────');
+  advanceBoot();
+}
+
 function setTheme(name) {
   const valid = ['legacy','solar','monk','space','synth','dos','notebook','engineering'];
   const themes = {legacy:'',solar:'solar',monk:'monk',space:'space',synth:'synth',dos:'dos',notebook:'notebook',engineering:'engineering'};
@@ -1965,7 +2169,11 @@ function exportData() {
     txt += `LIST ITEMS:\n`;
     day.list?.forEach(i=>{ txt += `  [${i.done?'✓':' '}] ${i.text} [${i.dim||'—'}]\n`; });
     txt += `SCORES:\n`;
-    DIMS.forEach(d=>{ txt += `  ${d.full}: ${day.scores?.[d.key]||'—'}\n`; });
+    DIMS.forEach(d=>{
+      const score = day.scores?.[d.key];
+      const note = day.scoreNotes?.[d.key];
+      txt += `  ${d.full}: ${score||'—'}${note ? `  "${note}"` : ''}\n`;
+    });
     txt += '\n'+'─'.repeat(60)+'\n\n';
   });
   downloadBlob(txt, `focus-terminal-${now}.txt`, 'text/plain');
