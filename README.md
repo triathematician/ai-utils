@@ -25,6 +25,7 @@ ai-utils/
     portfolio-manager/            ← PORTFOLIO SIGNAL DESK: portfolio monitoring
     staff-terminal/               ← STAFF TERMINAL: staff development, LDP goals, notes
     compass/                      ← COMPASS: strategic planning, goal groups, OKRs, RAG pulse tracking
+    skill-pathways/               ← SKILL PATHWAYS: blueprint rail map for skill and project pathways
   common/                       ← shared assets (if any)
     yahoo-finance-proxy/          ← Java proxy service for Yahoo Finance data
 ```
@@ -74,6 +75,7 @@ Precise, single-file visual layout and design tools with direct canvas interacti
 
 **Apps in this category:**
 - `display-wall/display-wall.html` — DISPLAY WALL DESIGNER
+- `skill-pathways/skill-pathways.html` — SKILL PATHWAYS
 
 **To start a new design-canvas app:** copy `display-wall/display-wall.html`, strip to the skeleton (CSS vars, background texture, chrome), and build from there.
 
