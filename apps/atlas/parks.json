@@ -1,0 +1,4392 @@
+[
+  {
+    "id": "abli",
+    "name": "Abraham Lincoln Birthplace National Historical Park",
+    "type": "National Historical Park",
+    "state": "KY",
+    "lat": 37.5858662,
+    "lng": -85.67330523,
+    "established": "",
+    "description": "For over a century people from around the world have come to rural Central Kentucky to honor the humble beginnings of our 16th president, Abraham Lincoln. His early life on Kentucky's frontier shaped "
+  },
+  {
+    "id": "acad",
+    "name": "Acadia National Park",
+    "type": "National Park",
+    "state": "ME",
+    "lat": 44.409286,
+    "lng": -68.247501,
+    "established": "",
+    "description": "Acadia National Park protects the natural beauty of the highest rocky headlands along the Atlantic coastline of the United States, an abundance of habitats, and a rich cultural heritage. At 4 million "
+  },
+  {
+    "id": "adam",
+    "name": "Adams National Historical Park",
+    "type": "National Historical Park",
+    "state": "MA",
+    "lat": 42.2553961,
+    "lng": -71.01160356,
+    "established": "",
+    "description": "From the sweet little farm at the foot of Penn’s Hill to the gentleman’s country estate at Peace field, Adams National Historical Park is the story of “heroes, statesmen, philosophers…and learned wome"
+  },
+  {
+    "id": "afbg",
+    "name": "African Burial Ground National Monument",
+    "type": "National Monument",
+    "state": "NY",
+    "lat": 40.71452681,
+    "lng": -74.00447358,
+    "established": "",
+    "description": "The African Burial Ground stands as the oldest and largest known excavated burial site in North America for both free and enslaved Africans. It offers a profound testament to the enduring legacy of Af"
+  },
+  {
+    "id": "agfo",
+    "name": "Agate Fossil Beds National Monument",
+    "type": "National Monument",
+    "state": "NE",
+    "lat": 42.42170419,
+    "lng": -103.753886,
+    "established": "",
+    "description": "In the early 1900s, paleontologists unearthed the Age of Mammals when they found full skeletons of extinct Miocene mammals in the hills of Nebraska -- species previously only known through fragments. "
+  },
+  {
+    "id": "alka",
+    "name": "Ala Kahakai National Historic Trail",
+    "type": "National Historic Trail",
+    "state": "HI",
+    "lat": 19.144668109,
+    "lng": -155.890734294,
+    "established": "",
+    "description": "Established in 2000 to preserve, protect and interpret traditional Native Hawaiian culture and natural resources, Ala Kahakai National Historic Trail is a 175-mile corridor encompassing a network of c"
+  },
+  {
+    "id": "alag",
+    "name": "Alagnak Wild River",
+    "type": "Wild River",
+    "state": "AK",
+    "lat": 59.05180188,
+    "lng": -156.112002,
+    "established": "",
+    "description": "The headwaters of Alagnak Wild River lie within the rugged Aleutian Range of neighboring Katmai National Park and Preserve. Meandering west towards Bristol Bay and the Bering Sea, the Alagnak traverse"
+  },
+  {
+    "id": "aleu",
+    "name": "Aleutian Islands World War II National Historic Area",
+    "type": "National Historic Area",
+    "state": "AK",
+    "lat": 53.9143,
+    "lng": -166.5197,
+    "established": "",
+    "description": "The remote Aleutian Islands, home to the Unangax̂ (Aleut) people for over 8,000 years, became a fiercely contested Pacific battleground in World War II. Some Unangax̂ were taken from their homelands a"
+  },
+  {
+    "id": "alfl",
+    "name": "Alibates Flint Quarries National Monument",
+    "type": "National Monument",
+    "state": "TX",
+    "lat": 35.5819662,
+    "lng": -101.6717008,
+    "established": "",
+    "description": "13,000 years ago, Alibates Flint was used by mammoth hunters as a source of flint for tools. Learn how important this site was to the survival, commerce, and culture of the people of the High Plains."
+  },
+  {
+    "id": "alpo",
+    "name": "Allegheny Portage Railroad National Historic Site",
+    "type": "National Historic Site",
+    "state": "PA",
+    "lat": 40.42977467,
+    "lng": -78.57431622,
+    "established": "",
+    "description": "The first railroad to cross the Allegheny Mountains, the Allegheny Portage Railroad was the final piece of the Pennsylvania Main Line Canal. \"The Portage\" opened in 1834, marking the first time that t"
+  },
+  {
+    "id": "amch",
+    "name": "Amache National Historic Site",
+    "type": "National Historic Site",
+    "state": "CO",
+    "lat": 38.04962,
+    "lng": -102.32903,
+    "established": "",
+    "description": "Amache, also known as the Granada Relocation Center, near Granada, Colorado was one of ten incarceration sites established by the War Relocation Authority during World War II to unjustly incarcerate J"
+  },
+  {
+    "id": "amme",
+    "name": "American Memorial Park",
+    "type": "Park",
+    "state": "MP",
+    "lat": 15.21680033,
+    "lng": 145.7231096,
+    "established": "",
+    "description": "American Memorial Park honors the American and Marianas people who gave their lives during the Marianas Campaign of World War II. At the park, memorials stand in tribute to the courage and sacrifice o"
+  },
+  {
+    "id": "amis",
+    "name": "Amistad National Recreation Area",
+    "type": "National Recreation Area",
+    "state": "TX",
+    "lat": 29.53539777,
+    "lng": -101.075821,
+    "established": "",
+    "description": "An oasis in the desert, Amistad National Recreation Area consists of the US portion of the International Amistad Reservoir. Amistad, a Spanish word meaning \"friendship,\" is known for excellent water-b"
+  },
+  {
+    "id": "anac",
+    "name": "Anacostia Park",
+    "type": "Park",
+    "state": "DC",
+    "lat": 38.8782,
+    "lng": -76.9703,
+    "established": "",
+    "description": "Welcome to Anacostia Park, your neighborhood national park in the heart of Washington, DC! Enjoy exercise along the river trail or relax by the water, Anacostia Park is a breath of fresh air and a spa"
+  },
+  {
+    "id": "ande",
+    "name": "Andersonville National Historic Site",
+    "type": "National Historic Site",
+    "state": "GA",
+    "lat": 32.19831758,
+    "lng": -84.12988898,
+    "established": "",
+    "description": "Nearly 13,000 men died on these grounds, a site that became infamous even before the Civil War ended. Their burial grounds became Andersonville National Cemetery, where veterans continue to be buried "
+  },
+  {
+    "id": "anjo",
+    "name": "Andrew Johnson National Historic Site",
+    "type": "National Historic Site",
+    "state": "TN",
+    "lat": 36.15624509,
+    "lng": -82.83709021,
+    "established": "",
+    "description": "Andrew Johnson's complex presidency (1865-69) illustrates the Constitution at work following the Civil War. As the President and Congress disagreed on Reconstruction methods, the Constitution served a"
+  },
+  {
+    "id": "ania",
+    "name": "Aniakchak National Monument & Preserve",
+    "type": "National Monument & Preserve",
+    "state": "AK",
+    "lat": 56.85317675,
+    "lng": -157.5544362,
+    "established": "",
+    "description": "Given its remote location and challenging weather conditions, Aniakchak is one of the most wild and least visited places in the National Park System. This landscape is a vibrant reminder of Alaska's l"
+  },
+  {
+    "id": "anti",
+    "name": "Antietam National Battlefield",
+    "type": "National Battlefield",
+    "state": "MD",
+    "lat": 39.46763452,
+    "lng": -77.73828017,
+    "established": "",
+    "description": "23,000 soldiers were killed, wounded or missing after twelve hours of savage combat on September 17, 1862. The Battle of Antietam ended the Confederate Army of Northern Virginia's first invasion into "
+  },
+  {
+    "id": "apis",
+    "name": "Apostle Islands National Lakeshore",
+    "type": "National Lakeshore",
+    "state": "WI",
+    "lat": 46.96240467,
+    "lng": -90.66045665,
+    "established": "",
+    "description": "Apostle Islands National Lakeshore, located at the northern tip of Wisconsin's Bayfield Peninsula, features 21 stunning islands, a scenic 12-mile shoreline along Lake Superior, and is located within t"
+  },
+  {
+    "id": "appa",
+    "name": "Appalachian National Scenic Trail",
+    "type": "National Scenic Trail",
+    "state": "CT",
+    "lat": 40.41029575,
+    "lng": -76.4337548,
+    "established": "",
+    "description": "The Appalachian Trail is a 2,190+ mile long public footpath that traverses the scenic, wooded, pastoral, wild, and culturally resonant lands of the Appalachian Mountains. Conceived in 1921, built by p"
+  },
+  {
+    "id": "apco",
+    "name": "Appomattox Court House National Historical Park",
+    "type": "National Historical Park",
+    "state": "VA",
+    "lat": 37.38022164,
+    "lng": -78.79856982,
+    "established": "",
+    "description": "On April 9, 1865, the surrender of the Army of Northern Virginia in the McLean House in the village of Appomattox Court House, Virginia signaled the effective end of the nation's largest war. Question"
+  },
+  {
+    "id": "arch",
+    "name": "Arches National Park",
+    "type": "National Park",
+    "state": "UT",
+    "lat": 38.72261844,
+    "lng": -109.5863666,
+    "established": "",
+    "description": "Discover a landscape of contrasting colors, land forms, and textures unlike any other. The park has over 2,000 natural stone arches, hundreds of soaring pinnacles, massive rock fins, and giant balance"
+  },
+  {
+    "id": "arpo",
+    "name": "Arkansas Post National Memorial",
+    "type": "National Memorial",
+    "state": "AR",
+    "lat": 34.00389998,
+    "lng": -91.30837178,
+    "established": "",
+    "description": "Located at the confluence of two rivers, Arkansas Post has served as a gathering place for many cultures throughout human history - it represents cultural cooperation, conflict, synthesis, and diversi"
+  },
+  {
+    "id": "asis",
+    "name": "Assateague Island National Seashore",
+    "type": "National Seashore",
+    "state": "MD",
+    "lat": 38.05593172,
+    "lng": -75.24524611,
+    "established": "",
+    "description": "Want to live on the edge? Visit a place recreated each day by ocean wind and waves. Life on Assateague Island has adapted to an existence on the move. Explore sandy beaches, salt marshes, maritime for"
+  },
+  {
+    "id": "azru",
+    "name": "Aztec Ruins National Monument",
+    "type": "National Monument",
+    "state": "NM",
+    "lat": 36.83682216,
+    "lng": -107.9999245,
+    "established": "",
+    "description": "Aztec Ruins has some of the best-preserved Chacoan structures of its kind. Learn more about the ancestral Pueblo people in the park's museum and explore the Aztec West great house to see exceptionally"
+  },
+  {
+    "id": "badl",
+    "name": "Badlands National Park",
+    "type": "National Park",
+    "state": "SD",
+    "lat": 43.68584846,
+    "lng": -102.482942,
+    "established": "",
+    "description": "The rugged beauty of the Badlands draws visitors from around the world. These striking geologic deposits contain one of the world’s richest fossil beds. Ancient horses and rhinos once roamed here. The"
+  },
+  {
+    "id": "bawa",
+    "name": "Baltimore-Washington Parkway",
+    "type": "Parkway",
+    "state": "MD",
+    "lat": 39.02604289,
+    "lng": -76.85410921,
+    "established": "",
+    "description": "This 29-mile highway connects Baltimore, MD and Washington, D.C. The parkway has carried visitors to and from the capital city since 1954."
+  },
+  {
+    "id": "band",
+    "name": "Bandelier National Monument",
+    "type": "National Monument",
+    "state": "NM",
+    "lat": 35.77898596,
+    "lng": -106.3317124,
+    "established": "",
+    "description": "Bandelier National Monument protects over 33,000 acres of ruggedly beautiful canyon and mesa country. Petroglyphs, dwellings carved into the soft rock cliffs, and standing masonry walls pay tribute to"
+  },
+  {
+    "id": "bepa",
+    "name": "Belmont-Paul Women's Equality National Monument",
+    "type": "National Monument",
+    "state": "DC",
+    "lat": 38.89231541,
+    "lng": -77.00381882,
+    "established": "",
+    "description": "Home to the National Woman's Party for more than 90 years, this was the epicenter of the struggle for women's rights. From this house in the shadow of the U.S. Capitol and Supreme Court, Alice Paul an"
+  },
+  {
+    "id": "beol",
+    "name": "Bent's Old Fort National Historic Site",
+    "type": "National Historic Site",
+    "state": "CO",
+    "lat": 38.03977546,
+    "lng": -103.4266499,
+    "established": "",
+    "description": "In the 1840s the Arkansas River was the border between territory claimed by the United States and Mexico. Located along the river, Bent's Fort was an adobe trading post on the Santa Fe Trail, where tr"
+  },
+  {
+    "id": "bela",
+    "name": "Bering Land Bridge National Preserve",
+    "type": "National Preserve",
+    "state": "AK",
+    "lat": 65.96087902,
+    "lng": -164.4086432,
+    "established": "",
+    "description": "Bering Land Bridge National Preserve lies at the continental crossroad that greatly influenced the distribution of life in the Western Hemisphere during the Pleistocene Epoch. It is a vital landscape "
+  },
+  {
+    "id": "bibe",
+    "name": "Big Bend National Park",
+    "type": "National Park",
+    "state": "TX",
+    "lat": 29.29817767,
+    "lng": -103.2297897,
+    "established": "",
+    "description": "There is a place in Far West Texas where night skies are dark as coal and rivers carve temple-like canyons in ancient limestone. Here, at the end of the road, hundreds of bird species take refuge in a"
+  },
+  {
+    "id": "bicy",
+    "name": "Big Cypress National Preserve",
+    "type": "National Preserve",
+    "state": "FL",
+    "lat": 25.97079602,
+    "lng": -81.08120629,
+    "established": "",
+    "description": "The freshwaters of the Big Cypress Swamp, essential to the health of the neighboring Everglades, support the rich marine estuaries along Florida's southwest coast. Conserving over 729,000 acres of thi"
+  },
+  {
+    "id": "biho",
+    "name": "Big Hole National Battlefield",
+    "type": "National Battlefield",
+    "state": "MT",
+    "lat": 45.64647324,
+    "lng": -113.6458443,
+    "established": "",
+    "description": "On August 9, 1877, gunshots shattered a chilly dawn on a sleeping camp of nımí·pu· (Nez Perce). By the time the smoke cleared on August 10, almost 90 nımí·pu· were dead, along with 31 soldiers and vol"
+  },
+  {
+    "id": "biso",
+    "name": "Big South Fork National River & Recreation Area",
+    "type": "National River & Recreation Area",
+    "state": "KY",
+    "lat": 36.5348388,
+    "lng": -84.66506688,
+    "established": "",
+    "description": "Encompassing 125,000 acres of the Cumberland Plateau, Big South Fork National River and Recreation Area protects the free-flowing Big South Fork of the Cumberland River and its tributaries. The area b"
+  },
+  {
+    "id": "bith",
+    "name": "Big Thicket National Preserve",
+    "type": "National Preserve",
+    "state": "TX",
+    "lat": 30.457983431,
+    "lng": -94.386742115,
+    "established": "",
+    "description": "Life of all types abounds in the Big Thicket. This national preserve protects the incredible diversity of life found where multiple habitats meet in southeast Texas. Hiking trails and waterways meande"
+  },
+  {
+    "id": "bica",
+    "name": "Bighorn Canyon National Recreation Area",
+    "type": "National Recreation Area",
+    "state": "MT",
+    "lat": 45.13154227,
+    "lng": -108.1443943,
+    "established": "",
+    "description": "The vast, wild landscape of Bighorn Canyon National Recreation Area offers visitors unparalleled opportunities to immerse themselves in the natural world, and experience the wonders of this extraordin"
+  },
+  {
+    "id": "bicr",
+    "name": "Birmingham Civil Rights National Monument",
+    "type": "National Monument",
+    "state": "AL",
+    "lat": 33.5154266357,
+    "lng": -86.814666748,
+    "established": "",
+    "description": "In 1963, images of snarling police dogs unleashed against non-violent protesters and of children being sprayed with high-pressure hoses appeared in print and television news around the world. These dr"
+  },
+  {
+    "id": "bisc",
+    "name": "Biscayne National Park",
+    "type": "National Park",
+    "state": "FL",
+    "lat": 25.490587,
+    "lng": -80.21023851,
+    "established": "",
+    "description": "Within sight of Miami, yet worlds away, Biscayne protects a rare combination of aquamarine waters, emerald islands, and fish-bejeweled coral reefs. Evidence of 10,000 years of human history is here to"
+  },
+  {
+    "id": "blca",
+    "name": "Black Canyon Of The Gunnison National Park",
+    "type": "National Park",
+    "state": "CO",
+    "lat": 38.57779869,
+    "lng": -107.7242756,
+    "established": "",
+    "description": "Big enough to be overwhelming, yet still intimate enough to feel the pulse of time. Come see some of the steepest cliffs, oldest rock, and craggiest spires in North America. Forces of nature and the G"
+  },
+  {
+    "id": "blrv",
+    "name": "Blackstone River Valley National Historical Park",
+    "type": "National Historical Park",
+    "state": "RI",
+    "lat": 41.8775792792,
+    "lng": -71.382433945,
+    "established": "",
+    "description": "The Blackstone River powered America's entry into the Age of Industry. The success of Samuel Slater's cotton spinning mill in Pawtucket, RI touched off a chain reaction that changed how people worked "
+  },
+  {
+    "id": "blsc",
+    "name": "Blackwell School National Historic Site",
+    "type": "National Historic Site",
+    "state": "TX",
+    "lat": 30.3057966497568,
+    "lng": -104.022553112857,
+    "established": "",
+    "description": "Written by prejudice rather than law, the story of the Blackwell School is one of “separate but equal” education for Mexican and Mexican American citizens of Marfa, Texas. Built in 1909, the school se"
+  },
+  {
+    "id": "blri",
+    "name": "Blue Ridge Parkway",
+    "type": "Parkway",
+    "state": "NC",
+    "lat": 35.5657195274,
+    "lng": -82.486484587,
+    "established": "",
+    "description": "A Blue Ridge Parkway experience is unlike any other: a slow-paced and relaxing drive revealing stunning long-range vistas and close-up views of the rugged mountains and pastoral landscapes of the Appa"
+  },
+  {
+    "id": "blue",
+    "name": "Bluestone National Scenic River",
+    "type": "National Scenic River",
+    "state": "WV",
+    "lat": 37.56577087,
+    "lng": -80.98366657,
+    "established": "",
+    "description": "The Bluestone River and the rugged and ancient gorge it has carved is a richly diverse and scenic area of the southern Appalachians. Bluestone National Scenic River is preserved as a living landscape "
+  },
+  {
+    "id": "bowa",
+    "name": "Booker T Washington National Monument",
+    "type": "National Monument",
+    "state": "VA",
+    "lat": 37.11520539,
+    "lng": -79.73185833,
+    "established": "",
+    "description": "Booker T. Washington was born a slave in April 1856 on the 207-acre farm of James Burroughs. After the Civil War, Washington became the first principal of Tuskegee Normal and Industrial School. Later "
+  },
+  {
+    "id": "boaf",
+    "name": "Boston African American National Historic Site",
+    "type": "National Historic Site",
+    "state": "MA",
+    "lat": 42.35908295,
+    "lng": -71.06764181,
+    "established": "",
+    "description": "Centered on the north slope of Beacon Hill, the African American community of 1800s Boston led the city and the nation in the fight against slavery and injustice. These remarkable men and women, toget"
+  },
+  {
+    "id": "boha",
+    "name": "Boston Harbor Islands National Recreation Area",
+    "type": "National Recreation Area",
+    "state": "MA",
+    "lat": 42.30905526,
+    "lng": -70.93941138,
+    "established": "",
+    "description": ". . . where you can walk a Civil War-era fort, view historic lighthouses, explore tide pools, hike lush trails, camp under the stars, or relax while fishing, picnicking, or swimming—all within reach o"
+  },
+  {
+    "id": "bost",
+    "name": "Boston National Historical Park",
+    "type": "National Historical Park",
+    "state": "MA",
+    "lat": 42.36957407,
+    "lng": -71.05536763,
+    "established": "",
+    "description": "Discover how one city could be the Cradle of Liberty, site of the first major battle of American Revolution, and home to many who espoused that freedom can be extended to all."
+  },
+  {
+    "id": "brcr",
+    "name": "Brices Cross Roads National Battlefield Site",
+    "type": "National Battlefield Site",
+    "state": "MS",
+    "lat": 34.50611958,
+    "lng": -88.72889343,
+    "established": "",
+    "description": "The Confederate victory at Brices Cross Roads was a significant victory for Major General Nathan Bedford Forrest, but its long-term effect on the war proved costly for the Confederates."
+  },
+  {
+    "id": "brvb",
+    "name": "Brown v. Board of Education National Historical Park",
+    "type": "National Historical Park",
+    "state": "KS",
+    "lat": 39.03787665,
+    "lng": -95.67614437,
+    "established": "",
+    "description": "The path to equality has been anything but smooth. It's taken courage and dedication by everyday people coming together for a common goal to carry the country toward true equality. Parents, teachers, "
+  },
+  {
+    "id": "brca",
+    "name": "Bryce Canyon National Park",
+    "type": "National Park",
+    "state": "UT",
+    "lat": 37.58399144,
+    "lng": -112.1826689,
+    "established": "",
+    "description": "Hoodoos (irregular columns of rock) exist on every continent, but here is the largest concentration found anywhere on Earth. Situated along a high plateau at the top of the Grand Staircase, the park's"
+  },
+  {
+    "id": "buis",
+    "name": "Buck Island Reef National Monument",
+    "type": "National Monument",
+    "state": "VI",
+    "lat": 17.81026717,
+    "lng": -64.6222179,
+    "established": "",
+    "description": "Welcome to Buck Island Reef National Monument, called “the finest marine garden in the Caribbean Sea” by President John F. Kennedy. Snorkel the famous underwater trail, explore endangered elkhorn cora"
+  },
+  {
+    "id": "buff",
+    "name": "Buffalo National River",
+    "type": "National River",
+    "state": "AR",
+    "lat": 36.04116481,
+    "lng": -92.90761584,
+    "established": "",
+    "description": "Established in 1972, Buffalo National River flows freely for 135 miles and is one of the few remaining undammed rivers in the lower 48 states. Once you arrive, prepare to journey from running rapids t"
+  },
+  {
+    "id": "buov",
+    "name": "Butterfield Overland National Historic Trail",
+    "type": "National Historic Trail",
+    "state": "MO",
+    "lat": 32.2768237589,
+    "lng": -106.796583304,
+    "established": "",
+    "description": "In 1857, businessman and transportation entrepreneur John Butterfield was awarded a contract to establish an overland mail route between the eastern United States and growing populations in the Far We"
+  },
+  {
+    "id": "cabr",
+    "name": "Cabrillo National Monument",
+    "type": "National Monument",
+    "state": "CA",
+    "lat": 32.6722503,
+    "lng": -117.2415985,
+    "established": "",
+    "description": "In 1542, Juan Rodriguez Cabrillo climbed out of his boat and onto shore, becoming the first European to set foot on what is now the West Coast of the United States. Cabrillo National Monument not only"
+  },
+  {
+    "id": "cali",
+    "name": "California National Historic Trail",
+    "type": "National Historic Trail",
+    "state": "CA",
+    "lat": 42.3999643979,
+    "lng": -108.702415369,
+    "established": "",
+    "description": "Follow in the footsteps of over 250,000 emigrants who traveled to the gold fields and rich farmlands of California during the 1840s and 1850s: the greatest mass migration in American history. The Cali"
+  },
+  {
+    "id": "cane",
+    "name": "Camp Nelson National Monument",
+    "type": "National Monument",
+    "state": "KY",
+    "lat": 37.7970179913,
+    "lng": -84.598168306,
+    "established": "",
+    "description": "The US Army established Camp Nelson as a fortified supply depot in April 1863. Over the next 3 years, the site evolved into a massive recruitment and training center for United States Colored Troops a"
+  },
+  {
+    "id": "cana",
+    "name": "Canaveral National Seashore",
+    "type": "National Seashore",
+    "state": "FL",
+    "lat": 28.78637529,
+    "lng": -80.75419576,
+    "established": "",
+    "description": "Discover a dynamic barrier island shaped by dunes, coastal hammocks, and Mosquito Lagoon. Walk among ancient Timucua shell mounds and connect with thousands of years of human history. Immerse yourself"
+  },
+  {
+    "id": "cari",
+    "name": "Cane River Creole National Historical Park",
+    "type": "National Historical Park",
+    "state": "LA",
+    "lat": 31.65408447,
+    "lng": -93.00131977,
+    "established": "",
+    "description": "The Cane River region is home to a unique culture; the Creoles. Generations of the same families of workers, enslaved and tenant, and owners lived on these lands for over 200 years. The park tells the"
+  },
+  {
+    "id": "cach",
+    "name": "Canyon de Chelly National Monument",
+    "type": "National Monument",
+    "state": "AZ",
+    "lat": 36.14319567,
+    "lng": -109.3388303,
+    "established": "",
+    "description": "This canyon is home to Diné families who raise livestock, grow crops and live here. People have lived in these canyons for nearly 5,000 years, which is longer than anyone has lived continuously on the"
+  },
+  {
+    "id": "cany",
+    "name": "Canyonlands National Park",
+    "type": "National Park",
+    "state": "UT",
+    "lat": 38.24555783,
+    "lng": -109.8801624,
+    "established": "",
+    "description": "Canyonlands is a wilderness of canyons, buttes, and spires carved by the Colorado River and Green River. The park is divided into four distinct districts; no roads join them together. The districts sh"
+  },
+  {
+    "id": "caco",
+    "name": "Cape Cod National Seashore",
+    "type": "National Seashore",
+    "state": "MA",
+    "lat": 41.92381465,
+    "lng": -70.04319832,
+    "established": "",
+    "description": "The great Outer Beach described by Thoreau in the 1800s is protected within the national seashore. Forty miles of pristine sandy beach, marshes, ponds, and uplands support diverse species. Lighthouses"
+  },
+  {
+    "id": "caha",
+    "name": "Cape Hatteras National Seashore",
+    "type": "National Seashore",
+    "state": "NC",
+    "lat": 35.41370839,
+    "lng": -75.65061112,
+    "established": "",
+    "description": "The sound of ocean waves, the starry night sky, or the calm of the salt marshes, you can experience it all. Shaped by the forces of water, wind, and storms these islands are ever changing. The plants,"
+  },
+  {
+    "id": "came",
+    "name": "Cape Henry Memorial Part of Colonial National Historical Park",
+    "type": "Part of Colonial National Historical Park",
+    "state": "VA",
+    "lat": 36.9278094,
+    "lng": -76.0088219,
+    "established": "",
+    "description": "English colonists first landed here in April 1607, erected a wooden cross and gave thanks for a successful crossing to a new land. In 1781, Americans could watch from these same sand dunes the largest"
+  },
+  {
+    "id": "cakr",
+    "name": "Cape Krusenstern National Monument",
+    "type": "National Monument",
+    "state": "AK",
+    "lat": 67.41499986,
+    "lng": -163.5037786,
+    "established": "",
+    "description": "A bridge to the past and a land for the future, Cape Krusenstern National Monument protects approximately 560,000 acres of diverse Arctic coastal, and upland ecosystems. Inhabited by the Iñupiaq peopl"
+  },
+  {
+    "id": "calo",
+    "name": "Cape Lookout National Seashore",
+    "type": "National Seashore",
+    "state": "NC",
+    "lat": 34.8267961,
+    "lng": -76.34319082,
+    "established": "",
+    "description": "A boat ride three miles off-shore brings you to the barrier islands of Cape Lookout National Seashore. Horse watching, shelling, fishing, birding, camping, lighthouse climbing, and touring historic vi"
+  },
+  {
+    "id": "care",
+    "name": "Capitol Reef National Park",
+    "type": "National Park",
+    "state": "UT",
+    "lat": 38.2821653131,
+    "lng": -111.247048378,
+    "established": "",
+    "description": "Located in south-central Utah in the heart of red rock country, Capitol Reef National Park is a hidden treasure filled with cliffs, canyons, domes, and bridges in the Waterpocket Fold, a geologic mono"
+  },
+  {
+    "id": "cajo",
+    "name": "Captain John Smith Chesapeake National Historic Trail",
+    "type": "National Historic Trail",
+    "state": "VA",
+    "lat": 38.971601,
+    "lng": -76.483355,
+    "established": "",
+    "description": "People first arrived in the Chesapeake Bay during the last ice age. As glaciers melted, diverse societies learned to thrive in a world of water. When Englishman Captain John Smith explored the Bay in "
+  },
+  {
+    "id": "cavo",
+    "name": "Capulin Volcano National Monument",
+    "type": "National Monument",
+    "state": "NM",
+    "lat": 36.78171096,
+    "lng": -103.9710427,
+    "established": "",
+    "description": "Part of the 8,000 square mile Raton-Clayton Volcanic Field, Capulin Volcano showcases the volcanic geology of northeastern New Mexico. The views are spectacular day or night, with views of 4 different"
+  },
+  {
+    "id": "carl",
+    "name": "Carl Sandburg Home National Historic Site",
+    "type": "National Historic Site",
+    "state": "NC",
+    "lat": 35.26815509,
+    "lng": -82.45106258,
+    "established": "",
+    "description": "Post Helene Status: Pedestrian detour in place from main parking lot. Grounds / trails open dawn till dusk 7 days a week. Barn open 7 days a week 10-4. Bookstore / Visitor Center open Wed, Thurs, Fri,"
+  },
+  {
+    "id": "cibs",
+    "name": "Carlisle Federal Indian Boarding School National Monument",
+    "type": "National Monument",
+    "state": "PA",
+    "lat": 40.2094,
+    "lng": -77.17971,
+    "established": "",
+    "description": "More than 7,800 children from 140 Tribes went to the Carlisle School from 1879 to 1918. The National Park Service will collaborate with families, affiliated Tribal Nations, the US Army, historians, an"
+  },
+  {
+    "id": "cave",
+    "name": "Carlsbad Caverns National Park",
+    "type": "National Park",
+    "state": "NM",
+    "lat": 32.14089463,
+    "lng": -104.5529688,
+    "established": "",
+    "description": "High ancient sea ledges, deep rocky canyons, flowering cactus, and desert wildlife—treasures above the ground in the Chihuahuan Desert. Hidden beneath the surface are more than 119 caves—formed when s"
+  },
+  {
+    "id": "cawo",
+    "name": "Carter G. Woodson Home National Historic Site",
+    "type": "National Historic Site",
+    "state": "DC",
+    "lat": 38.91089286,
+    "lng": -77.02431104,
+    "established": "",
+    "description": "Before Dr. Carter G. Woodson, there was very little accurate written history about the lives and experiences of Americans of African descent. Today a National Historic Site, Dr. Woodson’s home served "
+  },
+  {
+    "id": "cagr",
+    "name": "Casa Grande Ruins National Monument",
+    "type": "National Monument",
+    "state": "AZ",
+    "lat": 32.99702582,
+    "lng": -111.5325383,
+    "established": "",
+    "description": "An Ancestral Sonoran Desert People's farming community and \"Great House\" are preserved at Casa Grande Ruins. Whether a gathering place for people or simply a waypoint marker in an extensive system of "
+  },
+  {
+    "id": "casa",
+    "name": "Castillo de San Marcos National Monument",
+    "type": "National Monument",
+    "state": "FL",
+    "lat": 29.89785701,
+    "lng": -81.31217173,
+    "established": "",
+    "description": "Built by the Spanish in St. Augustine to defend Florida and the Atlantic trade route, Castillo de San Marcos National Monument preserves the oldest masonry fortification in the continental United Stat"
+  },
+  {
+    "id": "cacl",
+    "name": "Castle Clinton National Monument",
+    "type": "National Monument",
+    "state": "NY",
+    "lat": 40.70347795,
+    "lng": -74.01680558,
+    "established": "",
+    "description": "Located at the southern tip of Manhattan, Castle Clinton marks the place where New York City began and reflects the growth of both the city and the nation. Built to defend the harbor during the War of"
+  },
+  {
+    "id": "camo",
+    "name": "Castle Mountains National Monument",
+    "type": "National Monument",
+    "state": "CA",
+    "lat": 35.29156348,
+    "lng": -115.0935606,
+    "established": "",
+    "description": "Castle Mountains represents some of the most unique elements of the Mojave Desert. Nestled between the Nevada state line and Mojave National Preserve, the nearly 21,000 acres of Castle Mountains boast"
+  },
+  {
+    "id": "cato",
+    "name": "Catoctin Mountain Park",
+    "type": "Park",
+    "state": "MD",
+    "lat": 39.65068457,
+    "lng": -77.46417665,
+    "established": "",
+    "description": "President Franklin D. Roosevelt created programs to give people a chance to rebuild their lives from the Great Depression. The Works Progress Administration and the Civilian Conservation Corps gave th"
+  },
+  {
+    "id": "cebr",
+    "name": "Cedar Breaks National Monument",
+    "type": "National Monument",
+    "state": "UT",
+    "lat": 37.63545562,
+    "lng": -112.845268,
+    "established": "",
+    "description": "Crowning the Grand Staircase, Cedar Breaks sits at over 10,000 feet and looks down into a half-mile deep geologic amphitheater. Come wander among timeless bristlecone pines, stand in lush meadows of w"
+  },
+  {
+    "id": "cebe",
+    "name": "Cedar Creek & Belle Grove National Historical Park",
+    "type": "National Historical Park",
+    "state": "VA",
+    "lat": 39.0093576,
+    "lng": -78.30618934,
+    "established": "",
+    "description": "Virginia’s Shenandoah Valley has a long and rich heritage that still inspires today. Native Americans first shaped the land, followed by colonists and settlers. The fertile valley became an important "
+  },
+  {
+    "id": "chcu",
+    "name": "Chaco Culture National Historical Park",
+    "type": "National Historical Park",
+    "state": "NM",
+    "lat": 36.03963414,
+    "lng": -107.9560076,
+    "established": "",
+    "description": "Explore the monumental structures and breathtaking landscape at Chaco, a thriving regional center for the ancestral Pueblo people from 850 to 1250 CE (Common Era), through hiking & biking trails, rang"
+  },
+  {
+    "id": "cham",
+    "name": "Chamizal National Memorial",
+    "type": "National Memorial",
+    "state": "TX",
+    "lat": 31.76729634,
+    "lng": -106.4544011,
+    "established": "",
+    "description": "Chamizal is more than just an urban park to recreate or enjoy a quiet afternoon. These grounds are a reminder of the harmonious settlement of a 100-year boundary dispute between the United States and "
+  },
+  {
+    "id": "chis",
+    "name": "Channel Islands National Park",
+    "type": "National Park",
+    "state": "CA",
+    "lat": 33.98680093,
+    "lng": -119.9112735,
+    "established": "",
+    "description": "Channel Islands National Park encompasses five remarkable islands and their ocean environment, preserving and protecting a wealth of natural and cultural resources. Isolation over thousands of years h"
+  },
+  {
+    "id": "chpi",
+    "name": "Charles Pinckney National Historic Site",
+    "type": "National Historic Site",
+    "state": "SC",
+    "lat": 32.84577392,
+    "lng": -79.82487582,
+    "established": "",
+    "description": "Charles Pinckney was a principal author and signer of the United States Constitution and went on to be a political leader in South Carolina for over 40 years. The park preserves Snee Farm, one of his "
+  },
+  {
+    "id": "chyo",
+    "name": "Charles Young Buffalo Soldiers National Monument",
+    "type": "National Monument",
+    "state": "OH",
+    "lat": 39.70817829,
+    "lng": -83.89328575,
+    "established": "",
+    "description": "Throughout his life, Charles Young overcame countless obstacles in his ascent to prominence. In spite of overt racism and stifling inequality, Young rose through the military ranks to become one of th"
+  },
+  {
+    "id": "chat",
+    "name": "Chattahoochee River National Recreation Area",
+    "type": "National Recreation Area",
+    "state": "GA",
+    "lat": 33.99698333,
+    "lng": -84.28953177,
+    "established": "",
+    "description": "Today the river valley attracts us for so many reasons. Take a solitary walk to enjoy nature’s display, raft leisurely through the rocky shoals with friends, fish the misty waters as the sun comes up,"
+  },
+  {
+    "id": "choh",
+    "name": "Chesapeake & Ohio Canal National Historical Park",
+    "type": "National Historical Park",
+    "state": "DC",
+    "lat": 39.000283692,
+    "lng": -77.2481399539,
+    "established": "",
+    "description": "Preserving America's early transportation history, the C&O Canal began as a dream of passage to Western wealth. Operating for nearly 100 years the canal was a lifeline for communities along the Potoma"
+  },
+  {
+    "id": "chch",
+    "name": "Chickamauga & Chattanooga National Military Park",
+    "type": "National Military Park",
+    "state": "GA",
+    "lat": 34.94317623,
+    "lng": -85.28749537,
+    "established": "",
+    "description": "In 1863, Union and Confederate forces fought for control of Chattanooga - a gateway to the Confederacy. The Confederates were victorious at nearby Chickamauga in September. However, renewed fighting i"
+  },
+  {
+    "id": "chic",
+    "name": "Chickasaw National Recreation Area",
+    "type": "National Recreation Area",
+    "state": "OK",
+    "lat": 34.46050507,
+    "lng": -97.00715669,
+    "established": "",
+    "description": "Springs, streams, lakes - whatever its form, water is the attraction at Chickasaw National Recreation Area."
+  },
+  {
+    "id": "chir",
+    "name": "Chiricahua National Monument",
+    "type": "National Monument",
+    "state": "AZ",
+    "lat": 32.01214618,
+    "lng": -109.341607,
+    "established": "",
+    "description": "Explore rhyolite pinnacles and balanced rocks on foot or by car. Relax at the campground under star-filled, dark skies. See how a mountain range rising between two deserts creates a home for diverse w"
+  },
+  {
+    "id": "chri",
+    "name": "Christiansted National Historic Site",
+    "type": "National Historic Site",
+    "state": "VI",
+    "lat": 17.7468,
+    "lng": -64.7022,
+    "established": "",
+    "description": "Christiansted National Historic Site was established in 1952 as the first unit of the National Park Service in the Virgin Islands of the United States. Covering over seven acres the park tells the sto"
+  },
+  {
+    "id": "ciro",
+    "name": "City Of Rocks National Reserve",
+    "type": "National Reserve",
+    "state": "ID",
+    "lat": 42.0699024,
+    "lng": -113.7124097,
+    "established": "",
+    "description": "Described by California Trail emigrants as “a city of tall spires,” “steeple rocks,” and “the silent city,” this awe-inspiring landscape continues to captivate. Today, it beckons rock climbers, hikers"
+  },
+  {
+    "id": "clba",
+    "name": "Clara Barton National Historic Site",
+    "type": "National Historic Site",
+    "state": "MD",
+    "lat": 38.96762882,
+    "lng": -77.14009689,
+    "established": "",
+    "description": "Clara Barton dedicated her life and energies to help others in times of need - both home and abroad, in peacetime as well as during military emergencies. Glen Echo was her home the last 15 years of he"
+  },
+  {
+    "id": "colo",
+    "name": "Colonial National Historical Park",
+    "type": "National Historical Park",
+    "state": "VA",
+    "lat": 37.22824435,
+    "lng": -76.61998123,
+    "established": "",
+    "description": "On May 13, 1607, Jamestown was established as the first permanent English settlement in North America. Three cultures came together – European, Virginia Indian and African–to create a new society that"
+  },
+  {
+    "id": "colm",
+    "name": "Colorado National Monument",
+    "type": "National Monument",
+    "state": "CO",
+    "lat": 39.05045016,
+    "lng": -108.6920709,
+    "established": "",
+    "description": "Colorado National Monument preserves one of the grand landscapes of the American West. But this treasure is much more than a monument. Towering monoliths exist within a vast plateau and canyon panoram"
+  },
+  {
+    "id": "colt",
+    "name": "Coltsville National Historical Park",
+    "type": "National Historical Park",
+    "state": "CT",
+    "lat": 42.4677505493,
+    "lng": -73.203666687,
+    "established": "",
+    "description": "When Samuel Colt started his Hartford factory on the banks of the Connecticut River in 1847, it followed years of mismanagement and failure. Soon, demand for Colt's revolver would change his fortunes "
+  },
+  {
+    "id": "cong",
+    "name": "Congaree National Park",
+    "type": "National Park",
+    "state": "SC",
+    "lat": 33.79187523,
+    "lng": -80.74867805,
+    "established": "",
+    "description": "Astonishing biodiversity exists in Congaree National Park, the largest intact expanse of old growth bottomland hardwood forest remaining in the southeastern United States. Waters from the Congaree and"
+  },
+  {
+    "id": "coro",
+    "name": "Coronado National Memorial",
+    "type": "National Memorial",
+    "state": "AZ",
+    "lat": 31.34900397,
+    "lng": -110.2561574,
+    "established": "",
+    "description": "It was a journey of conquest filled with exploration, wonder - and cruelty. Inspired by tales of vast cities of gold, 339 European soldiers and over a thousand Aztec allies embarked on an epic journey"
+  },
+  {
+    "id": "cowp",
+    "name": "Cowpens National Battlefield",
+    "type": "National Battlefield",
+    "state": "SC",
+    "lat": 35.13160654,
+    "lng": -81.80935433,
+    "established": "",
+    "description": "A pasturing area at the time of the battle, this Revolutionary War site commemorates the place where Daniel Morgan and his army turned the flanks of Banastre Tarleton's British army. This classic mili"
+  },
+  {
+    "id": "crla",
+    "name": "Crater Lake National Park",
+    "type": "National Park",
+    "state": "OR",
+    "lat": 42.94065854,
+    "lng": -122.1338414,
+    "established": "",
+    "description": "Crater Lake inspires awe. Native Americans witnessed its formation 7,700 years ago, when a violent eruption triggered the collapse of a tall peak. Scientists marvel at its purity—fed by rain and snow,"
+  },
+  {
+    "id": "crmo",
+    "name": "Craters Of The Moon National Monument & Preserve",
+    "type": "National Monument & Preserve",
+    "state": "ID",
+    "lat": 43.20345611,
+    "lng": -113.4791609,
+    "established": "",
+    "description": "Craters of the Moon is a vast ocean of lava flows with scattered islands of cinder cones and sagebrush. We invite you to explore this \"weird and scenic landscape\" where yesterday's volcanic events are"
+  },
+  {
+    "id": "cuga",
+    "name": "Cumberland Gap National Historical Park",
+    "type": "National Historical Park",
+    "state": "KY",
+    "lat": 36.62503076,
+    "lng": -83.6114083,
+    "established": "",
+    "description": "Cumberland Gap was the first great gateway to the west. Come follow the path of bison, Native Americans, longhunters, and pioneers. Walk where 300,000 people crossed the Appalachians to settle America"
+  },
+  {
+    "id": "cuis",
+    "name": "Cumberland Island National Seashore",
+    "type": "National Seashore",
+    "state": "GA",
+    "lat": 30.85857484,
+    "lng": -81.45253575,
+    "established": "",
+    "description": "St Marys is the gateway to Cumberland Island, Georgia's largest and southernmost barrier island. Here pristine maritime forests, undeveloped beaches and wide marshes whisper the stories of both man an"
+  },
+  {
+    "id": "cure",
+    "name": "Curecanti National Recreation Area",
+    "type": "National Recreation Area",
+    "state": "CO",
+    "lat": 38.46584558,
+    "lng": -107.3303371,
+    "established": "",
+    "description": "Three reservoirs and surrounding lands make up this recreation area in western Colorado. It is a landscape of tradeoffs; natural and human made features exist together. Geologic wonders are abundant f"
+  },
+  {
+    "id": "cuva",
+    "name": "Cuyahoga Valley National Park",
+    "type": "National Park",
+    "state": "OH",
+    "lat": 41.26093905,
+    "lng": -81.57116722,
+    "established": "",
+    "description": "Though a short distance from the urban areas of Cleveland and Akron, Cuyahoga Valley National Park seems worlds away. The park is a refuge for native plants and wildlife, and provides routes of discov"
+  },
+  {
+    "id": "cech",
+    "name": "César E. Chávez National Monument",
+    "type": "National Monument",
+    "state": "CA",
+    "lat": 35.22729389,
+    "lng": -118.5615781,
+    "established": "",
+    "description": "Yes, we can! Widely recognized as the most important Latino leader in the United States during the twentieth century, Cesar Chavez led farm workers and supporters in the establishment of the country's"
+  },
+  {
+    "id": "daav",
+    "name": "Dayton Aviation Heritage National Historical Park",
+    "type": "National Historical Park",
+    "state": "OH",
+    "lat": 39.78944467,
+    "lng": -84.10442045,
+    "established": "",
+    "description": "Dayton Aviation Heritage National Historical Park was established to honor the lives and achievements of poet and author Paul Laurence Dunbar and aviation pioneers Wilbur and Orville Wright. Through p"
+  },
+  {
+    "id": "deso",
+    "name": "De Soto National Memorial",
+    "type": "National Memorial",
+    "state": "FL",
+    "lat": 27.52272613,
+    "lng": -82.64335416,
+    "established": "",
+    "description": "In May 1539, Conquistador Hernando de Soto’s army of soldiers, hired mercenaries, craftsmen, and clergy made landfall in Tampa Bay. They were met with fierce resistance of indigenous people protecting"
+  },
+  {
+    "id": "deva",
+    "name": "Death Valley National Park",
+    "type": "National Park",
+    "state": "CA",
+    "lat": 36.48753731,
+    "lng": -117.134395,
+    "established": "",
+    "description": "In this below-sea-level basin, steady drought and record summer heat make Death Valley a land of extremes. Yet, each extreme has a striking contrast. Towering peaks are frosted with winter snow. Rare "
+  },
+  {
+    "id": "dewa",
+    "name": "Delaware Water Gap National Recreation Area",
+    "type": "National Recreation Area",
+    "state": "NJ",
+    "lat": 41.12793491,
+    "lng": -74.94751173,
+    "established": "",
+    "description": "Situated within the most densely populated region of the United States, Delaware Water Gap National Recreation Area provides a unique opportunity to experience tranquil landscapes, rich human history,"
+  },
+  {
+    "id": "dena",
+    "name": "Denali National Park & Preserve",
+    "type": "National Park & Preserve",
+    "state": "AK",
+    "lat": 63.29777484,
+    "lng": -151.0526568,
+    "established": "",
+    "description": "Denali is six million acres of wild land, bisected by one ribbon of road. Travelers along it see the relatively low-elevation taiga forest give way to high alpine tundra and snowy mountains, culminati"
+  },
+  {
+    "id": "depo",
+    "name": "Devils Postpile National Monument",
+    "type": "National Monument",
+    "state": "CA",
+    "lat": 37.6152564,
+    "lng": -119.0873903,
+    "established": "",
+    "description": "Established in 1911 by presidential proclamation, Devils Postpile National Monument protects and preserves the Devils Postpile formation, the 101-foot high Rainbow Falls, and pristine mountain scenery"
+  },
+  {
+    "id": "deto",
+    "name": "Devils Tower National Monument",
+    "type": "National Monument",
+    "state": "WY",
+    "lat": 44.59064655,
+    "lng": -104.7156341,
+    "established": "",
+    "description": "The Tower is an astounding geologic feature that protrudes out of the prairie surrounding the Black Hills. It is considered sacred by Northern Plains Indians and indigenous people. Hundreds of paralle"
+  },
+  {
+    "id": "dino",
+    "name": "Dinosaur National Monument",
+    "type": "National Monument",
+    "state": "CO",
+    "lat": 40.50739742,
+    "lng": -108.9333714,
+    "established": "",
+    "description": "150 million years ago, dinosaurs roamed here. Their fossils are still embedded in the rocks. Today, mountains, desert, and rivers flowing in canyons support a variety of life. Petroglyphs reveal the l"
+  },
+  {
+    "id": "drto",
+    "name": "Dry Tortugas National Park",
+    "type": "National Park",
+    "state": "FL",
+    "lat": 24.628741,
+    "lng": -82.87319,
+    "established": "",
+    "description": "Almost 70 miles (113 km) west of Key West lies the remote Dry Tortugas National Park. This 100-square mile park is mostly open water with seven small islands. Accessible only by boat or seaplane, the "
+  },
+  {
+    "id": "ddem",
+    "name": "Dwight D. Eisenhower Memorial",
+    "type": "Memorial",
+    "state": "DC",
+    "lat": 38.8869476647,
+    "lng": -77.018737554,
+    "established": "",
+    "description": "The Dwight D. Eisenhower Memorial tells the story of one of America's greatest leaders of the 20th century."
+  },
+  {
+    "id": "ebla",
+    "name": "Ebey's Landing National Historical Reserve",
+    "type": "National Historical Reserve",
+    "state": "WA",
+    "lat": 48.21403036,
+    "lng": -122.6877213,
+    "established": "",
+    "description": "This stunning landscape on the Salish Sea, with its rich farmland and promising seaport, lured the earliest American pioneers north of the Columbia River to Ebey’s Landing. Today Ebey’s Landing Nation"
+  },
+  {
+    "id": "edal",
+    "name": "Edgar Allan Poe National Historic Site",
+    "type": "National Historic Site",
+    "state": "PA",
+    "lat": 39.96195482,
+    "lng": -75.1500062,
+    "established": "",
+    "description": "Described as horrifying, mystifying, and brilliant, Poe’s writing has engaged readers all over the world. The six years Edgar Allan Poe lived in Philadelphia were his happiest and most productive. Yet"
+  },
+  {
+    "id": "efmo",
+    "name": "Effigy Mounds National Monument",
+    "type": "National Monument",
+    "state": "IA",
+    "lat": 43.08095081,
+    "lng": -91.19687517,
+    "established": "",
+    "description": "The mounds preserved here are considered sacred by many Americans, especially the Monument's 20 culturally associated American Indian tribes. A visit offers opportunities to contemplate the meanings o"
+  },
+  {
+    "id": "eise",
+    "name": "Eisenhower National Historic Site",
+    "type": "National Historic Site",
+    "state": "PA",
+    "lat": 39.79577592,
+    "lng": -77.26508101,
+    "established": "",
+    "description": "Eisenhower National Historic Site preserves the farm of General and 34th President Dwight D. Eisenhower. Adjacent to the Gettysburg battlefield, the farm served the president and first lady as a weeke"
+  },
+  {
+    "id": "elca",
+    "name": "El Camino Real de Tierra Adentro National Historic Trail",
+    "type": "National Historic Trail",
+    "state": "NM",
+    "lat": 33.7990672546,
+    "lng": -106.866386195,
+    "established": "",
+    "description": "Travel along El Camino Real de Tierra Adentro National Historic Trail to experience and learn from a complicated legacy of 300 years of conflict, cooperation, and cultural exchange between a variety o"
+  },
+  {
+    "id": "elte",
+    "name": "El Camino Real de los Tejas National Historic Trail",
+    "type": "National Historic Trail",
+    "state": "TX",
+    "lat": 30.0922964581,
+    "lng": -97.3397666725,
+    "established": "",
+    "description": "Explore a diverse array of histories contained within El Camino Real de los Tejas’ 150-year life, including the Spanish struggle to missionize American Indian nations, the growth of cattle ranching in"
+  },
+  {
+    "id": "elma",
+    "name": "El Malpais National Monument",
+    "type": "National Monument",
+    "state": "NM",
+    "lat": 34.88422799,
+    "lng": -107.9950948,
+    "established": "",
+    "description": "The richly diverse volcanic landscape of El Malpais (el-mal-pie-EES) offers solitude, recreation, and adventure. Explore incredible geologic features such as young lava flows, cinder cones, lava tubes"
+  },
+  {
+    "id": "elmo",
+    "name": "El Morro National Monument",
+    "type": "National Monument",
+    "state": "NM",
+    "lat": 35.03895916,
+    "lng": -108.3463984,
+    "established": "",
+    "description": "Imagine the refreshment of finding water after days of dusty travel. A reliable waterhole hidden at the base of a sandstone bluff made El Morro (the headland) a popular campsite for hundreds of years."
+  },
+  {
+    "id": "elro",
+    "name": "Eleanor Roosevelt National Historic Site",
+    "type": "National Historic Site",
+    "state": "NY",
+    "lat": 41.76208482,
+    "lng": -73.89894026,
+    "established": "",
+    "description": "Visit the home of Eleanor Roosevelt. Here, Franklin and Eleanor entertained friends, the press, activists, and official state visitors in the relaxed atmosphere of Val-Kill. Explore the Roosevelt saga"
+  },
+  {
+    "id": "elis",
+    "name": "Ellis Island Part of Statue of Liberty National Monument",
+    "type": "Part of Statue of Liberty National Monument",
+    "state": "NJ",
+    "lat": 40.69946,
+    "lng": -74.0401,
+    "established": "",
+    "description": "Millions of Americans and people around the world have ancestors who came through Ellis Island. The Main Immigration Building was the epicenter of one of the greatest migrations in modern history. Tod"
+  },
+  {
+    "id": "till",
+    "name": "Emmett Till and Mamie Till-Mobley National Monument",
+    "type": "National Monument",
+    "state": "IL",
+    "lat": 33.9711,
+    "lng": -90.3698,
+    "established": "",
+    "description": "In 1955, 14-year-old Emmett Till traveled to Money, Mississippi, to visit relatives. He was kidnapped, tortured, and murdered after reportedly whistling at a white woman. His mother, Mamie Till-Mobley"
+  },
+  {
+    "id": "euon",
+    "name": "Eugene O'Neill National Historic Site",
+    "type": "National Historic Site",
+    "state": "CA",
+    "lat": 37.82604456,
+    "lng": -122.0271566,
+    "established": "",
+    "description": "America's only Nobel Prize-winning playwright, Eugene O'Neill, chose Northern California as his sanctuary at the pinnacle of his writing career. Secluded from the outside world within the serene walls"
+  },
+  {
+    "id": "ever",
+    "name": "Everglades National Park",
+    "type": "National Park",
+    "state": "FL",
+    "lat": 25.37294225,
+    "lng": -80.88200301,
+    "established": "",
+    "description": "Established in 1947 as the first national park created for its biodiversity, Everglades National Park protects 1.5 million acres of wetland, forest, and marine habitats and the native plants and anima"
+  },
+  {
+    "id": "feha",
+    "name": "Federal Hall National Memorial",
+    "type": "National Memorial",
+    "state": "NY",
+    "lat": 40.70731192,
+    "lng": -74.01025636,
+    "established": "",
+    "description": "Here at Federal Hall, George Washington took the oath of office as the first President of the United States, marking the beginning of the American constitutional republic. This historic site served as"
+  },
+  {
+    "id": "fiis",
+    "name": "Fire Island National Seashore",
+    "type": "National Seashore",
+    "state": "NY",
+    "lat": 40.69668638,
+    "lng": -73.00013462,
+    "established": "",
+    "description": "Immerse yourself in an enchanting collage of coastal life and history. Rhythmic waves, high dunes, ancient maritime forests, historic landmarks and glimpses of wildlife, Fire Island has been a special"
+  },
+  {
+    "id": "fila",
+    "name": "First Ladies National Historic Site",
+    "type": "National Historic Site",
+    "state": "OH",
+    "lat": 40.79689857,
+    "lng": -81.37579869,
+    "established": "",
+    "description": "First Ladies National Historic Site consists of two properties in downtown Canton, Ohio - the home of First Lady Ida Saxton-McKinley and our Visitor Center. Come learn about how the position of First "
+  },
+  {
+    "id": "frst",
+    "name": "First State National Historical Park",
+    "type": "National Historical Park",
+    "state": "DE",
+    "lat": 39.83076929,
+    "lng": -75.56353942,
+    "established": "",
+    "description": "Famous as the First State to ratify the Constitution, Delaware was born out of a conflict among three world powers for dominance of the Delaware Valley. From this beginning, the region developed a dis"
+  },
+  {
+    "id": "flni",
+    "name": "Flight 93 National Memorial",
+    "type": "National Memorial",
+    "state": "PA",
+    "lat": 40.06061476,
+    "lng": -78.89456905,
+    "established": "",
+    "description": "On Tuesday morning, September 11, 2001, the U.S. came under attack when four commercial airliners were hijacked and used to strike targets on the ground. Nearly 3,000 people tragically lost their live"
+  },
+  {
+    "id": "flfo",
+    "name": "Florissant Fossil Beds National Monument",
+    "type": "National Monument",
+    "state": "CO",
+    "lat": 38.91260586,
+    "lng": -105.2803396,
+    "established": "",
+    "description": "Beneath a grassy mountain valley in central Colorado lies one of the richest and most diverse fossil deposits in the world. Petrified redwood stumps up to 14 feet wide and thousands of detailed fossil"
+  },
+  {
+    "id": "foth",
+    "name": "Ford's Theatre National Historic Site",
+    "type": "National Historic Site",
+    "state": "DC",
+    "lat": 38.89668819,
+    "lng": -77.02577944,
+    "established": "",
+    "description": "On April 14, 1865, President Abraham Lincoln was assassinated at Ford’s Theatre. Discover how everyday people experienced a national tragedy and how we have remembered a fallen leader. Today, in partn"
+  },
+  {
+    "id": "fobo",
+    "name": "Fort Bowie National Historic Site",
+    "type": "National Historic Site",
+    "state": "AZ",
+    "lat": 32.14925942,
+    "lng": -109.451132,
+    "established": "",
+    "description": "For nearly 25 years, Fort Bowie stood at the crossroads of the Chiricahua Apache's fight to defend their ancestral homeland and the U.S. Army's westward expansion. Today, visitors embark on a 3-mile s"
+  },
+  {
+    "id": "foda",
+    "name": "Fort Davis National Historic Site",
+    "type": "National Historic Site",
+    "state": "TX",
+    "lat": 30.59930381,
+    "lng": -103.8961904,
+    "established": "",
+    "description": "Fort Davis is one of the best surviving examples of an Indian Wars' frontier military post in the Southwest. From 1854 to 1891, Fort Davis was strategically located to protect emigrants, mail coaches,"
+  },
+  {
+    "id": "fodo",
+    "name": "Fort Donelson National Battlefield",
+    "type": "National Battlefield",
+    "state": "KY",
+    "lat": 36.49019078,
+    "lng": -87.92445695,
+    "established": "",
+    "description": "Brigadier General Ulysses S. Grant was becoming quite famous as he wrote these words following the surrender of Confederate Fort Donelson on Sunday, February 16, 1862. The Union victory at Fort Donels"
+  },
+  {
+    "id": "fofo",
+    "name": "Fort Foote Park",
+    "type": "Park",
+    "state": "MD",
+    "lat": 38.76901785,
+    "lng": -77.02812387,
+    "established": "",
+    "description": "Fort Foote was constructed in 1863 atop Rozier's Bluff to strengthen the ring of fortifications that encircled Washington, D.C. Two of the Guns that protected Washington are still there along with the"
+  },
+  {
+    "id": "fofr",
+    "name": "Fort Frederica National Monument",
+    "type": "National Monument",
+    "state": "GA",
+    "lat": 31.2214699,
+    "lng": -81.39452014,
+    "established": "",
+    "description": "War was imminent as James Oglethorpe established Fort Frederica in 1736, to help protect the British colonies from the Spanish in Florida. Fort Frederica illustrates the story of the War of Jenkins Ea"
+  },
+  {
+    "id": "fola",
+    "name": "Fort Laramie National Historic Site",
+    "type": "National Historic Site",
+    "state": "WY",
+    "lat": 42.20301694,
+    "lng": -104.5459112,
+    "established": "",
+    "description": "Originally established as a private fur trading fort in 1834, Fort Laramie evolved into the largest and best-known military post on the Northern Plains before its abandonment in 1890. Nicknamed the “G"
+  },
+  {
+    "id": "fols",
+    "name": "Fort Larned National Historic Site",
+    "type": "National Historic Site",
+    "state": "KS",
+    "lat": 38.18047491,
+    "lng": -99.21836664,
+    "established": "",
+    "description": "Discover a complete and authentic army post from the 1860s -1870s! This well-preserved fort on the Santa Fe Trail shares a tumultuous history of the Indian Wars era. The sandstone constructed building"
+  },
+  {
+    "id": "foma",
+    "name": "Fort Matanzas National Monument",
+    "type": "National Monument",
+    "state": "FL",
+    "lat": 29.7121489,
+    "lng": -81.23567535,
+    "established": "",
+    "description": "Fort Matanzas National Monument preserves the fortified coquina watchtower, completed in 1742, which defended the southern approach to the Spanish military settlement of St. Augustine. It also protect"
+  },
+  {
+    "id": "fomc",
+    "name": "Fort McHenry National Monument and Historic Shrine",
+    "type": "National Monument and Historic Shrine",
+    "state": "MD",
+    "lat": 39.26395314,
+    "lng": -76.58044165,
+    "established": "",
+    "description": "by the dawn's early light, a large red, white and blue banner? Whose broad stripes and bright stars... were so gallantly streaming...over Fort McHenry! The valiant defense of the fort during the Battl"
+  },
+  {
+    "id": "fomr",
+    "name": "Fort Monroe National Monument",
+    "type": "National Monument",
+    "state": "VA",
+    "lat": 37.01733343,
+    "lng": -76.30103195,
+    "established": "",
+    "description": "Fort Monroe's story spans from prehistory to the 2000s. Kecoughtan Indians occupied Old Point Comfort before the arrival of English colonists. The first enslaved Africans arrived in 1619. Those escapi"
+  },
+  {
+    "id": "fone",
+    "name": "Fort Necessity National Battlefield",
+    "type": "National Battlefield",
+    "state": "PA",
+    "lat": 39.81306048,
+    "lng": -79.59033344,
+    "established": "",
+    "description": "The battle at Fort Necessity in the summer of 1754 was the opening action of the French and Indian War. This war was a clash of British, French and American Indian cultures. It ended with the removal "
+  },
+  {
+    "id": "fopo",
+    "name": "Fort Point National Historic Site",
+    "type": "National Historic Site",
+    "state": "CA",
+    "lat": 37.80837439,
+    "lng": -122.473747,
+    "established": "",
+    "description": "From its vantage point overlooking the spectacular Golden Gate, Fort Point defended the San Francisco Bay following California's Gold Rush through World War II. Its beautifully arched casemates displa"
+  },
+  {
+    "id": "fopu",
+    "name": "Fort Pulaski National Monument",
+    "type": "National Monument",
+    "state": "GA",
+    "lat": 32.0308274,
+    "lng": -80.93361681,
+    "established": "",
+    "description": "For much of the 19th century, masonry fortifications were the United States’ main defense against overseas enemies. However, during the Civil War, new technology proved its superiority over these fort"
+  },
+  {
+    "id": "fora",
+    "name": "Fort Raleigh National Historic Site",
+    "type": "National Historic Site",
+    "state": "NC",
+    "lat": 35.93278602,
+    "lng": -75.71496865,
+    "established": "",
+    "description": "Amongst the shallow blue waters of the Outer Banks lies Fort Raleigh on Roanoke Island. Shaped by constant winds of change, Fort Raleigh has become a focal point of American history. From the first Al"
+  },
+  {
+    "id": "fosc",
+    "name": "Fort Scott National Historic Site",
+    "type": "National Historic Site",
+    "state": "KS",
+    "lat": 37.84358849,
+    "lng": -94.70429174,
+    "established": "",
+    "description": "Promises made and broken! Who deserves to be free? The fight for freedom! Soldiers fighting settlers! Each of these stories is a link in the chain of events that encircled Fort Scott from 1842-1873. A"
+  },
+  {
+    "id": "fosm",
+    "name": "Fort Smith National Historic Site",
+    "type": "National Historic Site",
+    "state": "AR",
+    "lat": 35.38834746,
+    "lng": -94.43129079,
+    "established": "",
+    "description": "Explore life on the edge of frontier and Indian Territory through the stories of soldiers, the Trail of Tears, scandals, outlaws, and lawmen who pursued them. From the establishment of the first Fort "
+  },
+  {
+    "id": "fost",
+    "name": "Fort Stanwix National Monument",
+    "type": "National Monument",
+    "state": "NY",
+    "lat": 43.21053441,
+    "lng": -75.45557626,
+    "established": "",
+    "description": "For centuries, the Oneida Carrying Place, a six-mile portage connecting the Mohawk River and Wood Creek, served as a vital link for those traveling by water from the ocean to the Great Lakes. When Eur"
+  },
+  {
+    "id": "fosu",
+    "name": "Fort Sumter and Fort Moultrie National Historical Park",
+    "type": "National Historical Park",
+    "state": "SC",
+    "lat": 32.75654469,
+    "lng": -79.87068744,
+    "established": "",
+    "description": "Two forts stand at the entrance of Charleston Harbor. Patriots inside a palmetto log fort, later named Fort Moultrie, defeated the Royal Navy in 1776. As Charleston blazed a path towards secession to "
+  },
+  {
+    "id": "foun",
+    "name": "Fort Union National Monument",
+    "type": "National Monument",
+    "state": "NM",
+    "lat": 35.90700629,
+    "lng": -105.0145185,
+    "established": "",
+    "description": "Exposed to the wind, within a sweeping valley of short grass prairie, and along the eroded Santa Fe Trail, lie the adobe walled ruins of the largest 19th century military fort in the region. From 1851"
+  },
+  {
+    "id": "fous",
+    "name": "Fort Union Trading Post National Historic Site",
+    "type": "National Historic Site",
+    "state": "MT",
+    "lat": 48.00075828,
+    "lng": -104.0375238,
+    "established": "",
+    "description": "Between 1828 and 1867, Fort Union was the most important fur trade post on the Upper Missouri River. Here, the Assiniboine and six other Northern Plains Tribes exchanged buffalo robes and smaller furs"
+  },
+  {
+    "id": "fova",
+    "name": "Fort Vancouver National Historic Site",
+    "type": "National Historic Site",
+    "state": "OR",
+    "lat": 45.62234841,
+    "lng": -122.6617043,
+    "established": "",
+    "description": "Located on the north bank of the Columbia River, in sight of snowy mountain peaks and a vibrant urban landscape, this park has a rich cultural past. From a frontier fur trading post, to a powerful mil"
+  },
+  {
+    "id": "fowa",
+    "name": "Fort Washington Park",
+    "type": "Park",
+    "state": "MD",
+    "lat": 38.7117,
+    "lng": -77.0302,
+    "established": "",
+    "description": "Built to defend the river approach to Washington, DC, Fort Washington has stood sentry for over 200 years. As technologies advanced, so did Fort Washington from the brick and stone of the 19th century"
+  },
+  {
+    "id": "fobu",
+    "name": "Fossil Butte National Monument",
+    "type": "National Monument",
+    "state": "WY",
+    "lat": 41.85635223,
+    "lng": -110.7624754,
+    "established": "",
+    "description": "In the ridges of southwest Wyoming are some of the best-preserved fossils in the world. They tell the story of ancient life in a warm, wet environment in and around a freshwater lake. Stingrays swam i"
+  },
+  {
+    "id": "frpe",
+    "name": "Frances Perkins National Monument",
+    "type": "National Monument",
+    "state": "ME",
+    "lat": 44.0052,
+    "lng": -69.5568,
+    "established": "",
+    "description": "Known as the first woman to hold a presidential cabinet position and the “Woman behind the New Deal,” Frances Perkins championed many labor rights that Americans enjoy today, including safety standard"
+  },
+  {
+    "id": "frdo",
+    "name": "Frederick Douglass National Historic Site",
+    "type": "National Historic Site",
+    "state": "DC",
+    "lat": 38.86298458,
+    "lng": -76.98508147,
+    "established": "",
+    "description": "Frederick Douglass spent his life fighting for justice and equality. Born into slavery in 1818, he escaped as a young man and became a leading voice in the abolitionist movement. People everywhere sti"
+  },
+  {
+    "id": "frla",
+    "name": "Frederick Law Olmsted National Historic Site",
+    "type": "National Historic Site",
+    "state": "MA",
+    "lat": 42.32424266,
+    "lng": -71.13202567,
+    "established": "",
+    "description": "Frederick Law Olmsted (1822-1903) is recognized as the founder of American landscape architecture and the nation's foremost parkmaker. Olmsted moved his home to suburban Boston in 1883 and established"
+  },
+  {
+    "id": "frsp",
+    "name": "Fredericksburg & Spotsylvania National Military Park",
+    "type": "National Military Park",
+    "state": "VA",
+    "lat": 38.29378,
+    "lng": -77.46734,
+    "established": "",
+    "description": "Fredericksburg, Chancellorsville, Wilderness, and Spotsylvania, this is America's battleground, where the Civil War roared to its bloody climax. No place more vividly reflects the War's tragic cost in"
+  },
+  {
+    "id": "frri",
+    "name": "Freedom Riders National Monument",
+    "type": "National Monument",
+    "state": "AL",
+    "lat": 33.635269165,
+    "lng": -85.9064331055,
+    "established": "",
+    "description": "In 1961, a small interracial band of “Freedom Riders” challenged discriminatory laws requiring separation of the races in interstate travel. They were attacked by white segregationists, who firebombed"
+  },
+  {
+    "id": "frhi",
+    "name": "Friendship Hill National Historic Site",
+    "type": "National Historic Site",
+    "state": "PA",
+    "lat": 39.77543423,
+    "lng": -79.92504169,
+    "established": "",
+    "description": "Albert Gallatin is best remembered for his thirteen year tenure as Secretary of the Treasury during the Jefferson and Madison administrations. In that time he reduced the national debt, purchased the "
+  },
+  {
+    "id": "gaar",
+    "name": "Gates Of The Arctic National Park & Preserve",
+    "type": "National Park & Preserve",
+    "state": "AK",
+    "lat": 67.75961636,
+    "lng": -153.2917758,
+    "established": "",
+    "description": "This vast landscape does not contain any roads or trails. Visitors discover intact ecosystems where people have lived with the land for over ten thousand years. Wild rivers meander through glacier-car"
+  },
+  {
+    "id": "jeff",
+    "name": "Gateway Arch National Park",
+    "type": "National Park",
+    "state": "MO",
+    "lat": 38.6258069,
+    "lng": -90.1892508,
+    "established": "",
+    "description": "Gateway Arch National Park commemorates President Jefferson’s vision of a continental nation, the individuals and cultural groups who helped shape its history, St. Louis’ role in westward expansion, a"
+  },
+  {
+    "id": "gate",
+    "name": "Gateway National Recreation Area",
+    "type": "National Recreation Area",
+    "state": "NY",
+    "lat": 40.56536246,
+    "lng": -73.9171087,
+    "established": "",
+    "description": "Spanning 27,000 acres from Sandy Hook in New Jersey to Breezy Point in New York City, the park is both the gateway from the ocean into New York Harbor, and the gateway to the National Park Service for"
+  },
+  {
+    "id": "gari",
+    "name": "Gauley River National Recreation Area",
+    "type": "National Recreation Area",
+    "state": "WV",
+    "lat": 38.20614947,
+    "lng": -81.00420836,
+    "established": "",
+    "description": "The 25 miles of free-flowing Gauley River and the six miles of the Meadow River pass through scenic gorges and valleys containing a wide variety of natural and cultural features. The Gauley River cont"
+  },
+  {
+    "id": "gegr",
+    "name": "General Grant National Memorial",
+    "type": "National Memorial",
+    "state": "NY",
+    "lat": 40.81332817,
+    "lng": -73.96331542,
+    "established": "",
+    "description": "The final resting place of President Ulysses S. Grant and his wife, Julia, is the largest mausoleum in North America. It testifies to a people’s gratitude for the man who ended the bloodiest conflict "
+  },
+  {
+    "id": "gero",
+    "name": "George Rogers Clark National Historical Park",
+    "type": "National Historical Park",
+    "state": "IN",
+    "lat": 38.67912659,
+    "lng": -87.53545212,
+    "established": "",
+    "description": "The British flag would not be raised above Fort Sackville Feb. 25, 1779. At 10 A.M., the garrison surrendered to American Colonel George Rogers Clark. His American army, aided by French residents of t"
+  },
+  {
+    "id": "gewa",
+    "name": "George Washington Birthplace National Monument",
+    "type": "National Monument",
+    "state": "VA",
+    "lat": 38.19362603,
+    "lng": -76.92079458,
+    "established": "",
+    "description": "George Washington Birthplace National Monument is located in the Northern Neck of Virginia. It encompasses 551 acres of land where seven generations of the Washington family lived and where George Was"
+  },
+  {
+    "id": "gwca",
+    "name": "George Washington Carver National Monument",
+    "type": "National Monument",
+    "state": "MO",
+    "lat": 36.9871322,
+    "lng": -94.35522737,
+    "established": "",
+    "description": "The young child known as the \"Plant Doctor\" tended his secret garden while observing the day-to-day operations of a 19th century farm. Nature and nurture ultimately influenced George on his quest for "
+  },
+  {
+    "id": "gwmp",
+    "name": "George Washington Memorial Parkway",
+    "type": "Memorial Parkway",
+    "state": "DC",
+    "lat": 38.9628,
+    "lng": -77.1495,
+    "established": "",
+    "description": "The George Washington Memorial Parkway was designed for recreational driving. It links sites that commemorate important episodes in American history and preserve habitat for local wildlife. The parkwa"
+  },
+  {
+    "id": "gett",
+    "name": "Gettysburg National Military Park",
+    "type": "National Military Park",
+    "state": "PA",
+    "lat": 39.81557366,
+    "lng": -77.23246758,
+    "established": "",
+    "description": "The Battle of Gettysburg was a turning point in the Civil War, the Union victory that ended General Robert E. Lee's second and most ambitious invasion of the North. Often referred to as the \"High Wate"
+  },
+  {
+    "id": "gicl",
+    "name": "Gila Cliff Dwellings National Monument",
+    "type": "National Monument",
+    "state": "NM",
+    "lat": 33.22715258,
+    "lng": -108.2706711,
+    "established": "",
+    "description": "For thousands of years, groups of nomads used the caves above Cliff Dweller Creek as temporary shelter. In the late 1200s, people of the agricultural Mogollon (Southern Ancestral Pueblo) culture made "
+  },
+  {
+    "id": "glba",
+    "name": "Glacier Bay National Park & Preserve",
+    "type": "National Park & Preserve",
+    "state": "AK",
+    "lat": 58.80086718,
+    "lng": -136.8407579,
+    "established": "",
+    "description": "Covering 3.3 million acres of rugged mountains, dynamic glaciers, temperate rainforest, wild coastlines and deep sheltered fjords, Glacier Bay National Park and Preserve is known as Homeland to the Hu"
+  },
+  {
+    "id": "glac",
+    "name": "Glacier National Park",
+    "type": "National Park",
+    "state": "MT",
+    "lat": 48.68414678,
+    "lng": -113.8009306,
+    "established": "",
+    "description": "A showcase of melting glaciers, alpine meadows, carved valleys, and spectacular lakes. With over 700 miles of trails, Glacier is a paradise for adventurous visitors seeking a landscape steeped in huma"
+  },
+  {
+    "id": "glca",
+    "name": "Glen Canyon National Recreation Area",
+    "type": "National Recreation Area",
+    "state": "AZ",
+    "lat": 36.9357464677,
+    "lng": -111.485594268,
+    "established": "",
+    "description": "Encompassing over 1.25 million acres, Glen Canyon National Recreation Area offers unparalleled opportunities for water-based & backcountry recreation. The recreation area stretches for hundreds of mil"
+  },
+  {
+    "id": "glec",
+    "name": "Glen Echo Park",
+    "type": "Park",
+    "state": "MD",
+    "lat": 38.96912315,
+    "lng": -77.14012206,
+    "established": "",
+    "description": "Glen Echo Park began in 1891 as a National Chautauqua Assembly \"to promote liberal and practical education.\" By 1911, it transformed into DC's premier amusement park until it closed in 1968. Since 197"
+  },
+  {
+    "id": "glde",
+    "name": "Gloria Dei Church National Historic Site",
+    "type": "National Historic Site",
+    "state": "PA",
+    "lat": 39.93435005,
+    "lng": -75.14398924,
+    "established": "",
+    "description": "Before Pennsylvania there was New Sweden. Discover this last historic link to a forgotten past. Visit the church's pastoral surroundings and its burial ground of patriots and ordinary citizens alike."
+  },
+  {
+    "id": "goga",
+    "name": "Golden Gate National Recreation Area",
+    "type": "National Recreation Area",
+    "state": "CA",
+    "lat": 37.85982543,
+    "lng": -122.6007386,
+    "established": "",
+    "description": "Experience a park so rich it supports 19 distinct ecosystems with over 2,000 plant and animal species. Go for a hike, enjoy a vista, have a picnic or learn about the centuries of overlapping history f"
+  },
+  {
+    "id": "gosp",
+    "name": "Golden Spike National Historical Park",
+    "type": "National Historical Park",
+    "state": "UT",
+    "lat": 41.61947508,
+    "lng": -112.5242653,
+    "established": "",
+    "description": "One of the greatest technological achievements of the 19th century is the completion of the first transcontinental railroad across the United States. Visitors to the park can see the location of the L"
+  },
+  {
+    "id": "gois",
+    "name": "Governors Island National Monument",
+    "type": "National Monument",
+    "state": "NY",
+    "lat": 40.69164233,
+    "lng": -74.01670765,
+    "established": "",
+    "description": "From 1794 to 1966, the U.S. Army presence on Governors Island played a vital role in the social, political, and economic life of New York City. The island then served as the headquarters of the U.S. C"
+  },
+  {
+    "id": "grca",
+    "name": "Grand Canyon National Park",
+    "type": "National Park",
+    "state": "AZ",
+    "lat": 36.0001165336,
+    "lng": -112.121516363,
+    "established": "",
+    "description": "Entirely within the state of Arizona, the park encompasses 278 miles (447 km) of the Colorado River and adjacent uplands. Located on the ancestral homelands of 11 present day Tribal Communities, Grand"
+  },
+  {
+    "id": "para",
+    "name": "Grand Canyon-Parashant National Monument",
+    "type": "National Monument",
+    "state": "AZ",
+    "lat": 36.41535465,
+    "lng": -113.6682797,
+    "established": "",
+    "description": "Despite the hardships created by rugged isolation and the lack of natural waters, Parashant has a long human history spanning more than 11,000 years, and an equally rich geologic history spanning almo"
+  },
+  {
+    "id": "grpo",
+    "name": "Grand Portage National Monument",
+    "type": "National Monument",
+    "state": "MN",
+    "lat": 47.99294217,
+    "lng": -89.75573031,
+    "established": "",
+    "description": "Travel into the past to discover the present. Explore the partnership between the Grand Portage Anishinaabe and the North West Company during the North American fur trade. Experience the sights and sm"
+  },
+  {
+    "id": "grte",
+    "name": "Grand Teton National Park",
+    "type": "National Park",
+    "state": "WY",
+    "lat": 43.81853565,
+    "lng": -110.7054666,
+    "established": "",
+    "description": "Soaring over a landscape rich with wildlife, pristine lakes, and majestic alpine vistas, the Teton Range stands as a testament to generations of stewards. For over 11,000 years, communities have thriv"
+  },
+  {
+    "id": "grko",
+    "name": "Grant-Kohrs Ranch National Historic Site",
+    "type": "National Historic Site",
+    "state": "MT",
+    "lat": 46.41358923,
+    "lng": -112.7467024,
+    "established": "",
+    "description": "Wide open spaces, the hard-working cowboy, his spirited cow pony, and vast herds of cattle are among the strongest symbols of the American West. Once the headquarters of a 10 million acre cattle empir"
+  },
+  {
+    "id": "grba",
+    "name": "Great Basin National Park",
+    "type": "National Park",
+    "state": "NV",
+    "lat": 38.94617378,
+    "lng": -114.2579782,
+    "established": "",
+    "description": "From the 13,063-foot summit of Wheeler Peak to the sagebrush-covered foothills, Great Basin National Park hosts a sample of the incredible diversity of the larger Great Basin region. Come and partake "
+  },
+  {
+    "id": "grfa",
+    "name": "Great Falls Park",
+    "type": "Park",
+    "state": "VA",
+    "lat": 38.98776107,
+    "lng": -77.25128326,
+    "established": "",
+    "description": "At Great Falls, the Potomac River builds up speed and force as it falls over a series of steep, jagged rocks and flows through the narrow Mather Gorge. The Patowmack Canal offers a glimpse into the ea"
+  },
+  {
+    "id": "grsa",
+    "name": "Great Sand Dunes National Park & Preserve",
+    "type": "National Park & Preserve",
+    "state": "CO",
+    "lat": 37.79256812,
+    "lng": -105.5919572,
+    "established": "",
+    "description": "The tallest dunes in North America are the centerpiece in a diverse landscape of grasslands, wetlands, forests, alpine lakes, and tundra. Stay on a moonless night to experience countless stars in this"
+  },
+  {
+    "id": "grsm",
+    "name": "Great Smoky Mountains National Park",
+    "type": "National Park",
+    "state": "NC",
+    "lat": 35.60116374,
+    "lng": -83.50818326,
+    "established": "",
+    "description": "Ridge upon ridge of forest straddles the border between North Carolina and Tennessee in Great Smoky Mountains National Park. World renowned for its diversity of plant and animal life, the beauty of it"
+  },
+  {
+    "id": "gree",
+    "name": "Greenbelt Park",
+    "type": "Park",
+    "state": "MD",
+    "lat": 38.98328267,
+    "lng": -76.89722133,
+    "established": "",
+    "description": "Enjoy affordable camping, hiking, and peaceful forest surroundings just ten miles from Washington, DC!"
+  },
+  {
+    "id": "gumo",
+    "name": "Guadalupe Mountains National Park",
+    "type": "National Park",
+    "state": "TX",
+    "lat": 31.92304462,
+    "lng": -104.885527,
+    "established": "",
+    "description": "Come experience mountains and canyons, desert and dunes, night skies and spectacular vistas within a place unlike any other. Guadalupe Mountains National Park protects the world's most extensive Permi"
+  },
+  {
+    "id": "guco",
+    "name": "Guilford Courthouse National Military Park",
+    "type": "National Military Park",
+    "state": "NC",
+    "lat": 36.13225478,
+    "lng": -79.8424561,
+    "established": "",
+    "description": "\"I never saw such fighting since God made me. The Americans fought like demons.\" - Lt. General Charles, Earl Cornwallis On March 15, 1781, six years into the American Revolution, General Greene and Lo"
+  },
+  {
+    "id": "guis",
+    "name": "Gulf Islands National Seashore",
+    "type": "National Seashore",
+    "state": "FL",
+    "lat": 30.3211,
+    "lng": -87.2304,
+    "established": "",
+    "description": "Millions of visitors are drawn to the Gulf of America for Gulf Islands National Seashore's emerald coast waters, magnificent white beaches, fertile marshes and historical landscapes. Come explore with"
+  },
+  {
+    "id": "hafo",
+    "name": "Hagerman Fossil Beds National Monument",
+    "type": "National Monument",
+    "state": "ID",
+    "lat": 42.79074114,
+    "lng": -114.9443074,
+    "established": "",
+    "description": "During the Pliocene, this place looked quite different. Lush wetlands, forests, and grasslands provided excellent habitat for a variety of animals. From fascinating, now-extinct creatures like the sab"
+  },
+  {
+    "id": "hale",
+    "name": "Haleakalā National Park",
+    "type": "National Park",
+    "state": "HI",
+    "lat": 20.70693015,
+    "lng": -156.1591775,
+    "established": "",
+    "description": "This special place vibrates with stories of ancient and modern Hawaiian culture and protects the bond between the land and its people. The park also cares for endangered species, some of which exist n"
+  },
+  {
+    "id": "hagr",
+    "name": "Hamilton Grange National Memorial",
+    "type": "National Memorial",
+    "state": "NY",
+    "lat": 40.81871605,
+    "lng": -73.94878487,
+    "established": "",
+    "description": "Merchant’s clerk, Revolutionary War soldier, first Secretary Treasury of the United States: Alexander Hamilton’s life is memorialized at The Grange, the home he built on a country estate in uptown Man"
+  },
+  {
+    "id": "hamp",
+    "name": "Hampton National Historic Site",
+    "type": "National Historic Site",
+    "state": "MD",
+    "lat": 39.4175296,
+    "lng": -76.58781182,
+    "established": "",
+    "description": "Hampton National Historic Site preserves what remains of a once 25,000-acre enslavement plantation. For hundreds of years, enslaved people, indentured servants, tenant farmers, paid laborers, and the "
+  },
+  {
+    "id": "hafe",
+    "name": "Harpers Ferry National Historical Park",
+    "type": "National Historical Park",
+    "state": "WV",
+    "lat": 39.31865949,
+    "lng": -77.74088546,
+    "established": "",
+    "description": "At the confluence of the Shenandoah and Potomac rivers, on the ancestral home of the Tuscarora and Shawnee people, lies Harpers Ferry. Here you can explore John Brown's Raid against slavery. Find your"
+  },
+  {
+    "id": "hart",
+    "name": "Harriet Tubman National Historical Park",
+    "type": "National Historical Park",
+    "state": "NY",
+    "lat": 42.9128920287,
+    "lng": -76.5646715462,
+    "established": "",
+    "description": "Harriet Tubman was guided by a deep faith and devotion to family, freedom, and community. After emancipating herself and members of her family, she moved them from Ontario, Canada to Fleming and Aubur"
+  },
+  {
+    "id": "hatu",
+    "name": "Harriet Tubman Underground Railroad National Historical Park",
+    "type": "National Historical Park",
+    "state": "MD",
+    "lat": 38.4548643511,
+    "lng": -76.1373451376,
+    "established": "",
+    "description": "Harriet Tubman was a deeply spiritual woman who lived her ideals and dedicated her life to freedom. She is the Underground Railroad’s best known conductor and before the Civil War repeatedly risked he"
+  },
+  {
+    "id": "hstr",
+    "name": "Harry S Truman National Historic Site",
+    "type": "National Historic Site",
+    "state": "MO",
+    "lat": 38.92711967,
+    "lng": -94.5162488,
+    "established": "",
+    "description": "President Harry S Truman took America from its traditional isolationism into the age of international involvement. Despite his power, he never forgot where he came from. Today, visitors can experience"
+  },
+  {
+    "id": "havo",
+    "name": "Hawaiʻi Volcanoes National Park",
+    "type": "National Park",
+    "state": "HI",
+    "lat": 19.3355036,
+    "lng": -155.4700257,
+    "established": "",
+    "description": "Hawai‘i Volcanoes National Park protects some of the most unique geological, biological, and cherished cultural landscapes in the world. Extending from sea level to 13,680 feet, the park encompasses t"
+  },
+  {
+    "id": "heho",
+    "name": "Herbert Hoover National Historic Site",
+    "type": "National Historic Site",
+    "state": "IA",
+    "lat": 41.66793558,
+    "lng": -91.35232139,
+    "established": "",
+    "description": "Orphaned at age nine, Herbert Hoover left West Branch never to live here again. In later years, he returned to his humble birthplace to celebrate his long career of public service. A memorial landscap"
+  },
+  {
+    "id": "jame",
+    "name": "Historic Jamestowne Part of Colonial National Historical Park",
+    "type": "Part of Colonial National Historical Park",
+    "state": "VA",
+    "lat": 37.2065,
+    "lng": -76.7538,
+    "established": "",
+    "description": "Walk in the steps of Captain John Smith and Pocahontas where a successful English colonization of North America began. Despite early struggles to survive, the 1607 settlement evolved into a prosperous"
+  },
+  {
+    "id": "hofr",
+    "name": "Home Of Franklin D Roosevelt National Historic Site",
+    "type": "National Historic Site",
+    "state": "NY",
+    "lat": 41.76639758,
+    "lng": -73.92516857,
+    "established": "",
+    "description": "Home to the 32nd and longest-serving president of the United States, Franklin D. Roosevelt returned to Hyde Park often, drawing on this place to renew his spirit during times of personal and political"
+  },
+  {
+    "id": "home",
+    "name": "Homestead National Historical Park",
+    "type": "National Historical Park",
+    "state": "NE",
+    "lat": 40.28802381,
+    "lng": -96.83387781,
+    "established": "",
+    "description": "The Homestead Act of 1862 transformed the world. Millions were invited to file claims including families, women, immigrants, and formerly enslaved people. Over 10 percent of the United States was home"
+  },
+  {
+    "id": "hono",
+    "name": "Honouliuli National Historic Site",
+    "type": "National Historic Site",
+    "state": "HI",
+    "lat": 21.38817536,
+    "lng": -158.0574991,
+    "established": "",
+    "description": "In 2026, Honouliuli National Historic Site is commemorating the 80th year since Honouliuli Internment Camp closed with community events that will take place throughout the year. Stay tuned on our webs"
+  },
+  {
+    "id": "hocu",
+    "name": "Hopewell Culture National Historical Park",
+    "type": "National Historical Park",
+    "state": "OH",
+    "lat": 39.31594374,
+    "lng": -83.08049456,
+    "established": "",
+    "description": "Nearly 2000 years ago, Native Americans built dozens of monumental mounds and earthen enclosures in southern Ohio. These earthwork complexes were ceremonial landscapes used for feasts, funerals, ritua"
+  },
+  {
+    "id": "hofu",
+    "name": "Hopewell Furnace National Historic Site",
+    "type": "National Historic Site",
+    "state": "PA",
+    "lat": 40.20610637,
+    "lng": -75.76766355,
+    "established": "",
+    "description": "Hopewell Furnace showcases an early American landscape of industrial operations from 1771-1883, Hopewell and other iron plantations laid the foundation for the transformation of the United States into"
+  },
+  {
+    "id": "hobe",
+    "name": "Horseshoe Bend National Military Park",
+    "type": "National Military Park",
+    "state": "AL",
+    "lat": 32.97668879,
+    "lng": -85.73413589,
+    "established": "",
+    "description": "On March 27, 1814, Major General Andrew Jackson ‘s army of 3,300 men attacked Chief Menawa’s 1,000 Red Stick Creek warriors fortified in a horseshoe shaped bend of the Tallapoosa River. Over 800 Red S"
+  },
+  {
+    "id": "hosp",
+    "name": "Hot Springs National Park",
+    "type": "National Park",
+    "state": "AR",
+    "lat": 34.52414366,
+    "lng": -93.06332936,
+    "established": "",
+    "description": "Hot Springs National Park has a rich cultural past. The grand architecture of our historic bathhouses is equally matched by the natural curiosities that have been drawing people here for hundreds of y"
+  },
+  {
+    "id": "hove",
+    "name": "Hovenweep National Monument",
+    "type": "National Monument",
+    "state": "CO",
+    "lat": 37.39134092,
+    "lng": -109.0047977,
+    "established": "",
+    "description": "Hovenweep preserves six prehistoric sites built between 1200 and 1300 CE which may have served as ceremonial centers. Explore a variety of structures, including multistory towers perched on canyon rim"
+  },
+  {
+    "id": "hutr",
+    "name": "Hubbell Trading Post National Historic Site",
+    "type": "National Historic Site",
+    "state": "AZ",
+    "lat": 35.70727324,
+    "lng": -109.5599515,
+    "established": "",
+    "description": "Wóshdę́ę́, please come in where the squeaky wooden floors greet your entry into the oldest operating Trading Post on the Navajo Nation. As your eyes adjust to the dim light in the \"bullpen\", you'll fi"
+  },
+  {
+    "id": "iafl",
+    "name": "Ice Age Floods National Geologic Trail",
+    "type": "National Geologic Trail",
+    "state": "WA",
+    "lat": 46.5669309008,
+    "lng": -118.992564971,
+    "established": "",
+    "description": "At the end of the last Ice Age, 18,000 to 15,000 years ago, an ice dam in northern Idaho created Glacial Lake Missoula stretching 3,000 square miles around Missoula, Montana. The dam burst and release"
+  },
+  {
+    "id": "iatr",
+    "name": "Ice Age National Scenic Trail",
+    "type": "National Scenic Trail",
+    "state": "WI",
+    "lat": 43.9895697794,
+    "lng": -89.5612021706,
+    "established": "",
+    "description": "The Ice Age National Scenic Trail spans 1,200 miles, traverses some of Wisconsin's finest geologic and glacial features, and passes through the ancestral lands of 15 Tribes. The Trail is built, manage"
+  },
+  {
+    "id": "inde",
+    "name": "Independence National Historical Park",
+    "type": "National Historical Park",
+    "state": "PA",
+    "lat": 39.94746112,
+    "lng": -75.14794157,
+    "established": "",
+    "description": "The park represents the founding ideals of the nation, and preserves national and international symbols of freedom and democracy, including Independence Hall and the Liberty Bell. The Declaration of I"
+  },
+  {
+    "id": "indu",
+    "name": "Indiana Dunes National Park",
+    "type": "National Park",
+    "state": "IN",
+    "lat": 41.63765525,
+    "lng": -87.09647445,
+    "established": "",
+    "description": "Lake Michigan's might has influenced Indiana Dunes for millennia. Wind and waves have shaped the land, leaving a rich mosaic of habitats along these 15 miles of Indiana coast. Over 50 miles of trails "
+  },
+  {
+    "id": "isro",
+    "name": "Isle Royale National Park",
+    "type": "National Park",
+    "state": "MI",
+    "lat": 48.01145819,
+    "lng": -88.82780657,
+    "established": "",
+    "description": "Explore a rugged, isolated island far from our connected communities. Isle Royale offers adventures for backpackers, hikers, boaters, paddlers, and divers. Cross Lake Superior and make a commitment: B"
+  },
+  {
+    "id": "jaga",
+    "name": "James A Garfield National Historic Site",
+    "type": "National Historic Site",
+    "state": "OH",
+    "lat": 41.66486549,
+    "lng": -81.35086557,
+    "established": "",
+    "description": "A front porch can serve many purposes. For some, it is a place to enjoy the breeze on a warm summer night. For others, a perch from which to keep eyes on what's happening in their neighborhood. In 188"
+  },
+  {
+    "id": "jela",
+    "name": "Jean Lafitte National Historical Park and Preserve",
+    "type": "National Historical Park and Preserve",
+    "state": "LA",
+    "lat": 29.81739855,
+    "lng": -90.1402241,
+    "established": "",
+    "description": "In Jean Lafitte's day, silver and gold filled a pirate's treasure chest, but today's treasures are people, places, and memories. Discover New Orleans’ rich cultural mix. Learn Cajun traditions from pe"
+  },
+  {
+    "id": "jeca",
+    "name": "Jewel Cave National Monument",
+    "type": "National Monument",
+    "state": "SD",
+    "lat": 43.73102945,
+    "lng": -103.829994,
+    "established": "",
+    "description": "Immerse yourself in one of the longest caves in the world. With over 220 miles of mapped and surveyed passages, this underground wilderness appeals to human curiosity. Its splendor is revealed through"
+  },
+  {
+    "id": "jica",
+    "name": "Jimmy Carter National Historical Park",
+    "type": "National Historical Park",
+    "state": "GA",
+    "lat": 32.03611,
+    "lng": -84.3924,
+    "established": "",
+    "description": "Few U.S. Presidents have had such close ties with where they were born and raised. The rural southern culture of Plains, Georgia revolves around farming, church, and school, which had a large influenc"
+  },
+  {
+    "id": "joda",
+    "name": "John Day Fossil Beds National Monument",
+    "type": "National Monument",
+    "state": "OR",
+    "lat": 44.62566508,
+    "lng": -119.8811491,
+    "established": "",
+    "description": "Large rhino-like brontotheres roam a semitropical forest. Dog-sized, three-toed horses dart between the trees. The cat-like nimravid and bear dogs stalk their prey. The climate cools and forests alter"
+  },
+  {
+    "id": "jofi",
+    "name": "John Fitzgerald Kennedy National Historic Site",
+    "type": "National Historic Site",
+    "state": "MA",
+    "lat": 42.34693694,
+    "lng": -71.12323846,
+    "established": "",
+    "description": "JFK’s parents never expected that their second son would grow up to be president. Yet in his birthplace home he learned values that inspired a life in public service. His mother, Rose Kennedy, recreat"
+  },
+  {
+    "id": "jomu",
+    "name": "John Muir National Historic Site",
+    "type": "National Historic Site",
+    "state": "CA",
+    "lat": 37.9828422,
+    "lng": -122.1326097,
+    "established": "",
+    "description": "John Muir’s life was a tapestry of roles—fruit rancher, family man, writer—each interwoven with his deep love for nature. As one of America’s most influential naturalists, Muir was more than just an o"
+  },
+  {
+    "id": "jofl",
+    "name": "Johnstown Flood National Memorial",
+    "type": "National Memorial",
+    "state": "PA",
+    "lat": 40.34584534,
+    "lng": -78.77448601,
+    "established": "",
+    "description": "The South Fork Dam failed on Friday, May 31, 1889, and unleashed 20,000,000 tons of water that devastated Johnstown, PA. The flood killed 2,209 people but it brought the nation and the world together "
+  },
+  {
+    "id": "jotr",
+    "name": "Joshua Tree National Park",
+    "type": "National Park",
+    "state": "CA",
+    "lat": 33.91418525,
+    "lng": -115.8398125,
+    "established": "",
+    "description": "Two distinct desert ecosystems, the Mojave and the Colorado, come together in Joshua Tree National Park. A fascinating variety of plants and animals make their homes in a land sculpted by strong winds"
+  },
+  {
+    "id": "juba",
+    "name": "Juan Bautista de Anza National Historic Trail",
+    "type": "National Historic Trail",
+    "state": "AZ",
+    "lat": 33.8743390994,
+    "lng": -117.224179857,
+    "established": "",
+    "description": "The Juan Bautista de Anza National Historic Trail covers over 1200 miles through the homelands of 70+ Tribal communities. It follows the historic route of the 1775-76 Spanish colonizing expedition fro"
+  },
+  {
+    "id": "kala",
+    "name": "Kalaupapa National Historical Park",
+    "type": "National Historical Park",
+    "state": "HI",
+    "lat": 21.1731108,
+    "lng": -156.9511609,
+    "established": "",
+    "description": "When Hansen's disease (leprosy) was introduced to the Hawaiian Islands, King Kamehameha V banished all afflicted to the isolated Kalaupapa Peninsula on the north shore of Molokai. Since 1866, more tha"
+  },
+  {
+    "id": "kaho",
+    "name": "Kaloko-Honokōhau National Historical Park",
+    "type": "National Historical Park",
+    "state": "HI",
+    "lat": 19.68083237,
+    "lng": -156.0306932,
+    "established": "",
+    "description": "Along the western coastline of the Island of Hawaiʻi lies the hot, rugged lava of Kaloko-Honokōhau. This seemingly barren and harsh landscape does not appear to be suitable for human existence, and ye"
+  },
+  {
+    "id": "kaww",
+    "name": "Katahdin Woods and Waters National Monument",
+    "type": "National Monument",
+    "state": "ME",
+    "lat": 45.9567565918,
+    "lng": -68.7122879028,
+    "established": "",
+    "description": "Spread across a wild landscape offering spectacular views of Katahdin, Katahdin Woods and Waters invites discovery of its rivers, streams, woods, flora, fauna, geology, and the night skies that have a"
+  },
+  {
+    "id": "katm",
+    "name": "Katmai National Park & Preserve",
+    "type": "National Park & Preserve",
+    "state": "AK",
+    "lat": 58.62235668,
+    "lng": -155.0126574,
+    "established": "",
+    "description": "A landscape is alive underneath our feet, filled with creatures that remind us what it is to be wild. Katmai was established in 1918 to protect the volcanically devastated region surrounding Novarupta"
+  },
+  {
+    "id": "kefj",
+    "name": "Kenai Fjords National Park",
+    "type": "National Park",
+    "state": "AK",
+    "lat": 59.81804414,
+    "lng": -150.106502,
+    "established": "",
+    "description": "At the edge of the Kenai Peninsula lies a land where the ice age lingers. Nearly 40 glaciers flow from the Harding Icefield, Kenai Fjords' crowning feature. Wildlife thrives in icy waters and lush for"
+  },
+  {
+    "id": "kemo",
+    "name": "Kennesaw Mountain National Battlefield Park",
+    "type": "National Battlefield Park",
+    "state": "GA",
+    "lat": 33.95370717,
+    "lng": -84.59214186,
+    "established": "",
+    "description": "Kennesaw Mountain National Battlefield Park is a 2,965 acre National Battlefield that preserves a Civil War battleground of the Atlanta Campaign. Opposing forces maneuvered and fought here from June 1"
+  },
+  {
+    "id": "kewe",
+    "name": "Keweenaw National Historical Park",
+    "type": "National Historical Park",
+    "state": "MI",
+    "lat": 47.1792308,
+    "lng": -88.52275344,
+    "established": "",
+    "description": "The stories of people and copper in the Keweenaw Peninsula have been intertwined for more than 7,000 years. Indigenous peoples made copper into tools and trade items. Investors and immigrants arrived "
+  },
+  {
+    "id": "kimo",
+    "name": "Kings Mountain National Military Park",
+    "type": "National Military Park",
+    "state": "SC",
+    "lat": 35.13900723,
+    "lng": -81.38978712,
+    "established": "",
+    "description": "Thomas Jefferson called it \"The turn of the tide of success.\" The battle of Kings Mountain, fought October 7th, 1780, was an important American victory during the Revolutionary War. The battle was the"
+  },
+  {
+    "id": "klse",
+    "name": "Klondike Gold Rush - Seattle Unit National Historical Park",
+    "type": "National Historical Park",
+    "state": "WA",
+    "lat": 47.5993663,
+    "lng": -122.3319664,
+    "established": "",
+    "description": "Seattle flourished during and after the Klondike Gold Rush. Merchants supplied people from around the world passing through this port city on their way to a remarkable adventure in the Yukon Territory"
+  },
+  {
+    "id": "klgo",
+    "name": "Klondike Gold Rush National Historical Park",
+    "type": "National Historical Park",
+    "state": "AK",
+    "lat": 59.61042373,
+    "lng": -135.2618535,
+    "established": "",
+    "description": "Headlines screamed \"Gold!\" The dream of a better life catapulted thousands of people to Alaska and the Yukon Territory. Their journey shaped them, and changed the people they encountered and the north"
+  },
+  {
+    "id": "knri",
+    "name": "Knife River Indian Villages National Historic Site",
+    "type": "National Historic Site",
+    "state": "ND",
+    "lat": 47.3540219,
+    "lng": -101.3860533,
+    "established": "",
+    "description": "Earthlodge people hunted bison and other game, but were in essence farmers living in villages along the Missouri and its tributaries. The site was a major Native American trade center for hundreds of "
+  },
+  {
+    "id": "kova",
+    "name": "Kobuk Valley National Park",
+    "type": "National Park",
+    "state": "AK",
+    "lat": 67.35631336,
+    "lng": -159.2002293,
+    "established": "",
+    "description": "Caribou, sand dunes, the Kobuk River, Onion Portage - just some of the facets of Kobuk Valley National Park. Thousands of caribou migrate through, their tracks crisscrossing sculpted dunes. The Kobuk "
+  },
+  {
+    "id": "lacl",
+    "name": "Lake Clark National Park & Preserve",
+    "type": "National Park & Preserve",
+    "state": "AK",
+    "lat": 60.57405857,
+    "lng": -153.55535,
+    "established": "",
+    "description": "Lake Clark National Park and Preserve is a land of stunning beauty. Volcanoes steam, salmon run, bears forage, and craggy mountains reflect in shimmering turquoise lakes. Here, too, local people and c"
+  },
+  {
+    "id": "lake",
+    "name": "Lake Mead National Recreation Area",
+    "type": "National Recreation Area",
+    "state": "AZ",
+    "lat": 35.96622528,
+    "lng": -114.3469067,
+    "established": "",
+    "description": "Experience outdoor thrills, striking landscapes, and brilliant blue waters. This year-round recreation area spreads across 1.5 million acres of mountains, canyons, valleys and two vast reservoirs. Vis"
+  },
+  {
+    "id": "lamr",
+    "name": "Lake Meredith National Recreation Area",
+    "type": "National Recreation Area",
+    "state": "TX",
+    "lat": 35.61926203,
+    "lng": -101.6820066,
+    "established": "",
+    "description": "Set within the wide‑open Texas Plains, Lake Meredith National Recreation Area offers a peaceful retreat in the heart of rugged grasslands. Over thousands of years, the Canadian River carved dramatic 2"
+  },
+  {
+    "id": "laro",
+    "name": "Lake Roosevelt National Recreation Area",
+    "type": "National Recreation Area",
+    "state": "WA",
+    "lat": 48.17148735,
+    "lng": -118.3513713,
+    "established": "",
+    "description": "The ancient geologic landscape of the upper Columbia River cradles Lake Roosevelt in walls of stone carved by massive ice age floods. Come explore the shorelines and learn the stories of American Indi"
+  },
+  {
+    "id": "lavo",
+    "name": "Lassen Volcanic National Park",
+    "type": "National Park",
+    "state": "CA",
+    "lat": 40.49354575,
+    "lng": -121.4075993,
+    "established": "",
+    "description": "Lassen Volcanic National Park is home to steaming fumaroles, meadows freckled with wildflowers, clear mountain lakes, and numerous volcanoes. Jagged peaks tell the story of its eruptive past while hot"
+  },
+  {
+    "id": "labe",
+    "name": "Lava Beds National Monument",
+    "type": "National Monument",
+    "state": "CA",
+    "lat": 41.75915823,
+    "lng": -121.5172189,
+    "established": "",
+    "description": "Lava Beds National Monument is a land of turmoil, both geological and historical. Over the last half-million years, volcanic eruptions on the Medicine Lake shield volcano have created a rugged landsca"
+  },
+  {
+    "id": "lecl",
+    "name": "Lewis & Clark National Historic Trail",
+    "type": "National Historic Trail",
+    "state": "IA",
+    "lat": 41.2646141052,
+    "lng": -95.9245147705,
+    "established": "",
+    "description": "The Lewis and Clark National Historic Trail winds nearly 4,900 miles through the homelands of more than 60 Tribal nations. It follows the historic outbound and inbound routes of the Lewis and Clark Ex"
+  },
+  {
+    "id": "lewi",
+    "name": "Lewis and Clark National Historical Park",
+    "type": "National Historical Park",
+    "state": "OR",
+    "lat": 46.21178735,
+    "lng": -123.9638583,
+    "established": "",
+    "description": "Explore the timeless rainforests and majestic coastal vistas. Discover the rich heritage of the native people. Unfold the dramatic stories of America's most famous explorers. The park encompasses site"
+  },
+  {
+    "id": "libo",
+    "name": "Lincoln Boyhood National Memorial",
+    "type": "National Memorial",
+    "state": "IN",
+    "lat": 38.11817004,
+    "lng": -86.99656861,
+    "established": "",
+    "description": "Abraham Lincoln grew from youth to manhood on this southern Indiana soil. Many character and moral traits of one of the world's most respected leaders was formed and nurtured here. Explore Lincoln's b"
+  },
+  {
+    "id": "liho",
+    "name": "Lincoln Home National Historic Site",
+    "type": "National Historic Site",
+    "state": "IL",
+    "lat": 39.79715642,
+    "lng": -89.64513397,
+    "established": "",
+    "description": "Abraham Lincoln believed in the ideal that everyone in America should have the opportunity to improve their economic and social condition. Lincoln’s life was the embodiment of that idea. We know him a"
+  },
+  {
+    "id": "libi",
+    "name": "Little Bighorn Battlefield National Monument",
+    "type": "National Monument",
+    "state": "MT",
+    "lat": 45.55633048,
+    "lng": -107.4183614,
+    "established": "",
+    "description": "This land is a place to honor and reflect on the sacrifices made here on June 25 and 26, 1876, when Lakota, Cheyenne, and Arapaho warriors fought against a deliberate attack by the U.S. Army's 7th Cav"
+  },
+  {
+    "id": "liri",
+    "name": "Little River Canyon National Preserve",
+    "type": "National Preserve",
+    "state": "AL",
+    "lat": 34.41461863,
+    "lng": -85.61734327,
+    "established": "",
+    "description": "Little River is unique because it flows for most of its length atop Lookout Mountain in northeast Alabama. Forested uplands, waterfalls, canyon rims and bluffs, pools, boulders, and sandstone cliffs o"
+  },
+  {
+    "id": "chsc",
+    "name": "Little Rock Central High School National Historic Site",
+    "type": "National Historic Site",
+    "state": "AR",
+    "lat": 34.7369465,
+    "lng": -92.29987899,
+    "established": "",
+    "description": "In 1957, Little Rock Central High School was the epicenter of confrontation and a catalyst for change as the fundamental test for the United States to enforce African American civil rights following B"
+  },
+  {
+    "id": "long",
+    "name": "Longfellow House Washington's Headquarters National Historic Site",
+    "type": "National Historic Site",
+    "state": "MA",
+    "lat": 42.37698854,
+    "lng": -71.12636956,
+    "established": "",
+    "description": "Longfellow House-Washington's Headquarters National Historic Site preserves a remarkable Georgian house whose occupants shaped our nation. It was a site of colonial enslavement and community activism,"
+  },
+  {
+    "id": "lowe",
+    "name": "Lowell National Historical Park",
+    "type": "National Historical Park",
+    "state": "MA",
+    "lat": 42.6455371,
+    "lng": -71.31588673,
+    "established": "",
+    "description": "Lowell’s water-powered textile mills catapulted the nation – including immigrant families and early female factory workers – into an uncertain new industrial era. Nearly 200 years later, the changes t"
+  },
+  {
+    "id": "lode",
+    "name": "Lower Delaware National Wild and Scenic River",
+    "type": "National Wild and Scenic River",
+    "state": "PA",
+    "lat": 40.4000389,
+    "lng": -74.983737,
+    "established": "",
+    "description": "The Delaware River, the largest free-flowing river in the eastern United States, runs past forests, farmlands and villages. It also links some of the most densely populated regions in America. In 2000"
+  },
+  {
+    "id": "loea",
+    "name": "Lower East Side Tenement Museum National Historic Site",
+    "type": "National Historic Site",
+    "state": "NY",
+    "lat": 40.7187683,
+    "lng": -73.99001245,
+    "established": "",
+    "description": "The Tenement Museum tells the stories of working-class tenement residents, who moved to New York City from other countries and other parts of the country. Their work helped build the city and nation, "
+  },
+  {
+    "id": "lyjo",
+    "name": "Lyndon B Johnson National Historical Park",
+    "type": "National Historical Park",
+    "state": "TX",
+    "lat": 30.2519655,
+    "lng": -98.60692433,
+    "established": "",
+    "description": "Lyndon B. Johnson National Historical Park tells the story of our 36th president beginning with his ancestors until his final resting place on his beloved LBJ Ranch. This entire \"circle of life\" gives"
+  },
+  {
+    "id": "mawa",
+    "name": "Maggie L Walker National Historic Site",
+    "type": "National Historic Site",
+    "state": "VA",
+    "lat": 37.54781499,
+    "lng": -77.43746979,
+    "established": "",
+    "description": "Maggie Lena Walker devoted her life to civil rights advancement, economic empowerment, and educational opportunities for Jim Crow-era African Americans and women. As a bank president, newspaper editor"
+  },
+  {
+    "id": "maca",
+    "name": "Mammoth Cave National Park",
+    "type": "National Park",
+    "state": "KY",
+    "lat": 37.19760458,
+    "lng": -86.13090198,
+    "established": "",
+    "description": "Rolling hills, deep river valleys, and the world's longest known cave system. Mammoth Cave National Park is home to thousands of years of human history and a rich diversity of plant and animal life, e"
+  },
+  {
+    "id": "mana",
+    "name": "Manassas National Battlefield Park",
+    "type": "National Battlefield Park",
+    "state": "VA",
+    "lat": 38.81710063,
+    "lng": -77.5353468,
+    "established": "",
+    "description": "On July 21, 1861, two armies clashed for the first time on the fields overlooking Bull Run. Heavy fighting swept away any notion of a quick war. In August 1862, Union and Confederate armies converged "
+  },
+  {
+    "id": "mapr",
+    "name": "Manhattan Project National Historical Park",
+    "type": "National Historical Park",
+    "state": "NM",
+    "lat": 35.88096,
+    "lng": -106.30214,
+    "established": "",
+    "description": "The Manhattan Project is one of the most transformative events of the 20th century. It ushered in the nuclear age with the development of the world’s first atomic bombs. Most of this development took "
+  },
+  {
+    "id": "manz",
+    "name": "Manzanar National Historic Site",
+    "type": "National Historic Site",
+    "state": "CA",
+    "lat": 36.72559195,
+    "lng": -118.1547177,
+    "established": "",
+    "description": "In 1942, the United States government ordered more than 110,000 men, women, and children to leave their homes and detained them in remote, military-style camps. Manzanar War Relocation Center was one "
+  },
+  {
+    "id": "mabi",
+    "name": "Marsh - Billings - Rockefeller National Historical Park",
+    "type": "National Historical Park",
+    "state": "VT",
+    "lat": 43.63348732,
+    "lng": -72.53424638,
+    "established": "",
+    "description": "Walk through one of Vermont's most beautiful landscapes under the shade of the Mount Tom Forest, the oldest continuously managed scientific forest in the United States. This is a landscape of loss, re"
+  },
+  {
+    "id": "malu",
+    "name": "Martin Luther King, Jr. National Historical Park",
+    "type": "National Historical Park",
+    "state": "GA",
+    "lat": 33.75618241,
+    "lng": -84.37256768,
+    "established": "",
+    "description": "Welcome to Martin Luther King, Jr. National Historical Park & Preservation District where a young boy grows up in a time of segregation. He was moved by destiny to lead the modern civil rights movemen"
+  },
+  {
+    "id": "mava",
+    "name": "Martin Van Buren National Historic Site",
+    "type": "National Historic Site",
+    "state": "NY",
+    "lat": 42.36819596,
+    "lng": -73.70834257,
+    "established": "",
+    "description": "Born in Kinderhook, New York, in 1782, Martin Van Buren was the first president born a US citizen. His life spanned the American Revolution to the Civil War and was shaped by the most important issues"
+  },
+  {
+    "id": "mamc",
+    "name": "Mary McLeod Bethune Council House National Historic Site",
+    "type": "National Historic Site",
+    "state": "DC",
+    "lat": 38.90819107,
+    "lng": -77.03096742,
+    "established": "",
+    "description": "Mary McLeod Bethune achieved her greatest recognition at the Washington, DC townhouse that is now this National Historic Site. The Council House was the first headquarters of the National Council of N"
+  },
+  {
+    "id": "memy",
+    "name": "Medgar and Myrlie Evers Home National Monument",
+    "type": "National Monument",
+    "state": "MS",
+    "lat": 32.34096274,
+    "lng": -90.21264553,
+    "established": "",
+    "description": "Medgar and Myrlie Evers were partners in the civil rights struggle. The assassination of Medgar Evers in the carport of their home on June 12, 1963, was the first murder of a nationally significant le"
+  },
+  {
+    "id": "meve",
+    "name": "Mesa Verde National Park",
+    "type": "National Park",
+    "state": "CO",
+    "lat": 37.23908345,
+    "lng": -108.4624032,
+    "established": "",
+    "description": "For over 700 years, the Ancestral Pueblo people built thriving communities on the mesas and in the cliffs of Mesa Verde. Today, the park protects the rich cultural heritage of 27 Pueblos and Tribes an"
+  },
+  {
+    "id": "misp",
+    "name": "Mill Springs Battlefield National Monument",
+    "type": "National Monument",
+    "state": "KY",
+    "lat": 37.0688158602,
+    "lng": -84.7375361304,
+    "established": "",
+    "description": "The US won a significant victory early in the Civil War at the Battle of Mill Springs. Explore the rolling fields of Kentucky where the battle took place and learn about that state's strategic importa"
+  },
+  {
+    "id": "miin",
+    "name": "Minidoka National Historic Site",
+    "type": "National Historic Site",
+    "state": "ID",
+    "lat": 42.678,
+    "lng": -114.2465,
+    "established": "",
+    "description": "During World War II, over 120,000 people of Japanese ancestry were forcibly removed from their homes and incarcerated without due process of law. Although little remains of the barbed-wire fences and "
+  },
+  {
+    "id": "mima",
+    "name": "Minute Man National Historical Park",
+    "type": "National Historical Park",
+    "state": "MA",
+    "lat": 42.4562778,
+    "lng": -71.30738884,
+    "established": "",
+    "description": "At Minute Man National Historical Park the opening battle of the Revolution is brought to life as visitors explore the battlefields and structures associated with April 19, 1775, and witness the Ameri"
+  },
+  {
+    "id": "mimi",
+    "name": "Minuteman Missile National Historic Site",
+    "type": "National Historic Site",
+    "state": "SD",
+    "lat": 43.89558013,
+    "lng": -102.0272131,
+    "established": "",
+    "description": "During the Cold War, a vast arsenal of nuclear missiles were placed in the Great Plains. Hidden in plain sight, for thirty years 1,000 missiles were kept on constant alert; hundreds remain today. The "
+  },
+  {
+    "id": "miss",
+    "name": "Mississippi National River & Recreation Area",
+    "type": "National River & Recreation Area",
+    "state": "MN",
+    "lat": 44.942487,
+    "lng": -93.098712,
+    "established": "",
+    "description": "In the middle of a bustling urban setting, this 72 mile river park offers quiet stretches for fishing, boating and canoeing, birdwatching, bicycling, and hiking. And there are plenty of visitor center"
+  },
+  {
+    "id": "mnrr",
+    "name": "Missouri National Recreational River",
+    "type": "National Recreational River",
+    "state": "SD",
+    "lat": 42.7882189,
+    "lng": -97.59077822,
+    "established": "",
+    "description": "Imagine a 100-mile stretch of North America's longest river, a vestige of the untamed American West. The Missouri National Recreational River is where imagination meets reality. Two free flowing stret"
+  },
+  {
+    "id": "moja",
+    "name": "Mojave National Preserve",
+    "type": "National Preserve",
+    "state": "CA",
+    "lat": 35.12485941,
+    "lng": -115.5168258,
+    "established": "",
+    "description": "Mojave preserves a diverse mosaic of ecological habitats and a 10,000 year history of human connection with the desert. Offering extensive opportunities to experience desert landscapes, the preserve p"
+  },
+  {
+    "id": "mono",
+    "name": "Monocacy National Battlefield",
+    "type": "National Battlefield",
+    "state": "MD",
+    "lat": 39.36084236,
+    "lng": -77.39637677,
+    "established": "",
+    "description": "During the summer of 1864, the Confederacy carried out a bold plan to turn the tide of the Civil War in their favor. They planned to capture Washington, DC and influence the election of 1864. On July "
+  },
+  {
+    "id": "moca",
+    "name": "Montezuma Castle National Monument",
+    "type": "National Monument",
+    "state": "AZ",
+    "lat": 34.62237771,
+    "lng": -111.8147857,
+    "established": "",
+    "description": "Established December 8, 1906, Montezuma Castle is the third National Monument dedicated to preserving Native American culture. This 20 room high-rise apartment, nestled into a towering limestone cliff"
+  },
+  {
+    "id": "mocr",
+    "name": "Moores Creek National Battlefield",
+    "type": "National Battlefield",
+    "state": "NC",
+    "lat": 34.45820776,
+    "lng": -78.11031134,
+    "established": "",
+    "description": "In the early morning hours of February 27, 1776, Loyalist forces charged across a partially dismantled Moores Creek Bridge. Beyond the bridge, nearly 1,000 North Carolina Patriots waited quietly with "
+  },
+  {
+    "id": "mopi",
+    "name": "Mormon Pioneer National Historic Trail",
+    "type": "National Historic Trail",
+    "state": "IL",
+    "lat": 41.2650321741,
+    "lng": -101.84083756,
+    "established": "",
+    "description": "Explore the Mormon Pioneer National Historic Trail across five states to see the 1,300-mile route traveled by Mormons who fled Nauvoo, Illinois, to the Great Salt Lake Valley in 1846-1847."
+  },
+  {
+    "id": "morr",
+    "name": "Morristown National Historical Park",
+    "type": "National Historical Park",
+    "state": "NJ",
+    "lat": 40.7650755,
+    "lng": -74.53455122,
+    "established": "",
+    "description": "Morristown National Historical Park commemorates the sites of General Washington and the Continental Army’s winter encampment from December 1779 to June 1780, where soldiers survived the coldest winte"
+  },
+  {
+    "id": "mora",
+    "name": "Mount Rainier National Park",
+    "type": "National Park",
+    "state": "WA",
+    "lat": 46.86075416,
+    "lng": -121.7043885,
+    "established": "",
+    "description": "Ascending to 14,410 feet above sea level, Mount Rainier stands as an icon in the Washington landscape. An active volcano, Mount Rainier is the most glaciated peak in the contiguous U.S.A., spawning fi"
+  },
+  {
+    "id": "moru",
+    "name": "Mount Rushmore National Memorial",
+    "type": "National Memorial",
+    "state": "SD",
+    "lat": 43.88037021,
+    "lng": -103.4525186,
+    "established": "",
+    "description": "Majestic figures of George Washington, Thomas Jefferson, Theodore Roosevelt and Abraham Lincoln, surrounded by the beauty of the Black Hills of South Dakota, tell the story of the birth, growth, devel"
+  },
+  {
+    "id": "muwo",
+    "name": "Muir Woods National Monument",
+    "type": "National Monument",
+    "state": "CA",
+    "lat": 37.89658027,
+    "lng": -122.5808047,
+    "established": "",
+    "description": "Walk among old growth coast redwoods, cooling their roots in the fresh water of Redwood Creek and lifting their crowns to reach the sun and fog. Federally protected as a National Monument since 1908, "
+  },
+  {
+    "id": "natc",
+    "name": "Natchez National Historical Park",
+    "type": "National Historical Park",
+    "state": "MS",
+    "lat": 31.54697621,
+    "lng": -91.39040665,
+    "established": "",
+    "description": "Discover the history of all the peoples of Natchez, Mississippi, from European settlement, African enslavement, the American cotton economy, to the Civil Rights struggle on the lower Mississippi River"
+  },
+  {
+    "id": "natt",
+    "name": "Natchez Trace National Scenic Trail",
+    "type": "National Scenic Trail",
+    "state": "AL",
+    "lat": 34.330290333,
+    "lng": -88.7100104094,
+    "established": "",
+    "description": "The Natchez Trace National Scenic Trail is five sections of hiking trail running roughly parallel to the 444-mile long Natchez Trace Parkway scenic motor road. The foot trails total more than 60 miles"
+  },
+  {
+    "id": "natr",
+    "name": "Natchez Trace Parkway",
+    "type": "Parkway",
+    "state": "AL",
+    "lat": 33.78002293,
+    "lng": -89.03092439,
+    "established": "",
+    "description": "The Natchez Trace Parkway is a 444-mile recreational road and scenic drive through three states. It roughly follows the \"Old Natchez Trace,\" a historic travel corridor used by American Indians, \"Kaint"
+  },
+  {
+    "id": "nabr",
+    "name": "Natural Bridges National Monument",
+    "type": "National Monument",
+    "state": "UT",
+    "lat": 37.6045329,
+    "lng": -110.0022436,
+    "established": "",
+    "description": "Three majestic natural bridges invite you to ponder the power of water in a landscape usually defined by its absence. View them from an overlook, or hit the trails and experience their grandeur from b"
+  },
+  {
+    "id": "nava",
+    "name": "Navajo National Monument",
+    "type": "National Monument",
+    "state": "AZ",
+    "lat": 36.71755643,
+    "lng": -110.5504015,
+    "established": "",
+    "description": "For centuries, the Hopi, San Juan Southern Paiute, Zuni, and Navajo people have lived in the canyons. Springs fed farmlands on the canyon floor and homes were built in the natural sandstone alcoves. T"
+  },
+  {
+    "id": "nebe",
+    "name": "New Bedford Whaling National Historical Park",
+    "type": "National Historical Park",
+    "state": "MA",
+    "lat": 41.63540552,
+    "lng": -70.92322321,
+    "established": "",
+    "description": "\"The town itself is perhaps the dearest place to live in, in all New England..nowhere in all America will you find more patrician-like houses, parks and gardens more opulent, than in New Bedford…all t"
+  },
+  {
+    "id": "neen",
+    "name": "New England National Scenic Trail",
+    "type": "National Scenic Trail",
+    "state": "MA",
+    "lat": 42.2915819137,
+    "lng": -72.5242767334,
+    "established": "",
+    "description": "From the Sound to the summits: the New England Trail covers 235 miles from Long Island Sound across long ridges to scenic mountain summits in Connecticut and Massachusetts. The trail offers panoramic "
+  },
+  {
+    "id": "pine",
+    "name": "New Jersey Pinelands National Reserve",
+    "type": "National Reserve",
+    "state": "NJ",
+    "lat": 39.9384,
+    "lng": -74.625,
+    "established": "",
+    "description": "This is truly a special place. It's classified as a United States Biosphere Reserve and in 1978 was established by Congress as the country’s first National Reserve. It includes portions of seven south"
+  },
+  {
+    "id": "jazz",
+    "name": "New Orleans Jazz National Historical Park",
+    "type": "National Historical Park",
+    "state": "LA",
+    "lat": 29.96303129,
+    "lng": -90.06749669,
+    "established": "",
+    "description": "Discover the roots of jazz at the New Orleans Jazz National Historical Park. Located in the heart of the French Quarter, our park offers live performances, exhibits, and programs that celebrate the le"
+  },
+  {
+    "id": "neph",
+    "name": "New Philadelphia National Historic Site",
+    "type": "National Historic Site",
+    "state": "IL",
+    "lat": 39.69803,
+    "lng": -90.96131,
+    "established": "",
+    "description": "To a casual observer, New Philadelphia looked like a typical Illinois pioneer town. But a closer look revealed a unique and racially diverse community. New Philadelphia was the first US town platted a"
+  },
+  {
+    "id": "neri",
+    "name": "New River Gorge National Park & Preserve",
+    "type": "National Park & Preserve",
+    "state": "WV",
+    "lat": 37.86878554,
+    "lng": -80.99956002,
+    "established": "",
+    "description": "A rugged, whitewater river flowing northward through deep canyons, the New River is among the oldest rivers on the continent. The park encompasses over 70,000 acres of land along the New River, is ric"
+  },
+  {
+    "id": "nepe",
+    "name": "Nez Perce National Historical Park",
+    "type": "National Historical Park",
+    "state": "ID",
+    "lat": 46.07019093,
+    "lng": -115.8761258,
+    "established": "",
+    "description": "Since time immemorial, the valleys, prairies, mountains, and plateaus of the inland northwest have been home to the nimíipuu (Nez Perce) people. Extremely resilient, they survived the settling of the "
+  },
+  {
+    "id": "nico",
+    "name": "Nicodemus National Historic Site",
+    "type": "National Historic Site",
+    "state": "KS",
+    "lat": 39.39167606,
+    "lng": -99.61680329,
+    "established": "",
+    "description": "Formerly enslaved African Americans left Kentucky at the end of the post-Civil War Reconstruction period to experience freedom in the \"Promised Land\" of Kansas. Nicodemus represents the involvement of"
+  },
+  {
+    "id": "nisi",
+    "name": "Ninety Six National Historic Site",
+    "type": "National Historic Site",
+    "state": "SC",
+    "lat": 34.14273587,
+    "lng": -82.01636079,
+    "established": "",
+    "description": "Settlers struggled against the harsh backcountry to survive. Cherokee Indians hunted and fought to keep their land. Two towns and a trading post were formed then abandoned to the elements. And two Rev"
+  },
+  {
+    "id": "niob",
+    "name": "Niobrara National Scenic River",
+    "type": "National Scenic River",
+    "state": "NE",
+    "lat": 42.79413083,
+    "lng": -99.91870646,
+    "established": "",
+    "description": "With a little something for everyone, the Niobrara National Scenic River is a destination for crossing adventures off your bucket list. Most popular for river recreation, you can float the Niobrara Ri"
+  },
+  {
+    "id": "noat",
+    "name": "Noatak National Preserve",
+    "type": "National Preserve",
+    "state": "AK",
+    "lat": 68.01027053,
+    "lng": -159.831694,
+    "established": "",
+    "description": "As one of North America's largest mountain-ringed river basins with an intact ecosystem, the Noatak River environs feature some of the Arctic's finest arrays of plants and animals. The river is classi"
+  },
+  {
+    "id": "noca",
+    "name": "North Cascades National Park",
+    "type": "National Park",
+    "state": "WA",
+    "lat": 48.71171756,
+    "lng": -121.2069423,
+    "established": "",
+    "description": "Less than three hours from Seattle, an alpine landscape beckons. Discover communities of life adapted to moisture in the west and recurring fire in the east. Explore jagged peaks crowned by more than "
+  },
+  {
+    "id": "noco",
+    "name": "North Country National Scenic Trail",
+    "type": "National Scenic Trail",
+    "state": "MI",
+    "lat": 46.334400743,
+    "lng": -90.8165630499,
+    "established": "",
+    "description": "Come to the North Country. Trek the hills and valleys. Stand on the shores of lakes & streams from glaciers 10,000 years before. Clear-flowing water, red/gold of autumn, a fairyland of snow, open prai"
+  },
+  {
+    "id": "obed",
+    "name": "Obed Wild & Scenic River",
+    "type": "Wild & Scenic River",
+    "state": "TN",
+    "lat": 36.1056026037,
+    "lng": -84.5979170501,
+    "established": "",
+    "description": "The Obed Wild and Scenic River looks much the same today as it did when the first white settlers strolled its banks in the late 1700s. While meagerly populated due to poor farming soil, the river was "
+  },
+  {
+    "id": "ocmu",
+    "name": "Ocmulgee Mounds National Historical Park",
+    "type": "National Historical Park",
+    "state": "GA",
+    "lat": 32.83816576,
+    "lng": -83.60224853,
+    "established": "",
+    "description": "Welcome to Ocmulgee Mounds National Historical Park. This park is a prehistoric American Indian site, where many different American Indian cultures occupied this land for thousands of years. American "
+  },
+  {
+    "id": "okci",
+    "name": "Oklahoma City National Memorial",
+    "type": "National Memorial",
+    "state": "OK",
+    "lat": 35.473,
+    "lng": -97.5171,
+    "established": "",
+    "description": "The outdoor symbolic memorial is a place of quiet reflection, honoring victims, survivors, rescuers, and all who were changed forever on April 19, 1995. It encompasses the now sacred soil where the Al"
+  },
+  {
+    "id": "olsp",
+    "name": "Old Spanish National Historic Trail",
+    "type": "National Historic Trail",
+    "state": "AZ",
+    "lat": 37.0791782514,
+    "lng": -112.114693431,
+    "established": "",
+    "description": "Follow the routes of mule pack trains across the Southwest on the Old Spanish National Historic Trail between Santa Fe, New Mexico, and Los Angeles, California. New Mexican traders moved locally produ"
+  },
+  {
+    "id": "olym",
+    "name": "Olympic National Park",
+    "type": "National Park",
+    "state": "WA",
+    "lat": 47.80392754,
+    "lng": -123.6663848,
+    "established": "",
+    "description": "With its incredible range of precipitation and elevation, diversity is the hallmark of Olympic National Park. Encompassing nearly a million acres, the park protects a vast wilderness, thousands of yea"
+  },
+  {
+    "id": "orca",
+    "name": "Oregon Caves National Monument & Preserve",
+    "type": "National Monument & Preserve",
+    "state": "OR",
+    "lat": 42.10319143,
+    "lng": -123.4018586,
+    "established": "",
+    "description": "Deep within the Siskiyou Mountains are dark, twisting passages that await your discovery. Eons of acidic water seeping into marble rock created and decorated the wondrous “Marble Halls of Oregon.” Joi"
+  },
+  {
+    "id": "oreg",
+    "name": "Oregon National Historic Trail",
+    "type": "National Historic Trail",
+    "state": "ID",
+    "lat": 41.9876977831,
+    "lng": -109.634200841,
+    "established": "",
+    "description": "Imagine yourself an emigrant headed for Oregon: would promises of lush farmlands and a new beginning lure you to leave home and walk for weeks? More than 2,000 miles of trail ruts and traces can still"
+  },
+  {
+    "id": "orpi",
+    "name": "Organ Pipe Cactus National Monument",
+    "type": "National Monument",
+    "state": "AZ",
+    "lat": 32.03585543,
+    "lng": -112.8573314,
+    "established": "",
+    "description": "Look closely. Look again. The sights and sounds of Organ Pipe Cactus National Monument, an International Biosphere Reserve, reveal a thriving community of plants and animals. Human stories echo throug"
+  },
+  {
+    "id": "ovvi",
+    "name": "Overmountain Victory National Historic Trail",
+    "type": "National Historic Trail",
+    "state": "NC",
+    "lat": 35.14044,
+    "lng": -81.377,
+    "established": "",
+    "description": "Stretching 330-miles through four states (Virginia, Tennessee, North and South Carolina) the Overmountain Victory National Historic Trail traces the route used by Patriot militia during the pivotal Ki"
+  },
+  {
+    "id": "ozar",
+    "name": "Ozark National Scenic Riverways",
+    "type": "National Scenic Riverways",
+    "state": "MO",
+    "lat": 37.13968894,
+    "lng": -91.25709817,
+    "established": "",
+    "description": "Ozark National Scenic Riverways is the first national park area to protect a river system. The Current and Jacks Fork rivers are two of the finest floating rivers found anywhere. Spring-fed, cold and "
+  },
+  {
+    "id": "pais",
+    "name": "Padre Island National Seashore",
+    "type": "National Seashore",
+    "state": "TX",
+    "lat": 27.05381186,
+    "lng": -97.35901135,
+    "established": "",
+    "description": "Protecting sixty-six miles of wild coastline along the Gulf of America, the narrow barrier island is home to one of the last intact coastal prairie habitats in the United States. Along the hypersaline"
+  },
+  {
+    "id": "paal",
+    "name": "Palo Alto Battlefield National Historical Park",
+    "type": "National Historical Park",
+    "state": "TX",
+    "lat": 26.02387351,
+    "lng": -97.46296072,
+    "established": "",
+    "description": "On May 8, 1846, U.S. and Mexican troops clashed on the prairie of Palo Alto. The battle was the first in a two-year long war that changed the map of North America. Although the two countries have deve"
+  },
+  {
+    "id": "pagr",
+    "name": "Paterson Great Falls National Historical Park",
+    "type": "National Historical Park",
+    "state": "NJ",
+    "lat": 40.91584645,
+    "lng": -74.18021494,
+    "established": "",
+    "description": "Silk cloth and steam locomotives; textiles and continuous paper rolls; firearms and aircraft engines. What do these things have in common? All were manufactured in the same place - Paterson, NJ. In 17"
+  },
+  {
+    "id": "peri",
+    "name": "Pea Ridge National Military Park",
+    "type": "National Military Park",
+    "state": "AR",
+    "lat": 36.45438033,
+    "lng": -94.03468357,
+    "established": "",
+    "description": "On March 7-8, 1862, over 23,000 soldiers fought here to decide the fate of Missouri which was a turning point of the war in the Trans-Mississippi. This 4,400-acre battlefield honors those who fought a"
+  },
+  {
+    "id": "valr",
+    "name": "Pearl Harbor National Memorial",
+    "type": "National Memorial",
+    "state": "HI",
+    "lat": 21.3670699388,
+    "lng": -157.938578898,
+    "established": "",
+    "description": "At Pearl Harbor National Memorial, we honor the lives affected by the December 7, 1941, attack. This pivotal moment in global history marked the United States' entry into World War II, impacting natio"
+  },
+  {
+    "id": "peco",
+    "name": "Pecos National Historical Park",
+    "type": "National Historical Park",
+    "state": "NM",
+    "lat": 35.54192238,
+    "lng": -105.6814684,
+    "established": "",
+    "description": "Pecos is a natural and cultural crossroads through which hunters, gatherers, traders, missionaries, immigrants, soldiers, ranchers, and other travelers passed and lived. Follow in their footsteps and "
+  },
+  {
+    "id": "pevi",
+    "name": "Perry's Victory & International Peace Memorial",
+    "type": "Memorial",
+    "state": "OH",
+    "lat": 41.65449782,
+    "lng": -82.8115794,
+    "established": "",
+    "description": "Perry's Victory and International Peace Memorial was established to honor those who fought in the Battle of Lake Erie, during the War of 1812, and to celebrate the long-lasting peace among Great Brita"
+  },
+  {
+    "id": "pete",
+    "name": "Petersburg National Battlefield",
+    "type": "National Battlefield",
+    "state": "VA",
+    "lat": 37.19109957,
+    "lng": -77.47594865,
+    "established": "",
+    "description": "Two hundred ninety-two days, eight offensives, over 70,000 casualties, U. S. Colored Troops, and the decline of Gen. Lee's Army of Northern Virginia all describe the Siege of Petersburg. U.S. forces c"
+  },
+  {
+    "id": "pefo",
+    "name": "Petrified Forest National Park",
+    "type": "National Park",
+    "state": "AZ",
+    "lat": 34.98387664,
+    "lng": -109.7877678,
+    "established": "",
+    "description": "Park Hours: 8am to 5pm, MST. Don't forget that Arizona does not observe Daylight Savings. Petrified Forest is best known for its Triassic fossils. It's like having two parks in one, an ecosystem over "
+  },
+  {
+    "id": "petr",
+    "name": "Petroglyph National Monument",
+    "type": "National Monument",
+    "state": "NM",
+    "lat": 35.13915998,
+    "lng": -106.7491456,
+    "established": "",
+    "description": "Petroglyph National Monument protects one of the largest petroglyph sites in North America, featuring designs and symbols carved onto volcanic rocks by Native Americans and Spanish settlers 400 to 700"
+  },
+  {
+    "id": "piro",
+    "name": "Pictured Rocks National Lakeshore",
+    "type": "National Lakeshore",
+    "state": "MI",
+    "lat": 46.56435642,
+    "lng": -86.31628733,
+    "established": "",
+    "description": "Sandstone cliffs, beaches, waterfalls, sand dunes, inland lakes, deep forest, and wild shoreline beckon you to visit Pictured Rocks National Lakeshore. The power of Lake Superior shapes the park's coa"
+  },
+  {
+    "id": "pinn",
+    "name": "Pinnacles National Park",
+    "type": "National Park",
+    "state": "CA",
+    "lat": 36.49029208,
+    "lng": -121.1813607,
+    "established": "",
+    "description": "Around 23 million years ago, a series of volcanic eruptions shaped the landscape that is now Pinnacles National Park. The remnants of these ancient eruptions have formed a striking terrain of rocky sp"
+  },
+  {
+    "id": "pisp",
+    "name": "Pipe Spring National Monument",
+    "type": "National Monument",
+    "state": "AZ",
+    "lat": 36.86282666,
+    "lng": -112.7398567,
+    "established": "",
+    "description": "The rich history of Pipe Spring and its flowing water comes alive as you explore the traditions of the Kaibab Paiute and the Mormon settlers through the museum, historic fort, cabins, and garden. Hike"
+  },
+  {
+    "id": "pipe",
+    "name": "Pipestone National Monument",
+    "type": "National Monument",
+    "state": "MN",
+    "lat": 44.01351958,
+    "lng": -96.32475523,
+    "established": "",
+    "description": "For over 3,000 years, Indigenous people have quarried the red stone at this site to make pipes used in prayer and ceremony - a tradition that continues to this day and makes this site sacred to many p"
+  },
+  {
+    "id": "pisc",
+    "name": "Piscataway Park",
+    "type": "Park",
+    "state": "MD",
+    "lat": 38.6929,
+    "lng": -77.067,
+    "established": "",
+    "description": "Piscataway Park is home to bald eagles, beavers, deer, foxes, ospreys, and many other species. To complement the surroundings, the park has, in addition to a public fishing pier and two boardwalks ove"
+  },
+  {
+    "id": "pore",
+    "name": "Point Reyes National Seashore",
+    "type": "National Seashore",
+    "state": "CA",
+    "lat": 38.05511241,
+    "lng": -122.8797804,
+    "established": "",
+    "description": "From its thunderous ocean breakers crashing against rocky headlands and expansive sand beaches to its open grasslands, brushy hillsides, and forested ridges, Point Reyes offers visitors over 1500 spec"
+  },
+  {
+    "id": "poex",
+    "name": "Pony Express National Historic Trail",
+    "type": "National Historic Trail",
+    "state": "CA",
+    "lat": 42.2365761128,
+    "lng": -109.266148417,
+    "established": "",
+    "description": "It is hard to believe that young men once rode horses to carry mail from Missouri to California in the unprecedented time of only 10 days. This relay system along the Pony Express National Historic Tr"
+  },
+  {
+    "id": "poch",
+    "name": "Port Chicago Naval Magazine National Memorial",
+    "type": "National Memorial",
+    "state": "CA",
+    "lat": 38.05685472,
+    "lng": -122.0301603,
+    "established": "",
+    "description": "On July 17, 1944, a massive explosion jolted the San Francisco East Bay area, shattering windows and lighting up the night sky. At Port Chicago Naval Magazine, 320 men were killed instantly when two s"
+  },
+  {
+    "id": "pohe",
+    "name": "Potomac Heritage National Scenic Trail",
+    "type": "National Scenic Trail",
+    "state": "DC",
+    "lat": 39.15060133,
+    "lng": -77.52301085,
+    "established": "",
+    "description": "The Potomac River corridor is rich in both history and recreation, offering a chance to both explore your heritage and choose your adventure along the way. Start your journey here!"
+  },
+  {
+    "id": "popo",
+    "name": "Poverty Point National Monument",
+    "type": "National Monument",
+    "state": "LA",
+    "lat": 32.6424361,
+    "lng": -91.40829834,
+    "established": "",
+    "description": "Now a nearly forgotten culture, Poverty Point at its peak 3,000 years ago was part of an enormous trading network that stretched for hundreds of miles across the continent. It was - and is - also an e"
+  },
+  {
+    "id": "wicl",
+    "name": "President William Jefferson Clinton Birthplace Home National Historic Site",
+    "type": "National Historic Site",
+    "state": "AR",
+    "lat": 33.66758356,
+    "lng": -93.59641868,
+    "established": "",
+    "description": "Named for the father who died shortly before his birth, William Jefferson Blythe III later became the 42nd President of the United States. In Hope, the experiences shared with his mother and grandpare"
+  },
+  {
+    "id": "prwi",
+    "name": "Prince William Forest Park",
+    "type": "Park",
+    "state": "VA",
+    "lat": 38.58589108,
+    "lng": -77.38910997,
+    "established": "",
+    "description": "Prince William Forest Park is an oasis, a respite of quiet and calm. In 1936, Chopawamsic Recreation Area opened its gates to house children's 'relief' camps during the Great Depression. Renamed Princ"
+  },
+  {
+    "id": "pull",
+    "name": "Pullman National Historical Park",
+    "type": "National Historical Park",
+    "state": "IL",
+    "lat": 41.69429163,
+    "lng": -87.60873824,
+    "established": "",
+    "description": "In a growing Chicago neighborhood, diverse people and stories intertwined. All were seeking opportunity. Some succeeded. Others were limited—by race, gender, or economic status. Their stories came tog"
+  },
+  {
+    "id": "puho",
+    "name": "Puʻuhonua o Hōnaunau National Historical Park",
+    "type": "National Historical Park",
+    "state": "HI",
+    "lat": 19.41268627,
+    "lng": -155.9008789,
+    "established": "",
+    "description": "Imagine you had just broken the sacred laws, the kapu, and the only punishment was death. Your only chance of survival is to elude your pursuers and reach the Puʻuhonua, a place of refuge. The Puʻuhon"
+  },
+  {
+    "id": "puhe",
+    "name": "Puʻukoholā Heiau National Historic Site",
+    "type": "National Historic Site",
+    "state": "HI",
+    "lat": 20.02772186,
+    "lng": -155.8211629,
+    "established": "",
+    "description": "How many places in America can you walk in the footsteps of a king? Where else has a stranded sailor risen up to become a great chief over an entire island? Where else can you experience the culminati"
+  },
+  {
+    "id": "rabr",
+    "name": "Rainbow Bridge National Monument",
+    "type": "National Monument",
+    "state": "UT",
+    "lat": 37.0779,
+    "lng": -110.9655,
+    "established": "",
+    "description": "Rainbow Bridge is one of the world's largest known natural bridges. The span has undoubtedly inspired people throughout time--from the neighboring Native American tribes who consider Rainbow Bridge sa"
+  },
+  {
+    "id": "reer",
+    "name": "Reconstruction Era National Historical Park",
+    "type": "National Historical Park",
+    "state": "SC",
+    "lat": 32.3868598938,
+    "lng": -80.6511077881,
+    "established": "",
+    "description": "The Reconstruction era,1861-1900 the historic period in which the United States grappled with the question of how to integrate millions of newly freed African Americans into social, political, economi"
+  },
+  {
+    "id": "redw",
+    "name": "Redwood National and State Parks",
+    "type": "National and State Parks",
+    "state": "CA",
+    "lat": 41.37237268,
+    "lng": -124.0318129,
+    "established": "",
+    "description": "Renowned for the world’s tallest trees, Redwood’s landscapes span from open prairies and oak woodlands to pristine rivers and untamed coastline. This ancient home has supported people for thousands of"
+  },
+  {
+    "id": "rich",
+    "name": "Richmond National Battlefield Park",
+    "type": "National Battlefield Park",
+    "state": "VA",
+    "lat": 37.48774472,
+    "lng": -77.29107785,
+    "established": "",
+    "description": "The center of Confederate manufacturing fueled a modern war, one of the South’s largest hospitals gave care to the sick and wounded, and armies battled on open fields and in miles of defensive earthwo"
+  },
+  {
+    "id": "rigr",
+    "name": "Rio Grande Wild & Scenic River",
+    "type": "Wild & Scenic River",
+    "state": "TX",
+    "lat": 29.881,
+    "lng": -102.3188,
+    "established": "",
+    "description": "For 196 miles, this free-flowing stretch of the Rio Grande winds its way through desert expanses and stunning canyons of stratified rock. For the well prepared, an extended float trip provides opportu"
+  },
+  {
+    "id": "rira",
+    "name": "River Raisin National Battlefield Park",
+    "type": "National Battlefield Park",
+    "state": "MI",
+    "lat": 41.91291085,
+    "lng": -83.37620464,
+    "established": "",
+    "description": "River Raisin NBP preserves, commemorates, and interprets the January 1813 battles of the War of 1812 and their aftermath. Battles that resulted in the greatest victory for Tecumseh’s Confederation and"
+  },
+  {
+    "id": "rocr",
+    "name": "Rock Creek Park",
+    "type": "Park",
+    "state": "DC",
+    "lat": 38.95125063,
+    "lng": -77.05002838,
+    "established": "",
+    "description": "Rock Creek Park is truly a gem in our nation's capital. This 1,754 acre city park was officially authorized in 1890, making it the third national park to be designated by the federal government. It of"
+  },
+  {
+    "id": "romo",
+    "name": "Rocky Mountain National Park",
+    "type": "National Park",
+    "state": "CO",
+    "lat": 40.3556924,
+    "lng": -105.6972879,
+    "established": "",
+    "description": "Rocky Mountain National Park's 415 square miles (265,807 acres) encompasses a spectacular range of mountain environments. From meadows found in the montane life zone to glistening alpine lakes and up "
+  },
+  {
+    "id": "rowi",
+    "name": "Roger Williams National Memorial",
+    "type": "National Memorial",
+    "state": "RI",
+    "lat": 41.8298955,
+    "lng": -71.41056665,
+    "established": "",
+    "description": "\"I acknowledge that to molest any person, Jew or Gentile, for either professing doctrine, or practicing worship meerly religious or spiritual, is to persecute him, and such a person (whether his doctr"
+  },
+  {
+    "id": "roca",
+    "name": "Roosevelt Campobello International Park",
+    "type": "International Park",
+    "state": "ME",
+    "lat": 44.8736,
+    "lng": -66.9621,
+    "established": "",
+    "description": "For many years, Franklin D. Roosevelt summered on Campobello Island. As an adult, he shared with his family the same active pursuits he enjoyed on the island as child. Although he visited less frequen"
+  },
+  {
+    "id": "rori",
+    "name": "Rosie the Riveter WWII Home Front National Historical Park",
+    "type": "National Historical Park",
+    "state": "CA",
+    "lat": 37.90999027,
+    "lng": -122.360156,
+    "established": "",
+    "description": "Celebrate and honor the contributions and sacrifices of American civilians on the WWII home front. Discover how diverse communities lived, worked, and interacted. Many faces, many stories, many truths"
+  },
+  {
+    "id": "ruca",
+    "name": "Russell Cave National Monument",
+    "type": "National Monument",
+    "state": "AL",
+    "lat": 34.97402063,
+    "lng": -85.81560314,
+    "established": "",
+    "description": "Russell Cave National Monument is an archeological site with one of the most complete records of prehistoric cultures in the Southeast. In the 1950s, archeologists uncovered a large quantity of artifa"
+  },
+  {
+    "id": "sahi",
+    "name": "Sagamore Hill National Historic Site",
+    "type": "National Historic Site",
+    "state": "NY",
+    "lat": 40.88579128,
+    "lng": -73.49686438,
+    "established": "",
+    "description": "Sagamore Hill was the home of Theodore Roosevelt, 26th President of the United States, from 1885 until his death in 1919. During Roosevelt's time in office, his \"Summer White House\" was the focus of i"
+  },
+  {
+    "id": "sagu",
+    "name": "Saguaro National Park",
+    "type": "National Park",
+    "state": "AZ",
+    "lat": 32.20909636,
+    "lng": -110.7574974,
+    "established": "",
+    "description": "Tucson, Arizona is home to the nation's largest cacti. The giant saguaro is the universal symbol of the American west. These majestic plants, found only in a small portion of the United States, are pr"
+  },
+  {
+    "id": "sacr",
+    "name": "Saint Croix Island International Historic Site",
+    "type": "International Historic Site",
+    "state": "ME",
+    "lat": 45.12858838,
+    "lng": -67.13363651,
+    "established": "",
+    "description": "The winter of 1604-1605 on Saint Croix Island was a cruel one for Pierre Dugua's French expedition. Iced in by freezing temperatures and cut off from fresh water and game, 35 of 79 men died. As spring"
+  },
+  {
+    "id": "sacn",
+    "name": "Saint Croix National Scenic Riverway",
+    "type": "National Scenic Riverway",
+    "state": "WI",
+    "lat": 45.70019235,
+    "lng": -92.36126685,
+    "established": "",
+    "description": "Grab your paddle and your longing for adventure and head to the St. Croix and Namekagon rivers! Together they form the St. Croix National Scenic Riverway, offering over 200 miles of clean water that g"
+  },
+  {
+    "id": "sapa",
+    "name": "Saint Paul's Church National Historic Site",
+    "type": "National Historic Site",
+    "state": "NY",
+    "lat": 40.89283511,
+    "lng": -73.82577276,
+    "established": "",
+    "description": "Since 1665, Saint Paul's Church played a vital role in the colonial life of Eastchester, 20 miles north of New York City. Townspeople voted at the nearby Village Green; local militia drilled outside i"
+  },
+  {
+    "id": "saga",
+    "name": "Saint-Gaudens National Historical Park",
+    "type": "National Historical Park",
+    "state": "NH",
+    "lat": 43.4997238,
+    "lng": -72.37333969,
+    "established": "",
+    "description": "Your National Park for the Arts preserves the home and studio of sculptor Augustus Saint-Gaudens (1848-1907). Here stories flow through a landscape of inspiration. Discover the history behind the capt"
+  },
+  {
+    "id": "sama",
+    "name": "Salem Maritime National Historical Park",
+    "type": "National Historical Park",
+    "state": "MA",
+    "lat": 42.52024529,
+    "lng": -70.88640867,
+    "established": "",
+    "description": "Originally established in 1938 as the first National Historic Site in the United States, Salem Maritime National Historical Park consists of nine acres of land and twelve historic structures along the"
+  },
+  {
+    "id": "sapu",
+    "name": "Salinas Pueblo Missions National Monument",
+    "type": "National Monument",
+    "state": "NM",
+    "lat": 34.35423203,
+    "lng": -106.2050309,
+    "established": "",
+    "description": "Tucked away in the middle of New Mexico you’ll find Salinas Pueblo Missions National Monument. Its three distinct sites offer a glimpse into a unique time in history—a time entrenched with cultural bo"
+  },
+  {
+    "id": "sari",
+    "name": "Salt River Bay National Historical Park and Ecological Preserve",
+    "type": "National Historical Park and Ecological Preserve",
+    "state": "VI",
+    "lat": 17.77908602,
+    "lng": -64.75519348,
+    "established": "",
+    "description": "Salt River Bay National Historical Park and Ecological Preserve uniquely documents the human and natural Caribbean world from the earliest indigenous settlements in the central Caribbean to their clas"
+  },
+  {
+    "id": "saan",
+    "name": "San Antonio Missions National Historical Park",
+    "type": "National Historical Park",
+    "state": "TX",
+    "lat": 29.31262089,
+    "lng": -98.4289522,
+    "established": "",
+    "description": "Welcome to San Antonio Missions, a National Park Service site and the only UNESCO World Heritage Site in Texas. Each mission in the park is a center of community and has been since the early 1700s. Th"
+  },
+  {
+    "id": "safr",
+    "name": "San Francisco Maritime National Historical Park",
+    "type": "National Historical Park",
+    "state": "CA",
+    "lat": 37.81005871,
+    "lng": -122.4244415,
+    "established": "",
+    "description": "Established in 1988, San Francisco Maritime National Historical Park celebrates America’s maritime heritage on the Pacific Coast. Our 50-acre park has grown around Aquatic Park Cove, a protected area "
+  },
+  {
+    "id": "sajh",
+    "name": "San Juan Island National Historical Park",
+    "type": "National Historical Park",
+    "state": "WA",
+    "lat": 48.51241933,
+    "lng": -123.0610277,
+    "established": "",
+    "description": "San Juan Island is well known for its splendid vistas, saltwater shores, quiet woodlands, orca whales and one of the last remaining native prairies in the Puget Sound/Northern Straits region. But it w"
+  },
+  {
+    "id": "saju",
+    "name": "San Juan National Historic Site",
+    "type": "National Historic Site",
+    "state": "PR",
+    "lat": 18.46873857,
+    "lng": -66.11848623,
+    "established": "",
+    "description": "San Juan National Historic Site preserves stories of great ambition and aspirations. Countries fought for control of this tiny yet strategic island for centuries. Generations of soldiers have lived an"
+  },
+  {
+    "id": "sand",
+    "name": "Sand Creek Massacre National Historic Site",
+    "type": "National Historic Site",
+    "state": "CO",
+    "lat": 38.56414189,
+    "lng": -102.5169542,
+    "established": "",
+    "description": "On November 29th, 1864, Chiefs Black Kettle, White Antelope, Left Hand and others were encamped with around 750 Arapaho and Cheyenne people in a valley by the Big Sandy Creek. A hope for peace, brough"
+  },
+  {
+    "id": "safe",
+    "name": "Santa Fe National Historic Trail",
+    "type": "National Historic Trail",
+    "state": "CO",
+    "lat": 37.7276522226,
+    "lng": -99.921969227,
+    "established": "",
+    "description": "You can almost hear the whoops and cries of \"All's set!\" as trail hands hitched their oxen to freight wagons carrying cargo between western Missouri and Santa Fe, New Mexico. Follow the Santa Fe Natio"
+  },
+  {
+    "id": "samo",
+    "name": "Santa Monica Mountains National Recreation Area",
+    "type": "National Recreation Area",
+    "state": "CA",
+    "lat": 34.09777606,
+    "lng": -118.7708619,
+    "established": "",
+    "description": "The Santa Monica Mountains offer easy access to surprisingly wild places. Experience the famous beaches of Malibu or explore more than 500 miles of trails. The park abounds with historical and cultura"
+  },
+  {
+    "id": "sara",
+    "name": "Saratoga National Historical Park",
+    "type": "National Historical Park",
+    "state": "NY",
+    "lat": 42.99522612,
+    "lng": -73.63386108,
+    "established": "",
+    "description": "In 1777, a large British invasion force met an equally large American army here at Saratoga. After two intense battles, an eight-mile retreat, and a three-day siege, British General John Burgoyne surr"
+  },
+  {
+    "id": "sair",
+    "name": "Saugus Iron Works National Historic Site",
+    "type": "National Historic Site",
+    "state": "MA",
+    "lat": 42.46830664,
+    "lng": -71.0076953,
+    "established": "",
+    "description": "In the 1600's, on the banks of the Saugus River, something extraordinary happened! Explore the place where European iron makers brought their special skills to a young Massachusetts colony. Saugus Iro"
+  },
+  {
+    "id": "scbl",
+    "name": "Scotts Bluff National Monument",
+    "type": "National Monument",
+    "state": "NE",
+    "lat": 41.83464193,
+    "lng": -103.7071351,
+    "established": "",
+    "description": "Towering 800 feet above the North Platte River, Scotts Bluff has served as a landmark for peoples from Native Americans to emigrants on the Oregon, California and Mormon Trails to modern travelers. Ri"
+  },
+  {
+    "id": "semo",
+    "name": "Selma To Montgomery National Historic Trail",
+    "type": "National Historic Trail",
+    "state": "AL",
+    "lat": 32.27082092,
+    "lng": -86.72823702,
+    "established": "",
+    "description": "Established by Congress in 1996, the Selma to Montgomery National Historic Trail commemorates the people, events, and route of the 1965 Voting Rights March in Alabama. Led by Dr. Martin Luther King, J"
+  },
+  {
+    "id": "seki",
+    "name": "Sequoia & Kings Canyon National Parks",
+    "type": "National Parks",
+    "state": "CA",
+    "lat": 36.71277299,
+    "lng": -118.587429,
+    "established": "",
+    "description": "Huge mountains, rugged foothills, deep canyons, vast caverns, and the world’s largest trees exemplify the diversity of landscapes, life, and beauty here. Explore these pages to plan your visit or to l"
+  },
+  {
+    "id": "shen",
+    "name": "Shenandoah National Park",
+    "type": "National Park",
+    "state": "VA",
+    "lat": 38.49236644,
+    "lng": -78.46907715,
+    "established": "",
+    "description": "Just 75 miles from the bustle of Washington, D.C., Shenandoah National Park is a land bursting with cascading waterfalls, spectacular vistas, fields of wildflowers, and quiet wooded hollows. With over"
+  },
+  {
+    "id": "shil",
+    "name": "Shiloh National Military Park",
+    "type": "National Military Park",
+    "state": "TN",
+    "lat": 35.13850907,
+    "lng": -88.3421072,
+    "established": "",
+    "description": "Visit the sites of the most epic struggle in the Western Theater of the Civil War. Nearly 110,000 American troops clashed in a bloody contest that resulted in 23,746 casualties; more casualties than i"
+  },
+  {
+    "id": "sitk",
+    "name": "Sitka National Historical Park",
+    "type": "National Historical Park",
+    "state": "AK",
+    "lat": 57.04718173,
+    "lng": -135.3156876,
+    "established": "",
+    "description": "On an island amid towering spruce and hemlock, Sitka National Historical Park preserves the site of a battle between invading Russian traders and Indigenous Kiks.ádi Tlingit. Totem poles from Tlingit "
+  },
+  {
+    "id": "slbe",
+    "name": "Sleeping Bear Dunes National Lakeshore",
+    "type": "National Lakeshore",
+    "state": "MI",
+    "lat": 44.92844962,
+    "lng": -86.02706591,
+    "established": "",
+    "description": "Miles of sand beach, bluffs that tower 450’ above Lake Michigan, lush forests, clear inland lakes, unique flora and fauna make up the natural world of Sleeping Bear Dunes. High dunes afford spectacula"
+  },
+  {
+    "id": "spra",
+    "name": "Springfield 1908 Race Riot National Monument",
+    "type": "National Monument",
+    "state": "IL",
+    "lat": 39.8027,
+    "lng": -89.6422,
+    "established": "",
+    "description": "In August 1908, a large White mob attacked the Black community in Springfield, Illinois. Rioters destroyed homes and businesses and lynched two men. The event led to the founding of the National Assoc"
+  },
+  {
+    "id": "spar",
+    "name": "Springfield Armory National Historic Site",
+    "type": "National Historic Site",
+    "state": "MA",
+    "lat": 42.1086368,
+    "lng": -72.57967415,
+    "established": "",
+    "description": "For nearly two centuries, the U.S. Armed Forces and American industry looked to Springfield Armory for innovative engineering and superior firearms. Springfield Armory National Historic Site commemora"
+  },
+  {
+    "id": "stsp",
+    "name": "Star-Spangled Banner National Historic Trail",
+    "type": "National Historic Trail",
+    "state": "MD",
+    "lat": 39.2872505188,
+    "lng": -76.6034317017,
+    "established": "",
+    "description": "The Star-Spangled Banner National Historic Trail is a collection of sites impacted by the War of 1812. These local, historic sites tell the story of the Chesapeake Campaign, culminating in the writing"
+  },
+  {
+    "id": "stli",
+    "name": "Statue Of Liberty National Monument",
+    "type": "National Monument",
+    "state": "NY",
+    "lat": 40.6898,
+    "lng": -74.0451,
+    "established": "",
+    "description": "A gift of friendship from the people of France to the United States \"The Statue of Liberty Enlightening the World\" is recognized as a universal symbol of freedom and democracy. It was dedicated by Pre"
+  },
+  {
+    "id": "stge",
+    "name": "Ste. Geneviève National Historical Park",
+    "type": "National Historical Park",
+    "state": "MO",
+    "lat": 37.9792171421,
+    "lng": -90.0432157516,
+    "established": "",
+    "description": "Established by 1750, Ste. Geneviève was the first permanent European settlement in Missouri. Early French Canadian settlers were drawn here by the rich agricultural land known as Le Grand Champ (the B"
+  },
+  {
+    "id": "stea",
+    "name": "Steamtown National Historic Site",
+    "type": "National Historic Site",
+    "state": "PA",
+    "lat": 41.40757521,
+    "lng": -75.67037255,
+    "established": "",
+    "description": "Feel the heat from the firebox, smell hot steam and oil; hear the whistle and the \"chuff-chuff\" from the smokestack, feel the ground vibrate, and watch as one-ton drive rods turn steel wheels. Discove"
+  },
+  {
+    "id": "stri",
+    "name": "Stones River National Battlefield",
+    "type": "National Battlefield",
+    "state": "TN",
+    "lat": 35.87608652,
+    "lng": -86.43078399,
+    "established": "",
+    "description": "The Battle of Stones River began on the last day of 1862 and became one of the bloodiest conflicts of the Civil War. The battle produced important military and political gains for the Union, and it ch"
+  },
+  {
+    "id": "ston",
+    "name": "Stonewall National Monument",
+    "type": "National Monument",
+    "state": "NY",
+    "lat": 40.7337799072,
+    "lng": -74.0006866455,
+    "established": "",
+    "description": "Before the 1960s, almost everything about living authentically as a lesbian, a bisexual person or a gay man was illegal. The Stonewall Uprising on June 28, 1969 is a milestone in the quest for civil r"
+  },
+  {
+    "id": "sucr",
+    "name": "Sunset Crater Volcano National Monument",
+    "type": "National Monument",
+    "state": "AZ",
+    "lat": 35.37114323,
+    "lng": -111.510376,
+    "established": "",
+    "description": "The lava flow lies on the land like a dream, a wonderland of rock. A thousand years ago the ground was torn open and lava erupted into the sky, forever changing the landscape and the lives of the peop"
+  },
+  {
+    "id": "tapr",
+    "name": "Tallgrass Prairie National Preserve",
+    "type": "National Preserve",
+    "state": "KS",
+    "lat": 38.44023613,
+    "lng": -96.5670822,
+    "established": "",
+    "description": "Tallgrass prairie once covered 170 million acres of North America, but within a generation most of it had been transformed into farms, cities, and towns. Today less than 4% remains intact, mostly in t"
+  },
+  {
+    "id": "thko",
+    "name": "Thaddeus Kosciuszko National Memorial",
+    "type": "National Memorial",
+    "state": "PA",
+    "lat": 39.94345312,
+    "lng": -75.14732045,
+    "established": "",
+    "description": "Visit the house where wounded Polish freedom fighter Thaddeus Kosciuszko lived and hear how this brilliant military engineer designed successful fortifications during the American Revolution. See the "
+  },
+  {
+    "id": "thrb",
+    "name": "Theodore Roosevelt Birthplace National Historic Site",
+    "type": "National Historic Site",
+    "state": "NY",
+    "lat": 40.7386469,
+    "lng": -73.98903703,
+    "established": "",
+    "description": "This is the boyhood home of the first U.S. president to be born in New York City. Raised in a townhouse at 28 E. 20th St., Theodore Roosevelt would grow up to be our 26th President and become immortal"
+  },
+  {
+    "id": "thri",
+    "name": "Theodore Roosevelt Inaugural National Historic Site",
+    "type": "National Historic Site",
+    "state": "NY",
+    "lat": 42.90146781,
+    "lng": -78.87248411,
+    "established": "",
+    "description": "As president, Theodore Roosevelt created protections for ordinary citizens, began regulation of big business, and made the US a major force in international affairs. Yet one of the most important pres"
+  },
+  {
+    "id": "thro",
+    "name": "Theodore Roosevelt National Park",
+    "type": "National Park",
+    "state": "ND",
+    "lat": 47.17777274,
+    "lng": -103.4300083,
+    "established": "",
+    "description": "When Theodore Roosevelt came to Dakota Territory to hunt bison in 1883, he was a skinny, young, spectacled dude from New York. He could not have imagined how his adventure in this remote and unfamilia"
+  },
+  {
+    "id": "thco",
+    "name": "Thomas Cole National Historic Site",
+    "type": "National Historic Site",
+    "state": "NY",
+    "lat": 42.22570607,
+    "lng": -73.86154864,
+    "established": "",
+    "description": "In 1825, America was still a new nation, just forming its own unique identity and traditions. Thomas Cole invented a new style of art, one that Americans could call their own. His landscape paintings "
+  },
+  {
+    "id": "edis",
+    "name": "Thomas Edison National Historical Park",
+    "type": "National Historical Park",
+    "state": "NJ",
+    "lat": 40.78549896,
+    "lng": -74.23821139,
+    "established": "",
+    "description": "Today, the brick buildings on Main Street in West Orange, NJ seem quiet, betraying little evidence of the research, development, and innovation of their heyday. Visitors can step back in time to Thoma"
+  },
+  {
+    "id": "thst",
+    "name": "Thomas Stone National Historic Site",
+    "type": "National Historic Site",
+    "state": "MD",
+    "lat": 38.52934443,
+    "lng": -77.037813,
+    "established": "",
+    "description": "In 1776, Thomas Stone and 55 others signed the Declaration of Independence. In doing so, Stone risked his home, his family's security, and even his life to support the Declaration of Independence's pr"
+  },
+  {
+    "id": "tica",
+    "name": "Timpanogos Cave National Monument",
+    "type": "National Monument",
+    "state": "UT",
+    "lat": 40.44039719,
+    "lng": -111.7093944,
+    "established": "",
+    "description": "The visitor center, caves, and cave tours have not yet opened for the 2026 season. Hike your way past stunning vistas to explore a hidden underground world. Taste the thrill of caving as you twist and"
+  },
+  {
+    "id": "timu",
+    "name": "Timucuan Ecological & Historic Preserve",
+    "type": "Ecological & Historic Preserve",
+    "state": "FL",
+    "lat": 30.47251894,
+    "lng": -81.49950104,
+    "established": "",
+    "description": "Visit one of the last unspoiled coastal wetlands on the Atlantic Coast. Discover 6,000 years of human history and experience the beauty of salt marshes, coastal dunes, and hardwood hammocks. The Timuc"
+  },
+  {
+    "id": "tont",
+    "name": "Tonto National Monument",
+    "type": "National Monument",
+    "state": "AZ",
+    "lat": 33.64842945,
+    "lng": -111.1135627,
+    "established": "",
+    "description": "Located within the northern range of the Sonoran Desert lie two cliff dwellings that were occupied from 1300-1450 CE (common era). They represent a vibrant culture consisting of local and immigrant gr"
+  },
+  {
+    "id": "tosy",
+    "name": "Touro Synagogue National Historic Site",
+    "type": "National Historic Site",
+    "state": "RI",
+    "lat": 41.4893,
+    "lng": -71.3121,
+    "established": "",
+    "description": "Touro Synagogue, a building of exquisite beauty and design, steeped in history and ideals, and one of the most historically significant Jewish buildings in America, was designated a National Historic "
+  },
+  {
+    "id": "trte",
+    "name": "Trail Of Tears National Historic Trail",
+    "type": "National Historic Trail",
+    "state": "AL",
+    "lat": 36.0530021046,
+    "lng": -89.6761041963,
+    "established": "",
+    "description": "Remember and commemorate the survival of the Cherokee people, forcefully removed from their homelands in Georgia, Alabama, and Tennessee to live in Indian Territory, now Oklahoma. They traveled by foo"
+  },
+  {
+    "id": "tule",
+    "name": "Tule Lake National Monument",
+    "type": "National Monument",
+    "state": "CA",
+    "lat": 41.88727902,
+    "lng": -121.3744818,
+    "established": "",
+    "description": "Tule Lake National Monument includes both Tule Lake Segregation Center, the largest and most controversial of the sites where Japanese Americans were incarcerated during World War II, and Camp Tulelak"
+  },
+  {
+    "id": "tusk",
+    "name": "Tule Springs Fossil Beds National Monument",
+    "type": "National Monument",
+    "state": "NV",
+    "lat": 36.3893217,
+    "lng": -115.3202223,
+    "established": "",
+    "description": "Over the last ~570,000 years, water has transformed the Upper Las Vegas Valley. Tule Springs Fossil Beds National Monument is an urban park that preserves the unique story of this ever-changing enviro"
+  },
+  {
+    "id": "tuma",
+    "name": "Tumacácori National Historical Park",
+    "type": "National Historical Park",
+    "state": "AZ",
+    "lat": 31.567824,
+    "lng": -111.051223,
+    "established": "",
+    "description": "Tumacácori sits at a cultural crossroads in the Santa Cruz River valley. Here O’odham, Yaqui, and Apache people met and mingled with European Jesuit and Franciscan missionaries, settlers, and soldiers"
+  },
+  {
+    "id": "tupe",
+    "name": "Tupelo National Battlefield",
+    "type": "National Battlefield",
+    "state": "MS",
+    "lat": 34.25557705,
+    "lng": -88.73708623,
+    "established": "",
+    "description": "In July, 1864, federal forces, including men from the United States Colored Troops, marched into Tupelo, Mississippi. Disorganized Confederate soldiers fought fiercely but could not overpower the fede"
+  },
+  {
+    "id": "tuai",
+    "name": "Tuskegee Airmen National Historic Site",
+    "type": "National Historic Site",
+    "state": "AL",
+    "lat": 32.45538671,
+    "lng": -85.67983321,
+    "established": "",
+    "description": "Before the first African American military pilots became known as the \"Red Tails\" they wore striped tails as they began their flight training in the Army's PT-17 Stearman bi-plane. Their flying advent"
+  },
+  {
+    "id": "tuin",
+    "name": "Tuskegee Institute National Historic Site",
+    "type": "National Historic Site",
+    "state": "AL",
+    "lat": 32.42962115,
+    "lng": -85.70488498,
+    "established": "",
+    "description": "In 1881, Booker T. Washington arrived in Alabama and started building Tuskegee Institute both in reputation and literally brick by brick. He recruited the best and the brightest to come and teach here"
+  },
+  {
+    "id": "tuzi",
+    "name": "Tuzigoot National Monument",
+    "type": "National Monument",
+    "state": "AZ",
+    "lat": 34.77296377,
+    "lng": -112.0279069,
+    "established": "",
+    "description": "Water flows under and through this landscape, feeding the growth of people and towns. The Verde Valley is watered by snowmelt, summer monsoons, and springs that well up from the ancient sedimentary ro"
+  },
+  {
+    "id": "ulsg",
+    "name": "Ulysses S Grant National Historic Site",
+    "type": "National Historic Site",
+    "state": "MO",
+    "lat": 38.55182374,
+    "lng": -90.35169255,
+    "established": "",
+    "description": "Ulysses S. Grant is known as the victorious Civil War general who saved the Union and the 18th President of the United States. He first met Julia Dent, his future wife, at her family home, named White"
+  },
+  {
+    "id": "upde",
+    "name": "Upper Delaware Scenic & Recreational River",
+    "type": "Scenic & Recreational River",
+    "state": "NY",
+    "lat": 41.66172578,
+    "lng": -75.03861562,
+    "established": "",
+    "description": "Canoe through rapids and quiet pools as the Delaware River winds its way through a valley of swiftly changing scenery or fish amid rolling hills and riverfront villages in one of the finest fishing ri"
+  },
+  {
+    "id": "vall",
+    "name": "Valles Caldera National Preserve",
+    "type": "National Preserve",
+    "state": "NM",
+    "lat": 35.91682872,
+    "lng": -106.5195724,
+    "established": "",
+    "description": "About 1.2 million years ago, a spectacular volcanic eruption created a 14-mile-wide circular depression in the earth now known as Valles Caldera. The preserve is known for its huge mountain meadows, a"
+  },
+  {
+    "id": "vafo",
+    "name": "Valley Forge National Historical Park",
+    "type": "National Historical Park",
+    "state": "PA",
+    "lat": 40.10054985,
+    "lng": -75.44581889,
+    "established": "",
+    "description": "Valley Forge is the place where George Washington and the Continental Army took refuge during the winter of 1777-1778. Today the park protects 3,500 acres of meadows, woodlands, historic landscapes, a"
+  },
+  {
+    "id": "vama",
+    "name": "Vanderbilt Mansion National Historic Site",
+    "type": "National Historic Site",
+    "state": "NY",
+    "lat": 41.79697937,
+    "lng": -73.94205557,
+    "established": "",
+    "description": "Built by of one of the first families of wealth in America. Designed by one of the nation's preeminent architects. The Vanderbilt Mansion is a home built expressly for the aristocratic lifestyle."
+  },
+  {
+    "id": "vick",
+    "name": "Vicksburg National Military Park",
+    "type": "National Military Park",
+    "state": "MS",
+    "lat": 32.3621286,
+    "lng": -90.85030186,
+    "established": "",
+    "description": "To Confederate President Jefferson Davis, Vicksburg was the \"nailhead that holds the South's two halves together.\" President Abraham Lincoln remarked \"Vicksburg is the key\" to victory, and could be th"
+  },
+  {
+    "id": "vicr",
+    "name": "Virgin Islands Coral Reef National Monument",
+    "type": "National Monument",
+    "state": "VI",
+    "lat": 18.28996918,
+    "lng": -64.70683395,
+    "established": "",
+    "description": "Virgin Islands Coral Reef National Monument includes federal submerged lands within the 3-mile belt off the island of St. John. These waters support a diverse and complex system of coral reefs and oth"
+  },
+  {
+    "id": "viis",
+    "name": "Virgin Islands National Park",
+    "type": "National Park",
+    "state": "VI",
+    "lat": 18.34279656,
+    "lng": -64.74194451,
+    "established": "",
+    "description": "Go beyond Virgin Islands National Park's stunning white-sand beaches. Hike to historic plantation sites to learn about a challenging past when sugar and enslaved labor dominated life on the island. Vi"
+  },
+  {
+    "id": "voya",
+    "name": "Voyageurs National Park",
+    "type": "National Park",
+    "state": "MN",
+    "lat": 48.48370609,
+    "lng": -92.8382913,
+    "established": "",
+    "description": "Voyageurs National Park spans 218,000 acres of lakes, forests, and streams in northern Minnesota. Established in 1975, the park is named after the French-Canadian Voyageurs who once navigated these ab"
+  },
+  {
+    "id": "waco",
+    "name": "Waco Mammoth National Monument",
+    "type": "National Monument",
+    "state": "TX",
+    "lat": 31.60465887,
+    "lng": -97.17606143,
+    "established": "",
+    "description": "Standing as tall as 14 feet and weighing 20,000 pounds, Columbian mammoths roamed across what is present-day Texas thousands of years ago. Today, the fossil specimens represent the nation's first and "
+  },
+  {
+    "id": "waca",
+    "name": "Walnut Canyon National Monument",
+    "type": "National Monument",
+    "state": "AZ",
+    "lat": 35.16822994,
+    "lng": -111.5024239,
+    "established": "",
+    "description": "Since time immemorial, Indigenous Peoples have lived and traveled throughout Walnut Canyon’s dynamic landscape. Vibrant communities built their homes in the cliffs and farmed along the canyon’s rim. T"
+  },
+  {
+    "id": "wapa",
+    "name": "War In The Pacific National Historical Park",
+    "type": "National Historical Park",
+    "state": "GU",
+    "lat": 13.43795691,
+    "lng": 144.6922461,
+    "established": "",
+    "description": "War in the Pacific National Historical Park was established to commemorate the bravery and sacrifice of those participating in the campaigns of the Pacific Theater of World War II and to conserve and "
+  },
+  {
+    "id": "waro",
+    "name": "Washington-Rochambeau Revolutionary Route National Historic Trail",
+    "type": "National Historic Trail",
+    "state": "MA",
+    "lat": 40.0958204557,
+    "lng": -74.8563515109,
+    "established": "",
+    "description": "“Of the happiness I have enjoyed in our private friendship. The remembrance of which will be one of the most pleasing Circumstances of my life.”– Comte de Rochambeau on his relationship with George Wa"
+  },
+  {
+    "id": "waba",
+    "name": "Washita Battlefield National Historic Site",
+    "type": "National Historic Site",
+    "state": "OK",
+    "lat": 35.62083963,
+    "lng": -99.70445143,
+    "established": "",
+    "description": "On November 27, 1868, Lt. Colonel George Armstrong Custer led the 7th US Cavalry on a surprise dawn attack on a Cheyenne village led by Peace Chief Black Kettle. The event was an example of the tragic"
+  },
+  {
+    "id": "wefa",
+    "name": "Weir Farm National Historical Park",
+    "type": "National Historical Park",
+    "state": "CT",
+    "lat": 41.25886268,
+    "lng": -73.45452542,
+    "established": "",
+    "description": "Visit the home and studio of America's most beloved Impressionist, J. Alden Weir, and walk in the footsteps of generations of world-class artists. Set amidst more than 60 acres of painterly woods, fie"
+  },
+  {
+    "id": "whis",
+    "name": "Whiskeytown National Recreation Area",
+    "type": "National Recreation Area",
+    "state": "CA",
+    "lat": 40.61359941,
+    "lng": -122.6022657,
+    "established": "",
+    "description": "Whiskeytown Lake’s crystal-clear waters are iconic, but this 42,000-acre National Recreation Area offers much more. Explore waterfalls, hike rugged trails, uncover Gold Rush history, and witness the r"
+  },
+  {
+    "id": "whsa",
+    "name": "White Sands National Park",
+    "type": "National Park",
+    "state": "NM",
+    "lat": 32.77907858,
+    "lng": -106.3333461,
+    "established": "",
+    "description": "Rising from the heart of the Tularosa Basin is one of the world's great natural wonders - the glistening white sands of New Mexico. Great wave-like dunes of gypsum sand have engulfed 275 square miles "
+  },
+  {
+    "id": "whmi",
+    "name": "Whitman Mission National Historic Site",
+    "type": "National Historic Site",
+    "state": "WA",
+    "lat": 46.04119286,
+    "lng": -118.4629388,
+    "established": "",
+    "description": "One moment can change the fate of many nations. After thousands of years of habitation by the Cayuse Nation, life in the Columbia River Plateau begins to change rapidly with the influx of missionaries"
+  },
+  {
+    "id": "wiho",
+    "name": "William Howard Taft National Historic Site",
+    "type": "National Historic Site",
+    "state": "OH",
+    "lat": 39.11970352,
+    "lng": -84.50758951,
+    "established": "",
+    "description": "High atop one of Cincinnati's most prominent hilltops stands the two-story Greek Revival house where William Howard Taft was born and grew up. Hard work, a good education, and an interest in civic dut"
+  },
+  {
+    "id": "wicr",
+    "name": "Wilson's Creek National Battlefield",
+    "type": "National Battlefield",
+    "state": "MO",
+    "lat": 37.1000127,
+    "lng": -93.40986704,
+    "established": "",
+    "description": "Wilson's Creek was the first major Civil War battle fought west of the Mississippi River, and where the first Union general was killed in action. The costly Southern victory on August 10, 1861, focuse"
+  },
+  {
+    "id": "wica",
+    "name": "Wind Cave National Park",
+    "type": "National Park",
+    "state": "SD",
+    "lat": 43.58012365,
+    "lng": -103.4394709,
+    "established": "",
+    "description": "Wind Cave National Park protects two very different worlds - one deep within the earth, the other a sunlit world of many resources. Bison, elk, and other wildlife roam the rolling prairie grasslands a"
+  },
+  {
+    "id": "wing",
+    "name": "Wing Luke Museum Affiliated Area",
+    "type": "Affiliated Area",
+    "state": "WA",
+    "lat": 47.59820859,
+    "lng": -122.3228912,
+    "established": "",
+    "description": "More than a museum, the Wing is an experience. A chance to truly understand what it was - and is - to be Asian American in the Pacific Northwest. Take a guided tour of a historic hotel and learn the i"
+  },
+  {
+    "id": "wori",
+    "name": "Women's Rights National Historical Park",
+    "type": "National Historical Park",
+    "state": "NY",
+    "lat": 42.90817073,
+    "lng": -76.81655558,
+    "established": "",
+    "description": "Women’s Rights National Historical Park tells the story of the first Women’s Rights Convention, held in Seneca Falls, New York on July 19-20, 1848. It is a story of struggles for civil rights, human r"
+  },
+  {
+    "id": "wrst",
+    "name": "Wrangell - St Elias National Park & Preserve",
+    "type": "National Park & Preserve",
+    "state": "AK",
+    "lat": 61.4182147,
+    "lng": -142.6028439,
+    "established": "",
+    "description": "Wrangell-St. Elias is a vast national park that rises from the ocean all the way up to 18,008 ft. At 13.2 million acres, the park is the same size as Yellowstone National Park, Yosemite National Park,"
+  },
+  {
+    "id": "wrbr",
+    "name": "Wright Brothers National Memorial",
+    "type": "National Memorial",
+    "state": "NC",
+    "lat": 36.01637713,
+    "lng": -75.66997163,
+    "established": "",
+    "description": "Wind, sand, and a dream of flight brought Wilbur and Orville Wright to Kitty Hawk, North Carolina where, after four years of scientific experimentation, they achieved the first successful airplane fli"
+  },
+  {
+    "id": "wupa",
+    "name": "Wupatki National Monument",
+    "type": "National Monument",
+    "state": "AZ",
+    "lat": 35.55741077,
+    "lng": -111.3957216,
+    "established": "",
+    "description": "Nestled between the Painted Desert and ponderosa highlands of northern Arizona, Wupatki National Monument is an unlikely landscape for a thriving community. The early 1100's marked a time of cooler an"
+  },
+  {
+    "id": "yell",
+    "name": "Yellowstone National Park",
+    "type": "National Park",
+    "state": "ID",
+    "lat": 44.59824417,
+    "lng": -110.5471695,
+    "established": "",
+    "description": "On March 1, 1872, Yellowstone became the first national park for all to enjoy the unique hydrothermal wonders. Today, millions of people come here each year to camp, hike, and enjoy the majesty of the"
+  },
+  {
+    "id": "york",
+    "name": "Yorktown Battlefield Part of Colonial National Historical Park",
+    "type": "Part of Colonial National Historical Park",
+    "state": "VA",
+    "lat": 37.2195,
+    "lng": -76.4983,
+    "established": "",
+    "description": "Discover what it took for the United States to be independent as you explore the site of the last major battle of the Revolutionary War. Here at Yorktown, in the fall of 1781, General George Washingto"
+  },
+  {
+    "id": "yose",
+    "name": "Yosemite National Park",
+    "type": "National Park",
+    "state": "CA",
+    "lat": 37.84883288,
+    "lng": -119.5571873,
+    "established": "",
+    "description": "Not just a great valley, but a shrine to human foresight, the strength of granite, the power of glaciers, the persistence of life, and the tranquility of the High Sierra. First protected in 1864, Yose"
+  },
+  {
+    "id": "yuho",
+    "name": "Yucca House National Monument",
+    "type": "National Monument",
+    "state": "CO",
+    "lat": 37.24778944,
+    "lng": -108.6861274,
+    "established": "",
+    "description": "Yucca House National Monument preserves a large unexcavated pueblo with a stunning setting in Montezuma Valley, nestled between Mesa Verde and Ute Mountain. Since Yucca House was protected as a nation"
+  },
+  {
+    "id": "yuch",
+    "name": "Yukon - Charley Rivers National Preserve",
+    "type": "National Preserve",
+    "state": "AK",
+    "lat": 65.0935608,
+    "lng": -142.7960021,
+    "established": "",
+    "description": "Located in Interior Alaska, Yukon-Charley Rivers offers exploration in a largely untouched landscape. Whether you float the mighty Yukon River or paddle the Charley River's whitewater, your memories w"
+  },
+  {
+    "id": "zion",
+    "name": "Zion National Park",
+    "type": "National Park",
+    "state": "UT",
+    "lat": 37.29839254,
+    "lng": -113.0265138,
+    "established": "",
+    "description": "Follow the paths where people have walked for thousands of years. Gaze up at massive sandstone cliffs of cream, pink, and red that soar into a brilliant blue sky. Experience the tall, stretching walls"
+  }
+]
