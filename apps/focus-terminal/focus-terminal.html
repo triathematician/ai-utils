@@ -1083,19 +1083,17 @@ function advanceBoot() {
       advanceBoot();
       return;
     }
-    if (s.awaitingConfirm === 'score_note') {
-      // Already asked for score, now awaiting note — should not happen via advanceBoot
-      return;
-    }
     if (s.subIndex === 0) {
       bootLog('sep','──────────────────────────────────────────────────────');
-      bootLog('ask','◈ DIMENSION SCORES: Rate each dimension today (1-5)');
+      bootLog('ask','◈ DIMENSION SCORES: Rate each dimension today (1-5, optional note)');
       bootLog('sys','  ' + DIMS.map(d=>`${d.label}=${d.full}`).join('  ·  '));
     }
     const d = DIMS[s.subIndex];
     const existing = db.today && db.today.scores[d.key];
-    const hint = existing ? ` (current: ${existing})` : '';
-    bootLog('ask',`  ${d.full}: [1-5] or /skip${hint}`);
+    const existingNote = db.today && db.today.scoreNotes && db.today.scoreNotes[d.key];
+    const noteHint = existingNote ? `, "${existingNote}"` : '';
+    const hint = existing ? ` (current: ${existing}${noteHint})` : '';
+    bootLog('ask',`  ${d.full}: [score note] or /skip${hint}`);
     s.awaitingConfirm = 'score';
     return;
   }
@@ -1142,7 +1140,7 @@ function handleBootInput(raw) {
   bootLog('ans', '> ' + (inp || (s.scoreEditMode ? '(keep)' : '(skip)')));
 
   // Global skips
-  if ((low==='/skip' || low==='') && s.awaitingConfirm !== 'score_note') {
+  if (low==='/skip' || low==='') {
     if (phase==='one_thing' && !t.oneThing) {
       bootLog('warn','⚠ ONE THING is required. Please enter a response.');
       return;
@@ -1242,40 +1240,36 @@ function handleBootInput(raw) {
     return;
   }
 
-  // SCORE
+  // SCORE (score + optional note on one line, e.g. "4 felt sore today")
   if (s.awaitingConfirm==='score') {
-    const n = parseInt(inp);
+    const tokens = inp.split(/\s+/);
+    const n = parseInt(tokens[0]);
     const d = DIMS[s.subIndex];
     if (n>=1 && n<=5) {
       t.scores[d.key] = n;
       t.scoreNotes = t.scoreNotes || {};
-      bootLog('info',`  → ${d.full}: ${n}/5`);
-      // Ask for optional note
-      const existingNote = t.scoreNotes[d.key] || '';
-      const keepHint = existingNote ? ` (ENTER to keep: "${existingNote}")` : ' (optional — ENTER to skip)';
-      bootLog('ask',`  Note for ${d.full}?${keepHint}`);
-      s.awaitingConfirm = 'score_note';
+      const noteStr = tokens.slice(1).join(' ').trim();
+      if (noteStr) {
+        t.scoreNotes[d.key] = noteStr;
+        bootLog('info',`  → ${d.full}: ${n}/5  "${noteStr}"`);
+      } else {
+        // No note supplied: in edit mode, preserve existing note; in new-session mode, clear it
+        if (s.scoreEditMode) {
+          const kept = (t.scoreNotes || {})[d.key];
+          if (kept) bootLog('info',`  → ${d.full}: ${n}/5  (note kept: "${kept}")`);
+          else bootLog('info',`  → ${d.full}: ${n}/5`);
+        } else {
+          t.scoreNotes = t.scoreNotes || {};
+          delete t.scoreNotes[d.key];
+          bootLog('info',`  → ${d.full}: ${n}/5`);
+        }
+      }
+      s.subIndex++;
+      advanceBoot();
     } else {
       bootLog('warn','  Value must be 1-5. Try again or /skip');
     }
     return;
-  }
-
-  // SCORE NOTE (optional)
-  if (s.awaitingConfirm==='score_note') {
-    const d = DIMS[s.subIndex];
-    t.scoreNotes = t.scoreNotes || {};
-    if (inp) {
-      t.scoreNotes[d.key] = inp;
-      bootLog('info',`  → Note: "${inp}"`);
-    } else if (s.scoreEditMode && inp === '') {
-      // Empty in edit mode = keep existing note (preserved by not deleting it)
-    } else {
-      delete t.scoreNotes[d.key];
-    }
-    s.subIndex++;
-    s.awaitingConfirm = 'score';
-    advanceBoot(); return;
   }
 
   // ONE THING
