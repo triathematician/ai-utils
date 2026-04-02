@@ -336,6 +336,43 @@
       border-radius: 4px; padding: 12px; width: 100%; height: 320px; resize: none; outline: none;
     }
 
+    /* Export tabs */
+    .export-tabs { display: flex; gap: 4px; margin-bottom: 12px; }
+    .export-tab {
+      font-family: 'JetBrains Mono', monospace; font-size: 10px; font-weight: 700;
+      letter-spacing: 0.1em; padding: 5px 14px; border-radius: 4px;
+      border: 1px solid var(--border); background: var(--surface2);
+      color: var(--text-dim); cursor: pointer; transition: all 0.12s;
+    }
+    .export-tab:hover { color: var(--text); border-color: var(--border-bright); }
+    .export-tab.active { border-color: var(--accent); color: var(--accent); background: rgba(79,209,255,0.08); }
+
+    /* Import textarea */
+    #import-ta {
+      font-family: 'JetBrains Mono', monospace; font-size: 11px; line-height: 1.6;
+      color: var(--text); background: var(--bg); border: 1px solid var(--border);
+      border-radius: 4px; padding: 12px; width: 100%; height: 200px; resize: vertical; outline: none;
+    }
+    #import-ta:focus { border-color: var(--accent); }
+
+    /* LLM prompt textarea */
+    #llm-prompt-ta {
+      font-family: 'JetBrains Mono', monospace; font-size: 10px; line-height: 1.6;
+      color: var(--text-muted); background: var(--bg); border: 1px solid var(--border);
+      border-radius: 4px; padding: 12px; width: 100%; height: 260px; resize: none; outline: none;
+    }
+
+    /* Radio group */
+    .radio-group { display: flex; flex-direction: column; gap: 7px; margin-top: 5px; }
+    .radio-opt { display: flex; align-items: center; gap: 8px; font-size: 11px; color: var(--text-muted); cursor: pointer; }
+    .radio-opt input[type="radio"] { accent-color: var(--accent); cursor: pointer; flex-shrink: 0; }
+
+    /* Modal separator */
+    .modal-sep { border: none; border-top: 1px solid var(--border); margin: 18px 0 14px; }
+
+    /* LLM step description */
+    .llm-step-desc { font-size: 11px; color: var(--text-muted); margin-bottom: 14px; line-height: 1.7; }
+
     /* Help shortcuts */
     .sc-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px 20px; }
     .sc-row { display: flex; align-items: center; gap: 8px; padding: 5px 0; border-bottom: 1px solid var(--border); }
@@ -386,6 +423,7 @@
   <button class="topbar-btn" id="btn-add-phase">+ Phase</button>
   <button class="topbar-btn" id="btn-trees">⟁ Trees</button>
   <button class="topbar-btn accent" id="btn-export">⬇ Export</button>
+  <button class="topbar-btn" id="btn-import">⬆ Import</button>
   <button class="topbar-btn" id="btn-help">?</button>
 </div>
 
@@ -516,11 +554,79 @@
 <!-- Export Modal -->
 <div class="overlay" id="export-modal">
   <div class="modal wide">
-    <h2>Export — Markdown</h2>
+    <h2 id="export-modal-title">Export — Markdown</h2>
+    <div class="export-tabs">
+      <button class="export-tab active" id="export-tab-md">Markdown</button>
+      <button class="export-tab" id="export-tab-json">JSON</button>
+    </div>
     <textarea id="export-ta" readonly spellcheck="false"></textarea>
     <div class="modal-actions">
+      <button class="m-btn" id="export-download" style="display:none">⬇ Download .json</button>
       <button class="m-btn primary" id="export-copy">Copy to Clipboard</button>
       <button class="m-btn" id="export-close">Close</button>
+    </div>
+  </div>
+</div>
+
+<!-- Import Modal -->
+<div class="overlay" id="import-modal">
+  <div class="modal wide">
+    <h2>Import JSON</h2>
+    <div class="form-row">
+      <label>Paste JSON</label>
+      <textarea id="import-ta" spellcheck="false" placeholder='{"name":"My Tree","phases":[...],"nodes":[...]}'></textarea>
+    </div>
+    <div class="form-row">
+      <label>Import Mode</label>
+      <div class="radio-group">
+        <label class="radio-opt"><input type="radio" name="import-mode" value="new" checked> New Tree — add as a new skill tree</label>
+        <label class="radio-opt"><input type="radio" name="import-mode" value="replace"> Replace Current Tree — overwrite "<span id="import-current-name"></span>"</label>
+      </div>
+    </div>
+    <hr class="modal-sep">
+    <div style="display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap">
+      <span style="font-size:11px; color:var(--text-dim)">Don't have JSON yet? Generate one with an AI assistant.</span>
+      <button class="m-btn" id="import-gen-prompt" style="white-space:nowrap">✦ Generate AI Prompt</button>
+    </div>
+    <div class="modal-actions">
+      <button class="m-btn" id="import-cancel">Cancel</button>
+      <button class="m-btn primary" id="import-do">Import</button>
+    </div>
+  </div>
+</div>
+
+<!-- LLM Prompt Generator Modal -->
+<div class="overlay" id="llm-prompt-modal">
+  <div class="modal wide">
+    <h2>Generate Skill Pathway with AI</h2>
+    <!-- Step 1: Configure -->
+    <div id="llm-step-config">
+      <p class="llm-step-desc">Describe what you want to create. We'll generate a prompt you can paste into ChatGPT, Claude, or another AI assistant. Then bring the JSON response back here to import it.</p>
+      <div class="form-row">
+        <label>Skill pathway topic</label>
+        <input type="text" id="llm-topic" placeholder="e.g. React development, Cloud architecture, Data Science…">
+      </div>
+      <div class="form-row">
+        <label>Mode</label>
+        <div class="radio-group">
+          <label class="radio-opt"><input type="radio" name="llm-mode" value="new" checked> Create a new tree from scratch</label>
+          <label class="radio-opt"><input type="radio" name="llm-mode" value="add"> Add to current tree (<span id="llm-current-tree-name"></span>)</label>
+        </div>
+      </div>
+      <div class="modal-actions">
+        <button class="m-btn" id="llm-cfg-cancel">Cancel</button>
+        <button class="m-btn primary" id="llm-cfg-generate">Generate Prompt →</button>
+      </div>
+    </div>
+    <!-- Step 2: Generated prompt -->
+    <div id="llm-step-prompt" style="display:none">
+      <p class="llm-step-desc">Copy this prompt and paste it into an AI assistant. Copy the JSON it returns, then click "Open Import" to paste it in and import it.</p>
+      <textarea id="llm-prompt-ta" readonly spellcheck="false"></textarea>
+      <div class="modal-actions">
+        <button class="m-btn" id="llm-pmt-back">← Back</button>
+        <button class="m-btn" id="llm-pmt-copy">Copy Prompt</button>
+        <button class="m-btn primary" id="llm-pmt-open-import">Open Import →</button>
+      </div>
     </div>
   </div>
 </div>
@@ -642,6 +748,10 @@ function escHtml(str) {
   return String(str ?? '')
     .replace(/&/g, '&amp;').replace(/</g, '&lt;')
     .replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
+
+function slugName(name) {
+  return (name || 'skill-tree').replace(/[^a-z0-9]+/gi, '-').toLowerCase();
 }
 
 let _toastTimer;
@@ -1559,11 +1669,189 @@ function generateMarkdown() {
 }
 
 function openExportModal() {
+  _exportMode = 'markdown';
+  document.getElementById('export-tab-md').classList.add('active');
+  document.getElementById('export-tab-json').classList.remove('active');
+  document.getElementById('export-modal-title').textContent = 'Export — Markdown';
   document.getElementById('export-ta').value = generateMarkdown();
+  document.getElementById('export-download').style.display = 'none';
   document.getElementById('export-modal').classList.add('show');
 }
 function closeExportModal() {
   document.getElementById('export-modal').classList.remove('show');
+}
+
+// ═══════════════════════════════════════════════════════════════
+// Export — JSON
+// ═══════════════════════════════════════════════════════════════
+let _exportMode = 'markdown';
+
+function generateJSON() {
+  const tree = trees.find(t => t.id === activeTreeId);
+  if (!tree) return '{}';
+  return JSON.stringify({ name: tree.name, phases: tree.phases, nodes: tree.nodes }, null, 2);
+}
+
+function switchExportTab(mode) {
+  _exportMode = mode;
+  const isJSON = mode === 'json';
+  document.getElementById('export-tab-md').classList.toggle('active', !isJSON);
+  document.getElementById('export-tab-json').classList.toggle('active', isJSON);
+  document.getElementById('export-modal-title').textContent = isJSON ? 'Export — JSON' : 'Export — Markdown';
+  document.getElementById('export-ta').value = isJSON ? generateJSON() : generateMarkdown();
+  document.getElementById('export-download').style.display = isJSON ? '' : 'none';
+}
+
+// ═══════════════════════════════════════════════════════════════
+// Import
+// ═══════════════════════════════════════════════════════════════
+function openImportModal() {
+  const tree = trees.find(t => t.id === activeTreeId);
+  const nameEl = document.getElementById('import-current-name');
+  if (nameEl) nameEl.textContent = tree ? tree.name : '';
+  document.getElementById('import-ta').value = '';
+  const radioNew = document.querySelector('input[name="import-mode"][value="new"]');
+  if (radioNew) radioNew.checked = true;
+  document.getElementById('import-modal').classList.add('show');
+  requestAnimationFrame(() => document.getElementById('import-ta').focus());
+}
+
+function closeImportModal() {
+  document.getElementById('import-modal').classList.remove('show');
+}
+
+function doImport() {
+  const jsonStr = document.getElementById('import-ta').value.trim();
+  if (!jsonStr) { toast('Paste JSON first'); return; }
+  const modeEl = document.querySelector('input[name="import-mode"]:checked');
+  const mode = modeEl ? modeEl.value : 'new';
+  if (importJSON(jsonStr, mode)) closeImportModal();
+}
+
+function importJSON(jsonStr, mode) {
+  let data;
+  try { data = JSON.parse(jsonStr); }
+  catch(e) { toast(`Invalid JSON — ${e.message}`); return false; }
+
+  // Accept { name, nodes, phases } or [{ name, nodes, phases }]
+  const treeData = Array.isArray(data) ? data[0] : data;
+  if (!treeData || !Array.isArray(treeData.nodes)) {
+    toast('Invalid format — expected { name, nodes, phases }');
+    return false;
+  }
+
+  if (mode === 'replace') {
+    const tree = trees.find(t => t.id === activeTreeId);
+    if (!tree) return false;
+    tree.nodes  = treeData.nodes;
+    tree.phases = Array.isArray(treeData.phases) ? treeData.phases : [];
+    if (treeData.name && treeData.name.trim()) tree.name = treeData.name.trim();
+    setActiveTree(activeTreeId);
+    save(); render();
+    toast(`Tree replaced with imported JSON`);
+  } else {
+    const newTree = {
+      id: uid('t'),
+      name: (treeData.name || 'Imported Tree').trim(),
+      nodes: treeData.nodes,
+      phases: Array.isArray(treeData.phases) ? treeData.phases : []
+    };
+    trees.push(newTree);
+    setActiveTree(newTree.id);
+    save(); render();
+    toast(`Imported "${newTree.name}" as new tree`);
+  }
+  return true;
+}
+
+// ═══════════════════════════════════════════════════════════════
+// LLM Prompt Generator
+// ═══════════════════════════════════════════════════════════════
+function openLLMPromptModal() {
+  const tree = trees.find(t => t.id === activeTreeId);
+  const nameEl = document.getElementById('llm-current-tree-name');
+  if (nameEl) nameEl.textContent = tree ? tree.name : '';
+  document.getElementById('llm-topic').value = '';
+  const radioNew = document.querySelector('input[name="llm-mode"][value="new"]');
+  if (radioNew) radioNew.checked = true;
+  document.getElementById('llm-step-config').style.display = '';
+  document.getElementById('llm-step-prompt').style.display = 'none';
+  document.getElementById('llm-prompt-modal').classList.add('show');
+  requestAnimationFrame(() => document.getElementById('llm-topic').focus());
+}
+
+function closeLLMPromptModal() {
+  document.getElementById('llm-prompt-modal').classList.remove('show');
+}
+
+function generateAndShowLLMPrompt() {
+  const topic = document.getElementById('llm-topic').value.trim();
+  if (!topic) { toast('Enter a topic first'); document.getElementById('llm-topic').focus(); return; }
+  const modeEl = document.querySelector('input[name="llm-mode"]:checked');
+  const mode = modeEl ? modeEl.value : 'new';
+
+  let currentTreeJSON = null;
+  if (mode === 'add') {
+    const tree = trees.find(t => t.id === activeTreeId);
+    if (tree) {
+      currentTreeJSON = JSON.stringify({ name: tree.name, phases: tree.phases, nodes: tree.nodes }, null, 2);
+    }
+  }
+
+  document.getElementById('llm-prompt-ta').value = buildLLMPrompt(topic, mode, currentTreeJSON);
+  document.getElementById('llm-step-config').style.display = 'none';
+  document.getElementById('llm-step-prompt').style.display = '';
+}
+
+function buildLLMPrompt(topic, mode, currentTreeJSON) {
+  const schema = `{
+  "name": "Tree Name",
+  "phases": [
+    { "id": "p1", "label": "Phase Name", "startCol": 0, "endCol": 2 }
+  ],
+  "nodes": [
+    {
+      "id": "n1",
+      "kind": "step",
+      "label": "Short Node Label",
+      "notes": "Description or acceptance criteria",
+      "estimate": "1 week",
+      "status": "none",
+      "required": true,
+      "lane": 0,
+      "col": 0,
+      "prereqs": [],
+      "isNext": false,
+      "phaseId": "p1"
+    }
+  ]
+}`;
+
+  let prompt = `You are a skill pathway designer. Generate a visual skill tree JSON for the topic: "${topic}".
+
+SCHEMA (return exactly this structure):
+${schema}
+
+RULES:
+- kind: "step" (main learning task), "gate" (milestone/checkpoint), or "quest" (optional side branch)
+- lane: 0 = mainline, negative (-1,-2) = above mainline, positive (1,2) = below mainline
+- col: horizontal column position (0,1,2...) — mainline nodes increase col by 1 each step
+- prereqs: array of node IDs this node depends on (empty array [] if none)
+- Gates mark key checkpoints (lane:0, kind:"gate") — place at milestones between phases
+- Side quests (kind:"quest") have lane != 0, required:false — enrichment or optional content
+- Set isNext:true on exactly ONE node (the best immediate next step to take)
+- phaseId must reference a valid phase id defined in the phases array
+- Keep labels short and scannable (2-5 words max)
+- Include 8-20 nodes total, 2-4 phases
+- All node IDs must be unique strings (e.g. "n1", "n2"...)
+- All phase IDs must be unique strings (e.g. "p1", "p2"...)`;
+
+  if (mode === 'add' && currentTreeJSON) {
+    prompt += `\n\nADD TO EXISTING TREE: The user wants to extend the current tree. Here is the existing data:\n\`\`\`json\n${currentTreeJSON}\n\`\`\`\n\nReturn the COMPLETE updated tree (all existing nodes + new nodes), updating phases as needed. Preserve all existing node IDs.`;
+  }
+
+  prompt += `\n\nReturn ONLY valid JSON — no markdown code fences, no explanation, no comments.`;
+  return prompt;
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -1754,6 +2042,7 @@ document.getElementById('panel-toggle').addEventListener('click', () => {
 document.getElementById('btn-new-step').addEventListener('click', () => addStep(selectedId));
 document.getElementById('btn-add-phase').addEventListener('click', () => openPhasesModal());
 document.getElementById('btn-trees').addEventListener('click', () => openTreesModal());
+document.getElementById('btn-import').addEventListener('click', openImportModal);
 document.getElementById('btn-export').addEventListener('click', openExportModal);
 document.getElementById('btn-help').addEventListener('click', openHelpModal);
 
@@ -1801,6 +2090,18 @@ document.querySelectorAll('#edit-modal input[type="text"], #edit-modal input[typ
 // Export Modal
 // ═══════════════════════════════════════════════════════════════
 document.getElementById('export-close').addEventListener('click', closeExportModal);
+document.getElementById('export-tab-md').addEventListener('click', () => switchExportTab('markdown'));
+document.getElementById('export-tab-json').addEventListener('click', () => switchExportTab('json'));
+document.getElementById('export-download').addEventListener('click', () => {
+  const tree = trees.find(t => t.id === activeTreeId);
+  const name = slugName(tree ? tree.name : 'skill-tree');
+  const blob = new Blob([generateJSON()], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = `${name}.json`; a.click();
+  URL.revokeObjectURL(url);
+  toast('Downloaded ✓');
+});
 document.getElementById('export-copy').addEventListener('click', () => {
   const ta = document.getElementById('export-ta');
   ta.select();
@@ -1813,6 +2114,46 @@ document.getElementById('export-copy').addEventListener('click', () => {
     document.execCommand('copy');
     toast('Copied to clipboard ✓');
   }
+});
+
+// ═══════════════════════════════════════════════════════════════
+// Import Modal
+// ═══════════════════════════════════════════════════════════════
+document.getElementById('import-cancel').addEventListener('click', closeImportModal);
+document.getElementById('import-do').addEventListener('click', doImport);
+document.getElementById('import-gen-prompt').addEventListener('click', () => {
+  closeImportModal();
+  openLLMPromptModal();
+});
+
+// ═══════════════════════════════════════════════════════════════
+// LLM Prompt Modal
+// ═══════════════════════════════════════════════════════════════
+document.getElementById('llm-cfg-cancel').addEventListener('click', closeLLMPromptModal);
+document.getElementById('llm-cfg-generate').addEventListener('click', generateAndShowLLMPrompt);
+document.getElementById('llm-topic').addEventListener('keydown', e => {
+  if (e.key === 'Enter') { e.preventDefault(); generateAndShowLLMPrompt(); }
+});
+document.getElementById('llm-pmt-back').addEventListener('click', () => {
+  document.getElementById('llm-step-config').style.display = '';
+  document.getElementById('llm-step-prompt').style.display = 'none';
+});
+document.getElementById('llm-pmt-copy').addEventListener('click', () => {
+  const ta = document.getElementById('llm-prompt-ta');
+  ta.select();
+  try {
+    navigator.clipboard.writeText(ta.value).then(
+      () => toast('Prompt copied ✓'),
+      () => { document.execCommand('copy'); toast('Prompt copied ✓'); }
+    );
+  } catch(e) {
+    document.execCommand('copy');
+    toast('Prompt copied ✓');
+  }
+});
+document.getElementById('llm-pmt-open-import').addEventListener('click', () => {
+  closeLLMPromptModal();
+  openImportModal();
 });
 
 // ═══════════════════════════════════════════════════════════════
