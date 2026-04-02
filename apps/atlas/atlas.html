@@ -923,7 +923,8 @@ function renderStats() {
   document.getElementById('stat-countries').innerHTML = `
     <div class="stat-label">Countries visited</div>
     <div class="stat-number">${countriesVisited}</div>
-    <div style="font-size:12px;color:var(--ink-light);">of ${countries.length} tracked</div>`;
+    <div style="font-size:12px;color:var(--ink-light);">of ${countries.length} tracked</div>
+    ${countries.length ? `<div class="stat-progress"><div class="stat-progress-fill" style="width:${pct(countriesVisited, countries.length)}%"></div></div>` : ''}`;
 
   // Build year buckets
   const byYear = {};
@@ -1137,7 +1138,7 @@ function colorStates() {
 
 async function init() {
   await loadData();
-  loadMap();
+  await loadMap();
   updateMapFilterDatalist();
 }
 init();
