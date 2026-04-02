@@ -946,6 +946,7 @@ function buildNodes() {
       }
     })();
 
+    // NOTE: kindIcon values are hardcoded SVG constants — do NOT make these dynamic/user-influenced
     const kindIcon = {
       step: `<svg width="12" height="12" viewBox="0 0 12 12" fill="none" title="Step"><path d="M2 3 L7 6 L2 9" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><line x1="9" y1="3" x2="9" y2="9" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>`,
       gate: `<svg width="12" height="12" viewBox="0 0 12 12" fill="none" title="Gate"><path d="M6 1 L11 6 L6 11 L1 6 Z" stroke="currentColor" stroke-width="1.5" fill="rgba(79,209,255,0.2)"/></svg>`,
@@ -1338,7 +1339,8 @@ function renderTreesModalList() {
       const idx = trees.indexOf(tree);
       trees.splice(idx, 1);
       if (activeTreeId === tree.id) {
-        setActiveTree(trees[Math.max(0, idx - 1)].id);
+        // Pick the tree at the same position or the last one if we deleted the last
+        setActiveTree(trees[Math.min(idx, trees.length - 1)].id);
         render();
       }
       save();
