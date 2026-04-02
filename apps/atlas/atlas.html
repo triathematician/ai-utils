@@ -124,7 +124,7 @@ function getVisitsForPlace(placeId) {
 
 // Returns all unique tags ever used across all visits
 function getAllTags() {
-  return [...new Set(getVisits().flatMap(v => v.tags))].sort();
+  return [...new Set(getVisits().flatMap(v => v.tags || []))].sort();
 }
 
 // Returns first visit date for a placeId, or null
