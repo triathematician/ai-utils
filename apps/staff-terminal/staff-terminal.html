@@ -191,8 +191,10 @@ html, body {
   border-bottom: 1px solid var(--muted);
   align-items: baseline;
   min-width: 0;
+  cursor: pointer;
 }
 .hc-m-entry:last-child { border-bottom: none; }
+.hc-m-entry:hover .hc-m-text { color: var(--accent); }
 .hc-m-date { color: var(--dim); flex-shrink: 0; }
 .hc-m-text { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
@@ -834,12 +836,15 @@ function renderTopRow() {
     msValue.innerHTML = sorted.map(m => {
       const icon = MILESTONE_ICONS[m.type] || '·';
       const dateOnly = m.date.slice(0, 10);
-      return `<div class="hc-m-entry">` +
+      return `<div class="hc-m-entry" data-msid="${escHtml(m.id)}">` +
         `<span class="hc-m-date">${escHtml(dateOnly)}</span>` +
         `<span class="mt-${escHtml(m.type)}">${escHtml(icon)}</span>` +
         `<span class="hc-m-text">${escHtml(m.text)}</span>` +
         `</div>`;
     }).join('');
+    msValue.querySelectorAll('[data-msid]').forEach(el => {
+      el.addEventListener('click', () => openMilestoneDialog(el.dataset.msid));
+    });
   }
 }
 
