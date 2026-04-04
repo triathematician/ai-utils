@@ -84,7 +84,7 @@
   --grid-important-today: #2a2a2a;
   --grid-important-week: #888;
   --grid-notimportant-today: #aa4400;
-  --grid-notimportant-week: #ddc0b0;
+  --grid-notimportant-week: #aa6633;
   --quadrant-ui: #2a2a2a;
   --quadrant-di: #aa4400;
   --quadrant-un: #005588;
@@ -200,7 +200,7 @@
   --grid-important-today: #c0392b;
   --grid-important-week: #e8b0aa;
   --grid-notimportant-today: #1565c0;
-  --grid-notimportant-week: #ccd8ee;
+  --grid-notimportant-week: #6688bb;
   --quadrant-ui: #c0392b;
   --quadrant-di: #e65100;
   --quadrant-un: #1565c0;
@@ -229,7 +229,7 @@
   --grid-important-today: #1b5e20;
   --grid-important-week: #a5c8a5;
   --grid-notimportant-today: #0d47a1;
-  --grid-notimportant-week: #b3cde3;
+  --grid-notimportant-week: #4477bb;
   --quadrant-ui: #2e7d32;
   --quadrant-di: #cc6600;
   --quadrant-un: #0d47a1;
@@ -466,9 +466,11 @@ html, body {
 }
 .balance-squares {
   display: flex;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   gap: 1px;
   flex: 1;
+  min-width: 0;
+  overflow: hidden;
 }
 .sq { display: inline; flex-shrink: 0; cursor: default; }
 .sq-imp-today { color: var(--grid-important-today); }
@@ -1489,6 +1491,7 @@ function renderBalanceGrid() {
       noteEl.style.textOverflow = 'ellipsis';
       noteEl.style.whiteSpace = 'nowrap';
       noteEl.style.flex = '1';
+      noteEl.style.minWidth = '0';
       noteEl.style.cursor = 'pointer';
       noteEl.textContent = note.length > MAX_INLINE_NOTE_LENGTH ? note.slice(0, MAX_INLINE_NOTE_LENGTH - 1) + '…' : note;
       noteEl.title = note;
@@ -1975,11 +1978,11 @@ function showScores() {
     // Show today's note if present
     const todayNote = recent[0]?.scoreNotes?.[dim.key];
     const noteHtml = todayNote ? `<span style="color:var(--dim);font-size:0.82em;font-style:italic"> "${escHtml(todayNote)}"</span>` : '';
-    return `<div style="padding:2px 0;display:flex;align-items:center;gap:8px;flex-wrap:wrap"><span style="color:var(--dim);width:3em;display:inline-block">${escHtml(dim.label)}</span><span style="letter-spacing:2px">${cells}</span><span style="color:var(--dim);font-size:0.85em">avg ${avg}</span>${noteHtml}</div>`;
+    return `<div style="padding:2px 0;display:flex;align-items:center;gap:8px;flex-wrap:wrap"><span style="color:var(--dim);width:3em;flex-shrink:0;display:inline-block">${escHtml(dim.label)}</span><span style="letter-spacing:2px;white-space:nowrap;flex-shrink:0">${cells}</span><span style="color:var(--dim);font-size:0.85em">avg ${avg}</span>${noteHtml}</div>`;
   });
 
   const dates = recent.map(d => `<span style="color:var(--dim);writing-mode:horizontal-tb">${d.date.slice(5)}</span>`).join(' ');
-  body.innerHTML = dimRows.join('') + `<div style="margin-top:8px;font-size:0.75em;color:var(--dim);border-top:1px solid var(--muted);padding-top:6px">▁=1  ▂=2  ▃=3  ▄=4  ▅=5  ·=no score  (${recent.length} session${recent.length===1?'':'s'})</div>`;
+  body.innerHTML = dimRows.join('') + `<div style="margin-top:8px;font-size:0.75em;color:var(--dim);border-top:1px solid var(--muted);padding-top:6px"><span style="color:var(--warn)">▁=1  ·=no score</span>  <span style="color:var(--fg)">▂=2  ▃=3</span>  <span style="color:var(--success)">▄=4  ▅=5</span>  (${recent.length} session${recent.length===1?'':'s'})</div>`;
   overlay.style.display = 'flex';
 }
 
