@@ -78,12 +78,12 @@ Dark ink background (`--ink`), full width, never scrolls.
 
 ### Unified filter bar
 
-Full-width strip directly below `#top-bar`, parchment background, `border-bottom: 1px solid var(--border)`. Always visible.
+Full-width strip directly below `#top-bar`, parchment background, `border-bottom: 1px solid var(--border)`. Always rendered; its **contents change per active tab** to show only the controls relevant to that page.
 
 - On the **Map tab**: layer toggles (States / Parks checkboxes) + tag-filter text input.
 - On **States / Parks / Countries tabs**: visited filter dropdown + any type/region dropdowns for that dataset + a text search input. The map mini-view and the table both respond to the same filter bar values.
-- On the **Stats tab**: optional year-range picker (future).
-- Controls are `<select>` / `<input>` using `padding: 5–6px 8–10px; border: 1px solid var(--border); border-radius: 4px; background: var(--cream); font-family: var(--font-sans); font-size: 12–13px`.
+- On the **Stats tab**: optional year-range picker (future); filter bar may be empty/minimal.
+- Controls are `<select>` / `<input>` using `padding: 6px 8px; border: 1px solid var(--border); border-radius: 4px; background: var(--cream); font-family: var(--font-sans); font-size: 13px`.
 
 ---
 
@@ -223,7 +223,7 @@ The following changes are needed to bring the current implementation in line wit
 
 ### Layout & Structure
 
-- [ ] **Extract unified filter bar.** Move all filter controls (layer toggles, tag filter, visited/type/region dropdowns, text search) out of the map pane and table toolbar into a single `#filter-bar` strip sitting directly below `#top-bar`. The filter bar should span the full width and be visible at all times on the active tab.
+- [ ] **Extract unified filter bar.** Move all filter controls (layer toggles, tag filter, visited/type/region dropdowns, text search) out of the map pane and table toolbar into a single `#filter-bar` strip sitting directly below `#top-bar`. The filter bar is always rendered; its contents switch per active tab. It should span the full width.
 - [ ] **Rotate split-tab layout from left/right to top/bottom.** Currently the States, Parks, and Countries tabs use a 40%-left-map / 60%-right-table side-by-side layout. Change these to a stacked layout: map pane on top (~60% of remaining height, full width), table pane on bottom (~40%, full width). Update `.split-tab`, `.tab-left-col`, `.tab-map-pane`, `.tab-table-pane`, and related CSS.
 - [ ] **Add drag handle between map and table panes.** Insert a `<div class="pane-drag-handle">` between the two panes with `cursor: ns-resize`. Wire `mousedown`/`mousemove`/`mouseup` to resize the map pane height.
 - [ ] **Remove inline info panels.** Delete the `.tab-info-panel` / `#states-info-panel` / `#parks-info-panel` / `#countries-info-panel` elements and their CSS. The `#detail-drawer` replaces them as the sole detail view.
