@@ -344,6 +344,13 @@ html, body {
   width: 92%; font-family: var(--font); color: var(--fg); font-size: 0.9em;
   max-height: 84vh; display: flex; flex-direction: column;
 }
+
+/* Bulk dialog grid */
+.bulk-grid {
+  display: grid; grid-template-columns: 1fr 1fr;
+  gap: 0 16px;
+}
+@media (max-width: 700px) { .bulk-grid { grid-template-columns: 1fr; } }
 #help-title {
   color: var(--accent); font-size: 1em; letter-spacing: 2px;
   margin-bottom: 10px; border-bottom: 1px solid var(--muted); padding-bottom: 6px;
@@ -1075,8 +1082,13 @@ function showHelp() {
     '/export [txt|json]                 export data (omit format for all)',
     '/import                            import data from .json file',
     '',
-    '/add                               guided walkthrough to log an entry',
-    '/add i|e|v [cat] [sub] [amt] [note]  quick add (i=income e=expense v=investment)',
+    '/add                               guided walkthrough to log an entry (type optional)',
+    '/add [type] [cat] [sub] [amt] [note]  quick add with explicit type (i/e/v)',
+    '/add [cat] [sub] [amt] [note]      quick add — type inferred from category',
+    '/income  [cat] [sub] [amt] [note]  shorthand for /add income ...',
+    '/expense [cat] [sub] [amt] [note]  shorthand for /add expense ...',
+    '/investment [cat] [sub] [amt] [note]  shorthand for /add investment ...',
+    '/bulk                              bulk-add dialog for all categories at once',
     '/month                             show current month',
     '/month YYYY-MM                     set current month',
     '/list [all|income|expense|investment]  list entries for current month',
@@ -1088,8 +1100,10 @@ function showHelp() {
     '/cat                               list all categories',
     '/cat add [type] [cat] [sub]        add subcategory',
     '/cat delete [type] [cat] [sub]     remove subcategory',
+    '/cat delete [type] [cat]           remove entire category',
     '',
-    'Type /add to log new riches or expenditures.',
+    'In guided /add: press Enter at type step to auto-detect from category.',
+    'Press Enter at note step to skip (note is optional).',
   ].join('\n');
   const overlay = document.getElementById('help-overlay');
   overlay.classList.add('visible');
@@ -1173,8 +1187,9 @@ function openEditOverlay(id) {
    ═══════════════════════════════════════════════════════════ */
 let qaState = null;
 
-function startQA() {
-  qaState = { step: 0, type: null, category: null, subcategory: null, amount: null, note: null };
+function startQA(prefillType) {
+  const pre = prefillType || null;
+  qaState = { step: pre ? 1 : 0, type: pre, category: null, subcategory: null, amount: null, note: null, prefilled: !!pre };
   const overlay = document.getElementById('boot-overlay');
   overlay.style.display = 'flex';
   const log = document.getElementById('boot-log');
@@ -1184,8 +1199,18 @@ function startQA() {
   qaLog('sys', '─────────────────────────────────────────');
   qaLog('sys', 'VAULT — LOG NEW ENTRY');
   qaLog('sys', '─────────────────────────────────────────');
-  qaLog('ask', 'STEP 1/5  Type? (income / expense / investment)');
-  qaLog('sys', '  Shortcuts: i = income  e = expense  v = investment');
+
+  if (pre) {
+    // Type already known — show it and jump to category
+    qaLog('ans', '> ' + pre);
+    qaLog('sep', '─────────────────────────────────────────');
+    const cats = Object.keys(db.categories[pre]);
+    qaLog('ask', 'STEP 1/4  Category? (enter number or name, or type new)');
+    cats.forEach((c,i) => qaLog('sys', `  ${i+1}. ${c}`));
+  } else {
+    qaLog('ask', 'STEP 1/5  Type? (income / expense / investment)  or Enter to skip');
+    qaLog('sys', '  Shortcuts: i = income  e = expense  v = investment');
+  }
   setTimeout(() => document.getElementById('boot-input').focus(), 80);
 }
 
@@ -1200,20 +1225,39 @@ function qaLog(cls, text) {
 
 function qaSubmit(raw) {
   const val = raw.trim().toLowerCase();
-  if (!val) return;
+  // Allow empty only for optional steps: type (0) and note (4)
+  const optionalStep = (qaState.step === 0 || qaState.step === 4);
+  if (!val && !optionalStep) return;
+
   if (val === 'esc' || val === '/quit' || val === 'quit') {
     closeQA(); statusMsg('Add cancelled.'); return;
   }
 
+  const pre = qaState.prefilled;  // true when type was pre-filled via /income etc.
+
   if (qaState.step === 0) {
-    // Type
+    // Type (optional — empty = auto-detect from category)
+    if (!val) {
+      qaState.type = null;
+      qaLog('ans', '> (auto-detect from category)');
+      qaLog('sep', '─────────────────────────────────────────');
+      // List all categories across all types
+      const allCats = [];
+      ['income','expense','investment'].forEach(t => {
+        Object.keys(db.categories[t]).forEach(c => allCats.push({ type:t, cat:c }));
+      });
+      qaLog('ask', 'STEP 2/5  Category? (enter number or name, or type new)');
+      allCats.forEach((x,i) => qaLog('sys', `  ${i+1}. ${x.cat}  [${x.type}]`));
+      qaState._allCats = allCats;
+      qaState.step = 1;
+      return;
+    }
     const typeMap = { i:'income', e:'expense', v:'investment', income:'income', expense:'expense', investment:'investment' };
     const type = typeMap[val];
-    if (!type) { qaLog('warn', 'Enter income, expense, or investment (or i/e/v).'); return; }
+    if (!type) { qaLog('warn', 'Enter income, expense, or investment (or i/e/v), or press Enter to skip.'); return; }
     qaState.type = type;
     qaLog('ans', '> ' + type);
     qaLog('sep', '─────────────────────────────────────────');
-
     const cats = Object.keys(db.categories[type]);
     qaLog('ask', 'STEP 2/5  Category? (enter number or name, or type new)');
     cats.forEach((c,i) => qaLog('sys', `  ${i+1}. ${c}`));
@@ -1221,17 +1265,65 @@ function qaSubmit(raw) {
 
   } else if (qaState.step === 1) {
     // Category
-    const cats = Object.keys(db.categories[qaState.type]);
     let cat;
-    const num = parseInt(val);
-    if (!isNaN(num) && num >= 1 && num <= cats.length) cat = cats[num-1];
-    else cat = val.toLowerCase().trim();
+    if (qaState.type) {
+      const cats = Object.keys(db.categories[qaState.type]);
+      const num = parseInt(val);
+      if (!isNaN(num) && num >= 1 && num <= cats.length) cat = cats[num-1];
+      else cat = val.trim();
+    } else {
+      // type is null — numbered list spans all types
+      const allCats = qaState._allCats || [];
+      const num = parseInt(val);
+      if (!isNaN(num) && num >= 1 && num <= allCats.length) {
+        cat = allCats[num-1].cat;
+        qaState.type = allCats[num-1].type;
+      } else {
+        cat = val.trim();
+      }
+    }
     if (!cat) { qaLog('warn', 'Please enter a category name or number.'); return; }
     qaState.category = cat;
     qaLog('ans', '> ' + cat);
-    qaLog('sep', '─────────────────────────────────────────');
 
+    // If type still unknown, infer from category
+    if (!qaState.type) {
+      const matches = ['income','expense','investment'].filter(t => db.categories[t][cat] !== undefined);
+      if (matches.length === 1) {
+        qaState.type = matches[0];
+        qaLog('sys', '  → type detected: ' + qaState.type);
+      } else {
+        // Ambiguous or new category — ask for type
+        if (matches.length > 1) {
+          qaLog('warn', '  "' + cat + '" exists in multiple types: ' + matches.join(', '));
+        } else {
+          qaLog('sys', '  "' + cat + '" is a new category.');
+        }
+        qaLog('sep', '─────────────────────────────────────────');
+        qaLog('ask', 'CLARIFY  Type? (income / expense / investment)');
+        qaLog('sys', '  Shortcuts: i = income  e = expense  v = investment');
+        qaState.step = 6;
+        return;
+      }
+    }
+
+    qaLog('sep', '─────────────────────────────────────────');
     const subs = db.categories[qaState.type][cat] || [];
+    const stepNum = pre ? 2 : 3; const stepTot = pre ? 4 : 5;
+    qaLog('ask', `STEP ${stepNum}/${stepTot}  Subcategory? (enter number or name, or type new)`);
+    if (subs.length) subs.forEach((s,i) => qaLog('sys', `  ${i+1}. ${s}`));
+    else             qaLog('sys', '  (no existing subcategories — type a new one)');
+    qaState.step = 2;
+
+  } else if (qaState.step === 6) {
+    // Type clarification (ambiguous / new category)
+    const typeMap = { i:'income', e:'expense', v:'investment', income:'income', expense:'expense', investment:'investment' };
+    const type = typeMap[val];
+    if (!type) { qaLog('warn', 'Enter income, expense, or investment (or i/e/v).'); return; }
+    qaState.type = type;
+    qaLog('ans', '> ' + type);
+    qaLog('sep', '─────────────────────────────────────────');
+    const subs = db.categories[type][qaState.category] || [];
     qaLog('ask', 'STEP 3/5  Subcategory? (enter number or name, or type new)');
     if (subs.length) subs.forEach((s,i) => qaLog('sys', `  ${i+1}. ${s}`));
     else             qaLog('sys', '  (no existing subcategories — type a new one)');
@@ -1243,12 +1335,13 @@ function qaSubmit(raw) {
     let sub;
     const num = parseInt(val);
     if (!isNaN(num) && num >= 1 && num <= subs.length) sub = subs[num-1];
-    else sub = val.toLowerCase().trim();
+    else sub = val.trim();
     if (!sub) { qaLog('warn', 'Please enter a subcategory name or number.'); return; }
     qaState.subcategory = sub;
     qaLog('ans', '> ' + sub);
     qaLog('sep', '─────────────────────────────────────────');
-    qaLog('ask', 'STEP 4/5  Amount? ($)');
+    const stepNum = pre ? 3 : 4; const stepTot = pre ? 4 : 5;
+    qaLog('ask', `STEP ${stepNum}/${stepTot}  Amount? ($)`);
     qaState.step = 3;
 
   } else if (qaState.step === 3) {
@@ -1258,11 +1351,12 @@ function qaSubmit(raw) {
     qaState.amount = amt;
     qaLog('ans', '> $' + amt.toFixed(2));
     qaLog('sep', '─────────────────────────────────────────');
-    qaLog('ask', 'STEP 5/5  Note? (optional — press Enter to skip)');
+    const stepNum = pre ? 4 : 5; const stepTot = pre ? 4 : 5;
+    qaLog('ask', `STEP ${stepNum}/${stepTot}  Note? (optional — press Enter to skip)`);
     qaState.step = 4;
 
   } else if (qaState.step === 4) {
-    // Note
+    // Note (optional — empty input is fine)
     qaState.note = raw.trim();
     qaLog('ans', qaState.note ? '> ' + qaState.note : '> (no note)');
     qaLog('sep', '─────────────────────────────────────────');
@@ -1354,8 +1448,81 @@ function showCatOverlay() {
 }
 
 /* ═══════════════════════════════════════════════════════════
-   EXPORT / IMPORT
+   BULK ADD DIALOG
    ═══════════════════════════════════════════════════════════ */
+function openBulkDialog() {
+  const { year, month } = db.currentMonth;
+  const monthLabel = MONTH_NAMES[month-1] + ' ' + year;
+
+  const types = ['income','expense','investment'];
+  const typeLabels = { income:'INCOME', expense:'EXPENSES', investment:'INVESTMENTS' };
+  const typeColorVars = { income:'var(--success)', expense:'var(--warn)', investment:'var(--cat-5)' };
+
+  let html = `<div style="font-size:0.8em;color:var(--dim);margin-bottom:10px">Enter amounts for each subcategory. Leave blank to skip. Click ADD ALL to log all filled entries to ${monthLabel}.</div>`;
+  html += `<div class="bulk-grid">`;
+
+  types.forEach(type => {
+    const cats = db.categories[type];
+    const catKeys = Object.keys(cats);
+    if (!catKeys.length) return;
+    html += `<div>`;
+    html += `<div style="font-size:0.78em;letter-spacing:2px;color:${typeColorVars[type]};border-bottom:1px solid var(--muted);padding-bottom:2px;margin-bottom:6px">${typeLabels[type]}</div>`;
+    catKeys.forEach(cat => {
+      const subs = cats[cat];
+      if (!subs.length) return;
+      html += `<div style="margin-bottom:6px">`;
+      html += `<div style="font-size:0.78em;color:var(--fg);margin-bottom:2px;letter-spacing:1px">${escHtml(cat)}</div>`;
+      subs.forEach(sub => {
+        const tid = escHtml(type), cid = escHtml(cat), sid = escHtml(sub);
+        html += `<div style="display:flex;align-items:center;gap:6px;padding:1px 0">`;
+        html += `<span style="font-size:0.75em;color:var(--dim);min-width:110px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${sid}">${escHtml(sub)}</span>`;
+        html += `<input class="dlg-input bulk-amt" type="number" step="0.01" min="0" placeholder="0.00" data-type="${tid}" data-cat="${cid}" data-sub="${sid}" style="width:90px;margin:0">`;
+        html += `<input class="dlg-input bulk-note" type="text" placeholder="note" data-type="${tid}" data-cat="${cid}" data-sub="${sid}" style="flex:1;min-width:0;margin:0;font-size:0.78em">`;
+        html += `</div>`;
+      });
+      html += `</div>`;
+    });
+    html += `</div>`;
+  });
+
+  html += `</div>`;
+  html += `<div style="margin-top:12px;border-top:1px solid var(--muted);padding-top:10px">`;
+  html += `<span class="dlg-btn dlg-btn-ok" id="bulk-ok">[ ADD ALL ]</span>`;
+  html += `<span class="dlg-btn dlg-btn-cancel" id="bulk-cancel">[ CANCEL ]</span>`;
+  html += `</div>`;
+
+  openOverlay(`◈ BULK ADD — ${monthLabel}`, html, true);
+
+  document.querySelectorAll('.dlg-input').forEach(i => i.style.userSelect = 'text');
+
+  document.getElementById('bulk-ok').addEventListener('click', () => {
+    let addedCount = 0;
+    document.querySelectorAll('.bulk-amt').forEach(input => {
+      const amt = parseFloat(input.value);
+      if (!isNaN(amt) && amt > 0) {
+        const { type, cat, sub } = input.dataset;
+        // find matching note input
+        const noteInput = document.querySelector(`.bulk-note[data-type="${CSS.escape(type)}"][data-cat="${CSS.escape(cat)}"][data-sub="${CSS.escape(sub)}"]`);
+        const note = noteInput ? noteInput.value.trim() : '';
+        addEntry(type, cat, sub, amt, note);
+        addedCount++;
+      }
+    });
+    if (addedCount > 0) {
+      render();
+      closeOverlay();
+      statusMsg(addedCount + ' entr' + (addedCount === 1 ? 'y' : 'ies') + ' added.');
+    } else {
+      statusMsg('No amounts entered — nothing added.');
+    }
+  });
+
+  document.getElementById('bulk-cancel').addEventListener('click', closeOverlay);
+
+  // Focus first amount input
+  const first = document.querySelector('.bulk-amt');
+  if (first) setTimeout(() => first.focus(), 80);
+}
 function exportDataTxt() {
   const lines = ['VAULT — BUDGET EXPORT', '='.repeat(40), ''];
   // Group by year then month
@@ -1579,15 +1746,43 @@ function handleConsoleCmd(raw) {
 
   if (cmd === '/add') {
     if (!rest) { startQA(); return; }
-    // Quick-add: /add i|e|v [cat] [sub] [amount] [note...]
+    // Quick-add: /add [type] [cat] [sub] [amount] [note...]
+    //   or:      /add [cat] [sub] [amount] [note...]  (type inferred from category)
     const typeMap = { i:'income', e:'expense', v:'investment', income:'income', expense:'expense', investment:'investment' };
-    const type = typeMap[arg1.toLowerCase()];
-    if (!type) { statusMsg('Usage: /add income|expense|investment [cat] [sub] [amount] [note]'); return; }
-    const cat = parts[2] || '';
-    const sub = parts[3] || '';
-    const amt = parseFloat(parts[4] || '');
-    const note = parts.slice(5).join(' ');
-    if (!cat || !sub || isNaN(amt) || amt < 0) { statusMsg('Usage: /add i|e|v [cat] [sub] [amount] [note]'); return; }
+    let type = typeMap[arg1.toLowerCase()];
+    let cat, sub, amtStr, note;
+    if (type) {
+      cat = parts[2] || ''; sub = parts[3] || ''; amtStr = parts[4] || ''; note = parts.slice(5).join(' ');
+    } else {
+      // Infer type from first arg (treated as category)
+      cat = arg1.toLowerCase();
+      sub = parts[2] || ''; amtStr = parts[3] || ''; note = parts.slice(4).join(' ');
+      const matches = ['income','expense','investment'].filter(t => db.categories[t][cat] !== undefined);
+      if (matches.length === 1) {
+        type = matches[0];
+      } else if (matches.length > 1) {
+        statusMsg('Ambiguous: "' + cat + '" in ' + matches.join(', ') + '. Use /add [type] [cat] ...'); return;
+      } else {
+        statusMsg('Unknown category "' + cat + '". Use /add [type] [cat] [sub] [amount]'); return;
+      }
+    }
+    const amt = parseFloat(amtStr);
+    if (!cat || !sub || isNaN(amt) || amt < 0) { statusMsg('Usage: /add [type] [cat] [sub] [amount] [note]'); return; }
+    addEntry(type, cat, sub, amt, note);
+    render();
+    statusMsg('Entry added.');
+    return;
+  }
+
+  // Shorthand commands: /income /expense /investment
+  if (cmd === '/income' || cmd === '/expense' || cmd === '/investment') {
+    const typeMap2 = { '/income':'income', '/expense':'expense', '/investment':'investment' };
+    const type = typeMap2[cmd];
+    if (!rest) { startQA(type); return; }
+    // Quick-add: /income [cat] [sub] [amount] [note...]
+    const cat = parts[1] || ''; const sub = parts[2] || '';
+    const amt = parseFloat(parts[3] || ''); const note = parts.slice(4).join(' ');
+    if (!cat || !sub || isNaN(amt) || amt < 0) { statusMsg('Usage: /' + type + ' [cat] [sub] [amount] [note]'); return; }
     addEntry(type, cat, sub, amt, note);
     render();
     statusMsg('Entry added.');
@@ -1700,11 +1895,18 @@ function handleConsoleCmd(raw) {
       const type = parts[2] ? parts[2].toLowerCase() : '';
       const cat  = parts[3] ? parts[3].toLowerCase() : '';
       const sub  = parts[4] ? parts[4].toLowerCase() : '';
-      if (!['income','expense','investment'].includes(type) || !cat || !sub) {
-        statusMsg('Usage: /cat delete [income|expense|investment] [cat] [sub]'); return;
+      if (!['income','expense','investment'].includes(type) || !cat) {
+        statusMsg('Usage: /cat delete [income|expense|investment] [cat] [sub]  (omit sub to delete whole category)'); return;
       }
       const catObj = db.categories[type];
       if (!catObj[cat]) { statusMsg('Category not found.'); return; }
+      if (!sub) {
+        // Delete entire category
+        delete catObj[cat];
+        saveDB();
+        statusMsg('Deleted category: ' + type + '/' + cat);
+        return;
+      }
       const idx = catObj[cat].indexOf(sub);
       if (idx === -1) { statusMsg('Subcategory not found.'); return; }
       catObj[cat].splice(idx, 1);
@@ -1715,6 +1917,8 @@ function handleConsoleCmd(raw) {
     statusMsg('Usage: /cat [add|delete] [type] [cat] [sub]');
     return;
   }
+
+  if (cmd === '/bulk') { openBulkDialog(); return; }
 
   statusMsg('Unknown command: ' + cmd + '. Type /help');
 }
