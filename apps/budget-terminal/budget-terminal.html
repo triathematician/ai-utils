@@ -864,7 +864,7 @@ function renderSummary() {
     const total = group.reduce((s,e)=>s+e.amount,0);
     html += `<div class="summary-type-block">`;
     html += `<div class="summary-type-label stl-${type}">${escHtml(typeLabels[type])} — ${fmtMoney(total)}</div>`;
-    Object.entries(catTotals).sort((a,b)=>b[1]-a[1]).forEach(([cat,amt]) => {
+    Object.entries(catTotals).sort((a,b)=>a[0].localeCompare(b[0])).forEach(([cat,amt]) => {
       html += `<div class="summary-row">`;
       html += `<span class="sr-cat">${escHtml(cat)}</span>`;
       html += `<span class="sr-amt">${fmtMoney(amt)}</span>`;
@@ -990,7 +990,7 @@ function renderAnalysis() {
     html += `<span class="ar-badge">STATUS</span>`;
     html += `</div>`;
 
-    Object.values(subTotals).forEach(s => {
+    Object.values(subTotals).sort((a,b)=>a.cat.localeCompare(b.cat)||a.sub.localeCompare(b.sub)).forEach(s => {
       const sk = type+'/'+s.cat+'/'+s.sub;
       const avg = subAvgs[sk];
       const hasHistory = avg !== undefined;
@@ -1495,12 +1495,12 @@ function openBulkDialog() {
 
   types.forEach(type => {
     const cats = db.categories[type];
-    const catKeys = Object.keys(cats);
+    const catKeys = Object.keys(cats).sort((a,b)=>a.localeCompare(b));
     if (!catKeys.length) return;
     html += `<div>`;
     html += `<div style="font-size:0.78em;letter-spacing:2px;color:${typeColorVars[type]};border-bottom:1px solid var(--muted);padding-bottom:2px;margin-bottom:6px">${typeLabels[type]}</div>`;
     catKeys.forEach(cat => {
-      const subs = cats[cat];
+      const subs = cats[cat].slice().sort((a,b)=>a.localeCompare(b));
       if (!subs.length) return;
       html += `<div style="margin-bottom:6px">`;
       html += `<div style="font-size:0.78em;color:var(--fg);margin-bottom:2px;letter-spacing:1px">${escHtml(cat)}</div>`;
