@@ -1,0 +1,1828 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>VAULT — Budget Tracker</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@300;400;500;600;700&family=Source+Code+Pro:wght@300;400;600;700&family=VT323&display=swap" rel="stylesheet">
+<style>
+/* ═══════════════════════════════════════════════
+   CSS VARIABLES — THEME SYSTEM
+   ═══════════════════════════════════════════════ */
+:root {
+  --bg: #121212; --fg: #ffb000; --accent: #ff0000;
+  --dim: #7a5500; --muted: #3a2800; --border: #ffb000;
+  --success: #00ff41; --warn: #ff6600;
+  --font: 'VT323', 'Courier New', monospace;
+  --font-size: 20px; --line-h: 1.4;
+  --cat-1:#ffb000; --cat-2:#ff4444; --cat-3:#ff8800; --cat-4:#00ff41;
+  --cat-5:#00bbff; --cat-6:#aa44ff; --cat-7:#ff44aa; --cat-8:#ffff44;
+  --cat-9:#00ffaa; --cat-10:#ffffff;
+}
+[data-theme="solar"] {
+  --bg:#002b36; --fg:#839496; --accent:#b58900;
+  --dim:#4a5456; --muted:#073642; --border:#839496;
+  --success:#859900; --warn:#cb4b16;
+  --font:'Fira Code',monospace;
+  --cat-1:#b58900; --cat-2:#cb4b16; --cat-3:#dc322f; --cat-4:#d33682;
+  --cat-5:#6c71c4; --cat-6:#268bd2; --cat-7:#2aa198; --cat-8:#859900;
+  --cat-9:#657b83; --cat-10:#93a1a1;
+}
+[data-theme="monk"] {
+  --bg:#f5f5f5; --fg:#2a2a2a; --accent:#000000;
+  --dim:#888; --muted:#e0e0e0; --border:#2a2a2a;
+  --success:#1a6600; --warn:#aa4400;
+  --font:'Source Code Pro',monospace;
+  --cat-1:#2a2a2a; --cat-2:#aa2200; --cat-3:#005588; --cat-4:#336600;
+  --cat-5:#884400; --cat-6:#550055; --cat-7:#006666; --cat-8:#7a5000;
+  --cat-9:#555500; --cat-10:#003344;
+}
+[data-theme="space"] {
+  --bg:#0a0a1a; --fg:#a0c0ff; --accent:#00ffff;
+  --dim:#304060; --muted:#0f0f2a; --border:#304080;
+  --success:#00ffaa; --warn:#ff6060;
+  --font:'Fira Code',monospace;
+  --cat-1:#00ffff; --cat-2:#ff00aa; --cat-3:#00ff88; --cat-4:#ffff00;
+  --cat-5:#ff6060; --cat-6:#7788ff; --cat-7:#aa66ff; --cat-8:#ffffff;
+  --cat-9:#00ccff; --cat-10:#ff8800;
+}
+[data-theme="synth"] {
+  --bg:#1a0033; --fg:#ff00ff; --accent:#00ffff;
+  --dim:#660066; --muted:#2a0044; --border:#ff00ff;
+  --success:#00ff88; --warn:#ffaa00;
+  --font:'Fira Code',monospace;
+  --cat-1:#ff00ff; --cat-2:#00ffff; --cat-3:#00ff88; --cat-4:#ffaa00;
+  --cat-5:#ff0066; --cat-6:#6600ff; --cat-7:#ff6600; --cat-8:#00aaff;
+  --cat-9:#ffff00; --cat-10:#ff44aa;
+}
+[data-theme="dos"] {
+  --bg:#0000aa; --fg:#aaaaaa; --accent:#ffffff;
+  --dim:#5555ff; --muted:#0000cc; --border:#aaaaaa;
+  --success:#55ff55; --warn:#ffff55;
+  --font:'VT323',monospace;
+  --cat-1:#ffffff; --cat-2:#55ffff; --cat-3:#55ff55; --cat-4:#ff5555;
+  --cat-5:#ffff55; --cat-6:#ff55ff; --cat-7:#5555ff; --cat-8:#aaaaaa;
+  --cat-9:#ffaa55; --cat-10:#55aaaa;
+}
+[data-theme="notebook"] {
+  --bg:#fafaf2; --fg:#1a1a2e; --accent:#c0392b;
+  --dim:#8a8a9a; --muted:#eeeede; --border:#90a8d4;
+  --success:#2e7d32; --warn:#e65100;
+  --font:'Source Code Pro',monospace;
+  --cat-1:#c0392b; --cat-2:#d84315; --cat-3:#f57c00; --cat-4:#2e7d32;
+  --cat-5:#1565c0; --cat-6:#6a1b9a; --cat-7:#00838f; --cat-8:#4e342e;
+  --cat-9:#37474f; --cat-10:#880e4f;
+}
+[data-theme="engineering"] {
+  --bg:#e8f5e8; --fg:#0d2b0d; --accent:#2e7d32;
+  --dim:#5a7a5a; --muted:#d0e8d0; --border:#7ab87a;
+  --success:#1b5e20; --warn:#cc6600;
+  --font:'Source Code Pro',monospace;
+  --cat-1:#2e7d32; --cat-2:#b71c1c; --cat-3:#e65100; --cat-4:#1b5e20;
+  --cat-5:#1565c0; --cat-6:#4a148c; --cat-7:#00695c; --cat-8:#4e342e;
+  --cat-9:#37474f; --cat-10:#880e4f;
+}
+
+/* ═══════════════════════════════════════════════
+   RESET & BASE
+   ═══════════════════════════════════════════════ */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html, body {
+  height: 100%; background: var(--bg); color: var(--fg);
+  font-family: var(--font); font-size: var(--font-size);
+  line-height: var(--line-h); overflow: hidden;
+  cursor: default; user-select: none;
+}
+::selection { background: var(--fg); color: var(--bg); }
+::-webkit-scrollbar { width: 4px; }
+::-webkit-scrollbar-track { background: var(--muted); }
+::-webkit-scrollbar-thumb { background: var(--dim); }
+
+/* ═══════════════════════════════════════════════
+   LAYOUT — 30/60/10 grid
+   ═══════════════════════════════════════════════ */
+#app {
+  display: grid;
+  grid-template-rows: 30vh 60vh 10vh;
+  height: 100vh; width: 100vw;
+}
+
+/* ═══════════════════════════════════════════════
+   TOP ROW — current month + stat cards
+   ═══════════════════════════════════════════════ */
+#top-row {
+  border-bottom: 1px solid var(--border);
+  padding: 8px 12px 6px;
+  overflow: hidden;
+  display: flex; flex-direction: column; gap: 4px;
+}
+.row-header {
+  color: var(--accent); font-size: 0.78em; letter-spacing: 2px;
+  border-bottom: 1px solid var(--muted); padding-bottom: 3px;
+  margin-bottom: 2px; flex-shrink: 0;
+}
+#month-display {
+  font-size: 1.8em; font-weight: 700; letter-spacing: 4px;
+  color: var(--fg); line-height: 1.1; flex-shrink: 0;
+}
+#stat-cards {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px; flex: 1; min-height: 0;
+}
+.stat-card {
+  border: 1px solid var(--muted); padding: 4px 8px;
+  display: flex; flex-direction: column; min-height: 0; overflow: hidden;
+}
+.stat-card .sc-label {
+  font-size: 0.65em; letter-spacing: 2px; color: var(--accent);
+  flex-shrink: 0; margin-bottom: 2px;
+}
+.stat-card .sc-value {
+  font-size: 1.1em; font-weight: 700;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.sc-income    { color: var(--success); }
+.sc-expense   { color: var(--warn); }
+.sc-invest    { color: var(--cat-5); }
+.sc-net-pos   { color: var(--success); }
+.sc-net-neg   { color: var(--cat-2); }
+
+/* ═══════════════════════════════════════════════
+   MIDDLE ROW
+   ═══════════════════════════════════════════════ */
+#main-row {
+  display: grid;
+  grid-template-columns: 55fr 45fr;
+  overflow: hidden;
+  border-bottom: 1px solid var(--border);
+}
+#main-panel {
+  border-right: 1px solid var(--border);
+  padding: 8px 12px; overflow-y: auto; overflow-x: hidden;
+}
+#main-panel::-webkit-scrollbar { width: 3px; }
+#side-panel {
+  padding: 8px 12px; overflow-y: auto; overflow-x: hidden;
+  display: flex; flex-direction: column;
+}
+#side-panel::-webkit-scrollbar { width: 3px; }
+
+/* Entry list */
+.type-section { margin-bottom: 8px; }
+.type-header {
+  font-size: 0.72em; letter-spacing: 2px;
+  padding: 2px 0; margin-bottom: 3px;
+  border-bottom: 1px solid var(--muted);
+}
+.type-header.th-income    { color: var(--success); }
+.type-header.th-expense   { color: var(--warn); }
+.type-header.th-investment{ color: var(--cat-5); }
+
+.entry-row {
+  display: flex; align-items: baseline; gap: 6px;
+  padding: 2px 0; font-size: 0.85em;
+  border-bottom: 1px solid transparent;
+  cursor: pointer; line-height: 1.3;
+}
+.entry-row:hover { background: var(--muted); }
+.entry-num   { color: var(--dim); flex-shrink: 0; min-width: 2.2em; text-align: right; }
+.entry-cat   { flex-shrink: 0; color: var(--fg); }
+.entry-sub   { flex-shrink: 0; color: var(--dim); }
+.entry-sep   { flex-shrink: 0; color: var(--dim); }
+.entry-amt   { font-weight: 600; flex-shrink: 0; }
+.entry-amt.ea-income    { color: var(--success); }
+.entry-amt.ea-expense   { color: var(--warn); }
+.entry-amt.ea-investment{ color: var(--cat-5); }
+.entry-note  { flex: 1; color: var(--dim); font-size: 0.9em; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.entry-actions {
+  display: none; gap: 6px; flex-shrink: 0;
+}
+.entry-row.selected .entry-actions { display: flex; }
+.entry-row.selected { background: var(--muted); }
+.ea-edit { color: var(--accent); cursor: pointer; font-size: 0.82em; }
+.ea-edit:hover { background: var(--accent); color: var(--bg); }
+.ea-del  { color: var(--warn); cursor: pointer; font-size: 0.82em; }
+.ea-del:hover  { background: var(--warn); color: var(--bg); }
+.empty-msg { color: var(--dim); font-size: 0.82em; padding: 6px 0; font-style: italic; }
+
+/* ═══════════════════════════════════════════════
+   SIDE PANEL TABS
+   ═══════════════════════════════════════════════ */
+#side-tabs {
+  display: flex; gap: 6px; margin-bottom: 6px; flex-shrink: 0;
+}
+.side-tab {
+  cursor: pointer; padding: 1px 6px; font-size: 0.72em;
+  letter-spacing: 1px; color: var(--dim); border: 1px solid var(--dim);
+}
+.side-tab:hover { color: var(--fg); border-color: var(--fg); }
+.side-tab.active { color: var(--accent); border-color: var(--accent); background: transparent; }
+#side-content { flex: 1; overflow-y: auto; overflow-x: hidden; }
+#side-content::-webkit-scrollbar { width: 3px; }
+
+/* Summary / Rollup / Analysis content */
+.summary-type-block { margin-bottom: 8px; }
+.summary-type-label {
+  font-size: 0.7em; letter-spacing: 2px; margin-bottom: 2px;
+  padding-bottom: 2px; border-bottom: 1px solid var(--muted);
+}
+.summary-type-label.stl-income    { color: var(--success); }
+.summary-type-label.stl-expense   { color: var(--warn); }
+.summary-type-label.stl-investment{ color: var(--cat-5); }
+.summary-row {
+  display: flex; justify-content: space-between; align-items: baseline;
+  font-size: 0.82em; padding: 1px 0;
+}
+.summary-row .sr-cat  { color: var(--fg); }
+.summary-row .sr-amt  { color: var(--dim); font-size: 0.9em; }
+
+.rollup-table { width: 100%; border-collapse: collapse; font-size: 0.78em; }
+.rollup-table th {
+  color: var(--accent); letter-spacing: 1px; font-size: 0.82em;
+  text-align: right; padding: 2px 4px; border-bottom: 1px solid var(--muted);
+}
+.rollup-table th:first-child { text-align: left; }
+.rollup-table td {
+  text-align: right; padding: 2px 4px;
+  border-bottom: 1px solid transparent;
+  white-space: nowrap;
+}
+.rollup-table td:first-child { text-align: left; color: var(--dim); }
+.rollup-table tr.current-month td { color: var(--fg); font-weight: 600; }
+.rollup-table tr.avg-row td { color: var(--dim); border-top: 1px solid var(--muted); font-style: italic; }
+.rollup-table tr.avg-row td:first-child { color: var(--accent); }
+.rt-income  { color: var(--success); }
+.rt-expense { color: var(--warn); }
+.rt-invest  { color: var(--cat-5); }
+.rt-net-pos { color: var(--success); }
+.rt-net-neg { color: var(--cat-2); }
+
+.analysis-row {
+  display: flex; align-items: baseline; gap: 6px;
+  font-size: 0.8em; padding: 2px 0;
+  border-bottom: 1px solid transparent;
+}
+.analysis-row:hover { background: var(--muted); }
+.ar-label  { flex: 1; color: var(--fg); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ar-cur    { min-width: 6em; text-align: right; flex-shrink: 0; }
+.ar-avg    { min-width: 6em; text-align: right; color: var(--dim); flex-shrink: 0; font-size: 0.88em; }
+.ar-badge  { min-width: 5em; text-align: right; flex-shrink: 0; font-size: 0.82em; font-weight: 600; }
+.ar-high   { color: var(--warn); }
+.ar-low    { color: var(--cat-5); }
+.ar-ok     { color: var(--dim); }
+.ar-new    { color: var(--dim); font-style: italic; }
+.analysis-section-label {
+  font-size: 0.7em; letter-spacing: 2px; margin: 6px 0 2px;
+  padding-bottom: 2px; border-bottom: 1px solid var(--muted);
+}
+
+/* ═══════════════════════════════════════════════
+   CONSOLE ROW
+   ═══════════════════════════════════════════════ */
+#console-row {
+  background: var(--muted);
+  border-top: 1px solid var(--border);
+  display: flex; align-items: center; padding: 0 12px; gap: 8px;
+}
+#console-prompt { color: var(--accent); white-space: nowrap; flex-shrink: 0; }
+#console-input {
+  flex: 1; background: transparent; border: none; outline: none;
+  color: var(--fg); font-family: var(--font); font-size: 1em;
+  caret-color: var(--accent); user-select: text;
+}
+#console-status {
+  font-size: 0.72em; color: var(--dim);
+  min-width: 160px; text-align: right; white-space: nowrap; flex-shrink: 0;
+}
+
+/* ═══════════════════════════════════════════════
+   BOOT / Q&A OVERLAY
+   ═══════════════════════════════════════════════ */
+#boot-overlay {
+  position: fixed; inset: 0; background: var(--bg);
+  z-index: 100; display: none;
+  flex-direction: column; padding: 20px 24px 0; overflow: hidden;
+}
+#boot-log {
+  flex: 1; overflow-y: auto; overflow-x: hidden;
+  font-size: 0.9em; padding-bottom: 8px;
+}
+#boot-log::-webkit-scrollbar { width: 3px; }
+.boot-line { padding: 1px 0; animation: fadein 0.1s ease; }
+.boot-line.sys  { color: var(--dim); }
+.boot-line.ask  { color: var(--accent); font-weight: 600; margin-top: 8px; }
+.boot-line.ans  { color: var(--fg); padding-left: 16px; }
+.boot-line.info { color: var(--success); }
+.boot-line.warn { color: var(--warn); }
+.boot-line.sep  { color: var(--muted); }
+@keyframes fadein { from { opacity:0; transform:translateX(-4px); } to { opacity:1; transform:none; } }
+#boot-console {
+  display: flex; align-items: center; gap: 8px;
+  padding: 10px 0 14px; border-top: 1px solid var(--muted); flex-shrink: 0;
+}
+#boot-prompt { color: var(--accent); flex-shrink: 0; }
+#boot-input {
+  flex: 1; background: transparent; border: none; outline: none;
+  color: var(--fg); font-family: var(--font); font-size: 1em;
+  caret-color: var(--accent); user-select: text;
+}
+
+/* ═══════════════════════════════════════════════
+   HELP / GENERIC OVERLAY
+   ═══════════════════════════════════════════════ */
+#help-overlay {
+  display: none; position: fixed; inset: 0;
+  background: rgba(0,0,0,0.75); z-index: 150;
+  align-items: center; justify-content: center;
+}
+#help-overlay.visible { display: flex; }
+.overlay-box {
+  background: var(--bg); border: 1px solid var(--border);
+  padding: 16px 20px; min-width: 640px; max-width: min(92vw, 980px);
+  width: 92%; font-family: var(--font); color: var(--fg); font-size: 0.9em;
+  max-height: 84vh; display: flex; flex-direction: column;
+}
+#help-title {
+  color: var(--accent); font-size: 1em; letter-spacing: 2px;
+  margin-bottom: 10px; border-bottom: 1px solid var(--muted); padding-bottom: 6px;
+  flex-shrink: 0;
+}
+#help-body {
+  line-height: 1.8; overflow-y: auto; flex: 1;
+}
+#help-body::-webkit-scrollbar { width: 3px; }
+#help-footer {
+  margin-top: 10px; border-top: 1px solid var(--muted); padding-top: 8px;
+  font-size: 0.82em; color: var(--dim); flex-shrink: 0;
+}
+#help-close { cursor: pointer; }
+#help-close:hover { color: var(--fg); }
+
+/* Edit form styles */
+.dlg-label   { font-size: 0.75em; color: var(--dim); letter-spacing: 1px; margin: 8px 0 3px; display: block; }
+.dlg-input, .dlg-select {
+  background: transparent; border: 1px solid var(--border); color: var(--fg);
+  font-family: var(--font); font-size: 0.9em; padding: 4px 8px; width: 100%;
+  margin-bottom: 4px; outline: none; user-select: text;
+}
+.dlg-input:focus, .dlg-select:focus { border-color: var(--accent); }
+.dlg-select option { background: var(--bg); color: var(--fg); }
+.dlg-row   { display: flex; gap: 8px; }
+.dlg-row .dlg-input, .dlg-row .dlg-select { flex: 1; }
+.dlg-btn {
+  cursor: pointer; padding: 3px 10px;
+  font-family: var(--font); font-size: 0.88em;
+  background: transparent; border: none; outline: none;
+  margin-right: 4px;
+}
+.dlg-btn-ok   { color: var(--success); }
+.dlg-btn-ok:hover   { background: var(--success); color: var(--bg); }
+.dlg-btn-del  { color: var(--warn); }
+.dlg-btn-del:hover  { background: var(--warn); color: var(--bg); }
+.dlg-btn-cancel { color: var(--dim); }
+.dlg-btn-cancel:hover { background: var(--dim); color: var(--bg); }
+.dlg-btn-nav { color: var(--accent); }
+.dlg-btn-nav:hover { background: var(--accent); color: var(--bg); }
+
+/* ═══════════════════════════════════════════════
+   TOOLTIP
+   ═══════════════════════════════════════════════ */
+#tooltip {
+  position: fixed; display: none; background: var(--muted);
+  border: 1px solid var(--border); color: var(--fg);
+  font-family: var(--font); font-size: 0.78em;
+  padding: 6px 10px; max-width: 320px;
+  pointer-events: none; z-index: 200; line-height: 1.5;
+  white-space: pre-wrap;
+}
+
+/* ═══════════════════════════════════════════════
+   SPLASH
+   ═══════════════════════════════════════════════ */
+#splash {
+  position: fixed; inset: 0; background: var(--bg);
+  z-index: 300; display: flex; flex-direction: column;
+  align-items: center; justify-content: center; gap: 8px;
+}
+#splash pre {
+  color: var(--accent); font-family: var(--font);
+  font-size: 1em; line-height: 1.1; text-align: center;
+}
+#splash .sub  { color: var(--dim); font-size: 0.8em; letter-spacing: 3px; }
+#splash .hint {
+  color: var(--fg); font-size: 0.9em; margin-top: 12px;
+  animation: blink 1s step-end infinite;
+}
+@keyframes blink { 50% { opacity:0; } }
+</style>
+</head>
+<body>
+
+<!-- SPLASH -->
+<div id="splash">
+<pre>
+ ██╗   ██╗ █████╗ ██╗   ██╗██╗  ████████╗
+ ██║   ██║██╔══██╗██║   ██║██║  ╚══██╔══╝
+ ██║   ██║███████║██║   ██║██║     ██║
+ ╚██╗ ██╔╝██╔══██║██║   ██║██║     ██║
+  ╚████╔╝ ██║  ██║╚██████╔╝███████╗██║
+   ╚═══╝  ╚═╝  ╚═╝ ╚═════╝ ╚══════╝╚═╝
+</pre>
+<div class="sub">MONTHLY BUDGET TRACKER — LOCAL FIRST</div>
+<div class="hint">[ PRESS ANY KEY TO OPEN VAULT ]</div>
+</div>
+
+<!-- MAIN APP -->
+<div id="app">
+
+  <!-- TOP ROW -->
+  <div id="top-row">
+    <div class="row-header">◈ VAULT — MONTHLY OVERVIEW</div>
+    <div id="month-display">— — — —</div>
+    <div id="stat-cards">
+      <div class="stat-card">
+        <span class="sc-label">◈ INCOME</span>
+        <div class="sc-value sc-income" id="stat-income">$0.00</div>
+      </div>
+      <div class="stat-card">
+        <span class="sc-label">◈ EXPENSES</span>
+        <div class="sc-value sc-expense" id="stat-expense">$0.00</div>
+      </div>
+      <div class="stat-card">
+        <span class="sc-label">◈ INVESTMENTS</span>
+        <div class="sc-value sc-invest" id="stat-invest">$0.00</div>
+      </div>
+      <div class="stat-card">
+        <span class="sc-label">◈ NET</span>
+        <div class="sc-value sc-net-pos" id="stat-net">$0.00</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MIDDLE ROW -->
+  <div id="main-row">
+
+    <!-- MAIN PANEL — entry list -->
+    <div id="main-panel">
+      <div class="row-header">◈ ENTRIES</div>
+      <div id="entries-list"></div>
+    </div>
+
+    <!-- SIDE PANEL — tabs -->
+    <div id="side-panel">
+      <div id="side-tabs">
+        <span class="side-tab active" data-tab="summary">[SUMMARY]</span>
+        <span class="side-tab" data-tab="rollup">[ROLLUP]</span>
+        <span class="side-tab" data-tab="analysis">[ANALYSIS]</span>
+      </div>
+      <div id="side-content"></div>
+    </div>
+
+  </div>
+
+  <!-- CONSOLE ROW -->
+  <div id="console-row">
+    <span id="console-prompt">VAULT&gt;</span>
+    <input type="text" id="console-input" autocomplete="off" spellcheck="false" placeholder="type /help for commands...">
+    <span id="console-status">READY</span>
+  </div>
+</div>
+
+<!-- BOOT / Q&A OVERLAY -->
+<div id="boot-overlay">
+  <div id="boot-log"></div>
+  <div id="boot-console">
+    <span id="boot-prompt">&gt;&gt;</span>
+    <input type="text" id="boot-input" autocomplete="off" spellcheck="false">
+  </div>
+</div>
+
+<!-- HELP OVERLAY -->
+<div id="help-overlay">
+  <div class="overlay-box">
+    <div id="help-title"></div>
+    <div id="help-body"></div>
+    <div id="help-footer"><span id="help-close">[ESC] CLOSE</span></div>
+  </div>
+</div>
+
+<!-- TOOLTIP -->
+<div id="tooltip"></div>
+
+<script>
+'use strict';
+
+/* ═══════════════════════════════════════════════════════════
+   CONSTANTS
+   ═══════════════════════════════════════════════════════════ */
+const STORAGE_KEY = 'budget_terminal_db';
+const EXPORT_SLUG = 'vault';
+const THEMES = ['legacy','solar','monk','space','synth','dos','notebook','engineering'];
+const MONTH_NAMES = ['JAN','FEB','MAR','APR','MAY','JUN','JUL','AUG','SEP','OCT','NOV','DEC'];
+const DEFAULT_CATEGORIES = {
+  income: {
+    'salary':   ['primary','bonus','overtime'],
+    'freelance':['consulting','contracts'],
+    'passive':  ['dividends','interest','rental']
+  },
+  expense: {
+    'housing':     ['rent','mortgage','utilities','insurance'],
+    'food':        ['groceries','dining','coffee'],
+    'transport':   ['fuel','insurance','maintenance','transit'],
+    'health':      ['insurance','medical','dental','gym'],
+    'entertainment':['subscriptions','hobbies','events'],
+    'personal':    ['clothing','household','gifts'],
+    'education':   ['courses','books','subscriptions']
+  },
+  investment: {
+    'retirement': ['401k','ira','pension'],
+    'brokerage':  ['index-funds','stocks','bonds'],
+    'real-estate':['rental','reit'],
+    'other':      ['crypto','savings']
+  }
+};
+
+/* ═══════════════════════════════════════════════════════════
+   STATE
+   ═══════════════════════════════════════════════════════════ */
+let db = {};
+let activeTab = 'summary';
+let rollupYear = null;          // null = current year
+let selectedEntryId = null;     // for click-to-select in main panel
+
+/* ═══════════════════════════════════════════════════════════
+   STORAGE
+   ═══════════════════════════════════════════════════════════ */
+function loadDB() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    db = raw ? JSON.parse(raw) : {};
+  } catch(e) { db = {}; }
+
+  // Migration guards
+  db.entries        = db.entries        || [];
+  db.backlog        = db.backlog        || [];
+  db.backlogArchive = db.backlogArchive || [];
+  db.theme          = db.theme          || 'legacy';
+
+  // Seed default categories if absent
+  if (!db.categories) {
+    db.categories = JSON.parse(JSON.stringify(DEFAULT_CATEGORIES));
+  } else {
+    db.categories.income     = db.categories.income     || JSON.parse(JSON.stringify(DEFAULT_CATEGORIES.income));
+    db.categories.expense    = db.categories.expense    || JSON.parse(JSON.stringify(DEFAULT_CATEGORIES.expense));
+    db.categories.investment = db.categories.investment || JSON.parse(JSON.stringify(DEFAULT_CATEGORIES.investment));
+  }
+
+  // Default currentMonth
+  if (!db.currentMonth) {
+    const now = new Date();
+    db.currentMonth = { year: now.getFullYear(), month: now.getMonth() + 1 };
+  }
+
+  // Migrate entries
+  db.entries.forEach(e => {
+    e.id        = e.id        || uid();
+    e.note      = e.note      !== undefined ? e.note : '';
+    e.createdAt = e.createdAt || new Date().toISOString();
+  });
+}
+
+function saveDB() {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(db));
+}
+
+/* ═══════════════════════════════════════════════════════════
+   UTILITIES
+   ═══════════════════════════════════════════════════════════ */
+function uid() {
+  return Date.now() + '_' + Math.random().toString(36).slice(2, 8);
+}
+
+function escHtml(s) {
+  return String(s)
+    .replace(/&/g,'&amp;')
+    .replace(/</g,'&lt;')
+    .replace(/>/g,'&gt;')
+    .replace(/"/g,'&quot;');
+}
+
+function todayStr() {
+  return new Date().toISOString().slice(0,10);
+}
+
+function fmtMoney(n) {
+  if (isNaN(n)) return '$0.00';
+  return '$' + Math.abs(n).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+
+function fmtMoneyCompact(n) {
+  const abs = Math.abs(n);
+  if (abs >= 1000000) return '$' + (abs/1000000).toFixed(1) + 'M';
+  if (abs >= 10000)   return '$' + (abs/1000).toFixed(1) + 'K';
+  return '$' + abs.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+
+function downloadBlob(content, filename, type) {
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([content], { type }));
+  a.download = filename;
+  a.click();
+  URL.revokeObjectURL(a.href);
+}
+
+function currentMonthKey() {
+  return db.currentMonth.year + '-' + String(db.currentMonth.month).padStart(2,'0');
+}
+
+function entriesForCurrentMonth() {
+  const { year, month } = db.currentMonth;
+  return db.entries.filter(e => e.year === year && e.month === month);
+}
+
+function sumType(entries, type) {
+  return entries.filter(e => e.type === type).reduce((s, e) => s + e.amount, 0);
+}
+
+/* ═══════════════════════════════════════════════════════════
+   STATUS BAR
+   ═══════════════════════════════════════════════════════════ */
+function statusMsg(msg) {
+  document.getElementById('console-status').textContent = msg;
+  setTimeout(updateStatus, 3000);
+}
+
+function updateStatus() {
+  const key = currentMonthKey();
+  const n = entriesForCurrentMonth().length;
+  document.getElementById('console-status').textContent = key + ' | ' + n + ' entr' + (n===1?'y':'ies');
+}
+
+/* ═══════════════════════════════════════════════════════════
+   THEME
+   ═══════════════════════════════════════════════════════════ */
+function applyTheme(name) {
+  if (!name) {
+    const current = db.theme || 'legacy';
+    const others = THEMES.filter(t => t !== current);
+    name = others[Math.floor(Math.random() * others.length)];
+  }
+  if (!THEMES.includes(name)) { statusMsg('Unknown theme: ' + name); return; }
+  document.documentElement.dataset.theme = (name === 'legacy') ? '' : name;
+  db.theme = name;
+  saveDB();
+  statusMsg('Theme: ' + name.toUpperCase());
+}
+
+/* ═══════════════════════════════════════════════════════════
+   RENDER
+   ═══════════════════════════════════════════════════════════ */
+function render() {
+  renderTopRow();
+  renderMainPanel();
+  renderSidePanel();
+  updateStatus();
+}
+
+function renderTopRow() {
+  const { year, month } = db.currentMonth;
+  document.getElementById('month-display').textContent =
+    MONTH_NAMES[month-1] + ' ' + year;
+
+  const entries = entriesForCurrentMonth();
+  const income  = sumType(entries, 'income');
+  const expense = sumType(entries, 'expense');
+  const invest  = sumType(entries, 'investment');
+  const net     = income - expense - invest;
+
+  document.getElementById('stat-income').textContent  = fmtMoneyCompact(income);
+  document.getElementById('stat-expense').textContent = fmtMoneyCompact(expense);
+  document.getElementById('stat-invest').textContent  = fmtMoneyCompact(invest);
+
+  const netEl = document.getElementById('stat-net');
+  netEl.textContent = (net < 0 ? '-' : '') + fmtMoneyCompact(net);
+  netEl.className = 'sc-value ' + (net >= 0 ? 'sc-net-pos' : 'sc-net-neg');
+}
+
+function renderMainPanel() {
+  const entries = entriesForCurrentMonth();
+  const container = document.getElementById('entries-list');
+
+  const types = ['income','expense','investment'];
+  const typeLabels = { income:'INCOME', expense:'EXPENSES', investment:'INVESTMENTS' };
+  let rowNum = 0;
+  let html = '';
+
+  types.forEach(type => {
+    const group = entries.filter(e => e.type === type);
+    if (!group.length) return;
+    html += `<div class="type-section">`;
+    html += `<div class="type-header th-${type}">${escHtml(typeLabels[type])}</div>`;
+    group.forEach(e => {
+      rowNum++;
+      const isSelected = (e.id === selectedEntryId);
+      const tooltipText = [
+        `#${rowNum} | ${e.year}-${String(e.month).padStart(2,'0')}`,
+        `${e.type.toUpperCase()} / ${e.category} / ${e.subcategory}`,
+        `Amount: ${fmtMoney(e.amount)}`,
+        e.note ? `Note: ${e.note}` : '',
+        `Created: ${e.createdAt ? e.createdAt.slice(0,10) : ''}`
+      ].filter(Boolean).join('\n');
+
+      html += `<div class="entry-row${isSelected ? ' selected' : ''}" data-id="${escHtml(e.id)}" data-num="${rowNum}">`;
+      html += `<span class="entry-num">${rowNum}.</span>`;
+      html += `<span class="entry-cat">${escHtml(e.category)}</span>`;
+      html += `<span class="entry-sep"> &gt; </span>`;
+      html += `<span class="entry-sub">${escHtml(e.subcategory)}</span>`;
+      html += `<span class="entry-sep"> | </span>`;
+      html += `<span class="entry-amt ea-${type}">${fmtMoney(e.amount)}</span>`;
+      if (e.note) {
+        html += `<span class="entry-note"> — ${escHtml(e.note)}</span>`;
+      }
+      html += `<span class="entry-actions">`;
+      html += `<span class="ea-edit" data-id="${escHtml(e.id)}" data-num="${rowNum}">[ EDIT ]</span>`;
+      html += `<span class="ea-del"  data-id="${escHtml(e.id)}" data-num="${rowNum}">[ DEL ]</span>`;
+      html += `</span>`;
+      html += `</div>`;
+
+      // Tooltip (set after innerHTML)
+    });
+    html += `</div>`;
+  });
+
+  if (!html) {
+    html = `<div class="empty-msg">No entries for ${MONTH_NAMES[db.currentMonth.month-1]} ${db.currentMonth.year}. Use /add to log new riches or expenditures.</div>`;
+  }
+
+  container.innerHTML = html;
+
+  // Wire events and tooltips
+  container.querySelectorAll('.entry-row').forEach(row => {
+    const id = row.dataset.id;
+    const num = parseInt(row.dataset.num);
+
+    // Find entry for tooltip
+    const entry = db.entries.find(e => e.id === id);
+    if (entry) {
+      const tip = [
+        `#${num} | ${entry.year}-${String(entry.month).padStart(2,'0')}`,
+        `${entry.type.toUpperCase()} / ${entry.category} / ${entry.subcategory}`,
+        `Amount: ${fmtMoney(entry.amount)}`,
+        entry.note ? `Note: ${entry.note}` : '',
+        `Added: ${entry.createdAt ? entry.createdAt.slice(0,10) : ''}`
+      ].filter(Boolean).join('\n');
+      addTooltip(row, tip);
+    }
+
+    row.addEventListener('click', e => {
+      if (e.target.classList.contains('ea-edit') || e.target.classList.contains('ea-del')) return;
+      selectedEntryId = (selectedEntryId === id) ? null : id;
+      renderMainPanel();
+    });
+  });
+
+  container.querySelectorAll('.ea-edit').forEach(btn => {
+    btn.addEventListener('click', e => {
+      e.stopPropagation();
+      openEditOverlay(btn.dataset.id);
+    });
+  });
+
+  container.querySelectorAll('.ea-del').forEach(btn => {
+    btn.addEventListener('click', e => {
+      e.stopPropagation();
+      deleteEntry(btn.dataset.id);
+    });
+  });
+}
+
+function renderSidePanel() {
+  // Tabs
+  document.querySelectorAll('.side-tab').forEach(tab => {
+    tab.classList.toggle('active', tab.dataset.tab === activeTab);
+  });
+
+  if (activeTab === 'summary')  renderSummary();
+  else if (activeTab === 'rollup')   renderRollup();
+  else if (activeTab === 'analysis') renderAnalysis();
+}
+
+function renderSummary() {
+  const entries = entriesForCurrentMonth();
+  const types = ['income','expense','investment'];
+  const typeLabels = { income:'INCOME', expense:'EXPENSES', investment:'INVESTMENTS' };
+  let html = '';
+
+  types.forEach(type => {
+    const group = entries.filter(e => e.type === type);
+    if (!group.length) return;
+    const catTotals = {};
+    group.forEach(e => {
+      catTotals[e.category] = (catTotals[e.category] || 0) + e.amount;
+    });
+    const total = group.reduce((s,e)=>s+e.amount,0);
+    html += `<div class="summary-type-block">`;
+    html += `<div class="summary-type-label stl-${type}">${escHtml(typeLabels[type])} — ${fmtMoney(total)}</div>`;
+    Object.entries(catTotals).sort((a,b)=>b[1]-a[1]).forEach(([cat,amt]) => {
+      html += `<div class="summary-row">`;
+      html += `<span class="sr-cat">${escHtml(cat)}</span>`;
+      html += `<span class="sr-amt">${fmtMoney(amt)}</span>`;
+      html += `</div>`;
+    });
+    html += `</div>`;
+  });
+
+  if (!html) {
+    html = `<div class="empty-msg" style="margin-top:8px">No data for current month.</div>`;
+  }
+  document.getElementById('side-content').innerHTML = html;
+}
+
+function renderRollup() {
+  const year = rollupYear || db.currentMonth.year;
+  const { year: curYear, month: curMonth } = db.currentMonth;
+  const yearEntries = db.entries.filter(e => e.year === year);
+
+  // Find which months have data
+  const monthsWithData = new Set(yearEntries.map(e => e.month));
+  if (year === curYear) monthsWithData.add(curMonth);
+  const months = Array.from(monthsWithData).sort((a,b) => a-b);
+
+  let html = `<div style="font-size:0.72em;letter-spacing:1px;color:var(--dim);margin-bottom:4px">YEAR: ${year}</div>`;
+
+  if (!months.length) {
+    html += `<div class="empty-msg">No data for ${year}.</div>`;
+    document.getElementById('side-content').innerHTML = html;
+    return;
+  }
+
+  html += `<table class="rollup-table">`;
+  html += `<tr><th>MONTH</th><th>INCOME</th><th>EXPNS</th><th>INVEST</th><th>NET</th></tr>`;
+
+  let totIncome=0, totExpense=0, totInvest=0, n=0;
+
+  months.forEach(m => {
+    const me = yearEntries.filter(e => e.month === m);
+    const inc = sumType(me,'income');
+    const exp = sumType(me,'expense');
+    const inv = sumType(me,'investment');
+    const net = inc - exp - inv;
+    const isCur = (year===curYear && m===curMonth);
+    totIncome += inc; totExpense += exp; totInvest += inv; n++;
+
+    html += `<tr class="${isCur?'current-month':''}">`;
+    html += `<td>${MONTH_NAMES[m-1]}</td>`;
+    html += `<td class="rt-income">${fmtMoneyCompact(inc)}</td>`;
+    html += `<td class="rt-expense">${fmtMoneyCompact(exp)}</td>`;
+    html += `<td class="rt-invest">${fmtMoneyCompact(inv)}</td>`;
+    const netClass = net>=0?'rt-net-pos':'rt-net-neg';
+    html += `<td class="${netClass}">${(net<0?'-':'')}${fmtMoneyCompact(net)}</td>`;
+    html += `</tr>`;
+  });
+
+  if (n > 1) {
+    const avgNet = (totIncome - totExpense - totInvest) / n;
+    html += `<tr class="avg-row">`;
+    html += `<td>AVG</td>`;
+    html += `<td class="rt-income">${fmtMoneyCompact(totIncome/n)}</td>`;
+    html += `<td class="rt-expense">${fmtMoneyCompact(totExpense/n)}</td>`;
+    html += `<td class="rt-invest">${fmtMoneyCompact(totInvest/n)}</td>`;
+    const avgNetClass = avgNet>=0?'rt-net-pos':'rt-net-neg';
+    html += `<td class="${avgNetClass}">${(avgNet<0?'-':'')}${fmtMoneyCompact(avgNet)}</td>`;
+    html += `</tr>`;
+  }
+
+  html += `</table>`;
+  document.getElementById('side-content').innerHTML = html;
+}
+
+function renderAnalysis() {
+  const { year: curYear, month: curMonth } = db.currentMonth;
+  const curEntries = entriesForCurrentMonth();
+  const histEntries = db.entries.filter(e => !(e.year===curYear && e.month===curMonth));
+
+  // Build per-subcategory averages from history
+  const avgMap = {}; // key: type+'/'+cat+'/'+sub → { total, months }
+  const monthSet = new Set(histEntries.map(e => e.year+'-'+e.month));
+
+  // Group hist by month then aggregate
+  const byMonthSub = {};
+  histEntries.forEach(e => {
+    const mk = e.year+'-'+e.month;
+    const sk = e.type+'/'+e.category+'/'+e.subcategory;
+    if (!byMonthSub[sk]) byMonthSub[sk] = {};
+    byMonthSub[sk][mk] = (byMonthSub[sk][mk] || 0) + e.amount;
+  });
+
+  const subAvgs = {};
+  Object.entries(byMonthSub).forEach(([sk, months]) => {
+    const vals = Object.values(months);
+    subAvgs[sk] = vals.reduce((a,b)=>a+b,0) / vals.length;
+  });
+
+  // Current month data grouped by type
+  const types = ['income','expense','investment'];
+  const typeLabels = { income:'INCOME', expense:'EXPENSES', investment:'INVESTMENTS' };
+
+  let html = '';
+  let anyData = false;
+
+  types.forEach(type => {
+    const group = curEntries.filter(e => e.type === type);
+    if (!group.length) return;
+    anyData = true;
+
+    // Group by subcategory (may have multiples → sum)
+    const subTotals = {};
+    group.forEach(e => {
+      const sk = e.type+'/'+e.category+'/'+e.subcategory;
+      subTotals[sk] = (subTotals[sk] || { cat:e.category, sub:e.subcategory, total:0 });
+      subTotals[sk].total += e.amount;
+    });
+
+    html += `<div class="analysis-section-label stl-${type}">${escHtml(typeLabels[type])}</div>`;
+    // Header
+    html += `<div class="analysis-row" style="font-size:0.72em;color:var(--dim);border-bottom:1px solid var(--muted);margin-bottom:2px">`;
+    html += `<span class="ar-label">SUBCATEGORY</span>`;
+    html += `<span class="ar-cur">CURRENT</span>`;
+    html += `<span class="ar-avg">AVG</span>`;
+    html += `<span class="ar-badge">STATUS</span>`;
+    html += `</div>`;
+
+    Object.values(subTotals).forEach(s => {
+      const sk = type+'/'+s.cat+'/'+s.sub;
+      const avg = subAvgs[sk];
+      const hasHistory = avg !== undefined;
+      let badgeClass = 'ar-ok', badge = '—';
+
+      if (hasHistory && avg > 0) {
+        const ratio = s.total / avg;
+        if (ratio > 1.5)      { badgeClass = 'ar-high'; badge = '▲ HIGH'; }
+        else if (ratio < 0.5) { badgeClass = 'ar-low';  badge = '▼ LOW'; }
+        else                  { badge = '● OK'; }
+      } else if (!hasHistory) {
+        badgeClass = 'ar-new'; badge = 'NEW';
+      }
+
+      html += `<div class="analysis-row">`;
+      html += `<span class="ar-label">${escHtml(s.cat)} &gt; ${escHtml(s.sub)}</span>`;
+      html += `<span class="ar-cur">${fmtMoney(s.total)}</span>`;
+      html += `<span class="ar-avg">${hasHistory ? fmtMoney(avg) : '—'}</span>`;
+      html += `<span class="ar-badge ${badgeClass}">${badge}</span>`;
+      html += `</div>`;
+    });
+  });
+
+  if (!anyData) {
+    html = `<div class="empty-msg" style="margin-top:8px">No data for current month.<br>— no baseline —</div>`;
+  } else if (!Object.keys(subAvgs).length) {
+    html += `<div class="empty-msg" style="margin-top:8px;font-size:0.8em;color:var(--dim)">— no historical baseline yet —</div>`;
+  }
+
+  document.getElementById('side-content').innerHTML = html;
+}
+
+/* ═══════════════════════════════════════════════════════════
+   ENTRY CRUD
+   ═══════════════════════════════════════════════════════════ */
+function addEntry(type, category, subcategory, amount, note) {
+  const { year, month } = db.currentMonth;
+  const entry = {
+    id: uid(),
+    year, month, type,
+    category:    category.toLowerCase().trim(),
+    subcategory: subcategory.toLowerCase().trim(),
+    amount:      parseFloat(amount),
+    note:        (note || '').trim(),
+    createdAt:   new Date().toISOString()
+  };
+  db.entries.push(entry);
+
+  // Auto-add category/subcategory to db.categories if new
+  const catObj = db.categories[type];
+  if (!catObj[entry.category]) catObj[entry.category] = [];
+  if (!catObj[entry.category].includes(entry.subcategory)) {
+    catObj[entry.category].push(entry.subcategory);
+  }
+
+  saveDB();
+  return entry;
+}
+
+function deleteEntry(id) {
+  const idx = db.entries.findIndex(e => e.id === id);
+  if (idx === -1) { statusMsg('Entry not found.'); return; }
+  db.entries.splice(idx, 1);
+  selectedEntryId = null;
+  saveDB();
+  render();
+  statusMsg('Entry deleted.');
+}
+
+function updateEntry(id, fields) {
+  const entry = db.entries.find(e => e.id === id);
+  if (!entry) { statusMsg('Entry not found.'); return; }
+  Object.assign(entry, fields);
+  if (fields.category || fields.subcategory) {
+    const catObj = db.categories[entry.type];
+    if (!catObj[entry.category]) catObj[entry.category] = [];
+    if (!catObj[entry.category].includes(entry.subcategory)) {
+      catObj[entry.category].push(entry.subcategory);
+    }
+  }
+  saveDB();
+  render();
+  statusMsg('Entry updated.');
+}
+
+/* ═══════════════════════════════════════════════════════════
+   OVERLAYS — HELP
+   ═══════════════════════════════════════════════════════════ */
+function openOverlay(title, bodyHtml, wide) {
+  document.getElementById('help-title').textContent = title;
+  const body = document.getElementById('help-body');
+  body.style.whiteSpace = 'normal';
+  body.innerHTML = bodyHtml;
+  const box = document.querySelector('.overlay-box');
+  if (wide) box.style.maxWidth = 'min(95vw, 1100px)';
+  else       box.style.maxWidth = 'min(92vw, 980px)';
+  const overlay = document.getElementById('help-overlay');
+  overlay.classList.add('visible');
+  overlay.onclick = e => { if (e.target === overlay) closeOverlay(); };
+}
+
+function closeOverlay() {
+  document.getElementById('help-overlay').classList.remove('visible');
+  document.getElementById('help-body').innerHTML = '';
+}
+
+function showHelp() {
+  document.getElementById('help-title').textContent = '◈ VAULT — COMMANDS';
+  const body = document.getElementById('help-body');
+  body.style.whiteSpace = 'pre';
+  body.textContent = [
+    '/help                              show this help',
+    '/theme [name]                      switch theme (legacy|solar|monk|space|synth|dos|notebook|engineering)',
+    '/backlog [text]                    add item to backlog',
+    '/backlog list                      show backlog items',
+    '/backlog done [n]                  toggle item #n done/open',
+    '/backlog delete [n]                remove item #n',
+    '/backlog archive                   move done items to archive',
+    '/backlog archive list              show archived batches',
+    '/backlog export                    download backlog as .txt',
+    '/export [txt|json]                 export data (omit format for all)',
+    '/import                            import data from .json file',
+    '',
+    '/add                               guided walkthrough to log an entry',
+    '/add i|e|v [cat] [sub] [amt] [note]  quick add (i=income e=expense v=investment)',
+    '/month                             show current month',
+    '/month YYYY-MM                     set current month',
+    '/list [all|income|expense|investment]  list entries for current month',
+    '/delete [n]                        delete entry #n from current month',
+    '/edit [n]                          edit entry #n',
+    '/rollup [year]                     show yearly rollup (side panel)',
+    '/summary                           switch side panel to SUMMARY tab',
+    '/analysis                          switch side panel to ANALYSIS tab',
+    '/cat                               list all categories',
+    '/cat add [type] [cat] [sub]        add subcategory',
+    '/cat delete [type] [cat] [sub]     remove subcategory',
+    '',
+    'Type /add to log new riches or expenditures.',
+  ].join('\n');
+  const overlay = document.getElementById('help-overlay');
+  overlay.classList.add('visible');
+  overlay.onclick = e => { if (e.target === overlay) closeOverlay(); };
+}
+
+/* ═══════════════════════════════════════════════════════════
+   OVERLAYS — EDIT FORM
+   ═══════════════════════════════════════════════════════════ */
+function openEditOverlay(id) {
+  const entry = db.entries.find(e => e.id === id);
+  if (!entry) { statusMsg('Entry not found.'); return; }
+
+  const typeCats = db.categories[entry.type] || {};
+  const catOptions = Object.keys(typeCats).map(c =>
+    `<option value="${escHtml(c)}" ${c===entry.category?'selected':''}>${escHtml(c)}</option>`
+  ).join('');
+
+  const currentSubs = typeCats[entry.category] || [];
+  const subOptions = currentSubs.map(s =>
+    `<option value="${escHtml(s)}" ${s===entry.subcategory?'selected':''}>${escHtml(s)}</option>`
+  ).join('');
+
+  const html = `
+<div>
+  <label class="dlg-label">TYPE</label>
+  <div style="font-size:0.9em;color:var(--accent);padding:2px 0;margin-bottom:6px">${escHtml(entry.type.toUpperCase())}</div>
+
+  <div class="dlg-row">
+    <div style="flex:1">
+      <label class="dlg-label">CATEGORY</label>
+      <input class="dlg-input" id="edit-cat" value="${escHtml(entry.category)}" list="edit-cat-list" autocomplete="off">
+      <datalist id="edit-cat-list">${catOptions}</datalist>
+    </div>
+    <div style="flex:1">
+      <label class="dlg-label">SUBCATEGORY</label>
+      <input class="dlg-input" id="edit-sub" value="${escHtml(entry.subcategory)}" list="edit-sub-list" autocomplete="off">
+      <datalist id="edit-sub-list">${subOptions}</datalist>
+    </div>
+  </div>
+
+  <label class="dlg-label">AMOUNT ($)</label>
+  <input class="dlg-input" id="edit-amt" type="number" step="0.01" min="0" value="${entry.amount}">
+
+  <label class="dlg-label">NOTE (optional)</label>
+  <input class="dlg-input" id="edit-note" value="${escHtml(entry.note || '')}">
+
+  <div style="margin-top:12px">
+    <span class="dlg-btn dlg-btn-ok" id="edit-save">[ SAVE ]</span>
+    <span class="dlg-btn dlg-btn-del" id="edit-delete">[ DELETE ]</span>
+    <span class="dlg-btn dlg-btn-cancel" id="edit-cancel">[ CANCEL ]</span>
+  </div>
+</div>`;
+
+  openOverlay('◈ EDIT ENTRY — ' + entry.type.toUpperCase() + ' / ' + entry.category + ' / ' + entry.subcategory, html);
+
+  // Make inputs selectable
+  document.querySelectorAll('.dlg-input').forEach(i => i.style.userSelect = 'text');
+
+  document.getElementById('edit-save').addEventListener('click', () => {
+    const cat  = document.getElementById('edit-cat').value.trim();
+    const sub  = document.getElementById('edit-sub').value.trim();
+    const amt  = parseFloat(document.getElementById('edit-amt').value);
+    const note = document.getElementById('edit-note').value.trim();
+    if (!cat || !sub) { statusMsg('Category and subcategory required.'); return; }
+    if (isNaN(amt) || amt < 0) { statusMsg('Invalid amount.'); return; }
+    updateEntry(id, { category: cat.toLowerCase(), subcategory: sub.toLowerCase(), amount: amt, note });
+    closeOverlay();
+  });
+
+  document.getElementById('edit-delete').addEventListener('click', () => {
+    deleteEntry(id);
+    closeOverlay();
+  });
+
+  document.getElementById('edit-cancel').addEventListener('click', closeOverlay);
+}
+
+/* ═══════════════════════════════════════════════════════════
+   Q&A GUIDED ADD
+   ═══════════════════════════════════════════════════════════ */
+let qaState = null;
+
+function startQA() {
+  qaState = { step: 0, type: null, category: null, subcategory: null, amount: null, note: null };
+  const overlay = document.getElementById('boot-overlay');
+  overlay.style.display = 'flex';
+  const log = document.getElementById('boot-log');
+  log.innerHTML = '';
+  document.getElementById('boot-input').value = '';
+
+  qaLog('sys', '─────────────────────────────────────────');
+  qaLog('sys', 'VAULT — LOG NEW ENTRY');
+  qaLog('sys', '─────────────────────────────────────────');
+  qaLog('ask', 'STEP 1/5  Type? (income / expense / investment)');
+  qaLog('sys', '  Shortcuts: i = income  e = expense  v = investment');
+  setTimeout(() => document.getElementById('boot-input').focus(), 80);
+}
+
+function qaLog(cls, text) {
+  const log = document.getElementById('boot-log');
+  const div = document.createElement('div');
+  div.className = 'boot-line ' + cls;
+  div.textContent = text;
+  log.appendChild(div);
+  log.scrollTop = log.scrollHeight;
+}
+
+function qaSubmit(raw) {
+  const val = raw.trim().toLowerCase();
+  if (!val) return;
+  if (val === 'esc' || val === '/quit' || val === 'quit') {
+    closeQA(); statusMsg('Add cancelled.'); return;
+  }
+
+  if (qaState.step === 0) {
+    // Type
+    const typeMap = { i:'income', e:'expense', v:'investment', income:'income', expense:'expense', investment:'investment' };
+    const type = typeMap[val];
+    if (!type) { qaLog('warn', 'Enter income, expense, or investment (or i/e/v).'); return; }
+    qaState.type = type;
+    qaLog('ans', '> ' + type);
+    qaLog('sep', '─────────────────────────────────────────');
+
+    const cats = Object.keys(db.categories[type]);
+    qaLog('ask', 'STEP 2/5  Category? (enter number or name, or type new)');
+    cats.forEach((c,i) => qaLog('sys', `  ${i+1}. ${c}`));
+    qaState.step = 1;
+
+  } else if (qaState.step === 1) {
+    // Category
+    const cats = Object.keys(db.categories[qaState.type]);
+    let cat;
+    const num = parseInt(val);
+    if (!isNaN(num) && num >= 1 && num <= cats.length) cat = cats[num-1];
+    else cat = val.toLowerCase().trim();
+    if (!cat) { qaLog('warn', 'Please enter a category name or number.'); return; }
+    qaState.category = cat;
+    qaLog('ans', '> ' + cat);
+    qaLog('sep', '─────────────────────────────────────────');
+
+    const subs = db.categories[qaState.type][cat] || [];
+    qaLog('ask', 'STEP 3/5  Subcategory? (enter number or name, or type new)');
+    if (subs.length) subs.forEach((s,i) => qaLog('sys', `  ${i+1}. ${s}`));
+    else             qaLog('sys', '  (no existing subcategories — type a new one)');
+    qaState.step = 2;
+
+  } else if (qaState.step === 2) {
+    // Subcategory
+    const subs = db.categories[qaState.type][qaState.category] || [];
+    let sub;
+    const num = parseInt(val);
+    if (!isNaN(num) && num >= 1 && num <= subs.length) sub = subs[num-1];
+    else sub = val.toLowerCase().trim();
+    if (!sub) { qaLog('warn', 'Please enter a subcategory name or number.'); return; }
+    qaState.subcategory = sub;
+    qaLog('ans', '> ' + sub);
+    qaLog('sep', '─────────────────────────────────────────');
+    qaLog('ask', 'STEP 4/5  Amount? ($)');
+    qaState.step = 3;
+
+  } else if (qaState.step === 3) {
+    // Amount
+    const amt = parseFloat(val.replace(/[$,]/g,''));
+    if (isNaN(amt) || amt < 0) { qaLog('warn', 'Enter a valid positive number.'); return; }
+    qaState.amount = amt;
+    qaLog('ans', '> $' + amt.toFixed(2));
+    qaLog('sep', '─────────────────────────────────────────');
+    qaLog('ask', 'STEP 5/5  Note? (optional — press Enter to skip)');
+    qaState.step = 4;
+
+  } else if (qaState.step === 4) {
+    // Note
+    qaState.note = raw.trim();
+    qaLog('ans', qaState.note ? '> ' + qaState.note : '> (no note)');
+    qaLog('sep', '─────────────────────────────────────────');
+
+    // Confirm
+    const { year, month } = db.currentMonth;
+    qaLog('info', `ENTRY SUMMARY:`);
+    qaLog('info', `  ${MONTH_NAMES[month-1]} ${year} | ${qaState.type.toUpperCase()} | ${qaState.category} > ${qaState.subcategory}`);
+    qaLog('info', `  Amount: $${qaState.amount.toFixed(2)}${qaState.note ? '  Note: ' + qaState.note : ''}`);
+    qaLog('ask', 'Confirm? (y / n)');
+    qaState.step = 5;
+
+  } else if (qaState.step === 5) {
+    if (val === 'y' || val === 'yes') {
+      addEntry(qaState.type, qaState.category, qaState.subcategory, qaState.amount, qaState.note);
+      qaLog('info', '✓ Entry saved.');
+      render();
+      setTimeout(closeQA, 800);
+    } else {
+      qaLog('warn', 'Cancelled. Type /add to start over.');
+      setTimeout(closeQA, 1000);
+    }
+  }
+}
+
+function closeQA() {
+  qaState = null;
+  document.getElementById('boot-overlay').style.display = 'none';
+  document.getElementById('console-input').focus();
+}
+
+/* ═══════════════════════════════════════════════════════════
+   LIST OVERLAY
+   ═══════════════════════════════════════════════════════════ */
+function showListOverlay(filter) {
+  const { year, month } = db.currentMonth;
+  let entries = entriesForCurrentMonth();
+  if (filter && filter !== 'all') entries = entries.filter(e => e.type === filter);
+
+  let html = '';
+  if (!entries.length) {
+    html = `<div class="empty-msg">No entries found.</div>`;
+  } else {
+    let rowNum = 0;
+    const types = ['income','expense','investment'];
+    const typeLabels = { income:'INCOME', expense:'EXPENSES', investment:'INVESTMENTS' };
+    types.forEach(type => {
+      const group = entries.filter(e => e.type === type);
+      if (!group.length) return;
+      html += `<div style="margin-bottom:8px">`;
+      html += `<div style="font-size:0.78em;letter-spacing:2px;color:var(--${type==='income'?'success':type==='expense'?'warn':'cat-5'});border-bottom:1px solid var(--muted);padding-bottom:2px;margin-bottom:3px">${escHtml(typeLabels[type])}</div>`;
+      group.forEach(e => {
+        rowNum++;
+        html += `<div style="font-size:0.85em;padding:1px 0;display:flex;gap:6px;align-items:baseline">`;
+        html += `<span style="color:var(--dim);min-width:2em;text-align:right">${rowNum}.</span>`;
+        html += `<span>${escHtml(e.category)} &gt; ${escHtml(e.subcategory)}</span>`;
+        html += `<span style="color:var(--dim)"> | </span>`;
+        html += `<span style="font-weight:600">${fmtMoney(e.amount)}</span>`;
+        if (e.note) html += `<span style="color:var(--dim);font-size:0.88em"> — ${escHtml(e.note)}</span>`;
+        html += `</div>`;
+      });
+      html += `</div>`;
+    });
+  }
+
+  openOverlay(`◈ ENTRIES — ${MONTH_NAMES[month-1]} ${year}`, html);
+}
+
+/* ═══════════════════════════════════════════════════════════
+   CAT OVERLAY
+   ═══════════════════════════════════════════════════════════ */
+function showCatOverlay() {
+  const types = ['income','expense','investment'];
+  let html = '';
+  types.forEach(type => {
+    const cats = db.categories[type];
+    html += `<div style="margin-bottom:10px">`;
+    html += `<div style="font-size:0.78em;letter-spacing:2px;color:var(--${type==='income'?'success':type==='expense'?'warn':'cat-5'});border-bottom:1px solid var(--muted);padding-bottom:2px;margin-bottom:3px">${type.toUpperCase()}</div>`;
+    Object.entries(cats).forEach(([cat, subs]) => {
+      html += `<div style="font-size:0.85em;padding:1px 0">`;
+      html += `<span style="color:var(--fg)">${escHtml(cat)}</span>`;
+      html += `<span style="color:var(--dim)"> → </span>`;
+      html += subs.map(s => `<span style="color:var(--dim)">${escHtml(s)}</span>`).join('<span style="color:var(--muted)"> , </span>');
+      html += `</div>`;
+    });
+    html += `</div>`;
+  });
+  openOverlay('◈ CATEGORIES', html);
+}
+
+/* ═══════════════════════════════════════════════════════════
+   EXPORT / IMPORT
+   ═══════════════════════════════════════════════════════════ */
+function exportDataTxt() {
+  const lines = ['VAULT — BUDGET EXPORT', '=' .repeat(40), ''];
+  // Group by year then month
+  const yearMonths = {};
+  db.entries.forEach(e => {
+    const key = e.year + '-' + String(e.month).padStart(2,'0');
+    if (!yearMonths[key]) yearMonths[key] = [];
+    yearMonths[key].push(e);
+  });
+  Object.keys(yearMonths).sort().forEach(ym => {
+    lines.push('── ' + ym + ' ──');
+    const entries = yearMonths[ym];
+    ['income','expense','investment'].forEach(type => {
+      const group = entries.filter(e => e.type === type);
+      if (!group.length) return;
+      lines.push('  ' + type.toUpperCase());
+      group.forEach(e => {
+        const noteStr = e.note ? '  [' + e.note + ']' : '';
+        lines.push('    ' + e.category + ' > ' + e.subcategory + '  $' + e.amount.toFixed(2) + noteStr);
+      });
+    });
+    lines.push('');
+  });
+  return lines.join('\n');
+}
+
+function exportDataJson() {
+  return {
+    schemaVersion: 1,
+    exportedAt: new Date().toISOString(),
+    entries: db.entries,
+    categories: db.categories
+  };
+}
+
+function isValidImport(obj) {
+  return obj && obj.schemaVersion === 1 && Array.isArray(obj.entries);
+}
+
+function importData(obj) {
+  db.entries    = obj.entries    || [];
+  db.categories = obj.categories || JSON.parse(JSON.stringify(DEFAULT_CATEGORIES));
+  // Migration guards on imported entries
+  db.entries.forEach(e => {
+    e.id        = e.id        || uid();
+    e.note      = e.note      !== undefined ? e.note : '';
+    e.createdAt = e.createdAt || new Date().toISOString();
+  });
+}
+
+function cmdExport(format) {
+  const now   = todayStr();
+  const doTxt  = !format || format === 'txt';
+  const doJson = !format || format === 'json';
+  if (!doTxt && !doJson) { statusMsg('Usage: /export [txt|json]'); return; }
+  if (doTxt)  downloadBlob(exportDataTxt(), `${EXPORT_SLUG}-${now}.txt`, 'text/plain');
+  if (doJson) downloadBlob(JSON.stringify(exportDataJson(), null, 2), `${EXPORT_SLUG}-${now}.json`, 'application/json');
+  statusMsg('Exported' + (format ? ' as .' + format : ' txt + json'));
+}
+
+function cmdImport() {
+  const fi = document.createElement('input');
+  fi.type = 'file'; fi.accept = '.json';
+  fi.onchange = ev => {
+    const file = ev.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = e2 => {
+      try {
+        const obj = JSON.parse(e2.target.result);
+        if (!isValidImport(obj)) { statusMsg('Invalid import file.'); return; }
+        importData(obj);
+        saveDB();
+        render();
+        statusMsg('Imported: ' + file.name);
+      } catch { statusMsg('Failed to parse import file.'); }
+    };
+    reader.readAsText(file);
+  };
+  fi.click();
+}
+
+/* ═══════════════════════════════════════════════════════════
+   BACKLOG
+   ═══════════════════════════════════════════════════════════ */
+function showBacklogList() {
+  document.getElementById('help-title').textContent = 'BACKLOG';
+  const body = document.getElementById('help-body');
+  body.style.whiteSpace = 'normal';
+  body.innerHTML = (db.backlog.length
+    ? db.backlog.map((b,i) => {
+        const bracket = b.done ? '[x]' : '[ ]';
+        return `<div style="padding:2px 0"><span data-backlog-idx="${i}" style="cursor:pointer;user-select:none;color:var(--accent)">${bracket}</span> ${i+1}. ${escHtml(b.text)}</div>`;
+      }).join('')
+    : '<div style="color:var(--dim)">Backlog is empty.</div>'
+  ) + `<div style="margin-top:8px;border-top:1px solid var(--muted);padding-top:6px"><span class="backlog-copy-btn" style="cursor:pointer;color:var(--dim);font-size:0.82em">[C] COPY TO CLIPBOARD</span></div>`;
+
+  body.querySelectorAll('[data-backlog-idx]').forEach(el => {
+    el.addEventListener('click', () => {
+      const idx = parseInt(el.dataset.backlogIdx);
+      db.backlog[idx].done = !db.backlog[idx].done;
+      saveDB();
+      showBacklogList();
+    });
+  });
+
+  const copyBtn = body.querySelector('.backlog-copy-btn');
+  if (copyBtn) {
+    copyBtn.addEventListener('click', () => {
+      const txt = '# BACKLOG — ' + todayStr() + '\n\n'
+        + db.backlog.map(b => `- ${b.done?'[x]':'[ ]'} ${b.text}`).join('\n') + '\n';
+      navigator.clipboard.writeText(txt).then(() => {
+        copyBtn.textContent = 'COPIED!';
+        setTimeout(() => { copyBtn.textContent = '[C] COPY TO CLIPBOARD'; }, 1500);
+      }).catch(() => {
+        copyBtn.textContent = 'COPY FAILED';
+        setTimeout(() => { copyBtn.textContent = '[C] COPY TO CLIPBOARD'; }, 1500);
+      });
+    });
+  }
+
+  const overlay = document.getElementById('help-overlay');
+  overlay.classList.add('visible');
+  overlay.onclick = e => { if (e.target === overlay) closeOverlay(); };
+}
+
+function handleBacklog(arg) {
+  if (!arg || arg === 'list') {
+    showBacklogList(); return;
+  }
+  if (arg === 'archive list') {
+    if (!db.backlogArchive.length) { statusMsg('No archived batches.'); return; }
+    const lines = db.backlogArchive.flatMap(batch => [
+      `── ${batch.date} (${batch.items.length} item${batch.items.length===1?'':'s'}) ──`,
+      ...batch.items.map(b => `  [x] ${b.text}`)
+    ]);
+    document.getElementById('help-title').textContent = 'BACKLOG ARCHIVE';
+    const body = document.getElementById('help-body');
+    body.style.whiteSpace = 'pre';
+    body.textContent = lines.join('\n');
+    const overlay = document.getElementById('help-overlay');
+    overlay.classList.add('visible');
+    overlay.onclick = e => { if (e.target === overlay) closeOverlay(); };
+    return;
+  }
+  if (arg === 'archive') {
+    const done = db.backlog.filter(b => b.done);
+    if (!done.length) { statusMsg('No done items to archive.'); return; }
+    db.backlogArchive.push({ date: todayStr(), items: done });
+    db.backlog = db.backlog.filter(b => !b.done);
+    saveDB();
+    statusMsg('Archived ' + done.length + ' item(s).');
+    return;
+  }
+  if (arg === 'export') {
+    const txt = '# BACKLOG — ' + todayStr() + '\n\n'
+      + db.backlog.map(b=>`- ${b.done?'[x]':'[ ]'} ${b.text}`).join('\n') + '\n';
+    downloadBlob(txt, `backlog-${todayStr()}.txt`, 'text/plain');
+    statusMsg('Backlog exported.');
+    return;
+  }
+  const doneMatch = arg.match(/^done\s+(\d+)$/);
+  if (doneMatch) {
+    const i = parseInt(doneMatch[1]) - 1;
+    if (i < 0 || i >= db.backlog.length) { statusMsg('Invalid item number.'); return; }
+    db.backlog[i].done = !db.backlog[i].done;
+    saveDB();
+    statusMsg('Item #' + (i+1) + (db.backlog[i].done ? ' done.' : ' reopened.'));
+    return;
+  }
+  const delMatch = arg.match(/^delete\s+(\d+)$/);
+  if (delMatch) {
+    const i = parseInt(delMatch[1]) - 1;
+    if (i < 0 || i >= db.backlog.length) { statusMsg('Invalid item number.'); return; }
+    db.backlog.splice(i, 1);
+    saveDB();
+    statusMsg('Backlog item deleted.');
+    return;
+  }
+  // Add item
+  db.backlog.push({ id: uid(), text: arg, done: false, createdAt: new Date().toISOString() });
+  saveDB();
+  statusMsg('Backlog: added.');
+}
+
+/* ═══════════════════════════════════════════════════════════
+   TOOLTIP
+   ═══════════════════════════════════════════════════════════ */
+const tooltip = document.getElementById('tooltip');
+
+function addTooltip(el, text) {
+  el.addEventListener('mouseenter', () => { tooltip.textContent = text; tooltip.style.display = 'block'; });
+  el.addEventListener('mousemove',  e => { tooltip.style.left = (e.clientX+14)+'px'; tooltip.style.top = (e.clientY+8)+'px'; });
+  el.addEventListener('mouseleave', () => { tooltip.style.display = 'none'; });
+}
+
+/* ═══════════════════════════════════════════════════════════
+   COMMAND HANDLER
+   ═══════════════════════════════════════════════════════════ */
+const consoleInput = document.getElementById('console-input');
+
+consoleInput.addEventListener('keydown', e => {
+  if (e.key === 'Enter') {
+    const cmd = consoleInput.value.trim();
+    consoleInput.value = '';
+    if (cmd) handleConsoleCmd(cmd);
+  }
+});
+
+function handleConsoleCmd(raw) {
+  const parts = raw.split(/\s+/);
+  const cmd   = parts[0].toLowerCase();
+  const arg1  = parts[1] || '';
+  const rest  = parts.slice(1).join(' ');
+
+  if (cmd === '/help')    { showHelp(); return; }
+  if (cmd === '/theme')   { applyTheme(arg1); return; }
+  if (cmd === '/backlog') { handleBacklog(rest); return; }
+  if (cmd === '/export')  { cmdExport(arg1); return; }
+  if (cmd === '/import')  { cmdImport(); return; }
+
+  if (cmd === '/add') {
+    if (!rest) { startQA(); return; }
+    // Quick-add: /add i|e|v [cat] [sub] [amount] [note...]
+    const typeMap = { i:'income', e:'expense', v:'investment', income:'income', expense:'expense', investment:'investment' };
+    const type = typeMap[arg1.toLowerCase()];
+    if (!type) { statusMsg('Usage: /add income|expense|investment [cat] [sub] [amount] [note]'); return; }
+    const cat = parts[2] || '';
+    const sub = parts[3] || '';
+    const amt = parseFloat(parts[4] || '');
+    const note = parts.slice(5).join(' ');
+    if (!cat || !sub || isNaN(amt) || amt < 0) { statusMsg('Usage: /add i|e|v [cat] [sub] [amount] [note]'); return; }
+    addEntry(type, cat, sub, amt, note);
+    render();
+    statusMsg('Entry added.');
+    return;
+  }
+
+  if (cmd === '/month') {
+    if (!arg1) {
+      statusMsg(currentMonthKey());
+      return;
+    }
+    const m = arg1.match(/^(\d{4})-(\d{2})$/);
+    if (!m) { statusMsg('Usage: /month YYYY-MM'); return; }
+    const yr = parseInt(m[1]);
+    const mo = parseInt(m[2]);
+    if (mo < 1 || mo > 12) { statusMsg('Invalid month.'); return; }
+    db.currentMonth = { year: yr, month: mo };
+    selectedEntryId = null;
+    saveDB();
+    render();
+    statusMsg('Month set: ' + arg1);
+    return;
+  }
+
+  if (cmd === '/list') {
+    const filter = arg1 || 'all';
+    const validFilters = ['all','income','expense','investment'];
+    if (!validFilters.includes(filter)) { statusMsg('Usage: /list [all|income|expense|investment]'); return; }
+    showListOverlay(filter);
+    return;
+  }
+
+  if (cmd === '/delete') {
+    const n = parseInt(arg1);
+    if (isNaN(n) || n < 1) { statusMsg('Usage: /delete [n]'); return; }
+    const entries = entriesForCurrentMonth();
+    const types = ['income','expense','investment'];
+    let rowNum = 0;
+    let target = null;
+    types.forEach(type => {
+      entries.filter(e => e.type === type).forEach(e => {
+        rowNum++;
+        if (rowNum === n) target = e;
+      });
+    });
+    if (!target) { statusMsg('No entry #' + n + ' in current month.'); return; }
+    deleteEntry(target.id);
+    return;
+  }
+
+  if (cmd === '/edit') {
+    const n = parseInt(arg1);
+    if (isNaN(n) || n < 1) { statusMsg('Usage: /edit [n]'); return; }
+    const entries = entriesForCurrentMonth();
+    const types = ['income','expense','investment'];
+    let rowNum = 0;
+    let target = null;
+    types.forEach(type => {
+      entries.filter(e => e.type === type).forEach(e => {
+        rowNum++;
+        if (rowNum === n) target = e;
+      });
+    });
+    if (!target) { statusMsg('No entry #' + n + ' in current month.'); return; }
+    openEditOverlay(target.id);
+    return;
+  }
+
+  if (cmd === '/rollup') {
+    const yr = arg1 ? parseInt(arg1) : db.currentMonth.year;
+    if (isNaN(yr)) { statusMsg('Usage: /rollup [year]'); return; }
+    rollupYear = yr;
+    activeTab = 'rollup';
+    renderSidePanel();
+    statusMsg('Rollup: ' + yr);
+    return;
+  }
+
+  if (cmd === '/summary') {
+    activeTab = 'summary';
+    renderSidePanel();
+    return;
+  }
+
+  if (cmd === '/analysis') {
+    activeTab = 'analysis';
+    renderSidePanel();
+    return;
+  }
+
+  if (cmd === '/cat') {
+    if (!rest) { showCatOverlay(); return; }
+    // /cat add [type] [cat] [sub]
+    const subCmd = parts[1].toLowerCase();
+    if (subCmd === 'add') {
+      const type = parts[2] ? parts[2].toLowerCase() : '';
+      const cat  = parts[3] ? parts[3].toLowerCase() : '';
+      const sub  = parts[4] ? parts[4].toLowerCase() : '';
+      if (!['income','expense','investment'].includes(type) || !cat || !sub) {
+        statusMsg('Usage: /cat add [income|expense|investment] [cat] [sub]'); return;
+      }
+      if (!db.categories[type][cat]) db.categories[type][cat] = [];
+      if (db.categories[type][cat].includes(sub)) { statusMsg('Already exists.'); return; }
+      db.categories[type][cat].push(sub);
+      saveDB();
+      statusMsg('Added: ' + type + '/' + cat + '/' + sub);
+      return;
+    }
+    if (subCmd === 'delete') {
+      const type = parts[2] ? parts[2].toLowerCase() : '';
+      const cat  = parts[3] ? parts[3].toLowerCase() : '';
+      const sub  = parts[4] ? parts[4].toLowerCase() : '';
+      if (!['income','expense','investment'].includes(type) || !cat || !sub) {
+        statusMsg('Usage: /cat delete [income|expense|investment] [cat] [sub]'); return;
+      }
+      const catObj = db.categories[type];
+      if (!catObj[cat]) { statusMsg('Category not found.'); return; }
+      const idx = catObj[cat].indexOf(sub);
+      if (idx === -1) { statusMsg('Subcategory not found.'); return; }
+      catObj[cat].splice(idx, 1);
+      saveDB();
+      statusMsg('Deleted: ' + type + '/' + cat + '/' + sub);
+      return;
+    }
+    statusMsg('Usage: /cat [add|delete] [type] [cat] [sub]');
+    return;
+  }
+
+  statusMsg('Unknown command: ' + cmd + '. Type /help');
+}
+
+/* ═══════════════════════════════════════════════════════════
+   SIDE TAB CLICKS
+   ═══════════════════════════════════════════════════════════ */
+document.querySelectorAll('.side-tab').forEach(tab => {
+  tab.addEventListener('click', () => {
+    activeTab = tab.dataset.tab;
+    if (activeTab === 'rollup') rollupYear = rollupYear || db.currentMonth.year;
+    renderSidePanel();
+  });
+});
+
+/* ═══════════════════════════════════════════════════════════
+   KEYBOARD / OVERLAY WIRING
+   ═══════════════════════════════════════════════════════════ */
+document.getElementById('help-close').addEventListener('click', closeOverlay);
+
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') {
+    if (document.getElementById('boot-overlay').style.display === 'flex') {
+      closeQA(); statusMsg('Add cancelled.'); return;
+    }
+    closeOverlay();
+    return;
+  }
+  if (document.getElementById('help-overlay').classList.contains('visible')) return;
+  if (document.getElementById('boot-overlay').style.display === 'flex') return;
+  if (document.activeElement !== consoleInput) consoleInput.focus();
+});
+
+/* ═══════════════════════════════════════════════════════════
+   BOOT INPUT (Q&A)
+   ═══════════════════════════════════════════════════════════ */
+document.getElementById('boot-input').addEventListener('keydown', e => {
+  if (e.key === 'Enter') {
+    const val = document.getElementById('boot-input').value;
+    document.getElementById('boot-input').value = '';
+    if (qaState) qaSubmit(val);
+  }
+  if (e.key === 'Escape') {
+    closeQA(); statusMsg('Add cancelled.');
+  }
+});
+
+/* ═══════════════════════════════════════════════════════════
+   SPLASH / INIT
+   ═══════════════════════════════════════════════════════════ */
+function init() {
+  loadDB();
+  applyTheme(db.theme || 'legacy');
+  render();
+
+  // Show splash then boot
+  const splash = document.getElementById('splash');
+  splash.style.display = 'flex';
+
+  const dismissSplash = () => {
+    splash.style.display = 'none';
+    runBoot();
+    document.removeEventListener('keydown', dismissSplash);
+    document.removeEventListener('click',   dismissSplash);
+  };
+
+  document.addEventListener('keydown', dismissSplash);
+  document.addEventListener('click',   dismissSplash);
+}
+
+function runBoot() {
+  // Brief boot message in Q&A overlay
+  const overlay = document.getElementById('boot-overlay');
+  overlay.style.display = 'flex';
+  const log = document.getElementById('boot-log');
+  log.innerHTML = '';
+  document.getElementById('boot-input').style.display = 'none';
+
+  const msgs = [
+    { cls: 'sys', txt: 'VAULT v1.0 — MONTHLY BUDGET TRACKER' },
+    { cls: 'sys', txt: 'Checking ledger...' },
+    { cls: 'info', txt: `Loaded ${db.entries.length} entr${db.entries.length===1?'y':'ies'}.` },
+    { cls: 'sys', txt: `Current month: ${MONTH_NAMES[db.currentMonth.month-1]} ${db.currentMonth.year}` },
+    { cls: 'info', txt: 'VAULT OPENED. YOUR LEDGER AWAITS.' },
+  ];
+
+  let i = 0;
+  const tick = () => {
+    if (i < msgs.length) {
+      const d = document.createElement('div');
+      d.className = 'boot-line ' + msgs[i].cls;
+      d.textContent = msgs[i].txt;
+      log.appendChild(d);
+      log.scrollTop = log.scrollHeight;
+      i++;
+      setTimeout(tick, 120);
+    } else {
+      setTimeout(() => {
+        overlay.style.display = 'none';
+        document.getElementById('boot-input').style.display = '';
+        consoleInput.focus();
+      }, 600);
+    }
+  };
+  tick();
+}
+
+init();
+</script>
+</body>
+</html>
