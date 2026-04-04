@@ -26,6 +26,7 @@ ai-utils/
     staff-terminal/               ← STAFF TERMINAL: staff development, LDP goals, notes
     compass/                      ← COMPASS: strategic planning, goal groups, OKRs, RAG pulse tracking
     skill-pathways/               ← SKILL PATHWAYS: blueprint rail map for skill and project pathways
+    budget-terminal/              ← VAULT: monthly budget tracker — income, expenses, investments
   common/                       ← shared assets (if any)
     yahoo-finance-proxy/          ← Java proxy service for Yahoo Finance data
 ```
@@ -44,6 +45,8 @@ Monospace, dark-first, single-file apps with a command-line interaction model. L
 - `chronos/chronos.html` — CHRONOS
 - `staff-terminal/staff-terminal.html` — STAFF TERMINAL
 - `compass/compass.html` — COMPASS
+- `budget-terminal/budget-terminal.html` — VAULT
+- `budget-terminal/budget-terminal.html` — VAULT
 
 **To start a new terminal-web app:** copy `docs/terminal-web-template.html` to a new subdirectory, rename the `STORAGE_KEY`, and build on top of the stubs.
 
