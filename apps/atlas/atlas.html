@@ -24,7 +24,7 @@
   --font-sans: 'Inter', system-ui, sans-serif;
 }
 * { box-sizing: border-box; margin: 0; padding: 0; }
-.hidden { display: none; }
+.hidden { display: none !important; }
 body { background: var(--cream); color: var(--ink); font-family: var(--font-sans); font-size: 14px; height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
 #app { flex: 1; display: flex; flex-direction: column; overflow: hidden; min-height: 0; }
 #tab-map { flex-direction: column; height: 100%; }
@@ -1574,6 +1574,7 @@ function toast(msg) {
 // ── Map pane initial height (60% of content area) ─────────────────────
 function setInitialMapPaneHeight(paneId) {
   const pane = document.getElementById(paneId);
+  if (!pane) return;
   if (!pane.style.height) {
     const availH = document.getElementById('content').offsetHeight;
     pane.style.height = Math.round(availH * 0.6) + 'px';
@@ -1583,6 +1584,7 @@ function setInitialMapPaneHeight(paneId) {
 // ── Drag handle for map/table split ──────────────────────────────────
 document.querySelectorAll('.pane-drag-handle').forEach(handle => {
   const mapPane = document.getElementById(handle.dataset.pane);
+  if (!mapPane) return;
   let dragging = null;
 
   handle.addEventListener('mousedown', e => {
