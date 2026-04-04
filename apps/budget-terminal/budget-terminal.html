@@ -122,10 +122,20 @@ html, body {
   border-bottom: 1px solid var(--muted); padding-bottom: 3px;
   margin-bottom: 2px; flex-shrink: 0;
 }
+#month-nav {
+  display: flex; align-items: center; gap: 10px; flex-shrink: 0;
+}
 #month-display {
   font-size: 1.8em; font-weight: 700; letter-spacing: 4px;
-  color: var(--fg); line-height: 1.1; flex-shrink: 0;
+  color: var(--fg); line-height: 1.1;
 }
+.month-arrow {
+  cursor: pointer; font-size: 1.2em; color: var(--dim);
+  background: transparent; border: none; outline: none;
+  font-family: var(--font); padding: 0 4px; line-height: 1;
+  transition: color 0.15s;
+}
+.month-arrow:hover { color: var(--fg); }
 #stat-cards {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
@@ -447,7 +457,11 @@ html, body {
   <!-- TOP ROW -->
   <div id="top-row">
     <div class="row-header">◈ VAULT — MONTHLY OVERVIEW</div>
-    <div id="month-display">— — — —</div>
+    <div id="month-nav">
+      <button class="month-arrow" id="btn-prev-month" onclick="prevMonth()" title="Previous month">&#9664;</button>
+      <div id="month-display">— — — —</div>
+      <button class="month-arrow" id="btn-next-month" onclick="nextMonth()" title="Next month">&#9654;</button>
+    </div>
     <div id="stat-cards">
       <div class="stat-card">
         <span class="sc-label">◈ INCOME</span>
@@ -642,6 +656,24 @@ function downloadBlob(content, filename, type) {
 
 function currentMonthKey() {
   return db.currentMonth.year + '-' + String(db.currentMonth.month).padStart(2,'0');
+}
+
+function prevMonth() {
+  let { year, month } = db.currentMonth;
+  month--;
+  if (month < 1) { month = 12; year--; }
+  db.currentMonth = { year, month };
+  saveDB();
+  render();
+}
+
+function nextMonth() {
+  let { year, month } = db.currentMonth;
+  month++;
+  if (month > 12) { month = 1; year++; }
+  db.currentMonth = { year, month };
+  saveDB();
+  render();
 }
 
 function entriesForCurrentMonth() {
