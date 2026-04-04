@@ -223,35 +223,35 @@ The following changes are needed to bring the current implementation in line wit
 
 ### Layout & Structure
 
-- [ ] **Extract unified filter bar.** Move all filter controls (layer toggles, tag filter, visited/type/region dropdowns, text search) out of the map pane and table toolbar into a single `#filter-bar` strip sitting directly below `#top-bar`. The filter bar is always rendered; its contents switch per active tab. It should span the full width.
-- [ ] **Rotate split-tab layout from left/right to top/bottom.** Currently the States, Parks, and Countries tabs use a 40%-left-map / 60%-right-table side-by-side layout. Change these to a stacked layout: map pane on top (~60% of remaining height, full width), table pane on bottom (~40%, full width). Update `.split-tab`, `.tab-left-col`, `.tab-map-pane`, `.tab-table-pane`, and related CSS.
-- [ ] **Add drag handle between map and table panes.** Insert a `<div class="pane-drag-handle">` between the two panes with `cursor: ns-resize`. Wire `mousedown`/`mousemove`/`mouseup` to resize the map pane height.
-- [ ] **Remove inline info panels.** Delete the `.tab-info-panel` / `#states-info-panel` / `#parks-info-panel` / `#countries-info-panel` elements and their CSS. The `#detail-drawer` replaces them as the sole detail view.
-- [ ] **Update click handlers on split tabs.** Clicking a map item or table row on States/Parks/Countries tabs should call `openDrawer()` directly (not `selectPlace()` → `renderInfoPanel()`). Remove or repurpose `selectPlace()` and `renderInfoPanel()`.
+- [x] **Extract unified filter bar.** Move all filter controls (layer toggles, tag filter, visited/type/region dropdowns, text search) out of the map pane and table toolbar into a single `#filter-bar` strip sitting directly below `#top-bar`. The filter bar is always rendered; its contents switch per active tab. It should span the full width.
+- [x] **Rotate split-tab layout from left/right to top/bottom.** Currently the States, Parks, and Countries tabs use a 40%-left-map / 60%-right-table side-by-side layout. Change these to a stacked layout: map pane on top (~60% of remaining height, full width), table pane on bottom (~40%, full width). Update `.split-tab`, `.tab-left-col`, `.tab-map-pane`, `.tab-table-pane`, and related CSS.
+- [x] **Add drag handle between map and table panes.** Insert a `<div class="pane-drag-handle">` between the two panes with `cursor: ns-resize`. Wire `mousedown`/`mousemove`/`mouseup` to resize the map pane height.
+- [x] **Remove inline info panels.** Delete the `.tab-info-panel` / `#states-info-panel` / `#parks-info-panel` / `#countries-info-panel` elements and their CSS. The `#detail-drawer` replaces them as the sole detail view.
+- [x] **Update click handlers on split tabs.** Clicking a map item or table row on States/Parks/Countries tabs should call `openDrawer()` directly (not `selectPlace()` → `renderInfoPanel()`). Remove or repurpose `selectPlace()` and `renderInfoPanel()`.
 
 ### Filter Bar
 
-- [ ] **States tab filter bar:** move the region and visited `<select>` elements plus the name/tag text search into `#filter-bar` when the States tab is active (or render a tab-specific filter bar section below `#top-bar`).
-- [ ] **Parks tab filter bar:** move type, state, and visited `<select>` elements plus the name/tag/state text search into the filter bar. Move the "+ Add Place" button to the right end of the filter bar.
-- [ ] **Countries tab filter bar:** move the visited `<select>` plus the text search into the filter bar. Move "+ Add Country" to the right end.
-- [ ] **Map tab filter bar:** keep layer toggles (States / Parks) and the tag-filter input in the filter bar. Remove `#map-toolbar` from inside the tab panel.
+- [x] **States tab filter bar:** move the region and visited `<select>` elements plus the name/tag text search into `#filter-bar` when the States tab is active (or render a tab-specific filter bar section below `#top-bar`).
+- [x] **Parks tab filter bar:** move type, state, and visited `<select>` elements plus the name/tag/state text search into the filter bar. Move the "+ Add Place" button to the right end of the filter bar.
+- [x] **Countries tab filter bar:** move the visited `<select>` plus the text search into the filter bar. Move "+ Add Country" to the right end.
+- [x] **Map tab filter bar:** keep layer toggles (States / Parks) and the tag-filter input in the filter bar. Remove `#map-toolbar` from inside the tab panel.
 
 ### Detail Drawer
 
-- [ ] **Open drawer directly from split-tab map clicks and table row clicks.** Currently split-tab interactions open the info panel instead of the drawer.
-- [ ] **Consolidate info panel data into the drawer.** Any quick-facts shown in the info panel (name, subtitle, first visit, total visits, description excerpt) should already appear in `renderDrawerFacts()` — verify completeness and remove the info panel.
+- [x] **Open drawer directly from split-tab map clicks and table row clicks.** Currently split-tab interactions open the info panel instead of the drawer.
+- [x] **Consolidate info panel data into the drawer.** Any quick-facts shown in the info panel (name, subtitle, first visit, total visits, description excerpt) should already appear in `renderDrawerFacts()` — verify completeness and remove the info panel.
 
 ### Forms
 
-- [ ] **Move "Add Place" and "Add Country" forms into the drawer (or keep inline below filter bar).** Evaluate whether showing forms inline below the table header or as a drawer panel provides a cleaner UX. Either way, forms must be hidden by default and only appear on explicit user action.
-- [ ] **Remove `alert()` calls.** Replace the `alert('Please add at least one tag.')` in visit-form submit and the photo-size alert with inline validation messages or a non-blocking toast element.
+- [x] **Move "Add Place" and "Add Country" forms into the drawer (or keep inline below filter bar).** Forms remain inline (below the table, above the table-wrap), hidden by default, revealed on button click. Added a global `.hidden { display: none; }` CSS rule to make this work correctly across all form toggles.
+- [x] **Remove `alert()` calls.** Replace the `alert('Please add at least one tag.')` in visit-form submit and the photo-size alert with a non-blocking `#toast` element.
 
 ### Mobile / Responsive
 
-- [ ] **Update mobile breakpoint for top/bottom layout.** Currently `@media (max-width: 700px) { .tab-left-col { display: none; } }` hides the left column. For the new top/bottom layout, collapse the map pane to 0 height (or a small fixed height) on narrow screens instead.
+- [x] **Update mobile breakpoint for top/bottom layout.** Updated `@media (max-width: 700px)` to collapse the map pane to `height: 0 !important` instead of hiding the old left column.
 
 ### Minor / Polish
 
-- [ ] **Thin scrollbar on table pane.** Add `scrollbar-width: thin; scrollbar-color: var(--border) transparent` to `.table-wrap` for a cleaner look.
-- [ ] **Suppress legend on split-tab mini-maps.** The `renderMapLegend()` call should only run for the main Map tab, not for mini-maps in States/Parks/Countries tabs.
+- [x] **Thin scrollbar on table pane.** Added `scrollbar-width: thin; scrollbar-color: var(--border) transparent` to `.table-wrap`.
+- [x] **Suppress legend on split-tab mini-maps.** Confirmed: `renderMapLegend()` is only called from the main Map tab's `renderMap()` — no change needed.
 - [ ] **Re-evaluate Stats tab filter bar.** Currently no filter controls exist on Stats. Consider adding a year-range or category toggle in the unified filter bar when this tab is active.
