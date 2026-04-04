@@ -1357,7 +1357,7 @@ function showCatOverlay() {
    EXPORT / IMPORT
    ═══════════════════════════════════════════════════════════ */
 function exportDataTxt() {
-  const lines = ['VAULT — BUDGET EXPORT', '=' .repeat(40), ''];
+  const lines = ['VAULT — BUDGET EXPORT', '='.repeat(40), ''];
   // Group by year then month
   const yearMonths = {};
   db.entries.forEach(e => {
