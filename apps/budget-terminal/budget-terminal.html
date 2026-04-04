@@ -1270,7 +1270,7 @@ function qaSubmit(raw) {
       const cats = Object.keys(db.categories[qaState.type]);
       const num = parseInt(val);
       if (!isNaN(num) && num >= 1 && num <= cats.length) cat = cats[num-1];
-      else cat = val.trim();
+      else cat = val.toLowerCase().trim();
     } else {
       // type is null — numbered list spans all types
       const allCats = qaState._allCats || [];
@@ -1279,7 +1279,7 @@ function qaSubmit(raw) {
         cat = allCats[num-1].cat;
         qaState.type = allCats[num-1].type;
       } else {
-        cat = val.trim();
+        cat = val.toLowerCase().trim();
       }
     }
     if (!cat) { qaLog('warn', 'Please enter a category name or number.'); return; }
@@ -1335,7 +1335,7 @@ function qaSubmit(raw) {
     let sub;
     const num = parseInt(val);
     if (!isNaN(num) && num >= 1 && num <= subs.length) sub = subs[num-1];
-    else sub = val.trim();
+    else sub = val.toLowerCase().trim();
     if (!sub) { qaLog('warn', 'Please enter a subcategory name or number.'); return; }
     qaState.subcategory = sub;
     qaLog('ans', '> ' + sub);
@@ -1495,14 +1495,19 @@ function openBulkDialog() {
 
   document.querySelectorAll('.dlg-input').forEach(i => i.style.userSelect = 'text');
 
+  // Pre-build a map from (type|cat|sub) → note input element to avoid CSS.escape selector issues
+  const noteMap = {};
+  document.querySelectorAll('.bulk-note').forEach(ni => {
+    noteMap[ni.dataset.type + '|' + ni.dataset.cat + '|' + ni.dataset.sub] = ni;
+  });
+
   document.getElementById('bulk-ok').addEventListener('click', () => {
     let addedCount = 0;
     document.querySelectorAll('.bulk-amt').forEach(input => {
       const amt = parseFloat(input.value);
       if (!isNaN(amt) && amt > 0) {
         const { type, cat, sub } = input.dataset;
-        // find matching note input
-        const noteInput = document.querySelector(`.bulk-note[data-type="${CSS.escape(type)}"][data-cat="${CSS.escape(cat)}"][data-sub="${CSS.escape(sub)}"]`);
+        const noteInput = noteMap[type + '|' + cat + '|' + sub];
         const note = noteInput ? noteInput.value.trim() : '';
         addEntry(type, cat, sub, amt, note);
         addedCount++;
@@ -1523,6 +1528,10 @@ function openBulkDialog() {
   const first = document.querySelector('.bulk-amt');
   if (first) setTimeout(() => first.focus(), 80);
 }
+
+/* ═══════════════════════════════════════════════════════════
+   EXPORT / IMPORT
+   ═══════════════════════════════════════════════════════════ */
 function exportDataTxt() {
   const lines = ['VAULT — BUDGET EXPORT', '='.repeat(40), ''];
   // Group by year then month
