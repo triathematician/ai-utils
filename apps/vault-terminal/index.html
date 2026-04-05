@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>VAULT — Budget Tracker</title>
+<title>VAULT TERMINAL — Budget Tracker</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@300;400;500;600;700&family=Source+Code+Pro:wght@300;400;600;700&family=VT323&display=swap" rel="stylesheet">
 <style>
@@ -464,7 +464,7 @@ html, body {
    ╚═══╝  ╚═╝  ╚═╝ ╚═════╝ ╚══════╝╚═╝
 </pre>
 <div class="sub">MONTHLY BUDGET TRACKER — LOCAL FIRST</div>
-<div class="hint">[ PRESS ANY KEY TO OPEN VAULT ]</div>
+<div class="hint">[ PRESS ANY KEY TO OPEN VAULT TERMINAL ]</div>
 </div>
 
 <!-- MAIN APP -->
@@ -472,7 +472,7 @@ html, body {
 
   <!-- TOP ROW -->
   <div id="top-row">
-    <div class="row-header">◈ VAULT — MONTHLY OVERVIEW</div>
+    <div class="row-header">◈ VAULT TERMINAL — MONTHLY OVERVIEW</div>
     <div id="month-nav">
       <button class="month-arrow" id="btn-prev-month" onclick="prevMonth()" title="Previous month">&#9664;</button>
       <div id="month-display">— — — —</div>
@@ -521,7 +521,7 @@ html, body {
 
   <!-- CONSOLE ROW -->
   <div id="console-row">
-    <span id="console-prompt">VAULT&gt;</span>
+    <span id="console-prompt">VAULT TERMINAL&gt;</span>
     <input type="text" id="console-input" autocomplete="off" spellcheck="false" placeholder="type /help for commands...">
     <span id="console-status">READY</span>
   </div>
@@ -1114,7 +1114,7 @@ function closeOverlay() {
 }
 
 function showHelp() {
-  document.getElementById('help-title').textContent = '◈ VAULT — COMMANDS';
+  document.getElementById('help-title').textContent = '◈ VAULT TERMINAL — COMMANDS';
   const body = document.getElementById('help-body');
   body.style.whiteSpace = 'pre';
   body.textContent = [
@@ -2055,11 +2055,11 @@ function runBoot() {
   document.getElementById('boot-input').style.display = 'none';
 
   const msgs = [
-    { cls: 'sys', txt: 'VAULT v1.0 — MONTHLY BUDGET TRACKER' },
+    { cls: 'sys', txt: 'VAULT TERMINAL v1.0 — MONTHLY BUDGET TRACKER' },
     { cls: 'sys', txt: 'Checking ledger...' },
     { cls: 'info', txt: `Loaded ${db.entries.length} entr${db.entries.length===1?'y':'ies'}.` },
     { cls: 'sys', txt: `Current month: ${MONTH_NAMES[db.currentMonth.month-1]} ${db.currentMonth.year}` },
-    { cls: 'info', txt: 'VAULT OPENED. YOUR LEDGER AWAITS.' },
+    { cls: 'info', txt: 'VAULT TERMINAL OPENED. YOUR LEDGER AWAITS.' },
   ];
 
   let i = 0;
