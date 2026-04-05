@@ -265,9 +265,9 @@ function appendAppLine(app, num) {
     `<span class="app-num">[${num}]</span>` +
     `<span class="app-name">${app.name}</span>` +
     `<span class="app-desc">${app.desc}</span>` +
-    (stars ? `<span class="app-stars" title="${starsTitle}">${stars}</span>` : '') +
     `<span class="app-cat">${app.category}</span>` +
     `<span class="app-date">${app.date}</span>` +
+    (stars ? `<span class="app-stars" title="${starsTitle}">${stars}</span>` : '') +
     `<span class="app-launch" onclick="launchApp(${num})">[ LAUNCH ]</span>`;
   log.appendChild(div);
 }
