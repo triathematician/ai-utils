@@ -2017,7 +2017,7 @@ function showScores() {
       const s = day.scores?.[dim.key];
       const note = day.scoreNotes?.[dim.key];
       const bar = (s >= 1 && s <= 5) ? SCORE_BARS[s] : '·';
-      const col = s >= 4 ? 'var(--success)' : s >= 2 ? 'var(--fg)' : 'var(--warn)';
+      const col = (s >= 1 && s <= 5) ? `var(--scale-div-${s})` : 'var(--dim)';
       const titleText = note ? `${day.date}: ${s||'—'} — "${note}"` : `${day.date}: ${s||'—'}`;
       return `<span style="color:${col}" title="${escHtml(titleText)}">${bar}</span>`;
     }).join('');
@@ -2030,7 +2030,7 @@ function showScores() {
   });
 
   const dates = recent.map(d => `<span style="color:var(--dim);writing-mode:horizontal-tb">${d.date.slice(5)}</span>`).join(' ');
-  body.innerHTML = dimRows.join('') + `<div style="margin-top:8px;font-size:0.75em;color:var(--dim);border-top:1px solid var(--muted);padding-top:6px"><span style="color:var(--warn)">▁=1  ·=no score</span>  <span style="color:var(--fg)">▂=2  ▃=3</span>  <span style="color:var(--success)">▄=4  ▅=5</span>  (${recent.length} session${recent.length===1?'':'s'})</div>`;
+  body.innerHTML = dimRows.join('') + `<div style="margin-top:8px;font-size:0.75em;color:var(--dim);border-top:1px solid var(--muted);padding-top:6px"><span style="color:var(--scale-div-1)">▁=1</span>  <span style="color:var(--dim)">·=no score</span>  <span style="color:var(--scale-div-2)">▂=2</span>  <span style="color:var(--scale-div-3)">▃=3</span>  <span style="color:var(--scale-div-4)">▄=4</span>  <span style="color:var(--scale-div-5)">▅=5</span>  (${recent.length} session${recent.length===1?'':'s'})</div>`;
   overlay.style.display = 'flex';
 }
 
