@@ -18,21 +18,22 @@ ai-utils/
     signal-grid.md              ← signal-grid design category (placeholder)
     design-canvas.md            ← design-canvas design category guidelines
   apps/
-    appt-tracker/                 ← LIFE TRACKER: appointments and life events
-    chronos/                      ← CHRONOS: timeline and event tracking
+    life-tracker/                 ← LIFE TRACKER: appointments and life events
+    chrono-zoom/                  ← CHRONO ZOOM: timeline and event tracking
     display-wall/                 ← DISPLAY WALL DESIGNER: video wall layout tool
     focus-terminal/               ← FOCUS TERMINAL: productivity + task management
-    portfolio-manager/            ← PORTFOLIO SIGNAL DESK: portfolio monitoring
+    geo-firsts/                   ← GEO-FIRSTS: travel tracker — states, national parks, countries
+    portfolio-desk/               ← PORTFOLIO DESK: portfolio monitoring
     staff-terminal/               ← STAFF TERMINAL: staff development, LDP goals, notes
-    compass/                      ← COMPASS: strategic planning, goal groups, OKRs, RAG pulse tracking
-    skill-pathways/               ← SKILL PATHWAYS: blueprint rail map for skill and project pathways
-    budget-terminal/              ← VAULT: monthly budget tracker — income, expenses, investments
+    strategy-atlas/               ← STRATEGY ATLAS: strategic planning, goal groups, OKRs, RAG pulse tracking
+    skill-port/                   ← SKILL-PORT: blueprint rail map for skill and project pathways
+    vault-terminal/               ← VAULT TERMINAL: monthly budget tracker — income, expenses, investments
   common/                       ← shared assets (if any)
     yahoo-finance-proxy/          ← Java proxy service for Yahoo Finance data
 ```
 
 Most of these apps can be run directly from the file system. Exceptions:
-- `portfolio-manager` requires `yahoo-finance-proxy` to gather real-time data, recommended to run `yahoo-finance-proxy` with `./gradlew run` and then serve the app using `npx serve .`
+- `portfolio-desk` requires `yahoo-finance-proxy` to gather real-time data, recommended to run `yahoo-finance-proxy` with `./gradlew run` and then serve the app using `npx serve .`
 
 ## Design categories
 
@@ -42,11 +43,10 @@ Monospace, dark-first, single-file apps with a command-line interaction model. L
 
 **Apps in this category:**
 - `focus-terminal/focus-terminal.html` — FOCUS TERMINAL
-- `chronos/chronos.html` — CHRONOS
+- `chrono-zoom/index.html` — CHRONO ZOOM
 - `staff-terminal/staff-terminal.html` — STAFF TERMINAL
-- `compass/compass.html` — COMPASS
-- `budget-terminal/budget-terminal.html` — VAULT
-- `budget-terminal/budget-terminal.html` — VAULT
+- `strategy-atlas/index.html` — STRATEGY ATLAS
+- `vault-terminal/index.html` — VAULT TERMINAL
 
 **To start a new terminal-web app:** copy `docs/terminal-web-template.html` to a new subdirectory, rename the `STORAGE_KEY`, and build on top of the stubs.
 
@@ -57,7 +57,7 @@ Monospace, dark-first, single-file apps with a command-line interaction model. L
 Portable, lightweight utility apps with a clean and approachable UI. Built with React (CDN), Tailwind CSS, and Lucide Icons. Light-themed with Inter fonts.
 
 **Apps in this category:**
-- `appt-tracker/appt-tracker.html` — LIFE TRACKER
+- `life-tracker/index.html` — LIFE TRACKER
 
 **To start a new soft-utility app:** copy `docs/soft-utility-template.html` to a new subdirectory, rename the `APP_NAME` constant, and build on top of the stubs.
 
@@ -68,7 +68,7 @@ Portable, lightweight utility apps with a clean and approachable UI. Built with 
 Dashboard-style apps for monitoring, signals, and data grids. No style guidelines yet.
 
 **Apps in this category:**
-- `portfolio-manager/portfolio-manager.html` — PORTFOLIO SIGNAL DESK
+- `portfolio-desk/index.html` — PORTFOLIO DESK
 
 **Guidelines:** `docs/signal-grid.md` _(placeholder)_
 
@@ -78,7 +78,7 @@ Precise, single-file visual layout and design tools with direct canvas interacti
 
 **Apps in this category:**
 - `display-wall/display-wall.html` — DISPLAY WALL DESIGNER
-- `skill-pathways/skill-pathways.html` — SKILL PATHWAYS
+- `skill-port/index.html` — SKILL-PORT
 
 **To start a new design-canvas app:** copy `display-wall/display-wall.html`, strip to the skeleton (CSS vars, background texture, chrome), and build from there.
 
@@ -87,6 +87,9 @@ Precise, single-file visual layout and design tools with direct canvas interacti
 ## One-off apps
 
 Not every app needs a category. If an app has a unique design feel, just build it as a self-contained file. No template required.
+
+**Apps in this category:**
+- `geo-firsts/index.html` — GEO-FIRSTS
 
 ## Adding a new app
 
