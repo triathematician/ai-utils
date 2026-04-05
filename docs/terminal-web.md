@@ -83,6 +83,36 @@ Each theme exposes `--cat-1` through `--cat-10`: 10 distinguishable colours that
 
 ---
 
+## Colour Scales
+
+Each theme also exposes two 5-step colour scales for data visualisation:
+
+### Divergent scale (`--scale-div-1` … `--scale-div-5`)
+
+A 5-colour divergent palette running from a negative extreme (slot 1) through a neutral midpoint (slot 3) to a positive extreme (slot 5). Use for data that has a meaningful centre — e.g. performance vs target, sentiment, change from baseline.
+
+| Slot | Meaning |
+|------|---------|
+| `--scale-div-1` | Strong negative / bad / low |
+| `--scale-div-2` | Mild negative |
+| `--scale-div-3` | Neutral / midpoint |
+| `--scale-div-4` | Mild positive |
+| `--scale-div-5` | Strong positive / good / high |
+
+### Sequential scale (`--scale-seq-1` … `--scale-seq-5`)
+
+A 5-colour sequential palette running from low (slot 1) to high (slot 5). Use for ordered data with no meaningful centre — e.g. counts, magnitudes, progress levels.
+
+| Slot | Meaning |
+|------|---------|
+| `--scale-seq-1` | Lowest / least |
+| `--scale-seq-2` | Low |
+| `--scale-seq-3` | Mid |
+| `--scale-seq-4` | High |
+| `--scale-seq-5` | Highest / most |
+
+---
+
 ## Typography
 
 - Font families are set per-theme via `--font`. Three families are loaded: `VT323` (retro), `Fira Code` (modern mono), `Source Code Pro` (neutral mono).
