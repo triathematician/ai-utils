@@ -992,6 +992,7 @@ async function fetchQuote(ticker) {
     // compute highs over windows
     const now = Date.now() / 1000;
     const windows = { ath: 0, yr5: 0, yr2: 0, yr1: 0, mo6: 0, mo3: 0, mo1: 0, wk1: 0 };
+    const lows = { atl: Infinity, yr5l: Infinity, yr2l: Infinity, yr1l: Infinity, mo6l: Infinity, mo3l: Infinity, mo1l: Infinity, wk1l: Infinity };
     const cutoffs = {
       ath: 0,
       yr5: now - 5 * 365.25 * 86400,
@@ -1002,6 +1003,7 @@ async function fetchQuote(ticker) {
       mo1: now - 30.4 * 86400,
       wk1: now - 10 * 86400
     };
+    const lowCutoffs = { atl: 0, yr5l: cutoffs.yr5, yr2l: cutoffs.yr2, yr1l: cutoffs.yr1, mo6l: cutoffs.mo6, mo3l: cutoffs.mo3, mo1l: cutoffs.mo1, wk1l: cutoffs.wk1 };
 
     timestamps.forEach((ts, i) => {
       const c = closes[i];
@@ -1009,7 +1011,13 @@ async function fetchQuote(ticker) {
       Object.entries(cutoffs).forEach(([k, cut]) => {
         if (ts >= cut && c > windows[k]) windows[k] = c;
       });
+      Object.entries(lowCutoffs).forEach(([k, cut]) => {
+        if (ts >= cut && c < lows[k]) lows[k] = c;
+      });
     });
+
+    // normalize Infinity to 0
+    Object.keys(lows).forEach(k => { if (!isFinite(lows[k])) lows[k] = 0; });
 
     const history = {};
     timestamps.forEach((ts, i) => {
@@ -1028,7 +1036,7 @@ async function fetchQuote(ticker) {
       return null;
     })();
 
-    return { price, ...windows, mo1Open, history, ok: true };
+    return { price, ...windows, ...lows, mo1Open, history, ok: true };
   } catch(e) {
     return { ok: false, error: e.message };
   }
@@ -1065,6 +1073,8 @@ async function refreshPrices() {
         mo3: manualHighs.mo3 || data.mo3,
         mo1: manualHighs.mo1 || data.mo1,
         wk1: data.wk1,
+        atl: data.atl, yr5l: data.yr5l, yr2l: data.yr2l, yr1l: data.yr1l,
+        mo6l: data.mo6l, mo3l: data.mo3l, mo1l: data.mo1l, wk1l: data.wk1l,
         raw: data
       };
     }
@@ -1091,6 +1101,8 @@ async function refreshPrices() {
       mo3: spyData.mo3,
       mo1: spyData.mo1,
       wk1: spyData.wk1,
+      atl: spyData.atl, yr5l: spyData.yr5l, yr2l: spyData.yr2l, yr1l: spyData.yr1l,
+      mo6l: spyData.mo6l, mo3l: spyData.mo3l, mo1l: spyData.mo1l, wk1l: spyData.wk1l,
       mo1Open: spyData.mo1Open,
       history: spyData.history,
       raw: spyData
@@ -1108,21 +1120,30 @@ async function refreshPrices() {
     state.prices['__VIX__'] = {
       price: vixData.price, ath: vixData.ath, yr5: vixData.yr5, yr2: vixData.yr2,
       yr1: vixData.yr1, mo6: vixData.mo6, mo3: vixData.mo3, mo1: vixData.mo1,
-      wk1: vixData.wk1, mo1Open: vixData.mo1Open, raw: vixData
+      wk1: vixData.wk1,
+      atl: vixData.atl, yr5l: vixData.yr5l, yr2l: vixData.yr2l, yr1l: vixData.yr1l,
+      mo6l: vixData.mo6l, mo3l: vixData.mo3l, mo1l: vixData.mo1l, wk1l: vixData.wk1l,
+      mo1Open: vixData.mo1Open, raw: vixData
     };
   }
   if (tnxData) {
     state.prices['__TNX__'] = {
       price: tnxData.price, ath: tnxData.ath, yr5: tnxData.yr5, yr2: tnxData.yr2,
       yr1: tnxData.yr1, mo6: tnxData.mo6, mo3: tnxData.mo3, mo1: tnxData.mo1,
-      wk1: tnxData.wk1, mo1Open: tnxData.mo1Open, raw: tnxData
+      wk1: tnxData.wk1,
+      atl: tnxData.atl, yr5l: tnxData.yr5l, yr2l: tnxData.yr2l, yr1l: tnxData.yr1l,
+      mo6l: tnxData.mo6l, mo3l: tnxData.mo3l, mo1l: tnxData.mo1l, wk1l: tnxData.wk1l,
+      mo1Open: tnxData.mo1Open, raw: tnxData
     };
   }
   if (oilData) {
     state.prices['__OIL__'] = {
       price: oilData.price, ath: oilData.ath, yr5: oilData.yr5, yr2: oilData.yr2,
       yr1: oilData.yr1, mo6: oilData.mo6, mo3: oilData.mo3, mo1: oilData.mo1,
-      wk1: oilData.wk1, mo1Open: oilData.mo1Open, raw: oilData
+      wk1: oilData.wk1,
+      atl: oilData.atl, yr5l: oilData.yr5l, yr2l: oilData.yr2l, yr1l: oilData.yr1l,
+      mo6l: oilData.mo6l, mo3l: oilData.mo3l, mo1l: oilData.mo1l, wk1l: oilData.wk1l,
+      mo1Open: oilData.mo1Open, raw: oilData
     };
   }
 
@@ -1574,7 +1595,7 @@ function renderDeepDive(ticker) {
     { label: 'ATH', key: 'ath' }, { label: '5yr High', key: 'yr5' },
     { label: '2yr High', key: 'yr2' }, { label: '1yr High', key: 'yr1' },
     { label: '6mo High', key: 'mo6' }, { label: '3mo High', key: 'mo3' },
-    { label: '1mo High', key: 'mo1' }
+    { label: '1mo High', key: 'mo1' }, { label: '1wk High', key: 'wk1' }
   ];
 
   const windowCells = windows.map(w => {
@@ -1583,6 +1604,25 @@ function renderDeepDive(ticker) {
     return `<div class="window-cell">
       <div class="window-label">${w.label}</div>
       <div class="window-val">${high ? '$'+fmt2(high) : '<span style="color:var(--dim)">—</span>'}</div>
+      <div class="window-chg ${chg !== null ? (chg >= 0 ? 'up' : 'down') : 'neutral'}">
+        ${chg !== null ? (chg >= 0 ? '+' : '')+fmt1(chg)+'%' : ''}
+      </div>
+    </div>`;
+  }).join('');
+
+  const lowWindows = [
+    { label: 'ATL', key: 'atl' }, { label: '5yr Low', key: 'yr5l' },
+    { label: '2yr Low', key: 'yr2l' }, { label: '1yr Low', key: 'yr1l' },
+    { label: '6mo Low', key: 'mo6l' }, { label: '3mo Low', key: 'mo3l' },
+    { label: '1mo Low', key: 'mo1l' }, { label: '1wk Low', key: 'wk1l' }
+  ];
+
+  const lowWindowCells = lowWindows.map(w => {
+    const low = p[w.key];
+    const chg = (price && low) ? ((price - low) / low) * 100 : null;
+    return `<div class="window-cell">
+      <div class="window-label">${w.label}</div>
+      <div class="window-val">${low ? '$'+fmt2(low) : '<span style="color:var(--dim)">—</span>'}</div>
       <div class="window-chg ${chg !== null ? (chg >= 0 ? 'up' : 'down') : 'neutral'}">
         ${chg !== null ? (chg >= 0 ? '+' : '')+fmt1(chg)+'%' : ''}
       </div>
@@ -1722,6 +1762,9 @@ function renderDeepDive(ticker) {
     <div class="section-label">High-Water Marks</div>
     <div class="windows-grid" style="grid-template-columns:repeat(${windows.length},1fr)">${windowCells}</div>
 
+    <div class="section-label">Low-Water Marks</div>
+    <div class="windows-grid" style="grid-template-columns:repeat(${lowWindows.length},1fr)">${lowWindowCells}</div>
+
     <div class="section-label">Thesis</div>
     <div class="thesis-block">${pos.thesis || '<span style="color:var(--muted)">No thesis recorded.</span>'}</div>
 
@@ -1748,7 +1791,7 @@ function renderPinnedDeepDive(pin) {
     { label: 'ATH', key: 'ath' }, { label: '5yr High', key: 'yr5' },
     { label: '2yr High', key: 'yr2' }, { label: '1yr High', key: 'yr1' },
     { label: '6mo High', key: 'mo6' }, { label: '3mo High', key: 'mo3' },
-    { label: '1mo High', key: 'mo1' }
+    { label: '1mo High', key: 'mo1' }, { label: '1wk High', key: 'wk1' }
   ];
 
   const windowCells = windows.map(w => {
@@ -1757,6 +1800,25 @@ function renderPinnedDeepDive(pin) {
     return `<div class="window-cell">
       <div class="window-label">${w.label}</div>
       <div class="window-val">${high ? pin.fmt(high) : '<span style="color:var(--dim)">—</span>'}</div>
+      <div class="window-chg ${chg !== null ? (chg >= 0 ? 'up' : 'down') : 'neutral'}">
+        ${chg !== null ? (chg >= 0 ? '+' : '')+fmt1(chg)+'%' : ''}
+      </div>
+    </div>`;
+  }).join('');
+
+  const lowWindows = [
+    { label: 'ATL', key: 'atl' }, { label: '5yr Low', key: 'yr5l' },
+    { label: '2yr Low', key: 'yr2l' }, { label: '1yr Low', key: 'yr1l' },
+    { label: '6mo Low', key: 'mo6l' }, { label: '3mo Low', key: 'mo3l' },
+    { label: '1mo Low', key: 'mo1l' }, { label: '1wk Low', key: 'wk1l' }
+  ];
+
+  const lowWindowCells = lowWindows.map(w => {
+    const low = p[w.key];
+    const chg = (price && low) ? ((price - low) / low) * 100 : null;
+    return `<div class="window-cell">
+      <div class="window-label">${w.label}</div>
+      <div class="window-val">${low ? pin.fmt(low) : '<span style="color:var(--dim)">—</span>'}</div>
       <div class="window-chg ${chg !== null ? (chg >= 0 ? 'up' : 'down') : 'neutral'}">
         ${chg !== null ? (chg >= 0 ? '+' : '')+fmt1(chg)+'%' : ''}
       </div>
@@ -1802,6 +1864,9 @@ function renderPinnedDeepDive(pin) {
 
     <div class="section-label">High-Water Marks</div>
     <div class="windows-grid" style="grid-template-columns:repeat(${windows.length},1fr)">${windowCells}</div>
+
+    <div class="section-label">Low-Water Marks</div>
+    <div class="windows-grid" style="grid-template-columns:repeat(${lowWindows.length},1fr)">${lowWindowCells}</div>
   `;
 }
 
