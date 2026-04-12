@@ -85,10 +85,16 @@
     }
     #phase-labels { position: absolute; top: 0; left: 0; z-index: 3; pointer-events: none; }
     .phase-label {
-      position: absolute; top: 8px;
+      position: absolute; top: 8px; pointer-events: auto;
       font-family: 'Syne', sans-serif; font-size: 10px; font-weight: 700;
       color: var(--text-dim); letter-spacing: 0.18em; text-transform: uppercase;
       text-align: center; padding: 3px 0; border-bottom: 1px solid var(--border);
+    }
+    .phase-label-vision {
+      font-family: 'JetBrains Mono', monospace; font-size: 9px; font-weight: 400;
+      letter-spacing: 0.04em; text-transform: none; font-style: italic;
+      color: var(--text-dim); margin-top: 3px; opacity: 0.75;
+      overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
     }
     #nodes-layer { position: absolute; inset: 0; z-index: 2; }
 
@@ -295,16 +301,21 @@
 
     /* ─── Phase Editor Rows ─── */
     .phase-row {
-      display: flex; align-items: center; gap: 8px; padding: 6px 0;
+      display: flex; flex-direction: column; gap: 0; padding: 8px 0;
       border-bottom: 1px solid var(--border);
     }
     .phase-row:last-child { border-bottom: none; }
-    .phase-row input {
+    .phase-row-top { display: flex; align-items: center; gap: 8px; }
+    .phase-row-extra { display: flex; gap: 10px; margin-top: 6px; }
+    .phase-field { display: flex; flex-direction: column; gap: 3px; flex: 1; }
+    .phase-field label { font-size: 9px; font-weight: 700; color: var(--text-dim); letter-spacing: 0.1em; text-transform: uppercase; }
+    .phase-row input, .phase-row textarea {
       background: var(--surface2); border: 1px solid var(--border); border-radius: 3px;
       color: var(--text); font-family: 'JetBrains Mono', monospace; font-size: 11px;
       padding: 4px 7px; outline: none; transition: border-color 0.12s;
     }
-    .phase-row input:focus { border-color: var(--accent); }
+    .phase-row textarea { resize: none; line-height: 1.4; }
+    .phase-row input:focus, .phase-row textarea:focus { border-color: var(--accent); }
     .phases-header { display: flex; gap: 8px; padding: 0 0 4px 0; }
     .phases-header span { font-size: 9px; font-weight: 700; color: var(--text-dim); letter-spacing: 0.12em; text-transform: uppercase; }
 
@@ -466,6 +477,10 @@
           <div class="info-lbl">Notes</div>
           <div id="p-notes" class="info-val muted"></div>
         </div>
+        <div class="info-sec" id="p-purpose-sec" style="display:none">
+          <div class="info-lbl">Purpose</div>
+          <div id="p-purpose" class="info-val muted"></div>
+        </div>
         <div class="info-sec" id="p-est-sec" style="display:none">
           <div class="info-lbl">Estimate</div>
           <div id="p-est" class="info-val"></div>
@@ -523,6 +538,7 @@
       </select>
     </div>
     <div class="form-row"><label>Notes</label><textarea id="e-notes" rows="3" placeholder="Description or acceptance criteria…"></textarea></div>
+    <div class="form-row"><label>Purpose</label><textarea id="e-purpose" rows="2" placeholder="Why does this step matter? How does it support the larger goal?"></textarea></div>
     <div class="form-row"><label>Estimate</label><input type="text" id="e-estimate" placeholder="e.g. 2 days, 1 week"></div>
     <div class="form-row">
       <label>Status</label>
@@ -1093,7 +1109,16 @@ function buildPhaseLabels() {
     el.className  = 'phase-label';
     el.style.left  = `${x1}px`;
     el.style.width = `${x2 - x1}px`;
-    el.textContent = ph.label;
+    if (ph.description) el.title = ph.description;
+    const nameEl = document.createElement('div');
+    nameEl.textContent = ph.label;
+    el.appendChild(nameEl);
+    if (ph.vision) {
+      const visionEl = document.createElement('div');
+      visionEl.className = 'phase-label-vision';
+      visionEl.textContent = ph.vision;
+      el.appendChild(visionEl);
+    }
     div.appendChild(el);
   });
 }
@@ -1150,6 +1175,11 @@ function updateInfoPanel() {
   const notesEl  = document.getElementById('p-notes');
   notesSec.style.display = nd.notes ? '' : 'none';
   notesEl.textContent = nd.notes || '';
+
+  const purposeSec = document.getElementById('p-purpose-sec');
+  const purposeEl  = document.getElementById('p-purpose');
+  purposeSec.style.display = nd.purpose ? '' : 'none';
+  purposeEl.textContent = nd.purpose || '';
 
   const estSec = document.getElementById('p-est-sec');
   const estEl  = document.getElementById('p-est');
@@ -1349,12 +1379,24 @@ function renderPhasesModalList() {
     row.className = 'phase-row';
     row.dataset.idx = idx;
     row.innerHTML = `
-      <input type="text"   class="ph-name"   value="${escHtml(ph.label)}"    style="flex:1" placeholder="Phase name">
-      <input type="number" class="ph-start"  value="${ph.startCol}" style="width:60px" min="0">
-      <input type="number" class="ph-end"    value="${ph.endCol}"   style="width:60px" min="0">
-      <button class="ph-up m-btn"    style="padding:3px 8px" title="Move up"   ${idx === 0 ? 'disabled' : ''}>↑</button>
-      <button class="ph-down m-btn"  style="padding:3px 8px" title="Move down" ${idx === _phasesWorkingCopy.length - 1 ? 'disabled' : ''}>↓</button>
-      <button class="ph-remove m-btn danger" style="padding:3px 8px" title="Remove">✕</button>
+      <div class="phase-row-top">
+        <input type="text"   class="ph-name"   value="${escHtml(ph.label)}"    style="flex:1" placeholder="Phase name">
+        <input type="number" class="ph-start"  value="${ph.startCol}" style="width:60px" min="0">
+        <input type="number" class="ph-end"    value="${ph.endCol}"   style="width:60px" min="0">
+        <button class="ph-up m-btn"    style="padding:3px 8px" title="Move up"   ${idx === 0 ? 'disabled' : ''}>↑</button>
+        <button class="ph-down m-btn"  style="padding:3px 8px" title="Move down" ${idx === _phasesWorkingCopy.length - 1 ? 'disabled' : ''}>↓</button>
+        <button class="ph-remove m-btn danger" style="padding:3px 8px" title="Remove">✕</button>
+      </div>
+      <div class="phase-row-extra">
+        <div class="phase-field">
+          <label>Description (tooltip)</label>
+          <input type="text" class="ph-desc" value="${escHtml(ph.description || '')}" placeholder="Short description shown on hover…">
+        </div>
+        <div class="phase-field">
+          <label>Vision (shown below title)</label>
+          <input type="text" class="ph-vision" value="${escHtml(ph.vision || '')}" placeholder="Vision statement…">
+        </div>
+      </div>
     `;
     row.querySelector('.ph-up').addEventListener('click', () => {
       if (idx === 0) return;
@@ -1383,9 +1425,11 @@ function syncPhaseRowToWorkingCopy() {
   document.querySelectorAll('#phases-list .phase-row').forEach(row => {
     const idx = parseInt(row.dataset.idx, 10);
     if (idx >= _phasesWorkingCopy.length) return;
-    _phasesWorkingCopy[idx].label    = row.querySelector('.ph-name').value;
-    _phasesWorkingCopy[idx].startCol = parseInt(row.querySelector('.ph-start').value, 10) || 0;
-    _phasesWorkingCopy[idx].endCol   = parseInt(row.querySelector('.ph-end').value,   10) || 0;
+    _phasesWorkingCopy[idx].label       = row.querySelector('.ph-name').value;
+    _phasesWorkingCopy[idx].startCol    = parseInt(row.querySelector('.ph-start').value, 10) || 0;
+    _phasesWorkingCopy[idx].endCol      = parseInt(row.querySelector('.ph-end').value,   10) || 0;
+    _phasesWorkingCopy[idx].description = row.querySelector('.ph-desc').value.trim();
+    _phasesWorkingCopy[idx].vision      = row.querySelector('.ph-vision').value.trim();
   });
 }
 
@@ -1545,6 +1589,7 @@ function openEditModal(id) {
   document.getElementById('e-label').value   = nd.label;
   document.getElementById('e-kind').value    = nd.kind;
   document.getElementById('e-notes').value   = nd.notes || '';
+  document.getElementById('e-purpose').value = nd.purpose || '';
   document.getElementById('e-estimate').value = nd.estimate || '';
   document.getElementById('e-status').value  = nd.status || 'none';
   document.getElementById('e-col').value     = nd.col;
@@ -1576,6 +1621,7 @@ function saveEditModal() {
   nd.label    = document.getElementById('e-label').value.trim() || nd.label;
   nd.kind     = document.getElementById('e-kind').value;
   nd.notes    = document.getElementById('e-notes').value.trim();
+  nd.purpose  = document.getElementById('e-purpose').value.trim();
   nd.estimate = document.getElementById('e-estimate').value.trim();
   nd.status   = document.getElementById('e-status').value;
   nd.col      = parseInt(document.getElementById('e-col').value,  10) || 0;
@@ -1807,7 +1853,7 @@ function buildLLMPrompt(topic, mode, currentTreeJSON) {
   const schema = `{
   "name": "Tree Name",
   "phases": [
-    { "id": "p1", "label": "Phase Name", "startCol": 0, "endCol": 2 }
+    { "id": "p1", "label": "Phase Name", "startCol": 0, "endCol": 2, "description": "Short description for tooltip", "vision": "Vision statement shown below title" }
   ],
   "nodes": [
     {
@@ -1815,6 +1861,7 @@ function buildLLMPrompt(topic, mode, currentTreeJSON) {
       "kind": "step",
       "label": "Short Node Label",
       "notes": "Description or acceptance criteria",
+      "purpose": "Why this step matters in context of the larger goal",
       "estimate": "1 week",
       "status": "none",
       "required": true,
@@ -1844,7 +1891,9 @@ RULES:
 - Keep labels short and scannable (2-5 words max)
 - Include 8-20 nodes total, 2-4 phases
 - All node IDs must be unique strings (e.g. "n1", "n2"...)
-- All phase IDs must be unique strings (e.g. "p1", "p2"...)`;
+- All phase IDs must be unique strings (e.g. "p1", "p2"...)
+- phases may have optional "description" (short tooltip text) and "vision" (one-line statement shown below title)
+- nodes may have optional "purpose" (explains why the step matters in the context of the larger goal)`;
 
   if (mode === 'add' && currentTreeJSON) {
     prompt += `\n\nADD TO EXISTING TREE: The user wants to extend the current tree. Here is the existing data:\n\`\`\`json\n${currentTreeJSON}\n\`\`\`\n\nReturn the COMPLETE updated tree (all existing nodes + new nodes), updating phases as needed. Preserve all existing node IDs.`;
