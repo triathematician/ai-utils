@@ -55,15 +55,23 @@
             { label: 'Vet', icon: 'dog', color: 'bg-orange-100 text-orange-700' },
             { label: 'Car', icon: 'car', color: 'bg-purple-100 text-purple-700' },
             { label: 'Eye', icon: 'eye', color: 'bg-teal-100 text-teal-700' },
+            { label: 'House', icon: 'home', color: 'bg-yellow-100 text-yellow-700' },
             { label: 'Other', icon: 'calendar', color: 'bg-gray-100 text-gray-700' },
         ];
 
         const DEFAULT_REMINDERS = [
-            { type: 'Haircut', intervalMonths: 1.5, enabled: true },
-            { type: 'Dentist', intervalMonths: 6, enabled: true },
-            { type: 'Car', intervalMonths: 3, enabled: true },
-            { type: 'Doctor', intervalMonths: 12, enabled: true },
-            { type: 'Eye', intervalMonths: 12, enabled: true },
+            { type: 'Haircut', intervalMonths: 1.5, enabled: true, subtypes: [] },
+            { type: 'Dentist', intervalMonths: 6, enabled: true, subtypes: [] },
+            { type: 'Car', intervalMonths: 3, enabled: true, subtypes: [] },
+            { type: 'Doctor', intervalMonths: 12, enabled: true, subtypes: [
+                { label: 'Annual physical', intervalMonths: 12, enabled: true },
+                { label: 'Lab screening', intervalMonths: 12, enabled: true },
+            ]},
+            { type: 'Eye', intervalMonths: 12, enabled: true, subtypes: [
+                { label: 'Yearly checkup', intervalMonths: 12, enabled: true },
+                { label: 'Change contacts', intervalMonths: 6, enabled: true },
+            ]},
+            { type: 'House', intervalMonths: 12, enabled: false, subtypes: [] },
         ];
 
         // Icon Component Helper
@@ -105,8 +113,13 @@
             const [filterType, setFilterType] = useState('All');
             
             const [newType, setNewType] = useState(EVENT_TYPES[0].label);
+            const [newSubtype, setNewSubtype] = useState('');
             const [newDate, setNewDate] = useState(new Date().toISOString().split('T')[0]);
             const [newNote, setNewNote] = useState('');
+
+            const [addingSubtypeFor, setAddingSubtypeFor] = useState(null);
+            const [newSubtypeName, setNewSubtypeName] = useState('');
+            const [newSubtypeMonths, setNewSubtypeMonths] = useState(12);
 
             const fileInputRef = useRef(null);
 
@@ -114,7 +127,19 @@
                 const savedEvents = localStorage.getItem('life-tracker-events');
                 if (savedEvents) setEvents(JSON.parse(savedEvents));
                 const savedReminders = localStorage.getItem('life-tracker-reminders');
-                if (savedReminders) setReminders(JSON.parse(savedReminders));
+                if (savedReminders) {
+                    const loaded = JSON.parse(savedReminders);
+                    // Normalize: ensure all reminders have subtypes, filling defaults for known types
+                    const normalized = loaded.map(r => ({
+                        ...r,
+                        subtypes: r.subtypes !== undefined ? r.subtypes :
+                                  (DEFAULT_REMINDERS.find(d => d.type === r.type)?.subtypes || [])
+                    }));
+                    // Add any new default reminder types not yet in saved data
+                    const savedTypes = loaded.map(r => r.type);
+                    const newDefaults = DEFAULT_REMINDERS.filter(d => !savedTypes.includes(d.type));
+                    setReminders([...normalized, ...newDefaults]);
+                }
             }, []);
 
             useEffect(() => {
@@ -122,17 +147,22 @@
                 localStorage.setItem('life-tracker-reminders', JSON.stringify(reminders));
             }, [events, reminders]);
 
+            // Reset subtype when event type changes
+            useEffect(() => { setNewSubtype(''); }, [newType]);
+
             const addEvent = (e) => {
                 e.preventDefault();
                 const event = {
                     id: Date.now().toString(),
                     type: newType,
+                    subtype: newSubtype,
                     date: newDate,
                     note: newNote,
                 };
                 setEvents([event, ...events]);
                 setIsAdding(false);
                 setNewNote('');
+                setNewSubtype('');
             };
 
             const deleteEvent = (id) => {
@@ -167,28 +197,66 @@
                 reader.readAsText(file);
             };
 
-            const calculateNextDue = (type) => {
-                const config = reminders.find(r => r.type === type);
-                if (!config || !config.enabled) return null;
-                const typeEvents = events.filter(e => e.type === type);
+            const calculateNextDue = (type, subtype, intervalMonths) => {
+                const typeEvents = events.filter(e =>
+                    e.type === type &&
+                    (subtype ? e.subtype === subtype : (!e.subtype || e.subtype === ''))
+                );
                 if (typeEvents.length === 0) return null;
                 const lastEvent = typeEvents.sort((a, b) => new Date(b.date) - new Date(a.date))[0];
                 const nextDate = new Date(lastEvent.date);
-                nextDate.setMonth(nextDate.getMonth() + Math.floor(config.intervalMonths));
-                nextDate.setDate(nextDate.getDate() + Math.floor((config.intervalMonths % 1) * 30));
+                nextDate.setMonth(nextDate.getMonth() + Math.floor(intervalMonths));
+                nextDate.setDate(nextDate.getDate() + Math.floor((intervalMonths % 1) * 30));
                 return nextDate;
             };
 
-            const dueReminders = reminders
-                .filter(r => r.enabled)
-                .map(r => ({ ...r, nextDue: calculateNextDue(r.type) }))
-                .filter(r => r.nextDue !== null)
-                .sort((a, b) => a.nextDue - b.nextDue);
+            const dueReminders = reminders.flatMap(r => {
+                if (!r.enabled) return [];
+                if (r.subtypes && r.subtypes.length > 0) {
+                    return r.subtypes
+                        .filter(s => s.enabled)
+                        .map(s => {
+                            const nextDue = calculateNextDue(r.type, s.label, s.intervalMonths);
+                            return nextDue ? { type: r.type, subtype: s.label, nextDue } : null;
+                        })
+                        .filter(Boolean);
+                } else {
+                    const nextDue = calculateNextDue(r.type, null, r.intervalMonths);
+                    return nextDue ? [{ type: r.type, subtype: null, nextDue }] : [];
+                }
+            }).sort((a, b) => a.nextDue - b.nextDue);
 
             const filteredEvents = events
                 .filter(e => filterType === 'All' || e.type === filterType)
-                .filter(e => e.type.toLowerCase().includes(searchTerm.toLowerCase()) || e.note.toLowerCase().includes(searchTerm.toLowerCase()))
+                .filter(e => e.type.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                    (e.subtype || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+                    (e.note || '').toLowerCase().includes(searchTerm.toLowerCase()))
                 .sort((a, b) => new Date(b.date) - new Date(a.date));
+
+            const updateReminderSubtype = (type, subtypeLabel, updates) => {
+                setReminders(prev => prev.map(r => r.type === type ? {
+                    ...r,
+                    subtypes: r.subtypes.map(s => s.label === subtypeLabel ? { ...s, ...updates } : s)
+                } : r));
+            };
+
+            const deleteSubtype = (type, subtypeLabel) => {
+                setReminders(prev => prev.map(r => r.type === type ? {
+                    ...r,
+                    subtypes: r.subtypes.filter(s => s.label !== subtypeLabel)
+                } : r));
+            };
+
+            const addSubtype = (type) => {
+                if (!newSubtypeName.trim()) return;
+                setReminders(prev => prev.map(r => r.type === type ? {
+                    ...r,
+                    subtypes: [...r.subtypes, { label: newSubtypeName.trim(), intervalMonths: newSubtypeMonths, enabled: true }]
+                } : r));
+                setNewSubtypeName('');
+                setNewSubtypeMonths(12);
+                setAddingSubtypeFor(null);
+            };
 
             return (
                 <div className="min-h-screen p-4 md:p-8">
@@ -210,14 +278,14 @@
                             <div className="mb-10 space-y-3">
                                 <h2 className="text-xs font-bold text-gray-400 uppercase tracking-widest ml-1">Upcoming & Due</h2>
                                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                                    {dueReminders.slice(0, 4).map(reminder => {
+                                    {dueReminders.slice(0, 4).map((reminder, idx) => {
                                         const isOverdue = reminder.nextDue < new Date();
-                                        const typeInfo = EVENT_TYPES.find(t => t.label === reminder.type) || EVENT_TYPES[6];
+                                        const typeInfo = EVENT_TYPES.find(t => t.label === reminder.type) || EVENT_TYPES[EVENT_TYPES.length - 1];
                                         return (
-                                            <div key={reminder.type} className={`flex items-center gap-3 p-4 rounded-2xl border ${isOverdue ? 'bg-red-50 border-red-100' : 'bg-white border-gray-100 shadow-sm'}`}>
+                                            <div key={`${reminder.type}-${reminder.subtype || ''}-${idx}`} className={`flex items-center gap-3 p-4 rounded-2xl border ${isOverdue ? 'bg-red-50 border-red-100' : 'bg-white border-gray-100 shadow-sm'}`}>
                                                 <div className={`p-2 rounded-xl ${typeInfo.color}`}><Icon name="bell" size={16} /></div>
                                                 <div className="flex-1 min-w-0">
-                                                    <p className="text-sm font-bold">{reminder.type}</p>
+                                                    <p className="text-sm font-bold">{reminder.type}{reminder.subtype ? ` · ${reminder.subtype}` : ''}</p>
                                                     <p className={`text-xs ${isOverdue ? 'text-red-600 font-semibold' : 'text-gray-500'}`}>
                                                         {isOverdue ? 'Overdue since ' : 'Due '}
                                                         {reminder.nextDue.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}
@@ -253,13 +321,16 @@
                                 <div className="w-full text-center py-20 bg-white rounded-[32px] border border-dashed border-gray-200 text-gray-400">No events found</div>
                             ) : (
                                 filteredEvents.map((event) => {
-                                    const typeInfo = EVENT_TYPES.find(t => t.label === event.type) || EVENT_TYPES[6];
+                                    const typeInfo = EVENT_TYPES.find(t => t.label === event.type) || EVENT_TYPES[EVENT_TYPES.length - 1];
                                     return (
                                         <div key={event.id} className="group flex items-center gap-4 bg-white px-5 py-1.5 rounded-2xl shadow-sm border border-gray-100 hover:shadow-md transition-all w-full">
                                             <div className={`p-1.5 rounded-xl ${typeInfo.color}`}><Icon name={typeInfo.icon} size={18} /></div>
                                             <div className="flex flex-1 items-center justify-between min-w-0">
                                                 <div className="flex items-center gap-4 min-w-0">
-                                                    <span className="font-bold text-sm">{event.type}</span>
+                                                    <div>
+                                                        <span className="font-bold text-sm">{event.type}</span>
+                                                        {event.subtype && <span className="text-xs text-gray-400 block leading-tight">{event.subtype}</span>}
+                                                    </div>
                                                     {event.note && <span className="text-xs text-gray-500 truncate max-w-[600px] italic border-l border-gray-200 pl-4 hidden sm:block">{event.note}</span>}
                                                 </div>
                                                 <div className="flex items-center gap-4">
@@ -290,6 +361,22 @@
                                                 </button>
                                             ))}
                                         </div>
+                                        {(() => {
+                                            const reminderConfig = reminders.find(r => r.type === newType);
+                                            const subtypes = reminderConfig?.subtypes || [];
+                                            if (subtypes.length === 0) return null;
+                                            return (
+                                                <div>
+                                                    <div className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-3">Subtype</div>
+                                                    <div className="flex flex-wrap gap-2">
+                                                        <button type="button" onClick={() => setNewSubtype('')} className={`px-3 py-1.5 rounded-xl text-sm font-medium transition-all ${!newSubtype ? 'bg-black text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}>General</button>
+                                                        {subtypes.map(s => (
+                                                            <button key={s.label} type="button" onClick={() => setNewSubtype(s.label)} className={`px-3 py-1.5 rounded-xl text-sm font-medium transition-all ${newSubtype === s.label ? 'bg-black text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}>{s.label}</button>
+                                                        ))}
+                                                    </div>
+                                                </div>
+                                            );
+                                        })()}
                                         <input type="date" required value={newDate} onChange={(e) => setNewDate(e.target.value)} className="w-full p-4 bg-gray-50 rounded-2xl outline-none font-medium" />
                                         <textarea placeholder="Notes..." value={newNote} onChange={(e) => setNewNote(e.target.value)} className="w-full p-4 bg-gray-50 rounded-2xl outline-none min-h-[120px] resize-none font-medium" />
                                         <button type="submit" className="w-full py-4 bg-black text-white rounded-2xl font-bold text-lg">Save Entry</button>
@@ -303,23 +390,58 @@
                                 <div className="bg-white rounded-[40px] shadow-2xl w-full max-w-lg p-10 max-h-[90vh] overflow-y-auto relative">
                                     <button onClick={() => setIsSettingsOpen(false)} className="absolute top-6 right-6 p-2 text-gray-400 hover:text-gray-900"><Icon name="x" size={24} /></button>
                                     <h2 className="text-3xl font-light mb-2">Auto-Reminders</h2>
-                                    <div className="space-y-6 mt-8">
+                                    <div className="space-y-4 mt-8">
                                         {reminders.map(reminder => {
-                                            const typeInfo = EVENT_TYPES.find(t => t.label === reminder.type) || EVENT_TYPES[6];
+                                            const typeInfo = EVENT_TYPES.find(t => t.label === reminder.type) || EVENT_TYPES[EVENT_TYPES.length - 1];
+                                            const hasSubtypes = reminder.subtypes && reminder.subtypes.length > 0;
                                             return (
-                                                <div key={reminder.type} className="flex items-center gap-4 bg-gray-50 p-5 rounded-3xl">
-                                                    <div className={`p-3 rounded-2xl ${typeInfo.color}`}><Icon name={typeInfo.icon} size={20} /></div>
-                                                    <div className="flex-1">
-                                                        <div className="flex justify-between items-center mb-2">
-                                                            <span className="font-bold">{reminder.type}</span>
-                                                            <button onClick={() => setReminders(prev => prev.map(r => r.type === reminder.type ? {...r, enabled: !r.enabled} : r))} className={`w-12 h-6 rounded-full relative transition-all ${reminder.enabled ? 'bg-black' : 'bg-gray-300'}`}>
-                                                                <div className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-all ${reminder.enabled ? 'left-7' : 'left-1'}`} />
+                                                <div key={reminder.type} className="bg-gray-50 p-5 rounded-3xl">
+                                                    <div className="flex items-center gap-4">
+                                                        <div className={`p-3 rounded-2xl ${typeInfo.color}`}><Icon name={typeInfo.icon} size={20} /></div>
+                                                        <div className="flex-1">
+                                                            <div className="flex justify-between items-center">
+                                                                <span className="font-bold">{reminder.type}</span>
+                                                                <button onClick={() => setReminders(prev => prev.map(r => r.type === reminder.type ? {...r, enabled: !r.enabled} : r))} className={`w-12 h-6 rounded-full relative transition-all ${reminder.enabled ? 'bg-black' : 'bg-gray-300'}`}>
+                                                                    <div className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-all ${reminder.enabled ? 'left-7' : 'left-1'}`} />
+                                                                </button>
+                                                            </div>
+                                                            {!hasSubtypes && (
+                                                                <div className="flex items-center gap-3 mt-2">
+                                                                    <input type="number" step="0.5" value={reminder.intervalMonths} onChange={(e) => setReminders(prev => prev.map(r => r.type === reminder.type ? {...r, intervalMonths: parseFloat(e.target.value) || 0} : r))} className="w-20 p-2 bg-white rounded-xl text-center font-bold" />
+                                                                    <span className="text-xs font-bold text-gray-400">Months</span>
+                                                                </div>
+                                                            )}
+                                                        </div>
+                                                    </div>
+                                                    {hasSubtypes && (
+                                                        <div className="mt-3 ml-14 space-y-2">
+                                                            {reminder.subtypes.map(s => (
+                                                                <div key={s.label} className="flex items-center gap-3 bg-white p-3 rounded-2xl">
+                                                                    <span className="flex-1 text-sm font-semibold min-w-0">{s.label}</span>
+                                                                    <input type="number" step="0.5" value={s.intervalMonths} onChange={(e) => updateReminderSubtype(reminder.type, s.label, { intervalMonths: parseFloat(e.target.value) || 0 })} className="w-16 p-1.5 bg-gray-50 rounded-xl text-center text-sm font-bold flex-shrink-0" />
+                                                                    <span className="text-xs text-gray-400 font-bold flex-shrink-0">mo</span>
+                                                                    <button onClick={() => updateReminderSubtype(reminder.type, s.label, { enabled: !s.enabled })} className={`w-10 h-5 rounded-full relative transition-all flex-shrink-0 ${s.enabled ? 'bg-black' : 'bg-gray-300'}`}>
+                                                                        <div className={`absolute top-0.5 w-4 h-4 bg-white rounded-full transition-all ${s.enabled ? 'left-5' : 'left-0.5'}`} />
+                                                                    </button>
+                                                                    <button onClick={() => deleteSubtype(reminder.type, s.label)} className="p-1 text-gray-300 hover:text-red-500 transition-colors flex-shrink-0"><Icon name="trash-2" size={14} /></button>
+                                                                </div>
+                                                            ))}
+                                                        </div>
+                                                    )}
+                                                    <div className="mt-3 ml-14">
+                                                        {addingSubtypeFor === reminder.type ? (
+                                                            <div className="flex items-center gap-2 bg-white p-3 rounded-2xl">
+                                                                <input type="text" placeholder="Subtype name" value={newSubtypeName} onChange={(e) => setNewSubtypeName(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), addSubtype(reminder.type))} className="flex-1 p-1.5 bg-gray-50 rounded-xl text-sm font-medium outline-none min-w-0" />
+                                                                <input type="number" step="0.5" min="0.5" value={newSubtypeMonths} onChange={(e) => setNewSubtypeMonths(parseFloat(e.target.value) || 0)} className="w-16 p-1.5 bg-gray-50 rounded-xl text-center text-sm font-bold flex-shrink-0" />
+                                                                <span className="text-xs text-gray-400 font-bold flex-shrink-0">mo</span>
+                                                                <button type="button" onClick={() => addSubtype(reminder.type)} className="p-1.5 bg-black text-white rounded-xl flex-shrink-0"><Icon name="check" size={12} /></button>
+                                                                <button type="button" onClick={() => { setAddingSubtypeFor(null); setNewSubtypeName(''); setNewSubtypeMonths(12); }} className="p-1.5 text-gray-400 hover:text-gray-700 flex-shrink-0"><Icon name="x" size={12} /></button>
+                                                            </div>
+                                                        ) : (
+                                                            <button type="button" onClick={() => { setAddingSubtypeFor(reminder.type); setNewSubtypeName(''); setNewSubtypeMonths(12); }} className="text-xs font-bold text-gray-400 hover:text-gray-700 flex items-center gap-1 transition-colors">
+                                                                <Icon name="plus" size={12} /> Add subtype
                                                             </button>
-                                                        </div>
-                                                        <div className="flex items-center gap-3">
-                                                            <input type="number" step="0.5" value={reminder.intervalMonths} onChange={(e) => setReminders(prev => prev.map(r => r.type === reminder.type ? {...r, intervalMonths: parseFloat(e.target.value) || 0} : r))} className="w-20 p-2 bg-white rounded-xl text-center font-bold" />
-                                                            <span className="text-xs font-bold text-gray-400">Months</span>
-                                                        </div>
+                                                        )}
                                                     </div>
                                                 </div>
                                             );
