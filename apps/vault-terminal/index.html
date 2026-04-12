@@ -279,11 +279,22 @@ html, body {
 .rollup-table tr.current-month td { color: var(--fg); font-weight: 600; }
 .rollup-table tr.avg-row td { color: var(--dim); border-top: 1px solid var(--muted); font-style: italic; }
 .rollup-table tr.avg-row td:first-child { color: var(--accent); }
+.rollup-table tr.tot-row td { color: var(--fg); border-top: 1px solid var(--muted); font-weight: 600; }
+.rollup-table tr.tot-row td:first-child { color: var(--accent); }
 .rt-income  { color: var(--success); }
 .rt-expense { color: var(--warn); }
 .rt-invest  { color: var(--cat-5); }
 .rt-net-pos { color: var(--success); }
 .rt-net-neg { color: var(--cat-2); }
+
+.rollup-year-btns { display: flex; flex-wrap: wrap; gap: 4px; margin-bottom: 6px; }
+.rollup-year-btn {
+  cursor: pointer; padding: 1px 6px; font-size: 0.72em;
+  letter-spacing: 1px; color: var(--dim); border: 1px solid var(--dim);
+  font-family: var(--font); background: transparent;
+}
+.rollup-year-btn:hover { color: var(--fg); border-color: var(--fg); }
+.rollup-year-btn.active { color: var(--accent); border-color: var(--accent); }
 
 .analysis-row {
   display: flex; align-items: baseline; gap: 6px;
@@ -303,6 +314,11 @@ html, body {
   font-size: 0.7em; letter-spacing: 2px; margin: 6px 0 2px;
   padding-bottom: 2px; border-bottom: 1px solid var(--muted);
 }
+.analysis-cat-header {
+  font-size: 0.72em; color: var(--dim); letter-spacing: 1px;
+  margin: 4px 0 1px; padding-left: 2px;
+}
+.ar-indent { padding-left: 10px; }
 
 /* ═══════════════════════════════════════════════
    CONSOLE ROW
@@ -895,17 +911,33 @@ function renderSummary() {
   document.getElementById('side-content').innerHTML = html;
 }
 
+function setRollupYear(yr) {
+  rollupYear = yr;
+  activeTab = 'rollup';
+  renderSidePanel();
+}
+
 function renderRollup() {
-  const year = rollupYear || db.currentMonth.year;
   const { year: curYear, month: curMonth } = db.currentMonth;
+  const year = rollupYear || curYear;
+
+  // Collect all years that have data, always include current year
+  const allYears = Array.from(new Set(db.entries.map(e => e.year).concat([curYear]))).sort((a,b) => a-b);
+
+  // Year buttons
+  let html = `<div class="rollup-year-btns">`;
+  allYears.forEach(yr => {
+    const active = (yr === year) ? ' active' : '';
+    html += `<button class="rollup-year-btn${active}" onclick="setRollupYear(${yr})">${yr}</button>`;
+  });
+  html += `</div>`;
+
   const yearEntries = db.entries.filter(e => e.year === year);
 
   // Find which months have data
   const monthsWithData = new Set(yearEntries.map(e => e.month));
   if (year === curYear) monthsWithData.add(curMonth);
   const months = Array.from(monthsWithData).sort((a,b) => a-b);
-
-  let html = `<div style="font-size:0.72em;letter-spacing:1px;color:var(--dim);margin-bottom:4px">YEAR: ${year}</div>`;
 
   if (!months.length) {
     html += `<div class="empty-msg">No data for ${year}.</div>`;
@@ -938,14 +970,24 @@ function renderRollup() {
   });
 
   if (n > 1) {
-    const avgNet = (totIncome - totExpense - totInvest) / n;
+    const totNet = totIncome - totExpense - totInvest;
+    const totNetClass = totNet>=0?'rt-net-pos':'rt-net-neg';
+    html += `<tr class="tot-row">`;
+    html += `<td>TOTAL</td>`;
+    html += `<td class="rt-income">${fmtMoneyCompact(totIncome)}</td>`;
+    html += `<td class="rt-expense">${fmtMoneyCompact(totExpense)}</td>`;
+    html += `<td class="rt-invest">${fmtMoneyCompact(totInvest)}</td>`;
+    html += `<td class="${totNetClass}">${(totNet<0?'-':'')}${fmtMoneyCompact(Math.abs(totNet))}</td>`;
+    html += `</tr>`;
+
+    const avgNet = totNet / n;
+    const avgNetClass = avgNet>=0?'rt-net-pos':'rt-net-neg';
     html += `<tr class="avg-row">`;
     html += `<td>AVG</td>`;
     html += `<td class="rt-income">${fmtMoneyCompact(totIncome/n)}</td>`;
     html += `<td class="rt-expense">${fmtMoneyCompact(totExpense/n)}</td>`;
     html += `<td class="rt-invest">${fmtMoneyCompact(totInvest/n)}</td>`;
-    const avgNetClass = avgNet>=0?'rt-net-pos':'rt-net-neg';
-    html += `<td class="${avgNetClass}">${(avgNet<0?'-':'')}${fmtMoneyCompact(avgNet)}</td>`;
+    html += `<td class="${avgNetClass}">${(avgNet<0?'-':'')}${fmtMoneyCompact(Math.abs(avgNet))}</td>`;
     html += `</tr>`;
   }
 
@@ -1006,7 +1048,13 @@ function renderAnalysis() {
     html += `<span class="ar-badge">STATUS</span>`;
     html += `</div>`;
 
-    Object.values(subTotals).sort((a,b)=>a.cat.localeCompare(b.cat)||a.sub.localeCompare(b.sub)).forEach(s => {
+    const sorted = Object.values(subTotals).sort((a,b) => a.cat.localeCompare(b.cat) || a.sub.localeCompare(b.sub));
+    let lastCat = null;
+    sorted.forEach(s => {
+      if (s.cat !== lastCat) {
+        lastCat = s.cat;
+        html += `<div class="analysis-cat-header">${escHtml(s.cat)}</div>`;
+      }
       const sk = type+'/'+s.cat+'/'+s.sub;
       const avg = subAvgs[sk];
       const hasHistory = avg !== undefined;
@@ -1022,7 +1070,7 @@ function renderAnalysis() {
       }
 
       html += `<div class="analysis-row">`;
-      html += `<span class="ar-label">${escHtml(s.cat)} &gt; ${escHtml(s.sub)}</span>`;
+      html += `<span class="ar-label ar-indent">${escHtml(s.sub)}</span>`;
       html += `<span class="ar-cur">${fmtMoney(s.total)}</span>`;
       html += `<span class="ar-avg">${hasHistory ? fmtMoney(avg) : '—'}</span>`;
       html += `<span class="ar-badge ${badgeClass}">${badge}</span>`;
@@ -1275,7 +1323,10 @@ function qaSubmit(raw) {
   const val = raw.trim().toLowerCase();
   // Allow empty only for optional steps: type (0) and note (4)
   const optionalStep = (qaState.step === 0 || qaState.step === 4);
-  if (!val && !optionalStep) return;
+  if (!val && !optionalStep) {
+    if (qaState.step === 5) qaLog('sys', '  Type y to confirm or n to cancel.');
+    return;
+  }
 
   if (val === 'esc' || val === '/quit' || val === 'quit') {
     closeQA(); statusMsg('Add cancelled.'); return;
