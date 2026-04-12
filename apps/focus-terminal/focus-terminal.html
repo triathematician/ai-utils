@@ -516,9 +516,12 @@ html, body {
   display: flex;
   flex-wrap: nowrap;
   gap: 1px;
-  flex: 1;
-  min-width: 0;
+  width: 14ch;
+  flex-shrink: 0;
   overflow: hidden;
+}
+.score-sep {
+  color: var(--dim);
 }
 .sq { display: inline; flex-shrink: 0; cursor: default; }
 .sq-imp-today { color: var(--grid-important-today); }
@@ -1504,7 +1507,7 @@ function renderBalanceGrid() {
     const marker = score >= 1 && score <= 5
       ? Array.from({length:5}, (_,i) => i === score-1 ? '■' : '–').join('')
       : '–––––';
-    scr.textContent = marker + '|';
+    scr.innerHTML = marker + '<span class="score-sep">|</span>';
     scr.addEventListener('mousemove', (e) => {
       if (!note) return;
       ttEl.style.display = 'block';
@@ -1528,13 +1531,21 @@ function renderBalanceGrid() {
       });
     };
 
-    // Inline note display (truncated)
+    addSqItems('sq-imp-today', impTodayItems);
+    addSqItems('sq-imp-week',  impWeekItems);
+    addSqItems('sq-nim-today', nimTodayItems);
+    addSqItems('sq-nim-week',  nimWeekItems);
+
+    row.appendChild(lbl);
+    row.appendChild(scr);
+    row.appendChild(sqs);
+
+    // Inline note display (truncated), left-aligned at 14ch from separator
     if (note) {
       const noteEl = document.createElement('span');
       noteEl.style.color = 'var(--dim)';
       noteEl.style.fontSize = '0.82em';
       noteEl.style.fontStyle = 'italic';
-      noteEl.style.marginLeft = '4px';
       noteEl.style.overflow = 'hidden';
       noteEl.style.textOverflow = 'ellipsis';
       noteEl.style.whiteSpace = 'nowrap';
@@ -1544,17 +1555,9 @@ function renderBalanceGrid() {
       noteEl.textContent = note.length > MAX_INLINE_NOTE_LENGTH ? note.slice(0, MAX_INLINE_NOTE_LENGTH - 1) + '…' : note;
       noteEl.title = note;
       noteEl.addEventListener('click', () => openScorePopup(dim.key));
-      sqs.appendChild(noteEl);
+      row.appendChild(noteEl);
     }
 
-    addSqItems('sq-imp-today', impTodayItems);
-    addSqItems('sq-imp-week',  impWeekItems);
-    addSqItems('sq-nim-today', nimTodayItems);
-    addSqItems('sq-nim-week',  nimWeekItems);
-
-    row.appendChild(lbl);
-    row.appendChild(scr);
-    row.appendChild(sqs);
     el.appendChild(row);
   });
 }
