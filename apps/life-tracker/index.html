@@ -247,15 +247,19 @@
                 } : r));
             };
 
+            const resetSubtypeForm = () => {
+                setAddingSubtypeFor(null);
+                setNewSubtypeName('');
+                setNewSubtypeMonths(12);
+            };
+
             const addSubtype = (type) => {
                 if (!newSubtypeName.trim()) return;
                 setReminders(prev => prev.map(r => r.type === type ? {
                     ...r,
                     subtypes: [...r.subtypes, { label: newSubtypeName.trim(), intervalMonths: newSubtypeMonths, enabled: true }]
                 } : r));
-                setNewSubtypeName('');
-                setNewSubtypeMonths(12);
-                setAddingSubtypeFor(null);
+                resetSubtypeForm();
             };
 
             return (
@@ -418,7 +422,7 @@
                                                             {reminder.subtypes.map(s => (
                                                                 <div key={s.label} className="flex items-center gap-3 bg-white p-3 rounded-2xl">
                                                                     <span className="flex-1 text-sm font-semibold min-w-0">{s.label}</span>
-                                                                    <input type="number" step="0.5" value={s.intervalMonths} onChange={(e) => updateReminderSubtype(reminder.type, s.label, { intervalMonths: parseFloat(e.target.value) || 0 })} className="w-16 p-1.5 bg-gray-50 rounded-xl text-center text-sm font-bold flex-shrink-0" />
+                                                                    <input type="number" step="0.5" min="0.5" value={s.intervalMonths} onChange={(e) => updateReminderSubtype(reminder.type, s.label, { intervalMonths: parseFloat(e.target.value) || 0.5 })} className="w-16 p-1.5 bg-gray-50 rounded-xl text-center text-sm font-bold flex-shrink-0" />
                                                                     <span className="text-xs text-gray-400 font-bold flex-shrink-0">mo</span>
                                                                     <button onClick={() => updateReminderSubtype(reminder.type, s.label, { enabled: !s.enabled })} className={`w-10 h-5 rounded-full relative transition-all flex-shrink-0 ${s.enabled ? 'bg-black' : 'bg-gray-300'}`}>
                                                                         <div className={`absolute top-0.5 w-4 h-4 bg-white rounded-full transition-all ${s.enabled ? 'left-5' : 'left-0.5'}`} />
@@ -432,14 +436,13 @@
                                                         {addingSubtypeFor === reminder.type ? (
                                                             <div className="flex items-center gap-2 bg-white p-3 rounded-2xl">
                                                                 <input type="text" placeholder="Subtype name" value={newSubtypeName} onChange={(e) => setNewSubtypeName(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), addSubtype(reminder.type))} className="flex-1 p-1.5 bg-gray-50 rounded-xl text-sm font-medium outline-none min-w-0" />
-                                                                <input type="number" step="0.5" min="0.5" value={newSubtypeMonths} onChange={(e) => setNewSubtypeMonths(parseFloat(e.target.value) || 0)} className="w-16 p-1.5 bg-gray-50 rounded-xl text-center text-sm font-bold flex-shrink-0" />
+                                                                <input type="number" step="0.5" min="0.5" value={newSubtypeMonths} onChange={(e) => setNewSubtypeMonths(parseFloat(e.target.value) || 0.5)} className="w-16 p-1.5 bg-gray-50 rounded-xl text-center text-sm font-bold flex-shrink-0" />
                                                                 <span className="text-xs text-gray-400 font-bold flex-shrink-0">mo</span>
                                                                 <button type="button" onClick={() => addSubtype(reminder.type)} className="p-1.5 bg-black text-white rounded-xl flex-shrink-0"><Icon name="check" size={12} /></button>
-                                                                <button type="button" onClick={() => { setAddingSubtypeFor(null); setNewSubtypeName(''); setNewSubtypeMonths(12); }} className="p-1.5 text-gray-400 hover:text-gray-700 flex-shrink-0"><Icon name="x" size={12} /></button>
+                                                                <button type="button" onClick={resetSubtypeForm} className="p-1.5 text-gray-400 hover:text-gray-700 flex-shrink-0"><Icon name="x" size={12} /></button>
                                                             </div>
                                                         ) : (
-                                                            <button type="button" onClick={() => { setAddingSubtypeFor(reminder.type); setNewSubtypeName(''); setNewSubtypeMonths(12); }} className="text-xs font-bold text-gray-400 hover:text-gray-700 flex items-center gap-1 transition-colors">
-                                                                <Icon name="plus" size={12} /> Add subtype
+                                                            <button type="button" onClick={() => { setAddingSubtypeFor(reminder.type); setNewSubtypeName(''); setNewSubtypeMonths(12); }} className="text-xs font-bold text-gray-400 hover:text-gray-700 flex items-center gap-1 transition-colors">                                                                <Icon name="plus" size={12} /> Add subtype
                                                             </button>
                                                         )}
                                                     </div>
