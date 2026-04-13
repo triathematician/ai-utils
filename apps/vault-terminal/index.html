@@ -191,7 +191,7 @@ html, body {
 #main-panel::-webkit-scrollbar { width: 3px; }
 #side-panel {
   padding: 8px 12px; overflow-y: auto; overflow-x: hidden;
-  display: flex; flex-direction: column;
+  display: flex; flex-direction: column; padding-right: 6px;
 }
 #side-panel::-webkit-scrollbar { width: 3px; }
 
@@ -241,10 +241,10 @@ html, body {
 }
 .side-tab {
   cursor: pointer; padding: 1px 6px; font-size: 0.72em;
-  letter-spacing: 1px; color: var(--dim); border: 1px solid var(--dim);
+  letter-spacing: 1px; color: var(--dim);
 }
-.side-tab:hover { color: var(--fg); border-color: var(--fg); }
-.side-tab.active { color: var(--accent); border-color: var(--accent); background: transparent; }
+.side-tab:hover { color: var(--fg); }
+.side-tab.active { color: var(--accent); background: transparent; }
 #side-content { flex: 1; overflow-y: auto; overflow-x: hidden; }
 #side-content::-webkit-scrollbar { width: 3px; }
 
@@ -279,7 +279,7 @@ html, body {
 .rollup-table tr.current-month td { color: var(--fg); font-weight: 600; }
 .rollup-table tr.avg-row td { color: var(--dim); border-top: 1px solid var(--muted); font-style: italic; }
 .rollup-table tr.avg-row td:first-child { color: var(--accent); }
-.rollup-table tr.tot-row td { color: var(--fg); border-top: 1px solid var(--muted); font-weight: 600; }
+.rollup-table tr.tot-row td { color: var(--fg); border-top: 1px solid var(--dim); font-weight: 600; }
 .rollup-table tr.tot-row td:first-child { color: var(--accent); }
 .rt-income  { color: var(--success); }
 .rt-expense { color: var(--warn); }
@@ -290,11 +290,11 @@ html, body {
 .rollup-year-btns { display: flex; flex-wrap: wrap; gap: 4px; margin-bottom: 6px; }
 .rollup-year-btn {
   cursor: pointer; padding: 1px 6px; font-size: 0.72em;
-  letter-spacing: 1px; color: var(--dim); border: 1px solid var(--dim);
+  letter-spacing: 1px; color: var(--dim); border: none;
   font-family: var(--font); background: transparent;
 }
-.rollup-year-btn:hover { color: var(--fg); border-color: var(--fg); }
-.rollup-year-btn.active { color: var(--accent); border-color: var(--accent); }
+.rollup-year-btn:hover { color: var(--fg); }
+.rollup-year-btn.active { color: var(--accent); }
 
 .analysis-row {
   display: flex; align-items: baseline; gap: 6px;
@@ -319,6 +319,8 @@ html, body {
   margin: 4px 0 1px; padding-left: 2px;
 }
 .ar-indent { padding-left: 10px; }
+.entry-excl { color: var(--dim); font-size: 0.78em; font-style: italic; flex-shrink: 0; }
+.summary-type-label.stl-excl { color: var(--dim); }
 
 /* ═══════════════════════════════════════════════
    CONSOLE ROW
@@ -504,12 +506,12 @@ html, body {
         <div class="sc-value sc-expense" id="stat-expense">$0.00</div>
       </div>
       <div class="stat-card">
-        <span class="sc-label">◈ INVESTMENTS</span>
-        <div class="sc-value sc-invest" id="stat-invest">$0.00</div>
-      </div>
-      <div class="stat-card">
         <span class="sc-label">◈ NET</span>
         <div class="sc-value sc-net-pos" id="stat-net">$0.00</div>
+      </div>
+      <div class="stat-card">
+        <span class="sc-label">◈ INVEST</span>
+        <div class="sc-value sc-invest" id="stat-invest">$0.00</div>
       </div>
     </div>
   </div>
@@ -640,6 +642,7 @@ function loadDB() {
     e.id        = e.id        || uid();
     e.note      = e.note      !== undefined ? e.note : '';
     e.createdAt = e.createdAt || new Date().toISOString();
+    e.excluded  = e.excluded  !== undefined ? e.excluded : false;
   });
 }
 
@@ -717,6 +720,21 @@ function sumType(entries, type) {
   return entries.filter(e => e.type === type).reduce((s, e) => s + e.amount, 0);
 }
 
+function sumPrimaryIncome(entries) {
+  return entries.filter(e => e.type === 'income' && !e.excluded).reduce((s, e) => s + e.amount, 0);
+}
+
+// Returns entries sorted by category/subcategory within each type section, in type order.
+function sortedEntriesByType(entries) {
+  const result = [];
+  ['income','expense','investment'].forEach(type => {
+    const group = entries.filter(e => e.type === type)
+      .sort((a, b) => a.category.localeCompare(b.category) || a.subcategory.localeCompare(b.subcategory));
+    result.push(...group);
+  });
+  return result;
+}
+
 /* ═══════════════════════════════════════════════════════════
    STATUS BAR
    ═══════════════════════════════════════════════════════════ */
@@ -763,10 +781,10 @@ function renderTopRow() {
     MONTH_NAMES[month-1] + ' ' + year;
 
   const entries = entriesForCurrentMonth();
-  const income  = sumType(entries, 'income');
+  const income  = sumPrimaryIncome(entries);
   const expense = sumType(entries, 'expense');
   const invest  = sumType(entries, 'investment');
-  const net     = income - expense - invest;
+  const net     = income - expense;
 
   document.getElementById('stat-income').textContent  = fmtMoneyCompact(income);
   document.getElementById('stat-expense').textContent = fmtMoneyCompact(expense);
@@ -787,7 +805,8 @@ function renderMainPanel() {
   let html = '';
 
   types.forEach(type => {
-    const group = entries.filter(e => e.type === type);
+    const group = entries.filter(e => e.type === type)
+      .sort((a, b) => a.category.localeCompare(b.category) || a.subcategory.localeCompare(b.subcategory));
     if (!group.length) return;
     html += `<div class="type-section">`;
     html += `<div class="type-header th-${type}">${escHtml(typeLabels[type])}</div>`;
@@ -809,6 +828,9 @@ function renderMainPanel() {
       html += `<span class="entry-sub">${escHtml(e.subcategory)}</span>`;
       html += `<span class="entry-sep"> | </span>`;
       html += `<span class="entry-amt ea-${type}">${fmtMoney(e.amount)}</span>`;
+      if (e.excluded && type === 'income') {
+        html += `<span class="entry-excl"> [EXCL]</span>`;
+      }
       if (e.note) {
         html += `<span class="entry-note"> — ${escHtml(e.note)}</span>`;
       }
@@ -882,28 +904,29 @@ function renderSidePanel() {
 
 function renderSummary() {
   const entries = entriesForCurrentMonth();
-  const types = ['income','expense','investment'];
-  const typeLabels = { income:'INCOME', expense:'EXPENSES', investment:'INVESTMENTS' };
-  let html = '';
 
-  types.forEach(type => {
-    const group = entries.filter(e => e.type === type);
-    if (!group.length) return;
+  function typeBlock(group, label, styleClass) {
+    if (!group.length) return '';
     const catTotals = {};
-    group.forEach(e => {
-      catTotals[e.category] = (catTotals[e.category] || 0) + e.amount;
-    });
+    group.forEach(e => { catTotals[e.category] = (catTotals[e.category] || 0) + e.amount; });
     const total = group.reduce((s,e)=>s+e.amount,0);
-    html += `<div class="summary-type-block">`;
-    html += `<div class="summary-type-label stl-${type}">${escHtml(typeLabels[type])} — ${fmtMoney(total)}</div>`;
+    let h = `<div class="summary-type-block">`;
+    h += `<div class="summary-type-label ${styleClass}">${escHtml(label)} — ${fmtMoney(total)}</div>`;
     Object.entries(catTotals).sort((a,b)=>a[0].localeCompare(b[0])).forEach(([cat,amt]) => {
-      html += `<div class="summary-row">`;
-      html += `<span class="sr-cat">${escHtml(cat)}</span>`;
-      html += `<span class="sr-amt">${fmtMoney(amt)}</span>`;
-      html += `</div>`;
+      h += `<div class="summary-row">`;
+      h += `<span class="sr-cat">${escHtml(cat)}</span>`;
+      h += `<span class="sr-amt">${fmtMoney(amt)}</span>`;
+      h += `</div>`;
     });
-    html += `</div>`;
-  });
+    h += `</div>`;
+    return h;
+  }
+
+  let html = '';
+  html += typeBlock(entries.filter(e => e.type === 'income' && !e.excluded),  'INCOME',       'stl-income');
+  html += typeBlock(entries.filter(e => e.type === 'expense'),                 'EXPENSES',     'stl-expense');
+  html += typeBlock(entries.filter(e => e.type === 'investment'),              'INVESTMENTS',  'stl-investment');
+  html += typeBlock(entries.filter(e => e.type === 'income' && e.excluded),   'INCOME (EXCL)','stl-excl');
 
   if (!html) {
     html = `<div class="empty-msg" style="margin-top:8px">No data for current month.</div>`;
@@ -928,7 +951,7 @@ function renderRollup() {
   let html = `<div class="rollup-year-btns">`;
   allYears.forEach(yr => {
     const active = (yr === year) ? ' active' : '';
-    html += `<button class="rollup-year-btn${active}" onclick="setRollupYear(${yr})">${yr}</button>`;
+    html += `<button class="rollup-year-btn${active}" onclick="setRollupYear(${yr})">[${yr}]</button>`;
   });
   html += `</div>`;
 
@@ -946,16 +969,16 @@ function renderRollup() {
   }
 
   html += `<table class="rollup-table">`;
-  html += `<tr><th>MONTH</th><th>INCOME</th><th>EXPNS</th><th>INVEST</th><th>NET</th></tr>`;
+  html += `<tr><th>MONTH</th><th>INCOME</th><th>EXPNS</th><th>NET</th><th>INVEST</th></tr>`;
 
   let totIncome=0, totExpense=0, totInvest=0, n=0;
 
   months.forEach(m => {
     const me = yearEntries.filter(e => e.month === m);
-    const inc = sumType(me,'income');
+    const inc = sumPrimaryIncome(me);
     const exp = sumType(me,'expense');
     const inv = sumType(me,'investment');
-    const net = inc - exp - inv;
+    const net = inc - exp;
     const isCur = (year===curYear && m===curMonth);
     totIncome += inc; totExpense += exp; totInvest += inv; n++;
 
@@ -963,21 +986,21 @@ function renderRollup() {
     html += `<td>${MONTH_NAMES[m-1]}</td>`;
     html += `<td class="rt-income">${fmtMoneyCompact(inc)}</td>`;
     html += `<td class="rt-expense">${fmtMoneyCompact(exp)}</td>`;
-    html += `<td class="rt-invest">${fmtMoneyCompact(inv)}</td>`;
     const netClass = net>=0?'rt-net-pos':'rt-net-neg';
     html += `<td class="${netClass}">${(net<0?'-':'')}${fmtMoneyCompact(net)}</td>`;
+    html += `<td class="rt-invest">${fmtMoneyCompact(inv)}</td>`;
     html += `</tr>`;
   });
 
   if (n > 1) {
-    const totNet = totIncome - totExpense - totInvest;
+    const totNet = totIncome - totExpense;
     const totNetClass = totNet>=0?'rt-net-pos':'rt-net-neg';
     html += `<tr class="tot-row">`;
     html += `<td>TOTAL</td>`;
     html += `<td class="rt-income">${fmtMoneyCompact(totIncome)}</td>`;
     html += `<td class="rt-expense">${fmtMoneyCompact(totExpense)}</td>`;
-    html += `<td class="rt-invest">${fmtMoneyCompact(totInvest)}</td>`;
     html += `<td class="${totNetClass}">${(totNet<0?'-':'')}${fmtMoneyCompact(Math.abs(totNet))}</td>`;
+    html += `<td class="rt-invest">${fmtMoneyCompact(totInvest)}</td>`;
     html += `</tr>`;
 
     const avgNet = totNet / n;
@@ -986,8 +1009,8 @@ function renderRollup() {
     html += `<td>AVG</td>`;
     html += `<td class="rt-income">${fmtMoneyCompact(totIncome/n)}</td>`;
     html += `<td class="rt-expense">${fmtMoneyCompact(totExpense/n)}</td>`;
-    html += `<td class="rt-invest">${fmtMoneyCompact(totInvest/n)}</td>`;
     html += `<td class="${avgNetClass}">${(avgNet<0?'-':'')}${fmtMoneyCompact(Math.abs(avgNet))}</td>`;
+    html += `<td class="rt-invest">${fmtMoneyCompact(totInvest/n)}</td>`;
     html += `</tr>`;
   }
 
@@ -997,27 +1020,50 @@ function renderRollup() {
 
 function renderAnalysis() {
   const { year: curYear, month: curMonth } = db.currentMonth;
-  const curEntries = entriesForCurrentMonth();
-  const histEntries = db.entries.filter(e => !(e.year===curYear && e.month===curMonth));
 
-  // Build per-subcategory averages from history
-  const avgMap = {}; // key: type+'/'+cat+'/'+sub → { total, months }
-  const monthSet = new Set(histEntries.map(e => e.year+'-'+e.month));
+  // Current entries — excluded income omitted from analysis
+  const curEntries = entriesForCurrentMonth().filter(e => !(e.type === 'income' && e.excluded));
 
-  // Group hist by month then aggregate
-  const byMonthSub = {};
-  histEntries.forEach(e => {
-    const mk = e.year+'-'+e.month;
-    const sk = e.type+'/'+e.category+'/'+e.subcategory;
-    if (!byMonthSub[sk]) byMonthSub[sk] = {};
-    byMonthSub[sk][mk] = (byMonthSub[sk][mk] || 0) + e.amount;
+  // Build the last 12 months prior to current month (oldest → newest)
+  const priorMonthKeys = [];
+  let py = curYear, pm = curMonth;
+  for (let i = 0; i < 12; i++) {
+    pm--;
+    if (pm < 1) { pm = 12; py--; }
+    priorMonthKeys.unshift(py + '-' + pm);
+  }
+  const priorMonthSet = new Set(priorMonthKeys);
+
+  // Historical entries: last 12 prior months, excluded income omitted
+  const histEntries = db.entries.filter(e => {
+    if (e.year === curYear && e.month === curMonth) return false;
+    if (e.type === 'income' && e.excluded) return false;
+    return priorMonthSet.has(e.year + '-' + e.month);
   });
+
+  // Find the earliest month in the 12-month window that has any data
+  const monthsWithAnyData = new Set(histEntries.map(e => e.year + '-' + e.month));
+  const firstDataIdx = priorMonthKeys.findIndex(mk => monthsWithAnyData.has(mk));
 
   const subAvgs = {};
-  Object.entries(byMonthSub).forEach(([sk, months]) => {
-    const vals = Object.values(months);
-    subAvgs[sk] = vals.reduce((a,b)=>a+b,0) / vals.length;
-  });
+  if (firstDataIdx !== -1) {
+    const relevantMonths = priorMonthKeys.slice(firstDataIdx);
+    const nMonths = relevantMonths.length;
+    const relevantSet = new Set(relevantMonths);
+
+    // Sum per subcategory across relevant months
+    const subTotals = {};
+    histEntries.forEach(e => {
+      if (!relevantSet.has(e.year + '-' + e.month)) return;
+      const sk = e.type + '/' + e.category + '/' + e.subcategory;
+      subTotals[sk] = (subTotals[sk] || 0) + e.amount;
+    });
+
+    // Average = total / nMonths (missing months count as 0)
+    Object.entries(subTotals).forEach(([sk, total]) => {
+      subAvgs[sk] = total / nMonths;
+    });
+  }
 
   // Current month data grouped by type
   const types = ['income','expense','investment'];
@@ -1099,6 +1145,7 @@ function addEntry(type, category, subcategory, amount, note) {
     subcategory: subcategory.toLowerCase().trim(),
     amount:      parseFloat(amount),
     note:        (note || '').trim(),
+    excluded:    false,
     createdAt:   new Date().toISOString()
   };
   db.entries.push(entry);
@@ -1247,6 +1294,11 @@ function openEditOverlay(id) {
   <label class="dlg-label">NOTE (optional)</label>
   <input class="dlg-input" id="edit-note" value="${escHtml(entry.note || '')}">
 
+  ${entry.type === 'income' ? `<div style="margin-top:6px;display:flex;align-items:center;gap:8px">
+    <input type="checkbox" id="edit-excluded" ${entry.excluded ? 'checked' : ''} style="cursor:pointer;accent-color:var(--accent)">
+    <label for="edit-excluded" style="font-size:0.78em;color:var(--dim);letter-spacing:1px;cursor:pointer">EXCLUDE FROM INCOME TOTALS</label>
+  </div>` : ''}
+
   <div style="margin-top:12px">
     <span class="dlg-btn dlg-btn-ok" id="edit-save">[ SAVE ]</span>
     <span class="dlg-btn dlg-btn-del" id="edit-delete">[ DELETE ]</span>
@@ -1266,7 +1318,11 @@ function openEditOverlay(id) {
     const note = document.getElementById('edit-note').value.trim();
     if (!cat || !sub) { statusMsg('Category and subcategory required.'); return; }
     if (isNaN(amt) || amt < 0) { statusMsg('Invalid amount.'); return; }
-    updateEntry(id, { category: cat.toLowerCase(), subcategory: sub.toLowerCase(), amount: amt, note });
+    const fields = { category: cat.toLowerCase(), subcategory: sub.toLowerCase(), amount: amt, note };
+    if (entry.type === 'income') {
+      fields.excluded = document.getElementById('edit-excluded').checked;
+    }
+    updateEntry(id, fields);
     closeOverlay();
   });
 
@@ -1503,7 +1559,8 @@ function showListOverlay(filter) {
     const types = ['income','expense','investment'];
     const typeLabels = { income:'INCOME', expense:'EXPENSES', investment:'INVESTMENTS' };
     types.forEach(type => {
-      const group = entries.filter(e => e.type === type);
+      const group = entries.filter(e => e.type === type)
+        .sort((a, b) => a.category.localeCompare(b.category) || a.subcategory.localeCompare(b.subcategory));
       if (!group.length) return;
       html += `<div style="margin-bottom:8px">`;
       html += `<div style="font-size:0.78em;letter-spacing:2px;color:var(--${type==='income'?'success':type==='expense'?'warn':'cat-5'});border-bottom:1px solid var(--muted);padding-bottom:2px;margin-bottom:3px">${escHtml(typeLabels[type])}</div>`;
@@ -1514,6 +1571,7 @@ function showListOverlay(filter) {
         html += `<span>${escHtml(e.category)} &gt; ${escHtml(e.subcategory)}</span>`;
         html += `<span style="color:var(--dim)"> | </span>`;
         html += `<span style="font-weight:600">${fmtMoney(e.amount)}</span>`;
+        if (e.excluded && type === 'income') html += `<span style="color:var(--dim);font-size:0.82em;font-style:italic"> [EXCL]</span>`;
         if (e.note) html += `<span style="color:var(--dim);font-size:0.88em"> — ${escHtml(e.note)}</span>`;
         html += `</div>`;
       });
@@ -1927,15 +1985,8 @@ function handleConsoleCmd(raw) {
     const n = parseInt(arg1);
     if (isNaN(n) || n < 1) { statusMsg('Usage: /delete [n]'); return; }
     const entries = entriesForCurrentMonth();
-    const types = ['income','expense','investment'];
-    let rowNum = 0;
-    let target = null;
-    types.forEach(type => {
-      entries.filter(e => e.type === type).forEach(e => {
-        rowNum++;
-        if (rowNum === n) target = e;
-      });
-    });
+    const sorted = sortedEntriesByType(entries);
+    const target = sorted[n - 1] || null;
     if (!target) { statusMsg('No entry #' + n + ' in current month.'); return; }
     deleteEntry(target.id);
     return;
@@ -1945,15 +1996,8 @@ function handleConsoleCmd(raw) {
     const n = parseInt(arg1);
     if (isNaN(n) || n < 1) { statusMsg('Usage: /edit [n]'); return; }
     const entries = entriesForCurrentMonth();
-    const types = ['income','expense','investment'];
-    let rowNum = 0;
-    let target = null;
-    types.forEach(type => {
-      entries.filter(e => e.type === type).forEach(e => {
-        rowNum++;
-        if (rowNum === n) target = e;
-      });
-    });
+    const sorted = sortedEntriesByType(entries);
+    const target = sorted[n - 1] || null;
     if (!target) { statusMsg('No entry #' + n + ' in current month.'); return; }
     openEditOverlay(target.id);
     return;
