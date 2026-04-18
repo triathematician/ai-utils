@@ -396,7 +396,7 @@ textarea.field-input { resize: vertical; min-height: 50px; }
 .dp-pulse { margin-top: 6px; padding-top: 6px; border-top: 1px solid var(--muted); font-size: 0.9em; color: var(--fg); opacity: 0.8; }
 
 /* presentation mode */
-body.presentation-mode #app { grid-template-rows: 0 90vh 10vh; }
+body.presentation-mode #app { grid-template-rows: 0 1fr auto; }
 body.presentation-mode #top-row { display: none; }
 body.presentation-mode #main-row { overflow-x: hidden; }
 body.presentation-mode .strategy-col {
@@ -755,11 +755,11 @@ function buildColumn(node, nodeNumMap) {
   typeBadge.className = 'col-type-badge ' + typeClass(node.type);
   typeBadge.textContent = (node.type || 'STRATEGY').toUpperCase();
 
-  const rag = latestRag(node);
+  const pulseStatus = latestRag(node);
   const ragSpan = document.createElement('span');
-  ragSpan.className = 'col-rag ' + (RAG_CLASSES[rag] || 'rag-none');
-  ragSpan.textContent = RAG_SYMBOLS[rag] || '·';
-  addTooltip(ragSpan, 'LATEST PULSE: ' + rag.toUpperCase());
+  ragSpan.className = 'col-rag ' + (RAG_CLASSES[pulseStatus] || 'rag-none');
+  ragSpan.textContent = RAG_SYMBOLS[pulseStatus] || '·';
+  addTooltip(ragSpan, 'LATEST PULSE: ' + pulseStatus.toUpperCase());
 
   const titleEl = document.createElement('div');
   titleEl.className = 'col-title';
@@ -1374,6 +1374,7 @@ function cmdPulse(rest) {
 }
 
 function cmdRag(rest) {
+  // /rag is now a synonym for /pulse
   cmdPulse(rest);
 }
 
@@ -1477,7 +1478,7 @@ function cmdExport(rest) {
   if (format === 'txt' || format === 'text') {
     const now = todayStr();
     const lines = [];
-    lines.push(`# STRATEGY ATLAS EXPORT — ${g.name} (FY${g.year})`);
+    lines.push(`# STRATEGY ATLAS EXPORT - ${g.name} (FY${g.year})`);
     lines.push(`Date: ${now}`);
     lines.push('');
     lines.push(`Vision: ${g.vision || '(not set)'}`);
@@ -1489,11 +1490,11 @@ function cmdExport(rest) {
       displayed.forEach((node, idx) => {
         const pulse = latestRag(node);
         const parentPrefix = node.parentId ? '  ' : '';
-        const assignee = node.assignee ? ` · Assignee: ${node.assignee}` : '';
-        lines.push(`${parentPrefix}[${idx + 1}] ${(node.type || 'Node').toUpperCase()} · ${node.title} · Pulse: ${(pulse || 'none').toUpperCase()}${assignee}`);
+        lines.push(`${parentPrefix}[${idx + 1}] ${(node.type || 'Node').toUpperCase()} | ${node.title} | Pulse: ${(pulse || 'none').toUpperCase()}`);
+        if (node.assignee) lines.push(`${parentPrefix}    ASSIGNEE: ${node.assignee}`);
       });
     }
-    downloadBlob(lines.join('\n') + '\n', 'compass-' + g.name.replace(/\s+/g,'_') + '-' + g.year + '.txt', 'text/plain');
+    downloadBlob(lines.join('\n') + '\n', 'strategy-atlas-' + g.name.replace(/\s+/g,'_') + '-' + g.year + '.txt', 'text/plain');
     statusMsg('Exported TXT: ' + g.name);
     return;
   }
@@ -1504,7 +1505,7 @@ function cmdExport(rest) {
     nodes: nodesForGroup(g.id)
   };
   const json = JSON.stringify(exportObj, null, 2);
-  downloadBlob(json, 'compass-' + g.name.replace(/\s+/g,'_') + '-' + g.year + '.json', 'application/json');
+  downloadBlob(json, 'strategy-atlas-' + g.name.replace(/\s+/g,'_') + '-' + g.year + '.json', 'application/json');
   statusMsg('Exported: ' + g.name);
 }
 
@@ -1644,16 +1645,16 @@ const detailPanel = document.getElementById('detail-panel');
 
 function buildDetailHTML(node) {
   const g = activeGroup();
-  const rag = latestRag(node);
-  const ragLabel = RAG_SYMBOLS[rag] + ' ' + rag.toUpperCase();
-  const ragClass = RAG_CLASSES[rag] || 'rag-none';
+  const pulseStatus = latestRag(node);
+  const pulseLabel = RAG_SYMBOLS[pulseStatus] + ' ' + pulseStatus.toUpperCase();
+  const pulseClass = RAG_CLASSES[pulseStatus] || 'rag-none';
 
   let html = '';
   html += `<div class="dp-type ${typeClass(node.type)}">${escHtml((node.type || 'NODE').toUpperCase())}</div>`;
   html += `<div class="dp-title">${escHtml(node.title)}</div>`;
   if (node.vision) html += `<div class="dp-vision">${escHtml(node.vision)}</div>`;
   if (node.description) html += `<div class="dp-desc">${escHtml(node.description)}</div>`;
-  html += `<div class="dp-field"><span class="dp-label">PULSE:</span><span class="${ragClass}">${ragLabel}</span></div>`;
+  html += `<div class="dp-field"><span class="dp-label">PULSE:</span><span class="${pulseClass}">${pulseLabel}</span></div>`;
   if (node.assignee) html += `<div class="dp-field"><span class="dp-label">ASSIGNEE:</span>${escHtml(node.assignee)}</div>`;
   if (node.confidence) html += `<div class="dp-field"><span class="dp-label">CONFIDENCE:</span>${node.confidence}/5</div>`;
   if (node.assumptionNotes) html += `<div class="dp-field"><span class="dp-label">NOTES:</span>${escHtml(node.assumptionNotes)}</div>`;
