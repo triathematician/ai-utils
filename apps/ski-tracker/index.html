@@ -1,0 +1,524 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SKI TRACKER</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@300;400;500;600;700&family=Source+Code+Pro:wght@300;400;600;700&family=VT323&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #121212; --fg: #ffb000; --accent: #ff0000;
+  --dim: #7a5500; --muted: #3a2800; --border: #ffb000;
+  --success: #00ff41; --warn: #ff6600;
+  --font: 'VT323', 'Courier New', monospace;
+  --font-size: 20px; --line-h: 1.4;
+  --cat-1:#ffb000; --cat-2:#ff4444; --cat-3:#ff8800; --cat-4:#00ff41;
+  --cat-5:#00bbff; --cat-6:#aa44ff; --cat-7:#ff44aa; --cat-8:#ffff44;
+  --cat-9:#00ffaa; --cat-10:#ffffff;
+}
+[data-theme="solar"] {
+  --bg:#002b36; --fg:#839496; --accent:#b58900;
+  --dim:#4a5456; --muted:#073642; --border:#839496;
+  --success:#859900; --warn:#cb4b16; --font:'Fira Code',monospace;
+  --cat-1:#b58900; --cat-2:#cb4b16; --cat-3:#dc322f; --cat-4:#d33682;
+  --cat-5:#6c71c4; --cat-6:#268bd2; --cat-7:#2aa198; --cat-8:#859900;
+  --cat-9:#657b83; --cat-10:#93a1a1;
+}
+[data-theme="monk"] {
+  --bg:#f5f5f5; --fg:#2a2a2a; --accent:#000000;
+  --dim:#888; --muted:#e0e0e0; --border:#2a2a2a;
+  --success:#1a6600; --warn:#aa4400; --font:'Source Code Pro',monospace;
+  --cat-1:#2a2a2a; --cat-2:#aa2200; --cat-3:#005588; --cat-4:#336600;
+  --cat-5:#884400; --cat-6:#550055; --cat-7:#006666; --cat-8:#7a5000;
+  --cat-9:#555500; --cat-10:#003344;
+}
+[data-theme="space"] {
+  --bg:#0a0a1a; --fg:#a0c0ff; --accent:#00ffff;
+  --dim:#304060; --muted:#0f0f2a; --border:#304080;
+  --success:#00ffaa; --warn:#ff6060; --font:'Fira Code',monospace;
+  --cat-1:#00ffff; --cat-2:#ff00aa; --cat-3:#00ff88; --cat-4:#ffff00;
+  --cat-5:#ff6060; --cat-6:#7788ff; --cat-7:#aa66ff; --cat-8:#ffffff;
+  --cat-9:#00ccff; --cat-10:#ff8800;
+}
+[data-theme="synth"] {
+  --bg:#1a0033; --fg:#ff00ff; --accent:#00ffff;
+  --dim:#660066; --muted:#2a0044; --border:#ff00ff;
+  --success:#00ff88; --warn:#ffaa00; --font:'Fira Code',monospace;
+  --cat-1:#ff00ff; --cat-2:#00ffff; --cat-3:#00ff88; --cat-4:#ffaa00;
+  --cat-5:#ff0066; --cat-6:#6600ff; --cat-7:#ff6600; --cat-8:#00aaff;
+  --cat-9:#ffff00; --cat-10:#ff44aa;
+}
+[data-theme="dos"] {
+  --bg:#0000aa; --fg:#aaaaaa; --accent:#ffffff;
+  --dim:#5555ff; --muted:#0000cc; --border:#aaaaaa;
+  --success:#55ff55; --warn:#ffff55; --font:'VT323',monospace;
+  --cat-1:#ffffff; --cat-2:#55ffff; --cat-3:#55ff55; --cat-4:#ff5555;
+  --cat-5:#ffff55; --cat-6:#ff55ff; --cat-7:#5555ff; --cat-8:#aaaaaa;
+  --cat-9:#ffaa55; --cat-10:#55aaaa;
+}
+[data-theme="notebook"] {
+  --bg:#fafaf2; --fg:#1a1a2e; --accent:#c0392b;
+  --dim:#8a8a9a; --muted:#eeeede; --border:#90a8d4;
+  --success:#2e7d32; --warn:#e65100; --font:'Source Code Pro',monospace;
+  --cat-1:#c0392b; --cat-2:#d84315; --cat-3:#f57c00; --cat-4:#2e7d32;
+  --cat-5:#1565c0; --cat-6:#6a1b9a; --cat-7:#00838f; --cat-8:#4e342e;
+  --cat-9:#37474f; --cat-10:#880e4f;
+}
+[data-theme="engineering"] {
+  --bg:#e8f5e8; --fg:#0d2b0d; --accent:#2e7d32;
+  --dim:#5a7a5a; --muted:#d0e8d0; --border:#7ab87a;
+  --success:#1b5e20; --warn:#cc6600; --font:'Source Code Pro',monospace;
+  --cat-1:#2e7d32; --cat-2:#b71c1c; --cat-3:#e65100; --cat-4:#1b5e20;
+  --cat-5:#1565c0; --cat-6:#4a148c; --cat-7:#00695c; --cat-8:#4e342e;
+  --cat-9:#37474f; --cat-10:#880e4f;
+}
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html, body {
+  height: 100%; background: var(--bg); color: var(--fg);
+  font-family: var(--font); font-size: var(--font-size);
+  line-height: var(--line-h); overflow: hidden;
+}
+::selection { background: var(--fg); color: var(--bg); }
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: var(--muted); }
+::-webkit-scrollbar-thumb { background: var(--dim); }
+#app { display: grid; grid-template-rows: 30vh 60vh 10vh; height: 100vh; width: 100vw; }
+#top-row { border-bottom: 1px solid var(--border); padding: 10px 12px; overflow-y: auto; }
+#main-row { display: grid; grid-template-columns: 1fr 1fr; overflow: hidden; }
+#main-panel { border-right: 1px solid var(--border); padding: 10px 12px; overflow-y: auto; }
+#side-panel { padding: 10px 12px; overflow-y: auto; }
+.row-header {
+  color: var(--accent); font-size: 0.8em; letter-spacing: 2px;
+  margin-bottom: 4px; border-bottom: 1px solid var(--muted); padding-bottom: 4px;
+}
+#console-row {
+  background: var(--muted); border-top: 1px solid var(--border);
+  display: flex; align-items: center; padding: 0 12px; gap: 8px;
+}
+#console-prompt { color: var(--accent); white-space: nowrap; }
+#console-input {
+  flex: 1; background: transparent; border: none; outline: none;
+  color: var(--fg); font-family: var(--font); font-size: var(--font-size);
+  caret-color: var(--accent);
+}
+#console-status { color: var(--dim); font-size: 0.8em; min-width: 180px; text-align: right; white-space: nowrap; }
+.summary-grid { display: grid; grid-template-columns: repeat(4, minmax(0,1fr)); gap: 8px; }
+.metric { border: 1px solid var(--muted); padding: 6px 8px; }
+.metric-label { color: var(--dim); font-size: 0.72em; letter-spacing: 1px; }
+.metric-value { color: var(--accent); font-size: 1.2em; }
+.section-title { color: var(--accent); margin: 8px 0 2px; letter-spacing: 1px; font-size: 0.8em; }
+.line { padding: 2px 0; border-bottom: 1px solid var(--muted); }
+.line:last-child { border-bottom: none; }
+.dim { color: var(--dim); font-size: 0.85em; }
+.warn { color: var(--warn); }
+.ok { color: var(--success); }
+#help-overlay {
+  display: none; position: fixed; inset: 0;
+  background: rgba(0,0,0,0.7); z-index: 150;
+  align-items: center; justify-content: center;
+}
+#help-overlay.visible { display: flex; }
+.overlay-box {
+  background: var(--bg); border: 1px solid var(--border);
+  padding: 16px 20px; min-width: 640px; max-width: min(90vw,960px);
+  font-family: var(--font); color: var(--fg);
+}
+#help-title { color: var(--accent); letter-spacing: 2px; margin-bottom: 8px; }
+#help-body { white-space: pre; line-height: 1.8; max-height: 60vh; overflow-y: auto; }
+#help-close { color: var(--dim); font-size: 0.82em; cursor: pointer; display: block; margin-top: 8px; }
+</style>
+</head>
+<body>
+<div id="app">
+  <div id="top-row">
+    <div class="row-header">◈ SKI SNAPSHOT</div>
+    <div class="summary-grid">
+      <div class="metric"><div class="metric-label">TOTAL TRIPS</div><div class="metric-value" id="metric-trips">0</div></div>
+      <div class="metric"><div class="metric-label">TOTAL RUNS</div><div class="metric-value" id="metric-runs">0</div></div>
+      <div class="metric"><div class="metric-label">VERTICAL (FT)</div><div class="metric-value" id="metric-vertical">0</div></div>
+      <div class="metric"><div class="metric-label">LOCATIONS</div><div class="metric-value" id="metric-locations">0</div></div>
+    </div>
+    <div class="section-title">TOP DAYS</div>
+    <div id="top-days" class="dim">No trips yet. Use /trip.</div>
+  </div>
+  <div id="main-row">
+    <div id="main-panel">
+      <div class="row-header">◈ TRIP LOG</div>
+      <div id="trip-list" class="dim">No ski trips yet. Add one with /trip.</div>
+    </div>
+    <div id="side-panel">
+      <div class="row-header">◈ ROLLUPS</div>
+      <div class="section-title">BY SEASON</div>
+      <div id="season-rollup" class="dim">No data yet.</div>
+      <div class="section-title">BY LOCATION</div>
+      <div id="location-rollup" class="dim">No data yet.</div>
+    </div>
+  </div>
+  <div id="console-row">
+    <span id="console-prompt">SKI&gt;</span>
+    <input type="text" id="console-input" autocomplete="off" spellcheck="false">
+    <span id="console-status">READY</span>
+  </div>
+</div>
+
+<div id="help-overlay">
+  <div class="overlay-box">
+    <div id="help-title"></div>
+    <div id="help-body"></div>
+    <span id="help-close">[ESC] CLOSE</span>
+  </div>
+</div>
+
+<script>
+const STORAGE_KEY = 'ski_tracker_db';
+const EXPORT_SLUG = 'ski-tracker';
+const THEMES = ['legacy','solar','monk','space','synth','dos','notebook','engineering'];
+let db = loadDB();
+
+function loadDB() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    const parsed = raw ? JSON.parse(raw) : {};
+    parsed.trips = Array.isArray(parsed.trips) ? parsed.trips : [];
+    return parsed;
+  } catch {
+    return { trips: [] };
+  }
+}
+function saveDB() { localStorage.setItem(STORAGE_KEY, JSON.stringify(db)); }
+function todayStr() { return new Date().toISOString().slice(0, 10); }
+function statusMsg(msg) {
+  document.getElementById('console-status').textContent = msg;
+  setTimeout(updateStatus, 3000);
+}
+function updateStatus() {
+  document.getElementById('console-status').textContent = `${db.trips.length} TRIP${db.trips.length === 1 ? '' : 'S'}`;
+}
+function escHtml(str) {
+  return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
+function downloadBlob(content, filename, type) {
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([content], { type }));
+  a.download = filename;
+  a.click();
+  URL.revokeObjectURL(a.href);
+}
+
+function applyTheme(name) {
+  if (!name) {
+    const current = db.theme || 'legacy';
+    const others = THEMES.filter(t => t !== current);
+    name = others[Math.floor(Math.random() * others.length)];
+  }
+  if (!THEMES.includes(name)) { statusMsg('Unknown theme: ' + name); return; }
+  document.documentElement.dataset.theme = name === 'legacy' ? '' : name;
+  db.theme = name;
+  saveDB();
+  statusMsg('Theme: ' + name.toUpperCase());
+}
+
+const input = document.getElementById('console-input');
+input.addEventListener('keydown', e => {
+  if (e.key === 'Enter') {
+    const cmd = input.value.trim();
+    input.value = '';
+    if (cmd) handleConsoleCmd(cmd);
+  }
+});
+
+function splitPipe(raw) {
+  return raw.split('|').map(v => v.trim());
+}
+
+function normalizeDate(s) {
+  if (!s || !/^\d{4}-\d{2}-\d{2}$/.test(s)) return '';
+  const d = new Date(s + 'T00:00:00');
+  return Number.isNaN(d.getTime()) ? '' : s;
+}
+
+function seasonFromDate(dateStr) {
+  const month = parseInt(dateStr.slice(5, 7), 10);
+  const year = parseInt(dateStr.slice(0, 4), 10);
+  const startYear = month >= 10 ? year : year - 1;
+  const endYear = String((startYear + 1) % 100).padStart(2, '0');
+  return `${startYear}-${endYear}`;
+}
+
+function selectedTrips() {
+  return [...db.trips].sort((a, b) => (b.date || '').localeCompare(a.date || ''));
+}
+
+function getTripByNumber(nRaw) {
+  const n = parseInt(nRaw, 10);
+  if (Number.isNaN(n) || n < 1) return null;
+  const list = selectedTrips();
+  return { n, trip: list[n - 1] || null };
+}
+
+function handleConsoleCmd(raw) {
+  const parts = raw.split(/\s+/);
+  const cmd = parts[0].toLowerCase();
+  const arg1 = parts[1] || '';
+  const rest = raw.slice(cmd.length).trim();
+
+  if (cmd === '/help') return showHelp();
+  if (cmd === '/theme') return applyTheme(arg1);
+  if (cmd === '/trip') return cmdTrip(rest);
+  if (cmd === '/list') return cmdList(arg1);
+  if (cmd === '/delete') return cmdDelete(arg1);
+  if (cmd === '/rollup') return cmdRollup(arg1);
+  if (cmd === '/top') return cmdTop(rest);
+  if (cmd === '/export') return cmdExport(arg1);
+  if (cmd === '/import') return cmdImport();
+
+  statusMsg('Unknown command: ' + cmd + '. Type /help');
+}
+
+function showHelp() {
+  document.getElementById('help-title').textContent = '◈ SKI TRACKER — COMMANDS';
+  document.getElementById('help-body').textContent = [
+    '/help                              show this help',
+    '/theme [name]                      switch theme',
+    '/trip YYYY-MM-DD | place | runs | vertical | hours | notable runs',
+    '/trip YYYY-MM-DD place             quick add with date + place only',
+    '/list [season|location]            list trips in overlay',
+    '/delete [n]                        delete trip #n',
+    '/rollup season                     show totals by season',
+    '/rollup location                   show totals by location',
+    '/top [vertical|runs|hours] [n]     top X trips by metric (default vertical 5)',
+    '/export [txt|json]                 export ski data',
+    '/import                            import ski data from .json'
+  ].join('\n');
+  openOverlay();
+}
+
+function openOverlay() {
+  const overlay = document.getElementById('help-overlay');
+  overlay.classList.add('visible');
+  overlay.onclick = e => { if (e.target === overlay) overlay.classList.remove('visible'); };
+}
+
+function cmdTrip(rest) {
+  if (!rest) {
+    statusMsg('Usage: /trip YYYY-MM-DD | place | runs | vertical | hours | notable runs');
+    return;
+  }
+  const trip = {
+    id: Date.now() + '_' + Math.random().toString(36).slice(2, 6),
+    date: '',
+    location: '',
+    runs: 0,
+    verticalFt: 0,
+    hours: 0,
+    notableRuns: '',
+    notes: '',
+    createdAt: new Date().toISOString()
+  };
+  const pipeParts = splitPipe(rest);
+  if (pipeParts.length >= 2) {
+    trip.date = normalizeDate(pipeParts[0]);
+    trip.location = pipeParts[1];
+    trip.runs = Math.max(0, parseInt(pipeParts[2] || '0', 10) || 0);
+    trip.verticalFt = Math.max(0, parseInt(pipeParts[3] || '0', 10) || 0);
+    trip.hours = Math.max(0, parseFloat(pipeParts[4] || '0') || 0);
+    trip.notableRuns = pipeParts[5] || '';
+    trip.notes = pipeParts[6] || '';
+  } else {
+    const bits = rest.split(/\s+/);
+    trip.date = normalizeDate(bits.shift() || '');
+    trip.location = bits.join(' ').trim();
+  }
+
+  if (!trip.date || !trip.location) {
+    statusMsg('Usage: /trip YYYY-MM-DD | place | runs | vertical | hours | notable runs');
+    return;
+  }
+
+  db.trips.push(trip);
+  saveDB();
+  render();
+  statusMsg(`Trip logged: ${trip.date} ${trip.location}`);
+}
+
+function cmdDelete(arg1) {
+  const lookup = getTripByNumber(arg1);
+  if (!lookup || !lookup.trip) { statusMsg('Usage: /delete [n]'); return; }
+  db.trips = db.trips.filter(t => t.id !== lookup.trip.id);
+  saveDB();
+  render();
+  statusMsg(`Deleted #${lookup.n}: ${lookup.trip.date} ${lookup.trip.location}`);
+}
+
+function aggregateBy(field) {
+  const map = new Map();
+  selectedTrips().forEach(trip => {
+    const key = field === 'season' ? seasonFromDate(trip.date) : trip.location;
+    const row = map.get(key) || { key, trips: 0, runs: 0, verticalFt: 0, hours: 0 };
+    row.trips += 1;
+    row.runs += Number(trip.runs || 0);
+    row.verticalFt += Number(trip.verticalFt || 0);
+    row.hours += Number(trip.hours || 0);
+    map.set(key, row);
+  });
+  return [...map.values()].sort((a, b) => b.verticalFt - a.verticalFt || b.trips - a.trips || a.key.localeCompare(b.key));
+}
+
+function cmdRollup(arg1) {
+  if (!arg1 || (arg1 !== 'season' && arg1 !== 'location')) {
+    statusMsg('Usage: /rollup [season|location]');
+    return;
+  }
+  const rows = aggregateBy(arg1);
+  if (!rows.length) { statusMsg('No trips logged yet.'); return; }
+  document.getElementById('help-title').textContent = arg1 === 'season' ? 'TOTALS BY SEASON' : 'TOTALS BY LOCATION';
+  document.getElementById('help-body').textContent = rows.map(r => `${r.key.padEnd(20)} trips:${String(r.trips).padStart(3)} runs:${String(r.runs).padStart(4)} vertical:${String(r.verticalFt).padStart(7)}ft hours:${r.hours.toFixed(1)}`).join('\n');
+  openOverlay();
+}
+
+function cmdTop(rest) {
+  const bits = rest.split(/\s+/).filter(Boolean);
+  const metric = bits[0] || 'vertical';
+  const count = Math.max(1, Math.min(20, parseInt(bits[1] || '5', 10) || 5));
+  const metricField = metric === 'runs' ? 'runs' : metric === 'hours' ? 'hours' : 'verticalFt';
+  const metricLabel = metricField === 'verticalFt' ? 'vertical' : metricField;
+  const trips = selectedTrips().sort((a, b) => Number(b[metricField] || 0) - Number(a[metricField] || 0)).slice(0, count);
+  if (!trips.length) { statusMsg('No trips logged yet.'); return; }
+  document.getElementById('help-title').textContent = `TOP ${count} DAYS BY ${metricLabel.toUpperCase()}`;
+  document.getElementById('help-body').textContent = trips.map((t, idx) => `${idx + 1}. ${t.date} | ${t.location} | runs:${t.runs || 0} vertical:${t.verticalFt || 0}ft hours:${Number(t.hours || 0).toFixed(1)}`).join('\n');
+  openOverlay();
+}
+
+function cmdList(filter) {
+  if (!filter || filter === 'all') {
+    const trips = selectedTrips();
+    if (!trips.length) { statusMsg('No trips logged yet.'); return; }
+    document.getElementById('help-title').textContent = 'TRIP LIST';
+    document.getElementById('help-body').textContent = trips.map((t, i) => `${i + 1}. ${t.date} | ${t.location} | season:${seasonFromDate(t.date)} | runs:${t.runs || 0} vertical:${t.verticalFt || 0}ft`).join('\n');
+    openOverlay();
+    return;
+  }
+  if (filter === 'season' || filter === 'location') return cmdRollup(filter);
+  statusMsg('Usage: /list [season|location]');
+}
+
+function render() {
+  const trips = selectedTrips();
+  const totalRuns = trips.reduce((sum, t) => sum + Number(t.runs || 0), 0);
+  const totalVertical = trips.reduce((sum, t) => sum + Number(t.verticalFt || 0), 0);
+  const locations = new Set(trips.map(t => t.location)).size;
+
+  document.getElementById('metric-trips').textContent = String(trips.length);
+  document.getElementById('metric-runs').textContent = String(totalRuns);
+  document.getElementById('metric-vertical').textContent = String(totalVertical);
+  document.getElementById('metric-locations').textContent = String(locations);
+
+  const tripList = document.getElementById('trip-list');
+  tripList.innerHTML = trips.length
+    ? trips.map((t, idx) => {
+        const notable = t.notableRuns ? ` · notable:${escHtml(t.notableRuns)}` : '';
+        return `<div class="line">${idx + 1}. <span class="ok">${escHtml(t.date)}</span> ${escHtml(t.location)} <span class="dim">season:${escHtml(seasonFromDate(t.date))} · runs:${t.runs || 0} · vertical:${t.verticalFt || 0}ft · hours:${Number(t.hours || 0).toFixed(1)}${notable}</span></div>`;
+      }).join('')
+    : '<span class="dim">No ski trips yet. Add one with /trip.</span>';
+
+  const topDays = [...trips].sort((a, b) => Number(b.verticalFt || 0) - Number(a.verticalFt || 0)).slice(0, 3);
+  document.getElementById('top-days').innerHTML = topDays.length
+    ? topDays.map(t => `<div class="line"><span class="ok">${escHtml(t.date)}</span> ${escHtml(t.location)} <span class="dim">${t.verticalFt || 0}ft · ${t.runs || 0} runs</span></div>`).join('')
+    : '<span class="dim">No trips yet. Use /trip.</span>';
+
+  const seasonRows = aggregateBy('season').slice(0, 6);
+  document.getElementById('season-rollup').innerHTML = seasonRows.length
+    ? seasonRows.map(r => `<div class="line"><span class="ok">${escHtml(r.key)}</span> <span class="dim">trips:${r.trips} · runs:${r.runs} · ${r.verticalFt}ft</span></div>`).join('')
+    : '<span class="dim">No data yet.</span>';
+
+  const locationRows = aggregateBy('location').slice(0, 6);
+  document.getElementById('location-rollup').innerHTML = locationRows.length
+    ? locationRows.map(r => `<div class="line"><span class="ok">${escHtml(r.key)}</span> <span class="dim">trips:${r.trips} · runs:${r.runs} · ${r.verticalFt}ft</span></div>`).join('')
+    : '<span class="dim">No data yet.</span>';
+
+  updateStatus();
+}
+
+function exportDataTxt() {
+  const lines = ['# SKI TRACKER — ' + todayStr(), '', 'TRIPS'];
+  selectedTrips().forEach((trip, idx) => {
+    lines.push(`${idx + 1}. ${trip.date} | ${trip.location}`);
+    lines.push(`   season: ${seasonFromDate(trip.date)} | runs: ${trip.runs || 0} | vertical: ${trip.verticalFt || 0}ft | hours: ${Number(trip.hours || 0).toFixed(1)}`);
+    if (trip.notableRuns) lines.push(`   notable: ${trip.notableRuns}`);
+    if (trip.notes) lines.push(`   notes: ${trip.notes}`);
+  });
+  lines.push('');
+  return lines.join('\n') + '\n';
+}
+
+function exportDataJson() {
+  return {
+    schemaVersion: 1,
+    exportedAt: new Date().toISOString(),
+    theme: db.theme || 'legacy',
+    trips: db.trips
+  };
+}
+
+function isValidImport(obj) {
+  return obj && obj.schemaVersion === 1 && Array.isArray(obj.trips);
+}
+
+function importData(obj) {
+  db.trips = obj.trips;
+  if (typeof obj.theme === 'string' && THEMES.includes(obj.theme)) db.theme = obj.theme;
+}
+
+function cmdExport(format) {
+  const now = todayStr();
+  const doTxt = !format || format === 'txt';
+  const doJson = !format || format === 'json';
+  if (!doTxt && !doJson) { statusMsg('Usage: /export [txt|json]'); return; }
+  if (doTxt) downloadBlob(exportDataTxt(), `${EXPORT_SLUG}-${now}.txt`, 'text/plain');
+  if (doJson) downloadBlob(JSON.stringify(exportDataJson(), null, 2), `${EXPORT_SLUG}-${now}.json`, 'application/json');
+  statusMsg('Exported' + (format ? ' as .' + format : ' txt + json'));
+}
+
+function cmdImport() {
+  const fileInput = document.createElement('input');
+  fileInput.type = 'file';
+  fileInput.accept = '.json';
+  fileInput.onchange = e => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = evt => {
+      try {
+        const obj = JSON.parse(evt.target.result);
+        if (!isValidImport(obj)) { statusMsg('Invalid import file.'); return; }
+        importData(obj);
+        saveDB();
+        applyTheme(db.theme || 'legacy');
+        render();
+        statusMsg('Imported: ' + file.name);
+      } catch {
+        statusMsg('Failed to parse import file.');
+      }
+    };
+    reader.readAsText(file);
+  };
+  fileInput.click();
+}
+
+document.getElementById('help-close').onclick = () => document.getElementById('help-overlay').classList.remove('visible');
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') document.getElementById('help-overlay').classList.remove('visible');
+  if (document.activeElement !== input) input.focus();
+});
+
+function init() {
+  db = loadDB();
+  applyTheme(db.theme || 'legacy');
+  render();
+  input.focus();
+}
+window.addEventListener('DOMContentLoaded', init);
+</script>
+</body>
+</html>
