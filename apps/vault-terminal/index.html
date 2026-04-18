@@ -602,6 +602,7 @@ const STORAGE_KEY = 'budget_terminal_db';
 const EXPORT_SLUG = 'vault';
 const THEMES = ['legacy','solar','monk','space','synth','dos','notebook','engineering'];
 const MONTH_NAMES = ['JAN','FEB','MAR','APR','MAY','JUN','JUL','AUG','SEP','OCT','NOV','DEC'];
+const ANALYSIS_EXTREME_MULTIPLIER = 2;
 const DEFAULT_CATEGORIES = {
   income: {
     'salary':   ['primary','bonus','overtime'],
@@ -1189,7 +1190,7 @@ function renderAnalysis() {
     const filtered = sorted.filter(s => {
       if (analysisMode !== 'extreme') return true;
       const avg = subAvgs[type + '/' + s.cat + '/' + s.sub];
-      return avg !== undefined && avg > 0 && s.total >= (avg * 2);
+      return avg !== undefined && avg > 0 && s.total >= (avg * ANALYSIS_EXTREME_MULTIPLIER);
     });
     if (!filtered.length) return;
     anyShownData = true;
