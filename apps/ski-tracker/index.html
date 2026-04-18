@@ -113,6 +113,17 @@ html, body {
 .dim { color: var(--dim); font-size: 0.85em; }
 .warn { color: var(--warn); }
 .ok { color: var(--success); }
+#splash {
+  position: fixed; inset: 0; z-index: 300;
+  background: var(--bg); display: flex;
+  align-items: center; justify-content: center; flex-direction: column; gap: 10px;
+}
+#splash pre {
+  color: var(--accent); text-align: center; line-height: 1.1; font-size: 1.05em;
+}
+#splash .sub { color: var(--dim); letter-spacing: 2px; font-size: 0.82em; }
+#splash .hint { color: var(--fg); animation: blink 1s step-end infinite; }
+@keyframes blink { 50% { opacity: 0; } }
 #help-overlay {
   display: none; position: fixed; inset: 0;
   background: rgba(0,0,0,0.7); z-index: 150;
@@ -127,9 +138,36 @@ html, body {
 #help-title { color: var(--accent); letter-spacing: 2px; margin-bottom: 8px; }
 #help-body { white-space: pre; line-height: 1.8; max-height: 60vh; overflow-y: auto; }
 #help-close { color: var(--dim); font-size: 0.82em; cursor: pointer; display: block; margin-top: 8px; }
+.dialog-grid { display: grid; grid-template-columns: 190px 1fr; gap: 8px 10px; align-items: center; }
+.dialog-grid input, .dialog-grid textarea {
+  width: 100%; background: var(--bg); color: var(--fg); border: 1px solid var(--border);
+  font-family: var(--font); font-size: 1em; padding: 4px 6px; outline: none;
+}
+.dialog-actions { margin-top: 10px; display: flex; gap: 12px; }
+.dialog-btn { color: var(--success); cursor: pointer; user-select: none; }
+.dialog-btn.warn { color: var(--warn); }
+.dialog-btn:hover { background: currentColor; color: var(--bg); }
 </style>
 </head>
 <body>
+<div id="splash">
+  <pre>
+███████╗██╗  ██╗██╗
+██╔════╝██║ ██╔╝██║
+███████╗█████╔╝ ██║
+╚════██║██╔═██╗ ██║
+███████║██║  ██╗██║
+╚══════╝╚═╝  ╚═╝╚═╝
+████████╗██████╗  █████╗  ██████╗██╗  ██╗███████╗██████╗
+╚══██╔══╝██╔══██╗██╔══██╗██╔════╝██║ ██╔╝██╔════╝██╔══██╗
+   ██║   ██████╔╝███████║██║     █████╔╝ █████╗  ██████╔╝
+   ██║   ██╔══██╗██╔══██║██║     ██╔═██╗ ██╔══╝  ██╔══██╗
+   ██║   ██║  ██║██║  ██║╚██████╗██║  ██╗███████╗██║  ██║
+   ╚═╝   ╚═╝  ╚═╝╚═╝  ╚═╝ ╚═════╝╚═╝  ╚═╝╚══════╝╚═╝  ╚═╝
+  </pre>
+  <div class="sub">LOCAL FIRST SKI JOURNAL</div>
+  <div class="hint">[ PRESS ANY KEY TO LAUNCH ]</div>
+</div>
 <div id="app">
   <div id="top-row">
     <div class="row-header">◈ SKI SNAPSHOT</div>
@@ -181,9 +219,15 @@ function loadDB() {
     const raw = localStorage.getItem(STORAGE_KEY);
     const parsed = raw ? JSON.parse(raw) : {};
     parsed.trips = Array.isArray(parsed.trips) ? parsed.trips : [];
+    parsed.trips = parsed.trips.map(t => ({
+      ...t,
+      runsList: Array.isArray(t.runsList) ? t.runsList : []
+    }));
+    parsed.backlog = Array.isArray(parsed.backlog) ? parsed.backlog : [];
+    parsed.backlogArchive = Array.isArray(parsed.backlogArchive) ? parsed.backlogArchive : [];
     return parsed;
   } catch {
-    return { trips: [] };
+    return { trips: [], backlog: [], backlogArchive: [] };
   }
 }
 function saveDB() { localStorage.setItem(STORAGE_KEY, JSON.stringify(db)); }
@@ -197,6 +241,9 @@ function updateStatus() {
 }
 function escHtml(str) {
   return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
+function escAttr(str) {
+  return escHtml(str).replace(/"/g, '&quot;');
 }
 function downloadBlob(content, filename, type) {
   const a = document.createElement('a');
@@ -265,8 +312,11 @@ function handleConsoleCmd(raw) {
 
   if (cmd === '/help') return showHelp();
   if (cmd === '/theme') return applyTheme(arg1);
+  if (cmd === '/backlog') return handleBacklog(rest);
   if (cmd === '/trip') return cmdTrip(rest);
+  if (cmd === '/run') return cmdRun(rest);
   if (cmd === '/list') return cmdList(arg1);
+  if (cmd === '/edit') return cmdEdit(arg1);
   if (cmd === '/delete') return cmdDelete(arg1);
   if (cmd === '/rollup') return cmdRollup(arg1);
   if (cmd === '/top') return cmdTop(rest);
@@ -279,25 +329,42 @@ function handleConsoleCmd(raw) {
 function showHelp() {
   document.getElementById('help-title').textContent = '◈ SKI TRACKER — COMMANDS';
   document.getElementById('help-body').textContent = [
-    '/help                              show this help',
-    '/theme [name]                      switch theme',
+    '── TRIPS & RUNS ───────────────────────────────────────',
     '/trip YYYY-MM-DD | place | runs | vertical | hours | notable runs',
     '/trip YYYY-MM-DD place             quick add with date + place only',
+    '/run [trip#] | name | diamonds | stars? | note?',
+    '/edit [n]                          open trip edit dialog',
     '/list [season|location]            list trips in overlay',
     '/delete [n]                        delete trip #n',
     '/rollup season                     show totals by season',
     '/rollup location                   show totals by location',
     '/top [vertical|runs|hours] [n]     top X trips by metric (default vertical 5)',
+    '',
+    '── STANDARD ───────────────────────────────────────────',
+    '/theme [name]                      switch theme',
+    '/backlog [text]                    add item to backlog',
+    '/backlog list                      show backlog items',
+    '/backlog done [n]                  toggle item #n done/open',
+    '/backlog delete [n]                remove item #n',
+    '/backlog archive                   move done items to archive',
+    '/backlog archive list              show archived batches',
+    '/backlog export                    download backlog as .txt',
     '/export [txt|json]                 export ski data',
-    '/import                            import ski data from .json'
+    '/import                            import ski data from .json',
+    '/help                              show this help'
   ].join('\n');
+  document.getElementById('help-body').style.whiteSpace = 'pre';
   openOverlay();
 }
 
 function openOverlay() {
   const overlay = document.getElementById('help-overlay');
   overlay.classList.add('visible');
-  overlay.onclick = e => { if (e.target === overlay) overlay.classList.remove('visible'); };
+  overlay.onclick = e => { if (e.target === overlay) closeOverlay(); };
+}
+
+function closeOverlay() {
+  document.getElementById('help-overlay').classList.remove('visible');
 }
 
 function cmdTrip(rest) {
@@ -314,6 +381,7 @@ function cmdTrip(rest) {
     hours: 0,
     notableRuns: '',
     notes: '',
+    runsList: [],
     createdAt: new Date().toISOString()
   };
   const pipeParts = splitPipe(rest);
@@ -340,6 +408,95 @@ function cmdTrip(rest) {
   saveDB();
   render();
   statusMsg(`Trip logged: ${trip.date} ${trip.location}`);
+}
+
+function normalizeDiamonds(raw) {
+  const n = parseInt(raw, 10);
+  if (Number.isNaN(n) || n < 1 || n > 3) return 1;
+  return n;
+}
+
+function cmdRun(rest) {
+  const pipeParts = splitPipe(rest);
+  if (pipeParts.length < 3) {
+    statusMsg('Usage: /run [trip#] | name | diamonds | stars? | note?');
+    return;
+  }
+  const lookup = getTripByNumber(pipeParts[0]);
+  const name = (pipeParts[1] || '').trim();
+  const diamonds = normalizeDiamonds(pipeParts[2]);
+  const starsRaw = pipeParts[3] || '';
+  const parsedStars = parseInt(starsRaw, 10);
+  const starsNum = starsRaw === '' ? null : (Number.isNaN(parsedStars) ? null : Math.max(1, Math.min(5, parsedStars)));
+  const note = (pipeParts[4] || '').trim();
+  if (!lookup || !lookup.trip || !name) {
+    statusMsg('Usage: /run [trip#] | name | diamonds | stars? | note?');
+    return;
+  }
+
+  const target = db.trips.find(t => t.id === lookup.trip.id);
+  if (!Array.isArray(target.runsList)) target.runsList = [];
+  target.runsList.push({
+    id: Date.now() + '_' + Math.random().toString(36).slice(2, 6),
+    name,
+    diamonds,
+    stars: starsNum,
+    note,
+    createdAt: new Date().toISOString()
+  });
+  target.runs = Math.max(0, Number(target.runs || 0)) + 1;
+  saveDB();
+  render();
+  statusMsg(`Run added to #${lookup.n}: ${name}`);
+}
+
+function cmdEdit(arg1) {
+  const lookup = getTripByNumber(arg1);
+  if (!lookup || !lookup.trip) { statusMsg('Usage: /edit [n]'); return; }
+  const t = lookup.trip;
+  const body = document.getElementById('help-body');
+  document.getElementById('help-title').textContent = `◈ EDIT TRIP #${lookup.n}`;
+  body.style.whiteSpace = 'normal';
+  body.innerHTML = `
+    <div class="dialog-grid">
+      <div>Date</div><input id="edit-trip-date" value="${escAttr(t.date || '')}">
+      <div>Location</div><input id="edit-trip-location" value="${escAttr(t.location || '')}">
+      <div>Runs</div><input id="edit-trip-runs" type="number" min="0" value="${Number(t.runs || 0)}">
+      <div>Vertical (ft)</div><input id="edit-trip-vertical" type="number" min="0" value="${Number(t.verticalFt || 0)}">
+      <div>Hours</div><input id="edit-trip-hours" type="number" min="0" step="0.1" value="${Number(t.hours || 0)}">
+      <div>Notable runs</div><input id="edit-trip-notable" value="${escAttr(t.notableRuns || '')}">
+      <div>Notes</div><textarea id="edit-trip-notes" rows="3">${escHtml(t.notes || '')}</textarea>
+    </div>
+    <div class="dialog-actions">
+      <span class="dialog-btn" id="edit-trip-save">[SAVE]</span>
+      <span class="dialog-btn warn" id="edit-trip-delete">[DELETE]</span>
+    </div>
+  `;
+  body.querySelector('#edit-trip-save').onclick = () => {
+    const date = normalizeDate(body.querySelector('#edit-trip-date').value.trim());
+    const location = body.querySelector('#edit-trip-location').value.trim();
+    if (!date || !location) { statusMsg('Date and location are required.'); return; }
+    const target = db.trips.find(tr => tr.id === t.id);
+    target.date = date;
+    target.location = location;
+    target.runs = Math.max(0, parseInt(body.querySelector('#edit-trip-runs').value || '0', 10) || 0);
+    target.verticalFt = Math.max(0, parseInt(body.querySelector('#edit-trip-vertical').value || '0', 10) || 0);
+    target.hours = Math.max(0, parseFloat(body.querySelector('#edit-trip-hours').value || '0') || 0);
+    target.notableRuns = body.querySelector('#edit-trip-notable').value.trim();
+    target.notes = body.querySelector('#edit-trip-notes').value.trim();
+    saveDB();
+    closeOverlay();
+    render();
+    statusMsg(`Updated trip #${lookup.n}.`);
+  };
+  body.querySelector('#edit-trip-delete').onclick = () => {
+    db.trips = db.trips.filter(tr => tr.id !== t.id);
+    saveDB();
+    closeOverlay();
+    render();
+    statusMsg(`Deleted #${lookup.n}: ${t.date} ${t.location}`);
+  };
+  openOverlay();
 }
 
 function cmdDelete(arg1) {
@@ -403,6 +560,81 @@ function cmdList(filter) {
   statusMsg('Usage: /list [season|location]');
 }
 
+function showBacklogList() {
+  document.getElementById('help-title').textContent = 'BACKLOG';
+  const body = document.getElementById('help-body');
+  body.style.whiteSpace = 'normal';
+  body.innerHTML = db.backlog.map((b, i) => {
+    const bracket = b.done ? '[x]' : '[ ]';
+    return `<div style="padding:2px 0"><span data-backlog-idx="${escAttr(i)}" style="cursor:pointer;user-select:none;color:var(--accent)">${bracket}</span> ${i + 1}. ${escHtml(b.text)}</div>`;
+  }).join('');
+  body.querySelectorAll('[data-backlog-idx]').forEach(el => {
+    el.addEventListener('click', () => {
+      const idx = parseInt(el.dataset.backlogIdx, 10);
+      db.backlog[idx].done = !db.backlog[idx].done;
+      saveDB();
+      showBacklogList();
+    });
+  });
+  openOverlay();
+}
+
+function handleBacklog(arg) {
+  if (!arg || arg === 'list') {
+    if (!db.backlog.length) { statusMsg('Backlog is empty.'); return; }
+    showBacklogList();
+    return;
+  }
+  if (arg === 'archive list') {
+    if (!db.backlogArchive.length) { statusMsg('No archived batches.'); return; }
+    document.getElementById('help-title').textContent = 'BACKLOG ARCHIVE';
+    document.getElementById('help-body').style.whiteSpace = 'pre';
+    document.getElementById('help-body').textContent = db.backlogArchive.flatMap(batch => [
+      `── ${batch.date} (${batch.items.length} item${batch.items.length === 1 ? '' : 's'}) ──`,
+      ...batch.items.map(b => `  [x] ${b.text}`)
+    ]).join('\n');
+    openOverlay();
+    return;
+  }
+  if (arg === 'archive') {
+    const done = db.backlog.filter(b => b.done);
+    if (!done.length) { statusMsg('No done items to archive.'); return; }
+    db.backlog = db.backlog.filter(b => !b.done);
+    db.backlogArchive.push({ date: todayStr(), items: done });
+    saveDB();
+    statusMsg(`Archived ${done.length} done item${done.length === 1 ? '' : 's'}.`);
+    return;
+  }
+  if (arg === 'export') {
+    if (!db.backlog.length) { statusMsg('Backlog is empty.'); return; }
+    const txt = '# BACKLOG — ' + todayStr() + '\n\n' + db.backlog.map(b => `- ${b.done ? '[x]' : '[ ]'} ${b.text}`).join('\n') + '\n';
+    downloadBlob(txt, `backlog-${todayStr()}.txt`, 'text/plain');
+    statusMsg(`Exported ${db.backlog.length} backlog item${db.backlog.length === 1 ? '' : 's'}.`);
+    return;
+  }
+  if (arg.startsWith('delete ') || arg.startsWith('del ')) {
+    const n = parseInt(arg.split(' ')[1], 10);
+    const item = db.backlog[n - 1];
+    if (!item) { statusMsg(`No backlog item #${n}.`); return; }
+    db.backlog.splice(n - 1, 1);
+    saveDB();
+    statusMsg(`Backlog #${n} deleted.`);
+    return;
+  }
+  if (arg.startsWith('done ')) {
+    const n = parseInt(arg.split(' ')[1], 10);
+    const item = db.backlog[n - 1];
+    if (!item) { statusMsg(`No backlog item #${n}.`); return; }
+    item.done = !item.done;
+    saveDB();
+    statusMsg(`Backlog #${n} marked ${item.done ? 'done' : 'open'}.`);
+    return;
+  }
+  db.backlog.push({ id: Date.now() + '_' + Math.random().toString(36).slice(2, 6), text: arg, done: false, createdAt: new Date().toISOString() });
+  saveDB();
+  statusMsg(`Backlog: added "${arg}"`);
+}
+
 function render() {
   const trips = selectedTrips();
   const totalRuns = trips.reduce((sum, t) => sum + Number(t.runs || 0), 0);
@@ -417,8 +649,9 @@ function render() {
   const tripList = document.getElementById('trip-list');
   tripList.innerHTML = trips.length
     ? trips.map((t, idx) => {
+        const loggedRuns = Array.isArray(t.runsList) && t.runsList.length ? ` · logged-runs:${t.runsList.length}` : '';
         const notable = t.notableRuns ? ` · notable:${escHtml(t.notableRuns)}` : '';
-        return `<div class="line">${idx + 1}. <span class="ok">${escHtml(t.date)}</span> ${escHtml(t.location)} <span class="dim">season:${escHtml(seasonFromDate(t.date))} · runs:${t.runs || 0} · vertical:${t.verticalFt || 0}ft · hours:${Number(t.hours || 0).toFixed(1)}${notable}</span></div>`;
+        return `<div class="line">${idx + 1}. <span class="ok">${escHtml(t.date)}</span> ${escHtml(t.location)} <span class="dim">season:${escHtml(seasonFromDate(t.date))} · runs:${t.runs || 0}${loggedRuns} · vertical:${t.verticalFt || 0}ft · hours:${Number(t.hours || 0).toFixed(1)}${notable}</span></div>`;
       }).join('')
     : '<span class="dim">No ski trips yet. Add one with /trip.</span>';
 
@@ -445,6 +678,13 @@ function exportDataTxt() {
   selectedTrips().forEach((trip, idx) => {
     lines.push(`${idx + 1}. ${trip.date} | ${trip.location}`);
     lines.push(`   season: ${seasonFromDate(trip.date)} | runs: ${trip.runs || 0} | vertical: ${trip.verticalFt || 0}ft | hours: ${Number(trip.hours || 0).toFixed(1)}`);
+    if (Array.isArray(trip.runsList) && trip.runsList.length) {
+      trip.runsList.forEach(run => {
+        const stars = run.stars ? ` | stars:${run.stars}` : '';
+        const note = run.note ? ` | note:${run.note}` : '';
+        lines.push(`   run: ${run.name} | diamonds:${run.diamonds}${stars}${note}`);
+      });
+    }
     if (trip.notableRuns) lines.push(`   notable: ${trip.notableRuns}`);
     if (trip.notes) lines.push(`   notes: ${trip.notes}`);
   });
@@ -466,8 +706,10 @@ function isValidImport(obj) {
 }
 
 function importData(obj) {
-  db.trips = obj.trips;
+  db.trips = obj.trips.map(t => ({ ...t, runsList: Array.isArray(t.runsList) ? t.runsList : [] }));
   if (typeof obj.theme === 'string' && THEMES.includes(obj.theme)) db.theme = obj.theme;
+  db.backlog = Array.isArray(obj.backlog) ? obj.backlog : [];
+  db.backlogArchive = Array.isArray(obj.backlogArchive) ? obj.backlogArchive : [];
 }
 
 function cmdExport(format) {
@@ -506,19 +748,36 @@ function cmdImport() {
   fileInput.click();
 }
 
-document.getElementById('help-close').onclick = () => document.getElementById('help-overlay').classList.remove('visible');
+document.getElementById('help-close').onclick = closeOverlay;
 document.addEventListener('keydown', e => {
-  if (e.key === 'Escape') document.getElementById('help-overlay').classList.remove('visible');
-  if (document.activeElement !== input) input.focus();
+  if (e.key === 'Escape') closeOverlay();
+  if (
+    !document.getElementById('help-overlay').classList.contains('visible') &&
+    document.getElementById('splash').style.display === 'none' &&
+    document.activeElement !== input
+  ) input.focus();
 });
+
+function dismissSplash() {
+  const splash = document.getElementById('splash');
+  if (splash.style.display === 'none') return;
+  splash.style.transition = 'opacity 0.35s';
+  splash.style.opacity = '0';
+  setTimeout(() => {
+    splash.style.display = 'none';
+    input.focus();
+  }, 350);
+}
 
 function init() {
   db = loadDB();
   applyTheme(db.theme || 'legacy');
   render();
-  input.focus();
+  if (document.getElementById('splash').style.display === 'none') input.focus();
 }
 window.addEventListener('DOMContentLoaded', init);
+document.addEventListener('keydown', dismissSplash, { once: true });
+document.getElementById('splash').addEventListener('click', dismissSplash);
 </script>
 </body>
 </html>
