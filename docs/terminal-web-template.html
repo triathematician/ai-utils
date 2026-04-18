@@ -287,7 +287,10 @@ function showHelp() {
   document.getElementById('help-title').textContent = '◈ APPNAME — COMMANDS';
   document.getElementById('help-body').style.whiteSpace = 'pre';
   document.getElementById('help-body').textContent = [
-    '/help                    show this help',
+    '── APP COMMANDS ───────────────────────────────────────',
+    // TODO: add your app-specific commands here
+    '',
+    '── STANDARD ───────────────────────────────────────────',
     '/theme [name]            switch theme (legacy|solar|monk|space|synth|dos|notebook|engineering)  (random if omitted)',
     '/backlog [text]          add item to backlog',
     '/backlog list            show all backlog items',
@@ -298,7 +301,7 @@ function showHelp() {
     '/backlog export          download backlog as .txt',
     '/export [txt|json]       export app data (omit format to export all)',
     '/import                  import app data from a .json file',
-    // TODO: add your commands here
+    '/help                    show this help',
   ].join('\n');
   const overlay = document.getElementById('help-overlay');
   overlay.classList.add('visible');
