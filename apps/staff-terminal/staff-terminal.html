@@ -424,6 +424,8 @@ html, body {
 .nt-performance { color: var(--cat-4); border-color: var(--cat-4); }
 .nt-concern     { color: var(--cat-2); border-color: var(--cat-2); }
 .nt-highlight   { color: var(--cat-3); border-color: var(--cat-3); }
+.nt-todo        { color: var(--cat-8); border-color: var(--cat-8); }
+.nt-role        { color: var(--cat-1); border-color: var(--cat-1); }
 
 /* Milestone type colors */
 .mt-achievement   { color: var(--cat-4); }
@@ -601,10 +603,10 @@ html, body {
    ═══════════════════════════════════════════════════════════════════ */
 const STORAGE_KEY = 'staff_terminal_db';
 const THEMES = ['legacy','solar','monk','space','synth','dos','notebook','engineering'];
-const NOTE_TYPES = ['general','meeting','performance','concern','highlight'];
+const NOTE_TYPES = ['general','meeting','performance','concern','highlight','todo','role'];
 const MILESTONE_TYPES = ['achievement','promotion','certification','other'];
 const MILESTONE_ICONS = { achievement:'★', promotion:'▲', certification:'◆', other:'·' };
-const NOTE_TYPE_ABBR  = { general:'GEN', meeting:'MTG', performance:'PERF', concern:'⚠', highlight:'✦' };
+const NOTE_TYPE_ABBR  = { general:'GEN', meeting:'MTG', performance:'PERF', concern:'⚠', highlight:'✦', todo:'TODO', role:'ROLE' };
 
 /* ═══════════════════════════════════════════════════════════════════
    STATE
@@ -686,6 +688,21 @@ function todayStr() {
 
 function nowIso() {
   return new Date().toISOString();
+}
+
+function formatNoteDateTime(noteDate) {
+  if (!noteDate) return '';
+  if (!noteDate.includes('T')) return noteDate;
+  const d = new Date(noteDate);
+  if (isNaN(d.getTime())) return noteDate.replace('T', ' ').slice(0, 16);
+  return [
+    d.getFullYear(),
+    String(d.getMonth() + 1).padStart(2, '0'),
+    String(d.getDate()).padStart(2, '0')
+  ].join('-') + ' ' + [
+    String(d.getHours()).padStart(2, '0'),
+    String(d.getMinutes()).padStart(2, '0')
+  ].join(':');
 }
 
 function escHtml(s) {
@@ -823,9 +840,9 @@ function renderTopRow() {
   if (sortedNotes.length) {
     const n = sortedNotes[0];
     const ds = daysSince(n.date);
-    const dateOnly = n.date.slice(0, 10);
+    const noteDateTime = formatNoteDateTime(n.date);
     const snippet = n.text.length > 50 ? n.text.slice(0, 50) + '…' : n.text;
-    setHighlightCard('hc-note', `◈ LAST NOTE (${ds}d ago)`, `[${dateOnly}] ${snippet}`, false);
+    setHighlightCard('hc-note', `◈ LAST NOTE (${ds}d ago)`, `[${noteDateTime}] ${snippet}`, false);
   } else {
     setHighlightCard('hc-note', '◈ LAST NOTE', 'no notes yet', true);
   }
@@ -1075,23 +1092,14 @@ function renderSidePanel() {
     const div = document.createElement('div');
     div.className = 'note-item';
     const abbr = NOTE_TYPE_ABBR[n.noteType] || 'GEN';
-    // Show HH:MM from ISO string (date portion for older entries)
-    let timeDisplay;
-    if (n.date && n.date.includes('T')) {
-      const d = new Date(n.date);
-      timeDisplay = isNaN(d.getTime())
-        ? n.date.slice(0, 10)
-        : d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false });
-    } else {
-      timeDisplay = n.date || '';
-    }
+    const timeDisplay = formatNoteDateTime(n.date);
     div.innerHTML = `
       <div class="note-header">
         <span class="note-date">${escHtml(timeDisplay)}</span>
         <span class="note-type-badge nt-${escHtml(n.noteType)}">${escHtml(abbr)}</span>
       </div>
       <div class="note-text">${escHtml(n.text)}</div>`;
-    addTooltip(div, `[${n.date}] ${n.noteType.toUpperCase()}\n${n.text}`);
+    addTooltip(div, `[${formatNoteDateTime(n.date)}] ${n.noteType.toUpperCase()}\n${n.text}`);
     div.addEventListener('click', () => openNoteDialog(n.id));
     listEl.appendChild(div);
   });
@@ -1609,7 +1617,7 @@ function cmdNote(arg) {
       body.style.whiteSpace = 'normal';
       body.innerHTML = sorted.map(n => `
         <div style="padding:4px 0;border-bottom:1px solid var(--muted);">
-          <span style="color:var(--dim);font-size:0.85em;">${escHtml(n.date)}</span>
+          <span style="color:var(--dim);font-size:0.85em;">${escHtml(formatNoteDateTime(n.date))}</span>
           <span style="font-size:0.75em;margin-left:8px;border:1px solid currentColor;padding:0 3px;" class="nt-${escHtml(n.noteType)}">${escHtml(NOTE_TYPE_ABBR[n.noteType]||'GEN')}</span>
           <div style="margin-top:2px;">${escHtml(n.text)}</div>
         </div>`).join('');
@@ -1941,9 +1949,7 @@ function openNoteDialog(noteId) {
     const body = document.getElementById('help-body');
     body.style.whiteSpace = 'normal';
 
-    const fullDate = n.date.includes('T')
-      ? (() => { const d = new Date(n.date); return isNaN(d.getTime()) ? n.date : d.toLocaleString(); })()
-      : n.date;
+    const fullDate = formatNoteDateTime(n.date);
 
     const typeBtns = NOTE_TYPES.map(t =>
       `<button class="dlg-type-btn${n.noteType === t ? ' active' : ''}" data-type="${escHtml(t)}">${escHtml(t.toUpperCase())}</button>`
@@ -2234,7 +2240,7 @@ function showHelp() {
     '/note <text>             add a timestamped note (uses current datetime)',
     '/note [type:] <text>     inline type prefix: /note meeting: team sync',
     '/note list               show all notes in overlay',
-    '/note type <type>        set default type: general|meeting|performance|concern|highlight',
+    '/note type <type>        set default type: general|meeting|performance|concern|highlight|todo|role',
     '  → click any note to view/edit/delete it',
     '',
     '── MILESTONES ──────────────────────────────────────────',
