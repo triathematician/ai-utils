@@ -29,6 +29,7 @@ ai-utils/
     skill-port/                   ← SKILL-PORT: blueprint rail map for skill and project pathways
     vault-terminal/               ← VAULT TERMINAL: monthly budget tracker — income, expenses, investments
     gear-terminal/                ← GEAR TERMINAL: gear tracker — bikes, cars, shoes, service dates, repairs
+    ski-tracker/                  ← SKI TRACKER: ski trip tracker — dates, places, stats, and rollups
   common/                       ← shared assets (if any)
     yahoo-finance-proxy/          ← Java proxy service for Yahoo Finance data
 ```
@@ -49,6 +50,7 @@ Monospace, dark-first, single-file apps with a command-line interaction model. L
 - `strategy-atlas/index.html` — STRATEGY ATLAS
 - `vault-terminal/index.html` — VAULT TERMINAL
 - `gear-terminal/index.html` — GEAR TERMINAL
+- `ski-tracker/index.html` — SKI TRACKER
 
 **To start a new terminal-web app:** copy `docs/terminal-web-template.html` to a new subdirectory, rename the `STORAGE_KEY`, and build on top of the stubs.
 
