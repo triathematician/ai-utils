@@ -219,6 +219,12 @@ html, body {
   word-break: break-word;
 }
 .col-title:hover { color: var(--accent); }
+.assignee-line {
+  margin-top: 3px;
+  color: var(--dim);
+  font-size: 0.68em;
+  letter-spacing: 0.5px;
+}
 .col-rag { display: inline-block; margin-left: 6px; font-size: 0.8em; }
 .col-loe-tags { display: flex; gap: 3px; flex-wrap: wrap; margin-top: 4px; }
 .loe-tag-chip {
@@ -388,6 +394,21 @@ textarea.field-input { resize: vertical; min-height: 50px; }
 .dp-loes { display: flex; gap: 4px; flex-wrap: wrap; margin-top: 4px; }
 .dp-loe-chip { font-size: 0.85em; padding: 0 4px; border: 1px solid; }
 .dp-pulse { margin-top: 6px; padding-top: 6px; border-top: 1px solid var(--muted); font-size: 0.9em; color: var(--fg); opacity: 0.8; }
+
+/* presentation mode */
+body.presentation-mode #app { grid-template-rows: 0 90vh 10vh; }
+body.presentation-mode #top-row { display: none; }
+body.presentation-mode #main-row { overflow-x: hidden; }
+body.presentation-mode .strategy-col {
+  min-width: 0; max-width: none; width: 0;
+  flex: 1 1 0;
+}
+body.presentation-mode .col-add-btn,
+body.presentation-mode #add-col-btn,
+body.presentation-mode .col-loe-tags,
+body.presentation-mode .exec-loe-tags {
+  display: none !important;
+}
 </style>
 </head>
 <body>
@@ -473,9 +494,10 @@ function loadDB() {
     d.backlog         = d.backlog         || [];
     d.backlogArchive  = d.backlogArchive  || [];
     d.theme           = d.theme           || DEFAULT_THEME;
+    d.presentationMode = !!d.presentationMode;
     d.schemaVersion   = d.schemaVersion   || 1;
     return d;
-  } catch { return { groups:[], nodes:[], activeGroupId:null, backlog:[], backlogArchive:[], theme:DEFAULT_THEME, schemaVersion:1 }; }
+  } catch { return { groups:[], nodes:[], activeGroupId:null, backlog:[], backlogArchive:[], theme:DEFAULT_THEME, presentationMode:false, schemaVersion:1 }; }
 }
 
 function saveDB() {
@@ -553,6 +575,11 @@ function loeById(loeId) {
 
 /* ─── LOE FILTER (UI state, not persisted) ────────────── */
 let activeLoeFilter = null;
+let presentationMode = false;
+
+function applyPresentationMode() {
+  document.body.classList.toggle('presentation-mode', presentationMode);
+}
 
 /* ─── DISPLAY ORDER ───────────────────────────────────── */
 function displayedNodes(groupId) {
@@ -596,6 +623,7 @@ function applyTheme(name) {
 
 /* ─── RENDER ──────────────────────────────────────────── */
 function render() {
+  applyPresentationMode();
   renderTopRow();
   renderColumns();
   updateStatus();
@@ -731,7 +759,7 @@ function buildColumn(node, nodeNumMap) {
   const ragSpan = document.createElement('span');
   ragSpan.className = 'col-rag ' + (RAG_CLASSES[rag] || 'rag-none');
   ragSpan.textContent = RAG_SYMBOLS[rag] || '·';
-  addTooltip(ragSpan, 'RAG: ' + rag.toUpperCase());
+  addTooltip(ragSpan, 'LATEST PULSE: ' + rag.toUpperCase());
 
   const titleEl = document.createElement('div');
   titleEl.className = 'col-title';
@@ -763,6 +791,12 @@ function buildColumn(node, nodeNumMap) {
 
   hdr.appendChild(typeLine);
   hdr.appendChild(titleEl);
+  if (node.assignee) {
+    const assigneeEl = document.createElement('div');
+    assigneeEl.className = 'assignee-line';
+    assigneeEl.textContent = 'ASSIGNEE: ' + node.assignee;
+    hdr.appendChild(assigneeEl);
+  }
   if (node.vision) {
     const visionEl = document.createElement('div');
     visionEl.style.cssText = 'font-size:0.75em;font-style:italic;color:var(--dim);margin-top:3px;word-break:break-word;line-height:1.3;';
@@ -827,6 +861,12 @@ function buildExecItem(node, nodeNum) {
   titleEl.className = 'exec-title';
   titleEl.textContent = '[' + nodeNum + '] ' + node.title;
   textBlock.appendChild(titleEl);
+  if (node.assignee) {
+    const assigneeEl = document.createElement('div');
+    assigneeEl.className = 'assignee-line';
+    assigneeEl.textContent = 'ASSIGNEE: ' + node.assignee;
+    textBlock.appendChild(assigneeEl);
+  }
 
   // LOE chips inside the text block so they indent to match the title
   if (node.loeTagIds && node.loeTagIds.length) {
@@ -895,15 +935,8 @@ function openEditModal(nodeId) {
     body.appendChild(visionRow);
   }
 
-  // RAG status
-  const ragCurrent = node.ragStatus || 'none';
-  const ragRow = mkFieldRow('RAG STATUS', `
-    <div class="rag-btns" id="ef-rag">
-      ${['green','amber','red','none'].map(r =>
-        `<span class="rag-btn${ragCurrent===r?' active-'+r:''}" data-rag="${r}">${RAG_SYMBOLS[r]} ${r.toUpperCase()}</span>`
-      ).join('')}
-    </div>`);
-  body.appendChild(ragRow);
+  const assigneeRow = mkFieldRow('ASSIGNEE', `<input class="field-input" id="ef-assignee" value="${escHtml(node.assignee || '')}" type="text" placeholder="Name or team">`);
+  body.appendChild(assigneeRow);
 
   // Confidence (1-5)
   const conf = node.confidence || 0;
@@ -957,7 +990,7 @@ function openEditModal(nodeId) {
   // Add pulse
   const addPulseHdr = document.createElement('div');
   addPulseHdr.className = 'row-header';
-  addPulseHdr.textContent = '◈ ADD PULSE';
+  addPulseHdr.textContent = '◈ ADD PULSE SCORE';
   body.appendChild(addPulseHdr);
 
   const pRagRow = mkFieldRow('STATUS', `
@@ -981,16 +1014,6 @@ function openEditModal(nodeId) {
     <span class="action-btn" id="ef-close">[ESC] CLOSE</span>
   `;
   body.appendChild(actionDiv);
-
-  // Wire up RAG buttons
-  body.querySelectorAll('#ef-rag .rag-btn').forEach(btn => {
-    btn.addEventListener('click', () => {
-      body.querySelectorAll('#ef-rag .rag-btn').forEach(b => {
-        b.className = 'rag-btn';
-      });
-      btn.className = 'rag-btn active-' + btn.dataset.rag;
-    });
-  });
 
   // Wire up pulse RAG buttons
   body.querySelectorAll('#ef-prag .rag-btn').forEach(btn => {
@@ -1047,10 +1070,9 @@ function openEditModal(nodeId) {
     nd.title = document.getElementById('ef-title').value.trim() || nd.title;
     nd.type = document.getElementById('ef-type').value;
     nd.description = document.getElementById('ef-desc').value.trim();
+    nd.assignee = document.getElementById('ef-assignee').value.trim();
     const visionEl = document.getElementById('ef-vision');
     if (visionEl) nd.vision = visionEl.value.trim();
-    const ragBtn = body.querySelector('#ef-rag .rag-btn[class*="active-"]');
-    if (ragBtn) nd.ragStatus = ragBtn.dataset.rag;
     const confBtn = body.querySelector('#ef-conf .conf-btn.active');
     if (confBtn) nd.confidence = parseInt(confBtn.dataset.conf) || 0;
     nd.assumptionNotes = document.getElementById('ef-assump').value.trim();
@@ -1144,11 +1166,14 @@ function handleConsoleCmd(raw) {
   if (cmd === '/task')       return cmdAddChild('Task', rest);
   if (cmd === '/pulse')      return cmdPulse(rest);
   if (cmd === '/rag')        return cmdRag(rest);
+  if (cmd === '/assignee')   return cmdAssignee(rest);
   if (cmd === '/tag')        return cmdTag(rest);
   if (cmd === '/edit')       return cmdEdit(rest);
   if (cmd === '/delete')     return cmdDelete(rest);
   if (cmd === '/export')     return cmdExport(rest);
   if (cmd === '/import')     return cmdImport();
+  if (cmd === '/presentation' || cmd === '/present') return cmdPresentation(true);
+  if (cmd === '/work')       return cmdPresentation(false);
   if (cmd === '/swot')       return statusMsg('SWOT: not yet implemented. Coming in a future version.');
 
   statusMsg('Unknown command: ' + cmd + '. Type /help');
@@ -1268,11 +1293,11 @@ function cmdAddTop(type, rest) {
     type,
     title: rest,
     description: '',
+    assignee: '',
     vision: '',
     loeTagIds: [],
     assumptionNotes: '',
     confidence: 0,
-    ragStatus: 'none',
     pulses: []
   };
   db.nodes.push(node);
@@ -1313,10 +1338,10 @@ function cmdAddChild(type, rest) {
     type,
     title,
     description: '',
+    assignee: '',
     loeTagIds: [],
     assumptionNotes: '',
     confidence: 0,
-    ragStatus: 'none',
     pulses: []
   };
   db.nodes.push(node);
@@ -1349,25 +1374,43 @@ function cmdPulse(rest) {
 }
 
 function cmdRag(rest) {
-  // /rag [node#] [g|a|r]  — node# is the displayed order number shown in brackets
+  cmdPulse(rest);
+}
+
+function cmdAssignee(rest) {
   const g = activeGroup();
   if (!g) { statusMsg('No active group.'); return; }
-  const parts = rest.split(/\s+/);
-  if (parts.length < 2) { statusMsg('Usage: /rag [node#] [g|a|r]'); return; }
+  const parts = rest.split(/\s+/).filter(Boolean);
+  if (!parts.length) { statusMsg('Usage: /assignee [node#] [name|clear]'); return; }
   const n = parseInt(parts[0]);
-  const ragChar = parts[1].toLowerCase();
-  const ragMap = { g: 'green', a: 'amber', r: 'red', green: 'green', amber: 'amber', red: 'red' };
-  const rag = ragMap[ragChar];
-  if (!rag) { statusMsg('RAG must be g/a/r'); return; }
+  if (isNaN(n)) { statusMsg('Usage: /assignee [node#] [name|clear]'); return; }
   const allNodes = displayedNodes(g.id);
   const node = allNodes[n - 1];
   if (!node) { statusMsg('Node #' + n + ' not found.'); return; }
-  node.ragStatus = rag;
-  node.pulses = node.pulses || [];
-  node.pulses.push({ id: uid('pulse'), date: todayStr(), ragStatus: rag, narrative: '' });
+  const name = parts.slice(1).join(' ').trim();
+  if (!name) {
+    statusMsg('Assignee: "' + node.title + '" → ' + (node.assignee || 'none'));
+    return;
+  }
+  if (name.toLowerCase() === 'clear' || name.toLowerCase() === 'none' || name === '-') {
+    node.assignee = '';
+    saveDB();
+    render();
+    statusMsg('Assignee cleared: ' + node.title);
+    return;
+  }
+  node.assignee = name;
   saveDB();
   render();
-  statusMsg('RAG updated: "' + node.title + '" → ' + rag.toUpperCase());
+  statusMsg('Assignee set: "' + node.title + '" → ' + name);
+}
+
+function cmdPresentation(enabled) {
+  presentationMode = !!enabled;
+  db.presentationMode = presentationMode;
+  saveDB();
+  render();
+  statusMsg(presentationMode ? 'Presentation view ON' : 'Work view ON');
 }
 
 function cmdTag(rest) {
@@ -1426,6 +1469,34 @@ function cmdDelete(rest) {
 function cmdExport(rest) {
   const g = activeGroup();
   if (!g) { statusMsg('No active group.'); return; }
+  const format = (rest || 'json').toLowerCase();
+  if (!['json', 'txt', 'text'].includes(format)) {
+    statusMsg('Usage: /export [json|txt]');
+    return;
+  }
+  if (format === 'txt' || format === 'text') {
+    const now = todayStr();
+    const lines = [];
+    lines.push(`# STRATEGY ATLAS EXPORT — ${g.name} (FY${g.year})`);
+    lines.push(`Date: ${now}`);
+    lines.push('');
+    lines.push(`Vision: ${g.vision || '(not set)'}`);
+    lines.push('');
+    const displayed = displayedNodes(g.id);
+    if (!displayed.length) {
+      lines.push('No nodes.');
+    } else {
+      displayed.forEach((node, idx) => {
+        const pulse = latestRag(node);
+        const parentPrefix = node.parentId ? '  ' : '';
+        const assignee = node.assignee ? ` · Assignee: ${node.assignee}` : '';
+        lines.push(`${parentPrefix}[${idx + 1}] ${(node.type || 'Node').toUpperCase()} · ${node.title} · Pulse: ${(pulse || 'none').toUpperCase()}${assignee}`);
+      });
+    }
+    downloadBlob(lines.join('\n') + '\n', 'compass-' + g.name.replace(/\s+/g,'_') + '-' + g.year + '.txt', 'text/plain');
+    statusMsg('Exported TXT: ' + g.name);
+    return;
+  }
   const exportObj = {
     schemaVersion: 1,
     exportedAt: new Date().toISOString(),
@@ -1498,14 +1569,15 @@ function showHelp() {
     '/delete [node#]              delete node (and children)',
     '',
     '── STATUS & PULSE ───────────────────────────────────────',
-    '/rag [node#] [g|a|r]         quick RAG update',
+    '/rag [node#] [g|a|r] [text]  synonym for /pulse',
     '/pulse [node#] [g|a|r] [text]  add pulse with narrative',
+    '/assignee [node#] [name]     set assignee (use "clear" to remove)',
     '/tag [node#] [loe name]      toggle LOE tag on a node',
     '  node# = [N] shown on each item in display order',
     '  for /exec /kr /task: use the column header node# (strategy/objective)',
     '',
     '── DATA ─────────────────────────────────────────────────',
-    '/export                      export current group as JSON',
+    '/export [json|txt]           export current group as JSON or TXT',
     '/import                      import from JSON file',
     '/swot                        SWOT workspace (placeholder)',
     '',
@@ -1519,6 +1591,8 @@ function showHelp() {
     '/backlog archive             archive done items',
     '/backlog archive list        show archived batches',
     '/backlog export              download backlog as .txt',
+    '/present                     switch to presentation view',
+    '/work                        switch back to work view',
     '/help                        show this help',
     '',
     '── NAVIGATION ───────────────────────────────────────────',
@@ -1579,7 +1653,8 @@ function buildDetailHTML(node) {
   html += `<div class="dp-title">${escHtml(node.title)}</div>`;
   if (node.vision) html += `<div class="dp-vision">${escHtml(node.vision)}</div>`;
   if (node.description) html += `<div class="dp-desc">${escHtml(node.description)}</div>`;
-  html += `<div class="dp-field"><span class="dp-label">RAG:</span><span class="${ragClass}">${ragLabel}</span></div>`;
+  html += `<div class="dp-field"><span class="dp-label">PULSE:</span><span class="${ragClass}">${ragLabel}</span></div>`;
+  if (node.assignee) html += `<div class="dp-field"><span class="dp-label">ASSIGNEE:</span>${escHtml(node.assignee)}</div>`;
   if (node.confidence) html += `<div class="dp-field"><span class="dp-label">CONFIDENCE:</span>${node.confidence}/5</div>`;
   if (node.assumptionNotes) html += `<div class="dp-field"><span class="dp-label">NOTES:</span>${escHtml(node.assumptionNotes)}</div>`;
 
@@ -1734,6 +1809,7 @@ function exportBacklog() {
 /* ─── BOOT / INIT ─────────────────────────────────────── */
 function init() {
   db = loadDB();
+  presentationMode = !!db.presentationMode;
   applyTheme(db.theme || DEFAULT_THEME);
   render();
   document.getElementById('splash').style.display = 'none';
