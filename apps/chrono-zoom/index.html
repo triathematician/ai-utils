@@ -1441,14 +1441,19 @@ function deleteEvent(evtUID) {
 // ══════════════════════════════════════════════════════════════════════
 const HELP_TEXT = `
 ◈ COMMAND REFERENCE
-───────────────────────────────────────────────────────
+── EVENTS ─────────────────────────────────────────────
 /add <label> -t <time> -c <cat1,cat2> [-d <uid1,uid2>]
-              Add an event. Bare /add opens guided mode.
-              Time: ISO 8601, 'now', '+2d', '-3h', etc.
+               Add an event. Bare /add opens guided mode.
+               Time: ISO 8601, 'now', '+2d', '-3h', etc.
 
 /link <src_id> <tgt_id>
-              Add dependency: src must predate tgt.
+               Add dependency: src must predate tgt.
 
+/delete <id>  Delete an event by UID.
+/clear        Clear ALL events (type /clear confirm to proceed).
+/list         List all events — click UID to copy, [EDIT] to edit.
+
+── VIEW & NAVIGATION ─────────────────────────────────
 /show <cat>   Show a hidden swimlane category.
 /hide <cat>   Hide a swimlane category.
 
@@ -1457,20 +1462,18 @@ const HELP_TEXT = `
 
 /zoom fit     Auto-fit zoom to all events.
 /zoom <level> Set zoom level (21 steps, ≤5× factor each):
-              100YEAR 50YEAR 25YEAR 10YEAR 3YEAR 1YEAR
-              6MONTH 3MONTH 1MONTH 2WEEK 1WEEK 3DAY
-              1DAY 8HR 4HR 2HR 1HR 30MIN 15MIN 5MIN 1MIN
+               100YEAR 50YEAR 25YEAR 10YEAR 3YEAR 1YEAR
+               6MONTH 3MONTH 1MONTH 2WEEK 1WEEK 3DAY
+               1DAY 8HR 4HR 2HR 1HR 30MIN 15MIN 5MIN 1MIN
 
-/export json  Download events as JSON file.
-/export txt   Export ASCII timeline to .txt file.
+/lane list              List current lane order.
+/lane order cat1,cat2,... Set a custom lane order.
+/lane swap cat1 cat2    Swap two lanes.
+/lane reset             Reset to insertion order.
 
-/delete <id>  Delete an event by UID.
-/clear        Clear ALL events (type /clear confirm to proceed).
-/list         List all events — click UID to copy, [EDIT] to edit.
-
+── STANDARD ───────────────────────────────────────────
 /theme [name] Switch theme: legacy solar monk space synth dos notebook engineering
-              (random if omitted)
-
+               (random if omitted)
 /backlog [text]         Add item to backlog.
 /backlog list           Show all backlog items.
 /backlog done [n]       Toggle item #n as done/open.
@@ -1478,13 +1481,10 @@ const HELP_TEXT = `
 /backlog archive        Move done items to archive.
 /backlog archive list   Show archived batches.
 /backlog export         Download backlog as .txt.
-
-/lane list              List current lane order.
-/lane order cat1,cat2,... Set a custom lane order.
-/lane swap cat1 cat2    Swap two lanes.
-/lane reset             Reset to insertion order.
-
+/export json  Download events as JSON file.
+/export txt   Export ASCII timeline to .txt file.
 /help         Show this reference.
+
 ───────────────────────────────────────────────────────
 SHORTCUTS
   Ctrl+Wheel    Zoom in/out
