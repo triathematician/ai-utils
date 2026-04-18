@@ -426,7 +426,8 @@ function cmdRun(rest) {
   const name = (pipeParts[1] || '').trim();
   const diamonds = normalizeDiamonds(pipeParts[2]);
   const starsRaw = pipeParts[3] || '';
-  const starsNum = starsRaw === '' ? null : Math.max(1, Math.min(5, parseInt(starsRaw, 10) || 0)) || null;
+  const parsedStars = parseInt(starsRaw, 10);
+  const starsNum = starsRaw === '' ? null : (Number.isNaN(parsedStars) ? null : Math.max(1, Math.min(5, parsedStars)));
   const note = (pipeParts[4] || '').trim();
   if (!lookup || !lookup.trip || !name) {
     statusMsg('Usage: /run [trip#] | name | diamonds | stars? | note?');
@@ -565,7 +566,7 @@ function showBacklogList() {
   body.style.whiteSpace = 'normal';
   body.innerHTML = db.backlog.map((b, i) => {
     const bracket = b.done ? '[x]' : '[ ]';
-    return `<div style="padding:2px 0"><span data-backlog-idx="${i}" style="cursor:pointer;user-select:none;color:var(--accent)">${bracket}</span> ${i + 1}. ${escHtml(b.text)}</div>`;
+    return `<div style="padding:2px 0"><span data-backlog-idx="${escAttr(i)}" style="cursor:pointer;user-select:none;color:var(--accent)">${bracket}</span> ${i + 1}. ${escHtml(b.text)}</div>`;
   }).join('');
   body.querySelectorAll('[data-backlog-idx]').forEach(el => {
     el.addEventListener('click', () => {
@@ -707,8 +708,8 @@ function isValidImport(obj) {
 function importData(obj) {
   db.trips = obj.trips.map(t => ({ ...t, runsList: Array.isArray(t.runsList) ? t.runsList : [] }));
   if (typeof obj.theme === 'string' && THEMES.includes(obj.theme)) db.theme = obj.theme;
-  db.backlog = Array.isArray(db.backlog) ? db.backlog : [];
-  db.backlogArchive = Array.isArray(db.backlogArchive) ? db.backlogArchive : [];
+  db.backlog = Array.isArray(obj.backlog) ? obj.backlog : [];
+  db.backlogArchive = Array.isArray(obj.backlogArchive) ? obj.backlogArchive : [];
 }
 
 function cmdExport(format) {
@@ -750,7 +751,11 @@ function cmdImport() {
 document.getElementById('help-close').onclick = closeOverlay;
 document.addEventListener('keydown', e => {
   if (e.key === 'Escape') closeOverlay();
-  if (!document.getElementById('help-overlay').classList.contains('visible') && document.activeElement !== input) input.focus();
+  if (
+    !document.getElementById('help-overlay').classList.contains('visible') &&
+    document.getElementById('splash').style.display === 'none' &&
+    document.activeElement !== input
+  ) input.focus();
 });
 
 function dismissSplash() {
@@ -768,7 +773,7 @@ function init() {
   db = loadDB();
   applyTheme(db.theme || 'legacy');
   render();
-  input.focus();
+  if (document.getElementById('splash').style.display === 'none') input.focus();
 }
 window.addEventListener('DOMContentLoaded', init);
 document.addEventListener('keydown', dismissSplash, { once: true });
