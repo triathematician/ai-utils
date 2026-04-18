@@ -276,11 +276,27 @@ Never use `alert()`, `confirm()`, or `prompt()` — use styled overlays.
 
 ### `/help` command
 
-Every app must implement `/help` that opens the styled overlay listing all commands. Format:
+Every app must implement `/help` that opens the styled overlay listing all commands.
+
+Organize help lines into clear category blocks and place standard commands in the final block, following `strategy-atlas`:
 
 ```
+── APP-SPECIFIC CATEGORY ──────────────────────────────
 /command      description of what it does
 /command arg  description with argument
+
+── STANDARD ───────────────────────────────────────────
+/theme [name]            ...
+/backlog [text]          ...
+/backlog list            ...
+/backlog done [n]        ...
+/backlog delete [n]      ...
+/backlog archive         ...
+/backlog archive list    ...
+/backlog export          ...
+/export [txt|json]       ... (if supported by app)
+/import                  ... (if supported by app)
+/help                    show this help
 ```
 
 ---

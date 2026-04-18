@@ -263,8 +263,7 @@ function handleConsoleCmd(raw) {
 function showHelp() {
   document.getElementById('help-title').textContent = '◈ GEAR TERMINAL — COMMANDS';
   document.getElementById('help-body').textContent = [
-    '/help                           show this help',
-    '/theme [name]                   switch theme',
+    '── GEAR ENTRIES ───────────────────────────────────────',
     '/add type name                  quick add item',
     '/add type | name | service | notes',
     '/list [all|type]                list gear in overlay',
@@ -272,6 +271,9 @@ function showHelp() {
     '/repair [n] [YYYY-MM-DD] [note] log repair/maintenance entry',
     '/note [n] [text]                append note to an item',
     '/delete [n]                     delete item + linked repairs',
+    '',
+    '── STANDARD ───────────────────────────────────────────',
+    '/theme [name]                   switch theme',
     '/backlog [text]                 add item to backlog',
     '/backlog list                   show all backlog items',
     '/backlog done [n]               toggle item #n as done/open',
@@ -280,7 +282,8 @@ function showHelp() {
     '/backlog archive list           show archived batches',
     '/backlog export                 download backlog as .txt',
     '/export [txt|json]              export gear data',
-    '/import                         import gear data from .json'
+    '/import                         import gear data from .json',
+    '/help                           show this help'
   ].join('\n');
   openOverlay();
 }
