@@ -28,6 +28,7 @@ ai-utils/
     strategy-atlas/               ← STRATEGY ATLAS: strategic planning, goal groups, OKRs, RAG pulse tracking
     skill-port/                   ← SKILL-PORT: blueprint rail map for skill and project pathways
     vault-terminal/               ← VAULT TERMINAL: monthly budget tracker — income, expenses, investments
+    gear-terminal/                ← GEAR TERMINAL: gear tracker — bikes, cars, shoes, service dates, repairs
   common/                       ← shared assets (if any)
     yahoo-finance-proxy/          ← Java proxy service for Yahoo Finance data
 ```
@@ -47,6 +48,7 @@ Monospace, dark-first, single-file apps with a command-line interaction model. L
 - `staff-terminal/staff-terminal.html` — STAFF TERMINAL
 - `strategy-atlas/index.html` — STRATEGY ATLAS
 - `vault-terminal/index.html` — VAULT TERMINAL
+- `gear-terminal/index.html` — GEAR TERMINAL
 
 **To start a new terminal-web app:** copy `docs/terminal-web-template.html` to a new subdirectory, rename the `STORAGE_KEY`, and build on top of the stubs.
 
