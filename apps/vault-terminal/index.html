@@ -169,6 +169,10 @@ html, body {
   font-size: 1.1em; font-weight: 700;
   overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
 }
+.stat-card .sc-subvalue {
+  font-size: 0.72em; color: var(--dim);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
 .sc-income    { color: var(--success); }
 .sc-expense   { color: var(--warn); }
 .sc-invest    { color: var(--cat-5); }
@@ -277,6 +281,11 @@ html, body {
 }
 .rollup-table td:first-child { text-align: left; color: var(--dim); }
 .rollup-table tr.current-month td { color: var(--fg); font-weight: 600; }
+.rollup-table tr.rollup-divider td {
+  border-top: 1px solid var(--muted);
+  padding: 0;
+  height: 4px;
+}
 .rollup-table tr.avg-row td { color: var(--dim); border-top: 1px solid var(--muted); font-style: italic; }
 .rollup-table tr.avg-row td:first-child { color: var(--accent); }
 .rollup-table tr.tot-row td { color: var(--fg); border-top: 1px solid var(--dim); font-weight: 600; }
@@ -319,6 +328,18 @@ html, body {
   margin: 4px 0 1px; padding-left: 2px;
 }
 .ar-indent { padding-left: 10px; }
+.analysis-controls {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 4px;
+  padding-right: 10px;
+}
+.analysis-control-btn {
+  cursor: pointer; padding: 1px 6px; font-size: 0.72em;
+  letter-spacing: 1px; color: var(--dim);
+}
+.analysis-control-btn.active { color: var(--accent); }
+.analysis-content { padding-right: 10px; }
 .entry-excl { color: var(--dim); font-size: 0.78em; font-style: italic; flex-shrink: 0; }
 .summary-type-label.stl-excl { color: var(--dim); }
 
@@ -500,18 +521,22 @@ html, body {
       <div class="stat-card">
         <span class="sc-label">◈ INCOME</span>
         <div class="sc-value sc-income" id="stat-income">$0.00</div>
+        <div class="sc-subvalue" id="stat-income-ytd">YTD $0.00</div>
       </div>
       <div class="stat-card">
         <span class="sc-label">◈ EXPENSES</span>
         <div class="sc-value sc-expense" id="stat-expense">$0.00</div>
+        <div class="sc-subvalue" id="stat-expense-ytd">YTD $0.00</div>
       </div>
       <div class="stat-card">
         <span class="sc-label">◈ NET</span>
         <div class="sc-value sc-net-pos" id="stat-net">$0.00</div>
+        <div class="sc-subvalue" id="stat-net-ytd">YTD $0.00</div>
       </div>
       <div class="stat-card">
         <span class="sc-label">◈ INVEST</span>
         <div class="sc-value sc-invest" id="stat-invest">$0.00</div>
+        <div class="sc-subvalue" id="stat-invest-ytd">YTD $0.00</div>
       </div>
     </div>
   </div>
@@ -530,6 +555,7 @@ html, body {
       <div id="side-tabs">
         <span class="side-tab active" data-tab="summary">[SUMMARY]</span>
         <span class="side-tab" data-tab="rollup">[ROLLUP]</span>
+        <span class="side-tab" data-tab="rollup-cats">[ROLLUP CAT]</span>
         <span class="side-tab" data-tab="analysis">[ANALYSIS]</span>
       </div>
       <div id="side-content"></div>
@@ -576,6 +602,7 @@ const STORAGE_KEY = 'budget_terminal_db';
 const EXPORT_SLUG = 'vault';
 const THEMES = ['legacy','solar','monk','space','synth','dos','notebook','engineering'];
 const MONTH_NAMES = ['JAN','FEB','MAR','APR','MAY','JUN','JUL','AUG','SEP','OCT','NOV','DEC'];
+const ANALYSIS_EXTREME_MULTIPLIER = 2;
 const DEFAULT_CATEGORIES = {
   income: {
     'salary':   ['primary','bonus','overtime'],
@@ -605,6 +632,7 @@ const DEFAULT_CATEGORIES = {
 let db = {};
 let activeTab = 'summary';
 let rollupYear = null;          // null = current year
+let analysisMode = 'all';       // all | extreme
 let selectedEntryId = null;     // for click-to-select in main panel
 
 /* ═══════════════════════════════════════════════════════════
@@ -724,6 +752,14 @@ function sumPrimaryIncome(entries) {
   return entries.filter(e => e.type === 'income' && !e.excluded).reduce((s, e) => s + e.amount, 0);
 }
 
+function sumPrimaryExpense(entries) {
+  return entries.filter(e => e.type === 'expense' && !e.excluded).reduce((s, e) => s + e.amount, 0);
+}
+
+function isExcludedFromTotals(entry) {
+  return !!entry.excluded && (entry.type === 'income' || entry.type === 'expense');
+}
+
 // Returns entries sorted by category/subcategory within each type section, in type order.
 function sortedEntriesByType(entries) {
   const result = [];
@@ -782,13 +818,23 @@ function renderTopRow() {
 
   const entries = entriesForCurrentMonth();
   const income  = sumPrimaryIncome(entries);
-  const expense = sumType(entries, 'expense');
+  const expense = sumPrimaryExpense(entries);
   const invest  = sumType(entries, 'investment');
   const net     = income - expense;
+
+  const ytdEntries = db.entries.filter(e => e.year === year && e.month <= month);
+  const ytdIncome = sumPrimaryIncome(ytdEntries);
+  const ytdExpense = sumPrimaryExpense(ytdEntries);
+  const ytdInvest = sumType(ytdEntries, 'investment');
+  const ytdNet = ytdIncome - ytdExpense;
 
   document.getElementById('stat-income').textContent  = fmtMoneyCompact(income);
   document.getElementById('stat-expense').textContent = fmtMoneyCompact(expense);
   document.getElementById('stat-invest').textContent  = fmtMoneyCompact(invest);
+  document.getElementById('stat-income-ytd').textContent  = 'YTD ' + fmtMoneyCompact(ytdIncome);
+  document.getElementById('stat-expense-ytd').textContent = 'YTD ' + fmtMoneyCompact(ytdExpense);
+  document.getElementById('stat-invest-ytd').textContent  = 'YTD ' + fmtMoneyCompact(ytdInvest);
+  document.getElementById('stat-net-ytd').textContent     = 'YTD ' + (ytdNet < 0 ? '-' : '') + fmtMoneyCompact(ytdNet);
 
   const netEl = document.getElementById('stat-net');
   netEl.textContent = (net < 0 ? '-' : '') + fmtMoneyCompact(net);
@@ -828,7 +874,7 @@ function renderMainPanel() {
       html += `<span class="entry-sub">${escHtml(e.subcategory)}</span>`;
       html += `<span class="entry-sep"> | </span>`;
       html += `<span class="entry-amt ea-${type}">${fmtMoney(e.amount)}</span>`;
-      if (e.excluded && type === 'income') {
+      if (isExcludedFromTotals(e)) {
         html += `<span class="entry-excl"> [EXCL]</span>`;
       }
       if (e.note) {
@@ -899,6 +945,7 @@ function renderSidePanel() {
 
   if (activeTab === 'summary')  renderSummary();
   else if (activeTab === 'rollup')   renderRollup();
+  else if (activeTab === 'rollup-cats') renderRollupCategories();
   else if (activeTab === 'analysis') renderAnalysis();
 }
 
@@ -924,9 +971,10 @@ function renderSummary() {
 
   let html = '';
   html += typeBlock(entries.filter(e => e.type === 'income' && !e.excluded),  'INCOME',       'stl-income');
-  html += typeBlock(entries.filter(e => e.type === 'expense'),                 'EXPENSES',     'stl-expense');
+  html += typeBlock(entries.filter(e => e.type === 'expense' && !e.excluded), 'EXPENSES',     'stl-expense');
   html += typeBlock(entries.filter(e => e.type === 'investment'),              'INVESTMENTS',  'stl-investment');
   html += typeBlock(entries.filter(e => e.type === 'income' && e.excluded),   'INCOME (EXCL)','stl-excl');
+  html += typeBlock(entries.filter(e => e.type === 'expense' && e.excluded),  'EXPENSES (EXCL)','stl-excl');
 
   if (!html) {
     html = `<div class="empty-msg" style="margin-top:8px">No data for current month.</div>`;
@@ -934,9 +982,9 @@ function renderSummary() {
   document.getElementById('side-content').innerHTML = html;
 }
 
-function setRollupYear(yr) {
+function setRollupYear(yr, tab) {
   rollupYear = yr;
-  activeTab = 'rollup';
+  if (tab) activeTab = tab;
   renderSidePanel();
 }
 
@@ -951,7 +999,7 @@ function renderRollup() {
   let html = `<div class="rollup-year-btns">`;
   allYears.forEach(yr => {
     const active = (yr === year) ? ' active' : '';
-    html += `<button class="rollup-year-btn${active}" onclick="setRollupYear(${yr})">[${yr}]</button>`;
+    html += `<button class="rollup-year-btn${active}" onclick="setRollupYear(${yr}, 'rollup')">[${yr}]</button>`;
   });
   html += `</div>`;
 
@@ -976,7 +1024,7 @@ function renderRollup() {
   months.forEach(m => {
     const me = yearEntries.filter(e => e.month === m);
     const inc = sumPrimaryIncome(me);
-    const exp = sumType(me,'expense');
+    const exp = sumPrimaryExpense(me);
     const inv = sumType(me,'investment');
     const net = inc - exp;
     const isCur = (year===curYear && m===curMonth);
@@ -995,6 +1043,7 @@ function renderRollup() {
   if (n > 1) {
     const totNet = totIncome - totExpense;
     const totNetClass = totNet>=0?'rt-net-pos':'rt-net-neg';
+    html += `<tr class="rollup-divider"><td colspan="5"></td></tr>`;
     html += `<tr class="tot-row">`;
     html += `<td>TOTAL</td>`;
     html += `<td class="rt-income">${fmtMoneyCompact(totIncome)}</td>`;
@@ -1018,11 +1067,59 @@ function renderRollup() {
   document.getElementById('side-content').innerHTML = html;
 }
 
+function renderRollupCategories() {
+  const { year: curYear } = db.currentMonth;
+  const year = rollupYear || curYear;
+  const allYears = Array.from(new Set(db.entries.map(e => e.year).concat([curYear]))).sort((a,b) => a-b);
+
+  let html = `<div class="rollup-year-btns">`;
+  allYears.forEach(yr => {
+    const active = (yr === year) ? ' active' : '';
+    html += `<button class="rollup-year-btn${active}" onclick="setRollupYear(${yr}, 'rollup-cats')">[${yr}]</button>`;
+  });
+  html += `</div>`;
+
+  const yearEntries = db.entries.filter(e => e.year === year && !isExcludedFromTotals(e));
+  if (!yearEntries.length) {
+    html += `<div class="empty-msg">No category totals for ${year}.</div>`;
+    document.getElementById('side-content').innerHTML = html;
+    return;
+  }
+
+  const bySub = {};
+  yearEntries.forEach(e => {
+    const key = [e.type, e.category, e.subcategory].join('|');
+    if (!bySub[key]) bySub[key] = { type: e.type, category: e.category, subcategory: e.subcategory, total: 0 };
+    bySub[key].total += e.amount;
+  });
+
+  const rows = Object.values(bySub).sort((a, b) => b.total - a.total || a.type.localeCompare(b.type) || a.category.localeCompare(b.category) || a.subcategory.localeCompare(b.subcategory));
+  html += `<table class="rollup-table">`;
+  html += `<tr><th>TYPE</th><th>CATEGORY</th><th>SUBCATEGORY</th><th>TOTAL</th></tr>`;
+  rows.forEach(r => {
+    const typeClass = r.type === 'income' ? 'rt-income' : (r.type === 'expense' ? 'rt-expense' : 'rt-invest');
+    html += `<tr>`;
+    html += `<td class="${typeClass}">${escHtml(r.type.toUpperCase())}</td>`;
+    html += `<td>${escHtml(r.category)}</td>`;
+    html += `<td>${escHtml(r.subcategory)}</td>`;
+    html += `<td class="${typeClass}">${fmtMoneyCompact(r.total)}</td>`;
+    html += `</tr>`;
+  });
+  html += `</table>`;
+  document.getElementById('side-content').innerHTML = html;
+}
+
+function setAnalysisMode(mode) {
+  analysisMode = mode;
+  activeTab = 'analysis';
+  renderSidePanel();
+}
+
 function renderAnalysis() {
   const { year: curYear, month: curMonth } = db.currentMonth;
 
-  // Current entries — excluded income omitted from analysis
-  const curEntries = entriesForCurrentMonth().filter(e => !(e.type === 'income' && e.excluded));
+  // Current entries — excluded totals omitted from analysis
+  const curEntries = entriesForCurrentMonth().filter(e => !isExcludedFromTotals(e));
 
   // Build the last 12 months prior to current month (oldest → newest)
   const priorMonthKeys = [];
@@ -1034,10 +1131,10 @@ function renderAnalysis() {
   }
   const priorMonthSet = new Set(priorMonthKeys);
 
-  // Historical entries: last 12 prior months, excluded income omitted
+  // Historical entries: last 12 prior months, excluded totals omitted
   const histEntries = db.entries.filter(e => {
     if (e.year === curYear && e.month === curMonth) return false;
-    if (e.type === 'income' && e.excluded) return false;
+    if (isExcludedFromTotals(e)) return false;
     return priorMonthSet.has(e.year + '-' + e.month);
   });
 
@@ -1069,13 +1166,17 @@ function renderAnalysis() {
   const types = ['income','expense','investment'];
   const typeLabels = { income:'INCOME', expense:'EXPENSES', investment:'INVESTMENTS' };
 
-  let html = '';
-  let anyData = false;
+  let html = `<div class="analysis-controls">`;
+  html += `<span class="analysis-control-btn${analysisMode === 'all' ? ' active' : ''}" onclick="setAnalysisMode('all')">[ALL]</span>`;
+  html += `<span class="analysis-control-btn${analysisMode === 'extreme' ? ' active' : ''}" onclick="setAnalysisMode('extreme')">[EXTREME]</span>`;
+  html += `</div><div class="analysis-content">`;
+  let anyCurrentData = false;
+  let anyShownData = false;
 
   types.forEach(type => {
     const group = curEntries.filter(e => e.type === type);
     if (!group.length) return;
-    anyData = true;
+    anyCurrentData = true;
 
     // Group by subcategory (may have multiples → sum)
     const subTotals = {};
@@ -1085,8 +1186,16 @@ function renderAnalysis() {
       subTotals[sk].total += e.amount;
     });
 
+    const sorted = Object.values(subTotals).sort((a,b) => a.cat.localeCompare(b.cat) || a.sub.localeCompare(b.sub));
+    const filtered = sorted.filter(s => {
+      if (analysisMode !== 'extreme') return true;
+      const avg = subAvgs[type + '/' + s.cat + '/' + s.sub];
+      return avg !== undefined && avg > 0 && s.total >= (avg * ANALYSIS_EXTREME_MULTIPLIER);
+    });
+    if (!filtered.length) return;
+    anyShownData = true;
+
     html += `<div class="analysis-section-label stl-${type}">${escHtml(typeLabels[type])}</div>`;
-    // Header
     html += `<div class="analysis-row" style="font-size:0.72em;color:var(--dim);border-bottom:1px solid var(--muted);margin-bottom:2px">`;
     html += `<span class="ar-label">SUBCATEGORY</span>`;
     html += `<span class="ar-cur">CURRENT</span>`;
@@ -1094,9 +1203,8 @@ function renderAnalysis() {
     html += `<span class="ar-badge">STATUS</span>`;
     html += `</div>`;
 
-    const sorted = Object.values(subTotals).sort((a,b) => a.cat.localeCompare(b.cat) || a.sub.localeCompare(b.sub));
     let lastCat = null;
-    sorted.forEach(s => {
+    filtered.forEach(s => {
       if (s.cat !== lastCat) {
         lastCat = s.cat;
         html += `<div class="analysis-cat-header">${escHtml(s.cat)}</div>`;
@@ -1124,12 +1232,15 @@ function renderAnalysis() {
     });
   });
 
-  if (!anyData) {
+  if (!anyCurrentData) {
     html = `<div class="empty-msg" style="margin-top:8px">No data for current month.<br>— no baseline —</div>`;
+  } else if (!anyShownData && analysisMode === 'extreme') {
+    html += `<div class="empty-msg" style="margin-top:8px">No EXTREME values for current month.</div>`;
   } else if (!Object.keys(subAvgs).length) {
     html += `<div class="empty-msg" style="margin-top:8px;font-size:0.8em;color:var(--dim)">— no historical baseline yet —</div>`;
   }
 
+  if (anyCurrentData) html += `</div>`;
   document.getElementById('side-content').innerHTML = html;
 }
 
@@ -1294,9 +1405,9 @@ function openEditOverlay(id) {
   <label class="dlg-label">NOTE (optional)</label>
   <input class="dlg-input" id="edit-note" value="${escHtml(entry.note || '')}">
 
-  ${entry.type === 'income' ? `<div style="margin-top:6px;display:flex;align-items:center;gap:8px">
+  ${(entry.type === 'income' || entry.type === 'expense') ? `<div style="margin-top:6px;display:flex;align-items:center;gap:8px">
     <input type="checkbox" id="edit-excluded" ${entry.excluded ? 'checked' : ''} style="cursor:pointer;accent-color:var(--accent)">
-    <label for="edit-excluded" style="font-size:0.78em;color:var(--dim);letter-spacing:1px;cursor:pointer">EXCLUDE FROM INCOME TOTALS</label>
+    <label for="edit-excluded" style="font-size:0.78em;color:var(--dim);letter-spacing:1px;cursor:pointer">EXCLUDE FROM ${entry.type.toUpperCase()} TOTALS</label>
   </div>` : ''}
 
   <div style="margin-top:12px">
@@ -1319,7 +1430,7 @@ function openEditOverlay(id) {
     if (!cat || !sub) { statusMsg('Category and subcategory required.'); return; }
     if (isNaN(amt) || amt < 0) { statusMsg('Invalid amount.'); return; }
     const fields = { category: cat.toLowerCase(), subcategory: sub.toLowerCase(), amount: amt, note };
-    if (entry.type === 'income') {
+    if (entry.type === 'income' || entry.type === 'expense') {
       fields.excluded = document.getElementById('edit-excluded').checked;
     }
     updateEntry(id, fields);
@@ -1571,7 +1682,7 @@ function showListOverlay(filter) {
         html += `<span>${escHtml(e.category)} &gt; ${escHtml(e.subcategory)}</span>`;
         html += `<span style="color:var(--dim)"> | </span>`;
         html += `<span style="font-weight:600">${fmtMoney(e.amount)}</span>`;
-        if (e.excluded && type === 'income') html += `<span style="color:var(--dim);font-size:0.82em;font-style:italic"> [EXCL]</span>`;
+        if (isExcludedFromTotals(e)) html += `<span style="color:var(--dim);font-size:0.82em;font-style:italic"> [EXCL]</span>`;
         if (e.note) html += `<span style="color:var(--dim);font-size:0.88em"> — ${escHtml(e.note)}</span>`;
         html += `</div>`;
       });
