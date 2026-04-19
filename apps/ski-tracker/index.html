@@ -139,7 +139,7 @@ html, body {
 #help-body { white-space: pre; line-height: 1.8; max-height: 60vh; overflow-y: auto; }
 #help-close { color: var(--dim); font-size: 0.82em; cursor: pointer; display: block; margin-top: 8px; }
 .dialog-grid { display: grid; grid-template-columns: 190px 1fr; gap: 8px 10px; align-items: center; }
-.dialog-grid input, .dialog-grid textarea {
+.dialog-grid input, .dialog-grid textarea, .dialog-grid select {
   width: 100%; background: var(--bg); color: var(--fg); border: 1px solid var(--border);
   font-family: var(--font); font-size: 1em; padding: 4px 6px; outline: none;
 }
@@ -212,6 +212,34 @@ html, body {
 const STORAGE_KEY = 'ski_tracker_db';
 const EXPORT_SLUG = 'ski-tracker';
 const THEMES = ['legacy','solar','monk','space','synth','dos','notebook','engineering'];
+
+const DIFFICULTY_OPTIONS = [
+  { value: 'green-circle', label: 'Green circle' },
+  { value: 'blue-square', label: 'Blue square' },
+  { value: 'blue-black', label: 'Blue/black' },
+  { value: 'black-diamond', label: 'Black diamond' },
+  { value: 'double-black-diamond', label: '2 black diamond' },
+  { value: 'triple-black-diamond', label: '3 black diamond' }
+];
+
+function normalizeDifficulty(raw) {
+  const value = String(raw || '').trim().toLowerCase();
+  const byValue = DIFFICULTY_OPTIONS.find(opt => opt.value === value);
+  if (byValue) return byValue.value;
+  const byLabel = DIFFICULTY_OPTIONS.find(opt => opt.label.toLowerCase() === value);
+  if (byLabel) return byLabel.value;
+  const parsed = parseInt(value, 10);
+  if (parsed === 1) return 'black-diamond';
+  if (parsed === 2) return 'double-black-diamond';
+  if (parsed === 3) return 'triple-black-diamond';
+  return 'blue-square';
+}
+
+function difficultyLabel(raw) {
+  const normalized = normalizeDifficulty(raw);
+  return (DIFFICULTY_OPTIONS.find(opt => opt.value === normalized) || DIFFICULTY_OPTIONS[1]).label;
+}
+
 let db = loadDB();
 
 function loadDB() {
@@ -222,7 +250,12 @@ function loadDB() {
     parsed.trips = parsed.trips.map(t => ({
       ...t,
       topSpeed: Math.max(0, Number(t.topSpeed || 0)),
-      runsList: Array.isArray(t.runsList) ? t.runsList : []
+      runsList: Array.isArray(t.runsList)
+        ? t.runsList.map(run => ({
+            ...run,
+            difficulty: normalizeDifficulty(run?.difficulty || run?.diamonds)
+          }))
+        : []
     }));
     parsed.backlog = Array.isArray(parsed.backlog) ? parsed.backlog : [];
     parsed.backlogArchive = Array.isArray(parsed.backlogArchive) ? parsed.backlogArchive : [];
@@ -286,6 +319,31 @@ function normalizeDate(s) {
   return Number.isNaN(d.getTime()) ? '' : s;
 }
 
+function normalizeDuration(raw) {
+  const value = String(raw || '').trim();
+  if (!value) return '';
+  const m = value.match(/^(\d+):([0-5]\d):([0-5]\d)$/);
+  if (!m) return null;
+  return `${m[1].padStart(2, '0')}:${m[2]}:${m[3]}`;
+}
+
+function durationToHours(duration) {
+  const normalized = normalizeDuration(duration);
+  if (!normalized) return null;
+  const [h, m, s] = normalized.split(':').map(v => parseInt(v, 10));
+  return h + (m / 60) + (s / 3600);
+}
+
+function hoursToDuration(hours) {
+  const n = Number(hours);
+  if (!Number.isFinite(n) || n <= 0) return '';
+  const totalSeconds = Math.round(n * 3600);
+  const h = String(Math.floor(totalSeconds / 3600)).padStart(2, '0');
+  const m = String(Math.floor((totalSeconds % 3600) / 60)).padStart(2, '0');
+  const s = String(totalSeconds % 60).padStart(2, '0');
+  return `${h}:${m}:${s}`;
+}
+
 function seasonFromDate(dateStr) {
   const month = parseInt(dateStr.slice(5, 7), 10);
   const year = parseInt(dateStr.slice(0, 4), 10);
@@ -331,9 +389,9 @@ function showHelp() {
   document.getElementById('help-title').textContent = '◈ SKI TRACKER — COMMANDS';
   document.getElementById('help-body').textContent = [
     '── TRIPS & RUNS ───────────────────────────────────────',
-    '/trip YYYY-MM-DD | place | runs | vertical | hours | notable runs',
+    '/trip YYYY-MM-DD | place | runs | vertical | total hh:mm:ss? | downhill hh:mm:ss? | notable runs?',
     '/trip YYYY-MM-DD place             quick add with date + place only',
-    '/run [trip#] | name | diamonds | stars? | note?',
+    '/run [trip#] | name | difficulty | stars? | note?',
     '/edit [n]                          open trip edit dialog',
     '/list [season|location]            list trips in overlay',
     '/delete [n]                        delete trip #n',
@@ -370,7 +428,7 @@ function closeOverlay() {
 
 function cmdTrip(rest) {
   if (!rest) {
-    statusMsg('Usage: /trip YYYY-MM-DD | place | runs | vertical | hours | notable runs');
+    statusMsg('Usage: /trip YYYY-MM-DD | place | runs | vertical | total hh:mm:ss? | downhill hh:mm:ss? | notable runs?');
     return;
   }
   const trip = {
@@ -380,6 +438,8 @@ function cmdTrip(rest) {
     runs: 0,
     verticalFt: 0,
     hours: 0,
+    totalTime: '',
+    downhillTime: '',
     topSpeed: 0,
     notableRuns: '',
     notes: '',
@@ -392,9 +452,22 @@ function cmdTrip(rest) {
     trip.location = pipeParts[1];
     trip.runs = Math.max(0, parseInt(pipeParts[2] || '0', 10) || 0);
     trip.verticalFt = Math.max(0, parseInt(pipeParts[3] || '0', 10) || 0);
-    trip.hours = Math.max(0, parseFloat(pipeParts[4] || '0') || 0);
-    trip.notableRuns = pipeParts[5] || '';
-    trip.notes = pipeParts[6] || '';
+    const maybeTotal = pipeParts[4] || '';
+    const maybeDownhill = pipeParts[5] || '';
+    const normalizedTotal = normalizeDuration(maybeTotal);
+    const normalizedDownhill = normalizeDuration(maybeDownhill);
+    if (normalizedTotal || normalizedDownhill || pipeParts.length >= 8) {
+      trip.totalTime = normalizedTotal || '';
+      trip.downhillTime = normalizedDownhill || '';
+      trip.hours = Math.max(0, durationToHours(trip.totalTime) || 0);
+      trip.notableRuns = pipeParts[6] || '';
+      trip.notes = pipeParts[7] || '';
+    } else {
+      trip.hours = Math.max(0, parseFloat(maybeTotal || '0') || 0);
+      trip.totalTime = hoursToDuration(trip.hours);
+      trip.notableRuns = maybeDownhill || '';
+      trip.notes = pipeParts[6] || '';
+    }
   } else {
     const bits = rest.split(/\s+/);
     trip.date = normalizeDate(bits.shift() || '');
@@ -402,7 +475,7 @@ function cmdTrip(rest) {
   }
 
   if (!trip.date || !trip.location) {
-    statusMsg('Usage: /trip YYYY-MM-DD | place | runs | vertical | hours | notable runs');
+    statusMsg('Usage: /trip YYYY-MM-DD | place | runs | vertical | total hh:mm:ss? | downhill hh:mm:ss? | notable runs?');
     return;
   }
 
@@ -412,27 +485,21 @@ function cmdTrip(rest) {
   statusMsg(`Trip logged: ${trip.date} ${trip.location}`);
 }
 
-function normalizeDiamonds(raw) {
-  const n = parseInt(raw, 10);
-  if (Number.isNaN(n) || n < 1 || n > 3) return 1;
-  return n;
-}
-
 function cmdRun(rest) {
   const pipeParts = splitPipe(rest);
   if (pipeParts.length < 3) {
-    statusMsg('Usage: /run [trip#] | name | diamonds | stars? | note?');
+    statusMsg('Usage: /run [trip#] | name | difficulty | stars? | note?');
     return;
   }
   const lookup = getTripByNumber(pipeParts[0]);
   const name = (pipeParts[1] || '').trim();
-  const diamonds = normalizeDiamonds(pipeParts[2]);
+  const difficulty = normalizeDifficulty(pipeParts[2]);
   const starsRaw = pipeParts[3] || '';
   const parsedStars = parseInt(starsRaw, 10);
   const starsNum = starsRaw === '' ? null : (Number.isNaN(parsedStars) ? null : Math.max(1, Math.min(5, parsedStars)));
   const note = (pipeParts[4] || '').trim();
   if (!lookup || !lookup.trip || !name) {
-    statusMsg('Usage: /run [trip#] | name | diamonds | stars? | note?');
+    statusMsg('Usage: /run [trip#] | name | difficulty | stars? | note?');
     return;
   }
 
@@ -441,12 +508,11 @@ function cmdRun(rest) {
   target.runsList.push({
     id: Date.now() + '_' + Math.random().toString(36).slice(2, 6),
     name,
-    diamonds,
+    difficulty,
     stars: starsNum,
     note,
     createdAt: new Date().toISOString()
   });
-  target.runs = Math.max(0, Number(target.runs || 0)) + 1;
   saveDB();
   render();
   statusMsg(`Run added to #${lookup.n}: ${name}`);
@@ -465,7 +531,8 @@ function cmdEdit(arg1) {
       <div>Location</div><input id="edit-trip-location" value="${escAttr(t.location || '')}">
       <div>Runs</div><input id="edit-trip-runs" type="number" min="0" value="${Number(t.runs || 0)}">
       <div>Vertical (ft)</div><input id="edit-trip-vertical" type="number" min="0" value="${Number(t.verticalFt || 0)}">
-      <div>Hours</div><input id="edit-trip-hours" type="number" min="0" step="0.1" value="${Number(t.hours || 0)}">
+      <div>Total time</div><input id="edit-trip-total-time" placeholder="HH:MM:SS (optional)" value="${escAttr(t.totalTime || hoursToDuration(t.hours || 0) || '')}">
+      <div>Downhill time</div><input id="edit-trip-downhill-time" placeholder="HH:MM:SS (optional)" value="${escAttr(t.downhillTime || '')}">
       <div>Top speed (mph)</div><input id="edit-trip-speed" type="number" min="0" step="0.1" value="${Number(t.topSpeed || 0)}">
       <div>Notable runs</div><input id="edit-trip-notable" value="${escAttr(t.notableRuns || '')}">
       <div>Notes</div><textarea id="edit-trip-notes" rows="3">${escHtml(t.notes || '')}</textarea>
@@ -474,7 +541,8 @@ function cmdEdit(arg1) {
     <div id="edit-trip-runs-list"></div>
     <div class="dialog-grid" style="margin-top:8px">
       <div>Run name</div><input id="edit-run-name" placeholder="Name">
-      <div>Diamonds (1-3)</div><input id="edit-run-diamonds" type="number" min="1" max="3" value="1">
+      <div>Difficulty</div>
+      <select id="edit-run-difficulty">${DIFFICULTY_OPTIONS.map(opt => `<option value="${opt.value}">${opt.label}</option>`).join('')}</select>
       <div>Stars (1-5)</div><input id="edit-run-stars" type="number" min="1" max="5" placeholder="optional">
       <div>Note</div><input id="edit-run-note" placeholder="optional">
     </div>
@@ -489,17 +557,17 @@ function cmdEdit(arg1) {
     const runsList = Array.isArray(target?.runsList) ? target.runsList : [];
     const runsEl = body.querySelector('#edit-trip-runs-list');
     runsEl.innerHTML = runsList.length
-      ? runsList.map((run, idx) => {
+        ? runsList.map((run, idx) => {
           const stars = run.stars ? ` · stars:${run.stars}` : '';
           const note = run.note ? ` · note:${escHtml(run.note)}` : '';
-          return `<div class="line">${idx + 1}. ${escHtml(run.name)} <span class="dim">diamonds:${run.diamonds}${stars}${note}</span></div>`;
+          return `<div class="line">${idx + 1}. ${escHtml(run.name)} <span class="dim">difficulty:${escHtml(difficultyLabel(run.difficulty))}${stars}${note}</span></div>`;
         }).join('')
       : '<span class="dim">No runs logged yet.</span>';
   };
   refreshRuns();
   body.querySelector('#edit-trip-add-run').onclick = () => {
     const name = body.querySelector('#edit-run-name').value.trim();
-    const diamonds = normalizeDiamonds(body.querySelector('#edit-run-diamonds').value);
+    const difficulty = normalizeDifficulty(body.querySelector('#edit-run-difficulty').value);
     const starsRaw = body.querySelector('#edit-run-stars').value.trim();
     const parsedStars = parseInt(starsRaw, 10);
     const starsNum = starsRaw === '' ? null : (Number.isNaN(parsedStars) ? null : Math.max(1, Math.min(5, parsedStars)));
@@ -510,15 +578,13 @@ function cmdEdit(arg1) {
     target.runsList.push({
       id: Date.now() + '_' + Math.random().toString(36).slice(2, 6),
       name,
-      diamonds,
+      difficulty,
       stars: starsNum,
       note,
       createdAt: new Date().toISOString()
     });
-    target.runs = Math.max(0, Number(target.runs || 0)) + 1;
     saveDB();
     render();
-    body.querySelector('#edit-trip-runs').value = String(target.runs);
     body.querySelector('#edit-run-name').value = '';
     body.querySelector('#edit-run-stars').value = '';
     body.querySelector('#edit-run-note').value = '';
@@ -529,12 +595,20 @@ function cmdEdit(arg1) {
     const date = normalizeDate(body.querySelector('#edit-trip-date').value.trim());
     const location = body.querySelector('#edit-trip-location').value.trim();
     if (!date || !location) { statusMsg('Date and location are required.'); return; }
+    const totalTime = normalizeDuration(body.querySelector('#edit-trip-total-time').value.trim());
+    const downhillTime = normalizeDuration(body.querySelector('#edit-trip-downhill-time').value.trim());
+    if (totalTime === null || downhillTime === null) {
+      statusMsg('Total time and downhill time must be HH:MM:SS (or blank).');
+      return;
+    }
     const target = db.trips.find(tr => tr.id === t.id);
     target.date = date;
     target.location = location;
     target.runs = Math.max(0, parseInt(body.querySelector('#edit-trip-runs').value || '0', 10) || 0);
     target.verticalFt = Math.max(0, parseInt(body.querySelector('#edit-trip-vertical').value || '0', 10) || 0);
-    target.hours = Math.max(0, parseFloat(body.querySelector('#edit-trip-hours').value || '0') || 0);
+    target.totalTime = totalTime || '';
+    target.downhillTime = downhillTime || '';
+    target.hours = Math.max(0, durationToHours(target.totalTime) || 0);
     target.topSpeed = Math.max(0, parseFloat(body.querySelector('#edit-trip-speed').value || '0') || 0);
     target.notableRuns = body.querySelector('#edit-trip-notable').value.trim();
     target.notes = body.querySelector('#edit-trip-notes').value.trim();
@@ -718,8 +792,13 @@ function render() {
   tripList.innerHTML = trips.length
     ? trips.map((t, idx) => {
         const loggedRuns = Array.isArray(t.runsList) && t.runsList.length ? ` · logged-runs:${t.runsList.length}` : '';
+        const totalTime = normalizeDuration(t.totalTime) || hoursToDuration(t.hours || 0);
+        const downhillTime = normalizeDuration(t.downhillTime);
+        const times = (totalTime || downhillTime)
+          ? `${totalTime ? ` · total:${totalTime}` : ''}${downhillTime ? ` · downhill:${downhillTime}` : ''}`
+          : ` · hours:${Number(t.hours || 0).toFixed(1)}`;
         const notable = t.notableRuns ? ` · notable:${escHtml(t.notableRuns)}` : '';
-        return `<div class="line" data-trip-num="${idx + 1}" style="cursor:pointer">${idx + 1}. <span class="ok">${escHtml(t.date)}</span> ${escHtml(t.location)} <span class="dim">season:${escHtml(seasonFromDate(t.date))} · runs:${t.runs || 0}${loggedRuns} · vertical:${t.verticalFt || 0}ft · hours:${Number(t.hours || 0).toFixed(1)} · top:${Number(t.topSpeed || 0).toFixed(1)}mph${notable}</span></div>`;
+        return `<div class="line" data-trip-num="${idx + 1}" style="cursor:pointer">${idx + 1}. <span class="ok">${escHtml(t.date)}</span> ${escHtml(t.location)} <span class="dim">season:${escHtml(seasonFromDate(t.date))} · runs:${t.runs || 0}${loggedRuns} · vertical:${t.verticalFt || 0}ft${times} · top:${Number(t.topSpeed || 0).toFixed(1)}mph${notable}</span></div>`;
       }).join('')
     : '<span class="dim">No ski trips yet. Add one with /trip.</span>';
   tripList.querySelectorAll('[data-trip-num]').forEach(el => {
@@ -748,12 +827,19 @@ function exportDataTxt() {
   const lines = ['# SKI TRACKER — ' + todayStr(), '', 'TRIPS'];
   selectedTrips().forEach((trip, idx) => {
     lines.push(`${idx + 1}. ${trip.date} | ${trip.location}`);
-    lines.push(`   season: ${seasonFromDate(trip.date)} | runs: ${trip.runs || 0} | vertical: ${trip.verticalFt || 0}ft | hours: ${Number(trip.hours || 0).toFixed(1)} | top: ${Number(trip.topSpeed || 0).toFixed(1)}mph`);
+    const totalTime = normalizeDuration(trip.totalTime) || hoursToDuration(trip.hours || 0);
+    const downhillTime = normalizeDuration(trip.downhillTime);
+    const timeBits = [
+      totalTime ? `total:${totalTime}` : '',
+      downhillTime ? `downhill:${downhillTime}` : '',
+      `hours:${Number(trip.hours || 0).toFixed(1)}`
+    ].filter(Boolean).join(' | ');
+    lines.push(`   season: ${seasonFromDate(trip.date)} | runs: ${trip.runs || 0} | vertical: ${trip.verticalFt || 0}ft | ${timeBits} | top: ${Number(trip.topSpeed || 0).toFixed(1)}mph`);
     if (Array.isArray(trip.runsList) && trip.runsList.length) {
       trip.runsList.forEach(run => {
         const stars = run.stars ? ` | stars:${run.stars}` : '';
         const note = run.note ? ` | note:${run.note}` : '';
-        lines.push(`   run: ${run.name} | diamonds:${run.diamonds}${stars}${note}`);
+        lines.push(`   run: ${run.name} | difficulty:${difficultyLabel(run.difficulty)}${stars}${note}`);
       });
     }
     if (trip.notableRuns) lines.push(`   notable: ${trip.notableRuns}`);
@@ -777,7 +863,15 @@ function isValidImport(obj) {
 }
 
 function importData(obj) {
-  db.trips = obj.trips.map(t => ({ ...t, runsList: Array.isArray(t.runsList) ? t.runsList : [] }));
+  db.trips = obj.trips.map(t => ({
+    ...t,
+    runsList: Array.isArray(t.runsList)
+      ? t.runsList.map(run => ({
+          ...run,
+          difficulty: normalizeDifficulty(run?.difficulty || run?.diamonds)
+        }))
+      : []
+  }));
   if (typeof obj.theme === 'string' && THEMES.includes(obj.theme)) db.theme = obj.theme;
   db.backlog = Array.isArray(obj.backlog) ? obj.backlog : [];
   db.backlogArchive = Array.isArray(obj.backlogArchive) ? obj.backlogArchive : [];
