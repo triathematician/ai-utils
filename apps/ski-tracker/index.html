@@ -598,7 +598,7 @@ function cmdEdit(arg1) {
     const totalTime = normalizeDuration(body.querySelector('#edit-trip-total-time').value.trim());
     const downhillTime = normalizeDuration(body.querySelector('#edit-trip-downhill-time').value.trim());
     if (totalTime === null || downhillTime === null) {
-      statusMsg('Time must be HH:MM:SS (or blank).');
+      statusMsg('Total time and downhill time must be HH:MM:SS (or blank).');
       return;
     }
     const target = db.trips.find(tr => tr.id === t.id);
