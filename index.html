@@ -293,13 +293,16 @@ function appendAppLine(app, num, prefs) {
   const s = getStars(app, prefs);
   const stars = '★'.repeat(s) + '☆'.repeat(5 - s);
   const starsTitle = escHtml((STAR_CRITERIA[s] || '') + ' (click to cycle)');
+  const appName = escHtml(app.name);
+  const appLaunchLabel = escHtml(`Launch ${app.name}`);
+  const starsAria = escHtml(`${s} stars, activate to cycle rating`);
   div.innerHTML =
     `<span class="app-num">[${num}]</span>` +
-    `<span class="app-name" role="button" tabindex="0" onclick="launchApp(${num})" onkeydown="handleLaunchKey(event, ${num})">${escHtml(app.name)}</span>` +
+    `<span class="app-name" role="button" tabindex="0" aria-label="${appLaunchLabel}" onclick="launchApp(${num})" onkeydown="handleLaunchKey(event, ${num})">${appName}</span>` +
     `<span class="app-desc">${escHtml(app.desc)}</span>` +
     `<span class="app-cat">${escHtml(app.category)}</span>` +
     `<span class="app-date">${escHtml(app.date)}</span>` +
-    `<span class="app-stars" role="button" tabindex="0" title="${starsTitle}" onclick="cycleStars(${num})" onkeydown="handleStarsKey(event, ${num})">${stars}</span>` +
+    `<span class="app-stars" role="button" tabindex="0" aria-label="${starsAria}" title="${starsTitle}" onclick="cycleStars(${num})" onkeydown="handleStarsKey(event, ${num})">${stars}</span>` +
     `<span class="app-launch" onclick="launchApp(${num})">[ LAUNCH ]</span>`;
   log.appendChild(div);
 }
@@ -361,7 +364,12 @@ function sanitizeText(str) {
 }
 
 function escHtml(str) {
-  return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  return String(str)
+    .replace(/&/g,'&amp;')
+    .replace(/</g,'&lt;')
+    .replace(/>/g,'&gt;')
+    .replace(/"/g,'&quot;')
+    .replace(/'/g,'&#39;');
 }
 
 function downloadBlob(content, filename, type) {
@@ -381,7 +389,7 @@ function showBacklogList() {
   body.innerHTML = backlog.map((b, i) => {
     const bracket = b.done ? '[x]' : '[ ]';
     return `<div style="padding:2px 0"><span data-backlog-idx="${i}" style="cursor:pointer;user-select:none;color:var(--accent)">${bracket}</span> ${i+1}. ${escHtml(b.text)}</div>`;
-  }).join('') + '<div style="margin-top:8px;border-top:1px solid var(--muted);padding-top:6px"><span class="backlog-copy-btn" role="button" tabindex="0" style="cursor:pointer;color:var(--dim);font-size:0.82em;">[C] COPY TO CLIPBOARD</span></div>';
+  }).join('') + '<div style="margin-top:8px;border-top:1px solid var(--muted);padding-top:6px"><span class="backlog-copy-btn" role="button" tabindex="0" aria-label="Copy backlog to clipboard" style="cursor:pointer;color:var(--dim);font-size:0.82em;">[C] COPY TO CLIPBOARD</span></div>';
   body.querySelectorAll('[data-backlog-idx]').forEach(el => {
     el.addEventListener('click', () => {
       const idx = parseInt(el.dataset.backlogIdx);
