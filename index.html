@@ -291,13 +291,27 @@ function appendAppLine(app, num) {
   const starsTitle = escHtml((STAR_CRITERIA[s] || '') + ' (click to cycle)');
   div.innerHTML =
     `<span class="app-num">[${num}]</span>` +
-    `<span class="app-name" onclick="launchApp(${num})">${app.name}</span>` +
+    `<span class="app-name" role="link" tabindex="0" onclick="launchApp(${num})" onkeydown="handleLaunchKey(event, ${num})">${app.name}</span>` +
     `<span class="app-desc">${app.desc}</span>` +
     `<span class="app-cat">${app.category}</span>` +
     `<span class="app-date">${app.date}</span>` +
-    `<span class="app-stars" title="${starsTitle}" onclick="cycleStars(${num})">${stars}</span>` +
+    `<span class="app-stars" role="button" tabindex="0" title="${starsTitle}" onclick="cycleStars(${num})" onkeydown="handleStarsKey(event, ${num})">${stars}</span>` +
     `<span class="app-launch" onclick="launchApp(${num})">[ LAUNCH ]</span>`;
   log.appendChild(div);
+}
+
+function handleLaunchKey(e, num) {
+  if (e.key === 'Enter' || e.key === ' ') {
+    e.preventDefault();
+    launchApp(num);
+  }
+}
+
+function handleStarsKey(e, num) {
+  if (e.key === 'Enter' || e.key === ' ') {
+    e.preventDefault();
+    cycleStars(num);
+  }
 }
 
 function refreshList() {
@@ -377,8 +391,7 @@ function showBacklogList() {
       const p3 = loadPrefs();
       const list = p3.backlog || [];
       const now = todayStr();
-      const txt = '# AI-UTILS BACKLOG — ' + now + '\n\n'
-        + list.map(b => `- ${b.done?'[x]':'[ ]'} ${b.text}`).join('\n') + '\n';
+      const txt = `# AI-UTILS BACKLOG — ${now}\n\n${list.map(b => `- ${b.done ? '[x]' : '[ ]'} ${b.text}`).join('\n')}\n`;
       navigator.clipboard.writeText(txt).then(() => {
         copyBtn.textContent = 'COPIED!';
         setTimeout(() => { copyBtn.textContent = '[C] COPY TO CLIPBOARD'; }, 1500);
