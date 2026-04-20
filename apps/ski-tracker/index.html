@@ -103,7 +103,7 @@ html, body {
   caret-color: var(--accent);
 }
 #console-status { color: var(--dim); font-size: 0.8em; min-width: 180px; text-align: right; white-space: nowrap; }
-.summary-grid { display: grid; grid-template-columns: repeat(4, minmax(0,1fr)); gap: 8px; }
+.summary-grid { display: grid; grid-template-columns: repeat(5, minmax(0,1fr)); gap: 8px; }
 .metric { border: 1px solid var(--muted); padding: 6px 8px; }
 .metric-label { color: var(--dim); font-size: 0.72em; letter-spacing: 1px; }
 .metric-value { color: var(--accent); font-size: 1.2em; }
@@ -147,6 +147,10 @@ html, body {
 .dialog-btn { color: var(--success); cursor: pointer; user-select: none; }
 .dialog-btn.warn { color: var(--warn); }
 .dialog-btn:hover { background: currentColor; color: var(--bg); }
+.difficulty-picker { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; padding: 4px 0; }
+.diff-btn { cursor: pointer; font-size: 1.3em; padding: 1px 5px; border: 1px solid transparent; line-height: 1; user-select: none; }
+.diff-btn.selected { border-color: var(--fg); background: var(--muted); }
+.diff-btn:hover { border-color: var(--dim); }
 </style>
 </head>
 <body>
@@ -176,6 +180,7 @@ html, body {
       <div class="metric"><div class="metric-label">TOTAL RUNS</div><div class="metric-value" id="metric-runs">0</div></div>
       <div class="metric"><div class="metric-label">VERTICAL (FT)</div><div class="metric-value" id="metric-vertical">0</div></div>
       <div class="metric"><div class="metric-label">LOCATIONS</div><div class="metric-value" id="metric-locations">0</div></div>
+      <div class="metric"><div class="metric-label">AVG SPEED (MPH)</div><div class="metric-value" id="metric-avg-speed">—</div></div>
     </div>
     <div class="section-title">TOP DAYS</div>
     <div id="top-days" class="dim">No trips yet. Use /trip.</div>
@@ -214,12 +219,12 @@ const EXPORT_SLUG = 'ski-tracker';
 const THEMES = ['legacy','solar','monk','space','synth','dos','notebook','engineering'];
 
 const DIFFICULTY_OPTIONS = [
-  { value: 'green-circle', label: 'Green circle' },
-  { value: 'blue-square', label: 'Blue square' },
-  { value: 'blue-black', label: 'Blue/black' },
-  { value: 'black-diamond', label: 'Black diamond' },
-  { value: 'double-black-diamond', label: '2 black diamond' },
-  { value: 'triple-black-diamond', label: '3 black diamond' }
+  { value: 'green-circle',         label: 'Green circle',    icon: '●',   iconColor: '#44cc44' },
+  { value: 'blue-square',          label: 'Blue square',     icon: '■',   iconColor: '#4488ff' },
+  { value: 'blue-black',           label: 'Blue/black',      icon: '◆',   iconColor: '#6688cc' },
+  { value: 'black-diamond',        label: 'Black diamond',   icon: '◆',   iconColor: null },
+  { value: 'double-black-diamond', label: '2 black diamond', icon: '◆◆',  iconColor: null },
+  { value: 'triple-black-diamond', label: '3 black diamond', icon: '◆◆◆', iconColor: null }
 ];
 
 function normalizeDifficulty(raw) {
@@ -238,6 +243,36 @@ function normalizeDifficulty(raw) {
 function difficultyLabel(raw) {
   const normalized = normalizeDifficulty(raw);
   return (DIFFICULTY_OPTIONS.find(opt => opt.value === normalized) || DIFFICULTY_OPTIONS[1]).label;
+}
+
+function difficultyIconHTML(value) {
+  const opt = DIFFICULTY_OPTIONS.find(o => o.value === normalizeDifficulty(value)) || DIFFICULTY_OPTIONS[1];
+  const style = opt.iconColor ? ` style="color:${opt.iconColor}"` : '';
+  return `<span${style}>${escHtml(opt.icon)}</span>`;
+}
+
+function buildDifficultyPicker(selectedValue, inputId, pickerId) {
+  const sel = selectedValue || 'blue-square';
+  const hidden = `<input type="hidden" id="${escAttr(inputId)}" value="${escAttr(sel)}">`;
+  const buttons = DIFFICULTY_OPTIONS.map(opt => {
+    const style = opt.iconColor ? ` style="color:${opt.iconColor}"` : '';
+    const isSel = opt.value === sel ? ' selected' : '';
+    return `<span class="diff-btn${isSel}" data-diff-value="${escAttr(opt.value)}" title="${escAttr(opt.label)}"${style}>${escHtml(opt.icon)}</span>`;
+  }).join('');
+  return `<div class="difficulty-picker" id="${escAttr(pickerId)}">${buttons}</div>${hidden}`;
+}
+
+function initDifficultyPicker(pickerId, inputId) {
+  const picker = document.getElementById(pickerId);
+  const hiddenInput = document.getElementById(inputId);
+  if (!picker || !hiddenInput) return;
+  picker.querySelectorAll('.diff-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      picker.querySelectorAll('.diff-btn').forEach(b => b.classList.remove('selected'));
+      btn.classList.add('selected');
+      hiddenInput.value = btn.dataset.diffValue;
+    });
+  });
 }
 
 let db = loadDB();
@@ -426,9 +461,92 @@ function closeOverlay() {
   document.getElementById('help-overlay').classList.remove('visible');
 }
 
+function startTripQA() {
+  const today = todayStr();
+  const questions = [
+    { key: 'date',         prompt: 'TRIP DATE',              hint: `YYYY-MM-DD — Enter for ${today}`,
+      validate: v => { const n = normalizeDate(v); return (v && !n) ? null : (n || today); } },
+    { key: 'location',     prompt: 'LOCATION / RESORT',      hint: 'e.g. Park City', required: true },
+    { key: 'runs',         prompt: 'NUMBER OF RUNS',         hint: 'e.g. 12  (Enter to skip)' },
+    { key: 'verticalFt',   prompt: 'VERTICAL FEET',          hint: 'e.g. 28000  (Enter to skip)' },
+    { key: 'totalTime',    prompt: 'TOTAL TIME ON MOUNTAIN', hint: 'HH:MM:SS  (Enter to skip)',
+      validate: v => { if (!v) return ''; const n = normalizeDuration(v); return n; } },
+    { key: 'downhillTime', prompt: 'DOWNHILL TIME',          hint: 'HH:MM:SS  (Enter to skip)',
+      validate: v => { if (!v) return ''; const n = normalizeDuration(v); return n; } },
+    { key: 'notableRuns',  prompt: 'NOTABLE RUNS',           hint: 'e.g. Daly Chutes  (Enter to skip)' },
+    { key: 'notes',        prompt: 'NOTES',                  hint: 'any notes  (Enter to skip)' }
+  ];
+  const answers = {};
+  let stepIdx = 0;
+
+  const body = document.getElementById('help-body');
+  document.getElementById('help-title').textContent = '◈ NEW TRIP — Q&A';
+  body.style.whiteSpace = 'normal';
+
+  function renderStep() {
+    const q = questions[stepIdx];
+    const prevLines = questions.slice(0, stepIdx).map(pq => {
+      const val = answers[pq.key];
+      const display = val ? `<span class="ok">${escHtml(val)}</span>` : `<span class="dim">—</span>`;
+      return `<div class="line"><span class="dim">${pq.prompt}:</span> ${display}</div>`;
+    }).join('');
+    body.innerHTML = `
+      ${prevLines}
+      <div style="margin-top:${stepIdx ? '8' : '0'}px;padding:4px 0">
+        <div style="color:var(--accent);letter-spacing:1px;margin-bottom:2px">${q.prompt}</div>
+        <div class="dim" style="font-size:0.82em;margin-bottom:4px">${q.hint || ''}</div>
+        <input id="trip-qa-input" style="width:100%;background:transparent;color:var(--fg);border:none;border-bottom:1px solid var(--border);font-family:var(--font);font-size:1.05em;padding:2px 0;outline:none" autocomplete="off" spellcheck="false">
+      </div>
+    `;
+    const qaInput = body.querySelector('#trip-qa-input');
+    qaInput.focus();
+    qaInput.addEventListener('keydown', e => {
+      if (e.key !== 'Enter') return;
+      e.preventDefault();
+      let val = qaInput.value.trim();
+      if (q.validate) {
+        const validated = q.validate(val);
+        if (validated === null) { statusMsg(`Invalid ${q.prompt.toLowerCase()}.`); qaInput.focus(); return; }
+        val = validated;
+      }
+      if (q.required && !val) { statusMsg(`${q.prompt} is required.`); qaInput.focus(); return; }
+      answers[q.key] = val;
+      stepIdx++;
+      if (stepIdx < questions.length) renderStep();
+      else finishTrip();
+    });
+  }
+
+  function finishTrip() {
+    const trip = {
+      id: Date.now() + '_' + Math.random().toString(36).slice(2, 6),
+      date: answers.date || today,
+      location: answers.location || '',
+      runs: Math.max(0, parseInt(answers.runs || '0', 10) || 0),
+      verticalFt: Math.max(0, parseInt(answers.verticalFt || '0', 10) || 0),
+      hours: 0, totalTime: '', downhillTime: '', topSpeed: 0,
+      notableRuns: answers.notableRuns || '',
+      notes: answers.notes || '',
+      runsList: [],
+      createdAt: new Date().toISOString()
+    };
+    trip.totalTime = answers.totalTime || '';
+    trip.downhillTime = answers.downhillTime || '';
+    trip.hours = Math.max(0, durationToHours(trip.totalTime) || 0);
+    db.trips.push(trip);
+    saveDB();
+    render();
+    closeOverlay();
+    statusMsg(`Trip logged: ${trip.date} ${trip.location}`);
+  }
+
+  renderStep();
+  openOverlay();
+}
+
 function cmdTrip(rest) {
   if (!rest) {
-    statusMsg('Usage: /trip YYYY-MM-DD | place | runs | vertical | total hh:mm:ss? | downhill hh:mm:ss? | notable runs?');
+    startTripQA();
     return;
   }
   const trip = {
@@ -542,29 +660,81 @@ function cmdEdit(arg1) {
     <div class="dialog-grid" style="margin-top:8px">
       <div>Run name</div><input id="edit-run-name" placeholder="Name">
       <div>Difficulty</div>
-      <select id="edit-run-difficulty">${DIFFICULTY_OPTIONS.map(opt => `<option value="${opt.value}">${opt.label}</option>`).join('')}</select>
+      ${buildDifficultyPicker('blue-square', 'edit-run-difficulty', 'edit-run-diff-picker')}
       <div>Stars (1-5)</div><input id="edit-run-stars" type="number" min="1" max="5" placeholder="optional">
       <div>Note</div><input id="edit-run-note" placeholder="optional">
     </div>
     <div class="dialog-actions">
       <span class="dialog-btn" id="edit-trip-add-run">[ADD RUN]</span>
+      <span class="dialog-btn warn" id="edit-trip-cancel-run" style="display:none">[CANCEL EDIT]</span>
       <span class="dialog-btn" id="edit-trip-save">[SAVE]</span>
-      <span class="dialog-btn warn" id="edit-trip-delete">[DELETE]</span>
+      <span class="dialog-btn warn" id="edit-trip-delete">[DELETE TRIP]</span>
     </div>
   `;
+  initDifficultyPicker('edit-run-diff-picker', 'edit-run-difficulty');
+
+  let editingRunIdx = -1;
+
+  const resetRunForm = () => {
+    editingRunIdx = -1;
+    body.querySelector('#edit-run-name').value = '';
+    body.querySelector('#edit-run-stars').value = '';
+    body.querySelector('#edit-run-note').value = '';
+    body.querySelector('#edit-trip-add-run').textContent = '[ADD RUN]';
+    body.querySelector('#edit-trip-cancel-run').style.display = 'none';
+    const picker = body.querySelector('#edit-run-diff-picker');
+    const hiddenInput = body.querySelector('#edit-run-difficulty');
+    if (picker && hiddenInput) {
+      hiddenInput.value = 'blue-square';
+      picker.querySelectorAll('.diff-btn').forEach(b => b.classList.toggle('selected', b.dataset.diffValue === 'blue-square'));
+    }
+  };
+
   const refreshRuns = () => {
     const target = db.trips.find(tr => tr.id === t.id);
     const runsList = Array.isArray(target?.runsList) ? target.runsList : [];
     const runsEl = body.querySelector('#edit-trip-runs-list');
-    runsEl.innerHTML = runsList.length
-        ? runsList.map((run, idx) => {
-          const stars = run.stars ? ` · stars:${run.stars}` : '';
-          const note = run.note ? ` · note:${escHtml(run.note)}` : '';
-          return `<div class="line">${idx + 1}. ${escHtml(run.name)} <span class="dim">difficulty:${escHtml(difficultyLabel(run.difficulty))}${stars}${note}</span></div>`;
-        }).join('')
-      : '<span class="dim">No runs logged yet.</span>';
+    if (!runsList.length) { runsEl.innerHTML = '<span class="dim">No runs logged yet.</span>'; return; }
+    runsEl.innerHTML = runsList.map((run, idx) => {
+      const stars = run.stars ? ` · ★${run.stars}` : '';
+      const note = run.note ? ` · ${escHtml(run.note)}` : '';
+      return `<div class="line">${idx + 1}. ${difficultyIconHTML(run.difficulty)} ${escHtml(run.name)} <span class="dim">${escHtml(difficultyLabel(run.difficulty))}${stars}${note}</span> <span class="dialog-btn" data-run-edit="${idx}" style="font-size:0.8em;margin-left:6px">[edit]</span> <span class="dialog-btn warn" data-run-del="${idx}" style="font-size:0.8em">[del]</span></div>`;
+    }).join('');
+    runsEl.querySelectorAll('[data-run-del]').forEach(btn => {
+      btn.onclick = () => {
+        const runIdx = parseInt(btn.dataset.runDel, 10);
+        const target = db.trips.find(tr => tr.id === t.id);
+        target.runsList.splice(runIdx, 1);
+        saveDB(); render(); resetRunForm(); refreshRuns();
+        statusMsg('Run deleted.');
+      };
+    });
+    runsEl.querySelectorAll('[data-run-edit]').forEach(btn => {
+      btn.onclick = () => {
+        const runIdx = parseInt(btn.dataset.runEdit, 10);
+        const target = db.trips.find(tr => tr.id === t.id);
+        const run = target.runsList[runIdx];
+        if (!run) return;
+        editingRunIdx = runIdx;
+        body.querySelector('#edit-run-name').value = run.name || '';
+        body.querySelector('#edit-run-stars').value = run.stars != null ? run.stars : '';
+        body.querySelector('#edit-run-note').value = run.note || '';
+        body.querySelector('#edit-trip-add-run').textContent = '[UPDATE RUN]';
+        body.querySelector('#edit-trip-cancel-run').style.display = '';
+        const picker = body.querySelector('#edit-run-diff-picker');
+        const hiddenInput = body.querySelector('#edit-run-difficulty');
+        if (picker && hiddenInput) {
+          hiddenInput.value = run.difficulty || 'blue-square';
+          picker.querySelectorAll('.diff-btn').forEach(b => b.classList.toggle('selected', b.dataset.diffValue === (run.difficulty || 'blue-square')));
+        }
+        body.querySelector('#edit-run-name').focus();
+      };
+    });
   };
   refreshRuns();
+
+  body.querySelector('#edit-trip-cancel-run').onclick = resetRunForm;
+
   body.querySelector('#edit-trip-add-run').onclick = () => {
     const name = body.querySelector('#edit-run-name').value.trim();
     const difficulty = normalizeDifficulty(body.querySelector('#edit-run-difficulty').value);
@@ -575,22 +745,22 @@ function cmdEdit(arg1) {
     if (!name) { statusMsg('Run name is required.'); return; }
     const target = db.trips.find(tr => tr.id === t.id);
     if (!Array.isArray(target.runsList)) target.runsList = [];
-    target.runsList.push({
-      id: Date.now() + '_' + Math.random().toString(36).slice(2, 6),
-      name,
-      difficulty,
-      stars: starsNum,
-      note,
-      createdAt: new Date().toISOString()
-    });
-    saveDB();
-    render();
-    body.querySelector('#edit-run-name').value = '';
-    body.querySelector('#edit-run-stars').value = '';
-    body.querySelector('#edit-run-note').value = '';
-    refreshRuns();
-    statusMsg(`Run added to #${lookup.n}: ${name}`);
+    if (editingRunIdx >= 0 && target.runsList[editingRunIdx]) {
+      const updated = { ...target.runsList[editingRunIdx], name, difficulty, stars: starsNum, note };
+      target.runsList[editingRunIdx] = updated;
+      saveDB(); render(); resetRunForm(); refreshRuns();
+      statusMsg(`Run ${editingRunIdx + 1} updated.`);
+    } else {
+      target.runsList.push({
+        id: Date.now() + '_' + Math.random().toString(36).slice(2, 6),
+        name, difficulty, stars: starsNum, note,
+        createdAt: new Date().toISOString()
+      });
+      saveDB(); render(); resetRunForm(); refreshRuns();
+      statusMsg(`Run added to #${lookup.n}: ${name}`);
+    }
   };
+
   body.querySelector('#edit-trip-save').onclick = () => {
     const date = normalizeDate(body.querySelector('#edit-trip-date').value.trim());
     const location = body.querySelector('#edit-trip-location').value.trim();
@@ -617,6 +787,7 @@ function cmdEdit(arg1) {
     render();
     statusMsg(`Updated trip #${lookup.n}.`);
   };
+
   body.querySelector('#edit-trip-delete').onclick = () => {
     db.trips = db.trips.filter(tr => tr.id !== t.id);
     saveDB();
@@ -624,6 +795,7 @@ function cmdEdit(arg1) {
     render();
     statusMsg(`Deleted #${lookup.n}: ${t.date} ${t.location}`);
   };
+
   openOverlay();
 }
 
@@ -782,11 +954,16 @@ function render() {
   const totalRuns = trips.reduce((sum, t) => sum + Number(t.runs || 0), 0);
   const totalVertical = trips.reduce((sum, t) => sum + Number(t.verticalFt || 0), 0);
   const locations = new Set(trips.map(t => t.location)).size;
+  const tripsWithSpeed = trips.filter(t => Number(t.topSpeed || 0) > 0);
+  const avgSpeed = tripsWithSpeed.length
+    ? tripsWithSpeed.reduce((sum, t) => sum + Number(t.topSpeed), 0) / tripsWithSpeed.length
+    : null;
 
   document.getElementById('metric-trips').textContent = String(trips.length);
   document.getElementById('metric-runs').textContent = String(totalRuns);
   document.getElementById('metric-vertical').textContent = String(totalVertical);
   document.getElementById('metric-locations').textContent = String(locations);
+  document.getElementById('metric-avg-speed').textContent = avgSpeed != null ? avgSpeed.toFixed(1) : '—';
 
   const tripList = document.getElementById('trip-list');
   tripList.innerHTML = trips.length
