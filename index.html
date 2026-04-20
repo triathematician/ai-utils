@@ -163,15 +163,35 @@ const STAR_CRITERIA = {
   5: '5★ — indispensable'
 };
 
-APPS.sort((a, b) => a.date.localeCompare(b.date));
-
 const THEMES = ['legacy','solar','monk','space','synth','dos'];
 const STORAGE_KEY = 'ai_utils_launcher';
+const SORT_MODES = ['date', 'stars', 'type', 'name'];
+const DEFAULT_SORT_MODE = 'date';
 
 function loadPrefs() {
   try { return JSON.parse(localStorage.getItem(STORAGE_KEY)) || {}; } catch { return {}; }
 }
 function savePrefs(p) { localStorage.setItem(STORAGE_KEY, JSON.stringify(p)); }
+function getSortMode(prefs = loadPrefs()) {
+  const sort = String(prefs.sort || DEFAULT_SORT_MODE).toLowerCase();
+  return SORT_MODES.includes(sort) ? sort : DEFAULT_SORT_MODE;
+}
+function getStars(app, prefs = loadPrefs()) {
+  const raw = prefs.starsByPath && prefs.starsByPath[app.path];
+  const stars = parseInt(raw, 10);
+  return Number.isFinite(stars) && stars >= 1 && stars <= 5 ? stars : 1;
+}
+function sortedApps(prefs = loadPrefs()) {
+  const sort = getSortMode(prefs);
+  const list = APPS.slice();
+  list.sort((a, b) => {
+    if (sort === 'stars') return getStars(b, prefs) - getStars(a, prefs) || a.name.localeCompare(b.name);
+    if (sort === 'type') return a.category.localeCompare(b.category) || a.name.localeCompare(b.name);
+    if (sort === 'name') return a.name.localeCompare(b.name);
+    return a.date.localeCompare(b.date) || a.name.localeCompare(b.name);
+  });
+  return list;
+}
 
 function applyTheme(name) {
   if (!name) {
@@ -194,8 +214,9 @@ function statusMsg(msg) {
 function launchApp(indexOrName) {
   let app;
   const n = parseInt(indexOrName);
-  if (!isNaN(n) && n >= 1 && n <= APPS.length) {
-    app = APPS[n - 1];
+  if (!isNaN(n)) {
+    const list = sortedApps();
+    if (n >= 1 && n <= list.length) app = list[n - 1];
   } else {
     const q = String(indexOrName).toLowerCase();
     app = APPS.find(a => a.name.toLowerCase().includes(q));
@@ -223,6 +244,8 @@ function handleCmd(raw) {
   if (cmd === '/list')    return printList();
   if (cmd === '/theme')   return applyTheme(arg);
   if (cmd === '/launch')  return launchApp(arg);
+  if (cmd === '/sort')    return applySort(arg);
+  if (cmd === '/boot')    return runBoot();
   if (cmd === '/backlog') { handleBacklog(raw.slice('/backlog'.length).trim()); return; }
   statusMsg('Unknown: ' + cmd + '. Type /help');
 }
@@ -232,6 +255,8 @@ function showHelp() {
   appendLine('/list             reprint app list', 'log-sys');
   appendLine('/launch <n|name>  open app in new window', 'log-sys');
   appendLine('/theme [name]     legacy | solar | monk | space | synth | dos  (random if omitted)', 'log-sys');
+  appendLine('/sort [mode]      date | stars | type | name', 'log-sys');
+  appendLine('/boot             reboot launcher startup sequence', 'log-sys');
   appendLine('/backlog [text]         add item to backlog', 'log-sys');
   appendLine('/backlog list           show all backlog items', 'log-sys');
   appendLine('/backlog done [n]       toggle item #n as done/open', 'log-sys');
@@ -243,7 +268,8 @@ function showHelp() {
 }
 
 function printList() {
-  APPS.forEach((app, i) => appendAppLine(app, i + 1));
+  const list = sortedApps();
+  list.forEach((app, i) => appendAppLine(app, i + 1));
   scrollLog();
 }
 
@@ -260,18 +286,52 @@ function appendLine(text, cls) {
 function appendAppLine(app, num) {
   const div = document.createElement('div');
   div.className = 'app-line';
-  const s = app.stars ? Math.max(1, Math.min(5, app.stars)) : 0;
-  const stars = s ? '★'.repeat(s) + '☆'.repeat(5 - s) : '';
-  const starsTitle = s ? escHtml(STAR_CRITERIA[s] || '') : '';
+  const s = getStars(app);
+  const stars = '★'.repeat(s) + '☆'.repeat(5 - s);
+  const starsTitle = escHtml((STAR_CRITERIA[s] || '') + ' (click to cycle)');
   div.innerHTML =
     `<span class="app-num">[${num}]</span>` +
-    `<span class="app-name">${app.name}</span>` +
+    `<span class="app-name" onclick="launchApp(${num})">${app.name}</span>` +
     `<span class="app-desc">${app.desc}</span>` +
     `<span class="app-cat">${app.category}</span>` +
     `<span class="app-date">${app.date}</span>` +
-    (stars ? `<span class="app-stars" title="${starsTitle}">${stars}</span>` : '') +
+    `<span class="app-stars" title="${starsTitle}" onclick="cycleStars(${num})">${stars}</span>` +
     `<span class="app-launch" onclick="launchApp(${num})">[ LAUNCH ]</span>`;
   log.appendChild(div);
+}
+
+function refreshList() {
+  const prefs = loadPrefs();
+  log.innerHTML = '';
+  appendLine('AI-UTILS LAUNCHER v1.0', 'log-ready');
+  appendLine(`REFRESHED MODULE LIST (SORT: ${getSortMode(prefs).toUpperCase()})`, 'log-sys');
+  appendLine('', null);
+  printList();
+}
+
+function cycleStars(num) {
+  const prefs = loadPrefs();
+  const list = sortedApps(prefs);
+  const app = list[num - 1];
+  if (!app) return;
+  if (!prefs.starsByPath) prefs.starsByPath = {};
+  const current = getStars(app, prefs);
+  const next = current >= 5 ? 1 : current + 1;
+  prefs.starsByPath[app.path] = next;
+  savePrefs(prefs);
+  refreshList();
+  statusMsg(`${app.name}: ${next} star${next === 1 ? '' : 's'}`);
+}
+
+function applySort(arg) {
+  if (!arg) return statusMsg('Current sort: ' + getSortMode(loadPrefs()));
+  const mode = String(arg).toLowerCase();
+  if (!SORT_MODES.includes(mode)) return statusMsg('Sort must be: date | stars | type | name');
+  const p = loadPrefs();
+  p.sort = mode;
+  savePrefs(p);
+  refreshList();
+  statusMsg('Sort: ' + mode.toUpperCase());
 }
 
 function scrollLog() { log.scrollTop = log.scrollHeight; }
@@ -300,7 +360,7 @@ function showBacklogList() {
   body.innerHTML = backlog.map((b, i) => {
     const bracket = b.done ? '[x]' : '[ ]';
     return `<div style="padding:2px 0"><span data-backlog-idx="${i}" style="cursor:pointer;user-select:none;color:var(--accent)">${bracket}</span> ${i+1}. ${escHtml(b.text)}</div>`;
-  }).join('');
+  }).join('') + '<div style="margin-top:8px;border-top:1px solid var(--muted);padding-top:6px"><span class="backlog-copy-btn" style="cursor:pointer;color:var(--dim);font-size:0.82em;">[C] COPY TO CLIPBOARD</span></div>';
   body.querySelectorAll('[data-backlog-idx]').forEach(el => {
     el.addEventListener('click', () => {
       const idx = parseInt(el.dataset.backlogIdx);
@@ -311,6 +371,23 @@ function showBacklogList() {
       showBacklogList();
     });
   });
+  const copyBtn = body.querySelector('.backlog-copy-btn');
+  if (copyBtn) {
+    copyBtn.addEventListener('click', () => {
+      const p3 = loadPrefs();
+      const list = p3.backlog || [];
+      const now = todayStr();
+      const txt = '# AI-UTILS BACKLOG — ' + now + '\n\n'
+        + list.map(b => `- ${b.done?'[x]':'[ ]'} ${b.text}`).join('\n') + '\n';
+      navigator.clipboard.writeText(txt).then(() => {
+        copyBtn.textContent = 'COPIED!';
+        setTimeout(() => { copyBtn.textContent = '[C] COPY TO CLIPBOARD'; }, 1500);
+      }).catch(() => {
+        copyBtn.textContent = 'COPY FAILED';
+        setTimeout(() => { copyBtn.textContent = '[C] COPY TO CLIPBOARD'; }, 1500);
+      });
+    });
+  }
   const overlay = document.getElementById('help-overlay');
   overlay.classList.add('visible');
 }
@@ -398,27 +475,39 @@ document.addEventListener('keydown', e => {
   if (e.key === 'Escape') document.getElementById('help-overlay').classList.remove('visible');
 });
 
+let bootRunId = 0;
 async function runBoot() {
+  const runId = ++bootRunId;
+  input.disabled = true;
+  log.innerHTML = '';
   appendLine('AI-UTILS LAUNCHER v1.0', 'log-ready');
   await delay(120);
+  if (runId !== bootRunId) return;
   appendLine('INITIALIZING...', 'log-sys');
   await delay(200);
+  if (runId !== bootRunId) return;
   appendLine('SCANNING MODULES...', 'log-sys');
   await delay(800);
+  if (runId !== bootRunId) return;
   appendLine('', null);
   appendLine('...', 'log-sys');
   await delay(800);
+  if (runId !== bootRunId) return;
   appendLine('...', 'log-sys');
   await delay(800);
-  appendLine(APPS.length + ' MODULES DETECTED:', 'log-ok');
+  if (runId !== bootRunId) return;
+  const list = sortedApps();
+  appendLine(list.length + ' MODULES DETECTED:', 'log-ok');
 
-  for (let i = 0; i < APPS.length; i++) {
+  for (let i = 0; i < list.length; i++) {
     await delay(180);
-    appendAppLine(APPS[i], i + 1);
+    if (runId !== bootRunId) return;
+    appendAppLine(list[i], i + 1);
     scrollLog();
   }
 
   await delay(300);
+  if (runId !== bootRunId) return;
   appendLine('', null);
   appendLine('ALL MODULES ONLINE. Type /help for commands.', 'log-ready');
   scrollLog();
