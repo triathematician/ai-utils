@@ -172,16 +172,19 @@ function loadPrefs() {
   try { return JSON.parse(localStorage.getItem(STORAGE_KEY)) || {}; } catch { return {}; }
 }
 function savePrefs(p) { localStorage.setItem(STORAGE_KEY, JSON.stringify(p)); }
-function getSortMode(prefs = loadPrefs()) {
+function getSortMode(prefs) {
+  prefs = prefs || loadPrefs();
   const sort = String(prefs.sort || DEFAULT_SORT_MODE).toLowerCase();
   return SORT_MODES.includes(sort) ? sort : DEFAULT_SORT_MODE;
 }
-function getStars(app, prefs = loadPrefs()) {
+function getStars(app, prefs) {
+  prefs = prefs || loadPrefs();
   const raw = prefs.starsByPath && prefs.starsByPath[app.path];
   const stars = parseInt(raw, 10);
   return Number.isFinite(stars) && stars >= 1 && stars <= 5 ? stars : 1;
 }
-function sortedApps(prefs = loadPrefs()) {
+function sortedApps(prefs) {
+  prefs = prefs || loadPrefs();
   const sort = getSortMode(prefs);
   const list = APPS.slice();
   list.sort((a, b) => {
@@ -268,8 +271,9 @@ function showHelp() {
 }
 
 function printList() {
-  const list = sortedApps();
-  list.forEach((app, i) => appendAppLine(app, i + 1));
+  const prefs = loadPrefs();
+  const list = sortedApps(prefs);
+  list.forEach((app, i) => appendAppLine(app, i + 1, prefs));
   scrollLog();
 }
 
@@ -283,18 +287,18 @@ function appendLine(text, cls) {
   return div;
 }
 
-function appendAppLine(app, num) {
+function appendAppLine(app, num, prefs) {
   const div = document.createElement('div');
   div.className = 'app-line';
-  const s = getStars(app);
+  const s = getStars(app, prefs);
   const stars = '★'.repeat(s) + '☆'.repeat(5 - s);
   const starsTitle = escHtml((STAR_CRITERIA[s] || '') + ' (click to cycle)');
   div.innerHTML =
     `<span class="app-num">[${num}]</span>` +
-    `<span class="app-name" role="link" tabindex="0" onclick="launchApp(${num})" onkeydown="handleLaunchKey(event, ${num})">${app.name}</span>` +
-    `<span class="app-desc">${app.desc}</span>` +
-    `<span class="app-cat">${app.category}</span>` +
-    `<span class="app-date">${app.date}</span>` +
+    `<span class="app-name" role="button" tabindex="0" onclick="launchApp(${num})" onkeydown="handleLaunchKey(event, ${num})">${escHtml(app.name)}</span>` +
+    `<span class="app-desc">${escHtml(app.desc)}</span>` +
+    `<span class="app-cat">${escHtml(app.category)}</span>` +
+    `<span class="app-date">${escHtml(app.date)}</span>` +
     `<span class="app-stars" role="button" tabindex="0" title="${starsTitle}" onclick="cycleStars(${num})" onkeydown="handleStarsKey(event, ${num})">${stars}</span>` +
     `<span class="app-launch" onclick="launchApp(${num})">[ LAUNCH ]</span>`;
   log.appendChild(div);
@@ -352,6 +356,9 @@ function scrollLog() { log.scrollTop = log.scrollHeight; }
 function delay(ms) { return new Promise(r => setTimeout(r, ms)); }
 
 function todayStr() { return new Date().toISOString().slice(0,10); }
+function sanitizeText(str) {
+  return String(str).replace(/\r\n?/g, '\n').replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F]/g, '');
+}
 
 function escHtml(str) {
   return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
@@ -374,7 +381,7 @@ function showBacklogList() {
   body.innerHTML = backlog.map((b, i) => {
     const bracket = b.done ? '[x]' : '[ ]';
     return `<div style="padding:2px 0"><span data-backlog-idx="${i}" style="cursor:pointer;user-select:none;color:var(--accent)">${bracket}</span> ${i+1}. ${escHtml(b.text)}</div>`;
-  }).join('') + '<div style="margin-top:8px;border-top:1px solid var(--muted);padding-top:6px"><span class="backlog-copy-btn" style="cursor:pointer;color:var(--dim);font-size:0.82em;">[C] COPY TO CLIPBOARD</span></div>';
+  }).join('') + '<div style="margin-top:8px;border-top:1px solid var(--muted);padding-top:6px"><span class="backlog-copy-btn" role="button" tabindex="0" style="cursor:pointer;color:var(--dim);font-size:0.82em;">[C] COPY TO CLIPBOARD</span></div>';
   body.querySelectorAll('[data-backlog-idx]').forEach(el => {
     el.addEventListener('click', () => {
       const idx = parseInt(el.dataset.backlogIdx);
@@ -387,11 +394,11 @@ function showBacklogList() {
   });
   const copyBtn = body.querySelector('.backlog-copy-btn');
   if (copyBtn) {
-    copyBtn.addEventListener('click', () => {
+    const copy = () => {
       const p3 = loadPrefs();
       const list = p3.backlog || [];
       const now = todayStr();
-      const txt = `# AI-UTILS BACKLOG — ${now}\n\n${list.map(b => `- ${b.done ? '[x]' : '[ ]'} ${b.text}`).join('\n')}\n`;
+      const txt = `# AI-UTILS BACKLOG — ${now}\n\n${list.map(b => `- ${b.done ? '[x]' : '[ ]'} ${sanitizeText(b.text)}`).join('\n')}\n`;
       navigator.clipboard.writeText(txt).then(() => {
         copyBtn.textContent = 'COPIED!';
         setTimeout(() => { copyBtn.textContent = '[C] COPY TO CLIPBOARD'; }, 1500);
@@ -399,6 +406,13 @@ function showBacklogList() {
         copyBtn.textContent = 'COPY FAILED';
         setTimeout(() => { copyBtn.textContent = '[C] COPY TO CLIPBOARD'; }, 1500);
       });
+    };
+    copyBtn.addEventListener('click', copy);
+    copyBtn.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        copy();
+      }
     });
   }
   const overlay = document.getElementById('help-overlay');
@@ -509,13 +523,14 @@ async function runBoot() {
   appendLine('...', 'log-sys');
   await delay(800);
   if (runId !== bootRunId) return;
-  const list = sortedApps();
+  const prefs = loadPrefs();
+  const list = sortedApps(prefs);
   appendLine(list.length + ' MODULES DETECTED:', 'log-ok');
 
   for (let i = 0; i < list.length; i++) {
     await delay(180);
     if (runId !== bootRunId) return;
-    appendAppLine(list[i], i + 1);
+    appendAppLine(list[i], i + 1, prefs);
     scrollLog();
   }
 
