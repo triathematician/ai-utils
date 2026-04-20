@@ -308,14 +308,14 @@ function appendAppLine(app, num, prefs) {
 }
 
 function handleLaunchKey(e, num) {
-  if (e.key === 'Enter' || e.key === ' ') {
+  if (e.key === 'Enter' || e.code === 'Space') {
     e.preventDefault();
     launchApp(num);
   }
 }
 
 function handleStarsKey(e, num) {
-  if (e.key === 'Enter' || e.key === ' ') {
+  if (e.key === 'Enter' || e.code === 'Space') {
     e.preventDefault();
     cycleStars(num);
   }
@@ -359,7 +359,7 @@ function scrollLog() { log.scrollTop = log.scrollHeight; }
 function delay(ms) { return new Promise(r => setTimeout(r, ms)); }
 
 function todayStr() { return new Date().toISOString().slice(0,10); }
-function sanitizeText(str) {
+function normalizeClipboardText(str) {
   return String(str).replace(/\r\n?/g, '\n').replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F]/g, '');
 }
 
@@ -406,7 +406,7 @@ function showBacklogList() {
       const p3 = loadPrefs();
       const list = p3.backlog || [];
       const now = todayStr();
-      const txt = `# AI-UTILS BACKLOG — ${now}\n\n${list.map(b => `- ${b.done ? '[x]' : '[ ]'} ${sanitizeText(b.text)}`).join('\n')}\n`;
+      const txt = `# AI-UTILS BACKLOG — ${now}\n\n${list.map(b => `- ${b.done ? '[x]' : '[ ]'} ${normalizeClipboardText(b.text)}`).join('\n')}\n`;
       navigator.clipboard.writeText(txt).then(() => {
         copyBtn.textContent = 'COPIED!';
         setTimeout(() => { copyBtn.textContent = '[C] COPY TO CLIPBOARD'; }, 1500);
@@ -417,7 +417,7 @@ function showBacklogList() {
     };
     copyBtn.addEventListener('click', copy);
     copyBtn.addEventListener('keydown', (e) => {
-      if (e.key === 'Enter' || e.key === ' ') {
+      if (e.key === 'Enter' || e.code === 'Space') {
         e.preventDefault();
         copy();
       }
