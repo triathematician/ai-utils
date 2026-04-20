@@ -103,7 +103,7 @@ html, body {
   caret-color: var(--accent);
 }
 #console-status { color: var(--dim); font-size: 0.8em; min-width: 180px; text-align: right; white-space: nowrap; }
-.summary-grid { display: grid; grid-template-columns: repeat(5, minmax(0,1fr)); gap: 8px; }
+.summary-grid { display: grid; grid-template-columns: repeat(6, minmax(0,1fr)); gap: 8px; }
 .metric { border: 1px solid var(--muted); padding: 6px 8px; }
 .metric-label { color: var(--dim); font-size: 0.72em; letter-spacing: 1px; }
 .metric-value { color: var(--accent); font-size: 1.2em; }
@@ -151,6 +151,29 @@ html, body {
 .diff-btn { cursor: pointer; font-size: 1.3em; padding: 1px 5px; border: 1px solid transparent; line-height: 1; user-select: none; }
 .diff-btn.selected { border-color: var(--fg); background: var(--muted); }
 .diff-btn:hover { border-color: var(--dim); }
+#trip-boot {
+  position: fixed; inset: 0; background: var(--bg); z-index: 200;
+  display: flex; flex-direction: column; padding: 20px 24px 0; overflow: hidden;
+}
+#trip-boot-log {
+  flex: 1; overflow-y: auto; overflow-x: hidden; font-size: 0.95em; padding-bottom: 8px;
+}
+#trip-boot-console {
+  display: flex; align-items: center; gap: 8px;
+  padding: 10px 0 14px; border-top: 1px solid var(--muted); flex-shrink: 0;
+}
+#trip-boot-prompt { color: var(--accent); white-space: nowrap; }
+#trip-boot-input {
+  flex: 1; background: transparent; border: none; outline: none;
+  color: var(--fg); font-family: var(--font); font-size: var(--font-size); caret-color: var(--accent);
+}
+.tbl { padding: 1px 0; }
+.tbl.sys  { color: var(--dim); }
+.tbl.ask  { color: var(--accent); margin-top: 8px; letter-spacing: 1px; }
+.tbl.ans  { color: var(--fg); padding-left: 16px; }
+.tbl.ok   { color: var(--success); }
+.tbl.warn { color: var(--warn); }
+.tbl.sep  { color: var(--muted); }
 </style>
 </head>
 <body>
@@ -181,6 +204,7 @@ html, body {
       <div class="metric"><div class="metric-label">VERTICAL (FT)</div><div class="metric-value" id="metric-vertical">0</div></div>
       <div class="metric"><div class="metric-label">LOCATIONS</div><div class="metric-value" id="metric-locations">0</div></div>
       <div class="metric"><div class="metric-label">AVG SPEED (MPH)</div><div class="metric-value" id="metric-avg-speed">—</div></div>
+      <div class="metric"><div class="metric-label">MAX SPEED (MPH)</div><div class="metric-value" id="metric-max-speed">—</div></div>
     </div>
     <div class="section-title">TOP DAYS</div>
     <div id="top-days" class="dim">No trips yet. Use /trip.</div>
@@ -210,6 +234,14 @@ html, body {
     <div id="help-title"></div>
     <div id="help-body"></div>
     <span id="help-close">[ESC] CLOSE</span>
+  </div>
+</div>
+
+<div id="trip-boot" style="display:none">
+  <div id="trip-boot-log"></div>
+  <div id="trip-boot-console">
+    <span id="trip-boot-prompt">SKI&gt;</span>
+    <input type="text" id="trip-boot-input" autocomplete="off" spellcheck="false">
   </div>
 </div>
 
@@ -461,60 +493,70 @@ function closeOverlay() {
   document.getElementById('help-overlay').classList.remove('visible');
 }
 
-function startTripQA() {
+function tbl(type, text) {
+  const el = document.createElement('div');
+  el.className = 'tbl ' + type;
+  el.textContent = text;
+  document.getElementById('trip-boot-log').appendChild(el);
+  el.scrollIntoView({ block: 'end' });
+}
+
+function showTripBoot() {
+  document.getElementById('trip-boot').style.display = 'flex';
+  document.getElementById('trip-boot-input').focus();
+}
+
+function hideTripBoot() {
+  document.getElementById('trip-boot').style.display = 'none';
+  document.getElementById('trip-boot-log').innerHTML = '';
+  input.focus();
+}
+
+function startTripBoot() {
   const today = todayStr();
-  const questions = [
-    { key: 'date',         prompt: 'TRIP DATE',              hint: `YYYY-MM-DD — Enter for ${today}`,
+  const steps = [
+    { key: 'date',         ask: '◈ TRIP DATE',              sys: `YYYY-MM-DD — press Enter for ${today}`,
       validate: v => { const n = normalizeDate(v); return (v && !n) ? null : (n || today); } },
-    { key: 'location',     prompt: 'LOCATION / RESORT',      hint: 'e.g. Park City', required: true },
-    { key: 'runs',         prompt: 'NUMBER OF RUNS',         hint: 'e.g. 12  (Enter to skip)' },
-    { key: 'verticalFt',   prompt: 'VERTICAL FEET',          hint: 'e.g. 28000  (Enter to skip)' },
-    { key: 'totalTime',    prompt: 'TOTAL TIME ON MOUNTAIN', hint: 'HH:MM:SS  (Enter to skip)',
+    { key: 'location',     ask: '◈ LOCATION / RESORT',      sys: 'required — e.g. Park City', required: true },
+    { key: 'runs',         ask: '◈ NUMBER OF RUNS',         sys: 'e.g. 12 — press Enter to skip' },
+    { key: 'verticalFt',   ask: '◈ VERTICAL FEET',          sys: 'e.g. 28000 — press Enter to skip' },
+    { key: 'totalTime',    ask: '◈ TOTAL TIME ON MOUNTAIN', sys: 'HH:MM:SS — press Enter to skip',
       validate: v => { if (!v) return ''; const n = normalizeDuration(v); return n; } },
-    { key: 'downhillTime', prompt: 'DOWNHILL TIME',          hint: 'HH:MM:SS  (Enter to skip)',
+    { key: 'downhillTime', ask: '◈ DOWNHILL TIME',          sys: 'HH:MM:SS — press Enter to skip',
       validate: v => { if (!v) return ''; const n = normalizeDuration(v); return n; } },
-    { key: 'notableRuns',  prompt: 'NOTABLE RUNS',           hint: 'e.g. Daly Chutes  (Enter to skip)' },
-    { key: 'notes',        prompt: 'NOTES',                  hint: 'any notes  (Enter to skip)' }
+    { key: 'notableRuns',  ask: '◈ NOTABLE RUNS',           sys: 'e.g. Daly Chutes — press Enter to skip' },
+    { key: 'notes',        ask: '◈ NOTES',                  sys: 'any notes — press Enter to skip' }
   ];
   const answers = {};
   let stepIdx = 0;
 
-  const body = document.getElementById('help-body');
-  document.getElementById('help-title').textContent = '◈ NEW TRIP — Q&A';
-  body.style.whiteSpace = 'normal';
+  showTripBoot();
+  tbl('sep', '════════════════════════════════════════════════════════');
+  tbl('sys', `NEW TRIP — ${new Date().toDateString()}`);
+  tbl('sep', '════════════════════════════════════════════════════════');
 
-  function renderStep() {
-    const q = questions[stepIdx];
-    const prevLines = questions.slice(0, stepIdx).map(pq => {
-      const val = answers[pq.key];
-      const display = val ? `<span class="ok">${escHtml(val)}</span>` : `<span class="dim">—</span>`;
-      return `<div class="line"><span class="dim">${pq.prompt}:</span> ${display}</div>`;
-    }).join('');
-    body.innerHTML = `
-      ${prevLines}
-      <div style="margin-top:${stepIdx ? '8' : '0'}px;padding:4px 0">
-        <div style="color:var(--accent);letter-spacing:1px;margin-bottom:2px">${q.prompt}</div>
-        <div class="dim" style="font-size:0.82em;margin-bottom:4px">${q.hint || ''}</div>
-        <input id="trip-qa-input" style="width:100%;background:transparent;color:var(--fg);border:none;border-bottom:1px solid var(--border);font-family:var(--font);font-size:1.05em;padding:2px 0;outline:none" autocomplete="off" spellcheck="false">
-      </div>
-    `;
-    const qaInput = body.querySelector('#trip-qa-input');
-    qaInput.focus();
-    qaInput.addEventListener('keydown', e => {
-      if (e.key !== 'Enter') return;
-      e.preventDefault();
-      let val = qaInput.value.trim();
-      if (q.validate) {
-        const validated = q.validate(val);
-        if (validated === null) { statusMsg(`Invalid ${q.prompt.toLowerCase()}.`); qaInput.focus(); return; }
-        val = validated;
-      }
-      if (q.required && !val) { statusMsg(`${q.prompt} is required.`); qaInput.focus(); return; }
-      answers[q.key] = val;
-      stepIdx++;
-      if (stepIdx < questions.length) renderStep();
-      else finishTrip();
-    });
+  const bootInput = document.getElementById('trip-boot-input');
+
+  function askStep() {
+    const s = steps[stepIdx];
+    tbl('ask', s.ask);
+    tbl('sys', '  ' + s.sys);
+  }
+
+  function handleInput(raw) {
+    const s = steps[stepIdx];
+    let val = raw.trim();
+    if (s.validate) {
+      const validated = s.validate(val);
+      if (validated === null) { tbl('warn', '  ⚠ Invalid format — try again.'); return; }
+      val = validated;
+    }
+    if (s.required && !val) { tbl('warn', '  ⚠ Required — try again.'); return; }
+    answers[s.key] = val;
+    tbl('ans', '> ' + (val || '(skip)'));
+    stepIdx++;
+    if (stepIdx < steps.length) askStep();
+    else finishTrip();
   }
 
   function finishTrip() {
@@ -524,7 +566,7 @@ function startTripQA() {
       location: answers.location || '',
       runs: Math.max(0, parseInt(answers.runs || '0', 10) || 0),
       verticalFt: Math.max(0, parseInt(answers.verticalFt || '0', 10) || 0),
-      hours: 0, totalTime: '', downhillTime: '', topSpeed: 0,
+      hours: 0, totalTime: '', downhillTime: '', topSpeed: 0, avgSpeed: 0,
       notableRuns: answers.notableRuns || '',
       notes: answers.notes || '',
       runsList: [],
@@ -536,17 +578,34 @@ function startTripQA() {
     db.trips.push(trip);
     saveDB();
     render();
-    closeOverlay();
-    statusMsg(`Trip logged: ${trip.date} ${trip.location}`);
+    tbl('sep', '════════════════════════════════════════════════════════');
+    tbl('ok',  `✓ TRIP LOGGED — ${trip.date}  ${trip.location}`);
+    tbl('sep', '════════════════════════════════════════════════════════');
+    bootInput.removeEventListener('keydown', onKey);
+    setTimeout(hideTripBoot, 900);
   }
 
-  renderStep();
-  openOverlay();
+  function onKey(e) {
+    if (e.key === 'Escape') {
+      bootInput.removeEventListener('keydown', onKey);
+      tbl('warn', '(cancelled)');
+      setTimeout(hideTripBoot, 400);
+      return;
+    }
+    if (e.key === 'Enter') {
+      const val = bootInput.value;
+      bootInput.value = '';
+      handleInput(val);
+    }
+  }
+  bootInput.addEventListener('keydown', onKey);
+
+  askStep();
 }
 
 function cmdTrip(rest) {
   if (!rest) {
-    startTripQA();
+    startTripBoot();
     return;
   }
   const trip = {
@@ -652,10 +711,11 @@ function cmdEdit(arg1) {
       <div>Total time</div><input id="edit-trip-total-time" placeholder="HH:MM:SS (optional)" value="${escAttr(t.totalTime || hoursToDuration(t.hours || 0) || '')}">
       <div>Downhill time</div><input id="edit-trip-downhill-time" placeholder="HH:MM:SS (optional)" value="${escAttr(t.downhillTime || '')}">
       <div>Top speed (mph)</div><input id="edit-trip-speed" type="number" min="0" step="0.1" value="${Number(t.topSpeed || 0)}">
+      <div>Avg speed (mph)</div><input id="edit-trip-avg-speed" type="number" min="0" step="0.1" value="${Number(t.avgSpeed || 0)}">
       <div>Notable runs</div><input id="edit-trip-notable" value="${escAttr(t.notableRuns || '')}">
       <div>Notes</div><textarea id="edit-trip-notes" rows="3">${escHtml(t.notes || '')}</textarea>
     </div>
-    <div class="section-title" style="margin-top:10px">RUNS LOG</div>
+    <div class="section-title" style="margin-top:10px">RUN NOTES</div>
     <div id="edit-trip-runs-list"></div>
     <div class="dialog-grid" style="margin-top:8px">
       <div>Run name</div><input id="edit-run-name" placeholder="Name">
@@ -780,6 +840,7 @@ function cmdEdit(arg1) {
     target.downhillTime = downhillTime || '';
     target.hours = Math.max(0, durationToHours(target.totalTime) || 0);
     target.topSpeed = Math.max(0, parseFloat(body.querySelector('#edit-trip-speed').value || '0') || 0);
+    target.avgSpeed = Math.max(0, parseFloat(body.querySelector('#edit-trip-avg-speed').value || '0') || 0);
     target.notableRuns = body.querySelector('#edit-trip-notable').value.trim();
     target.notes = body.querySelector('#edit-trip-notes').value.trim();
     saveDB();
@@ -954,16 +1015,18 @@ function render() {
   const totalRuns = trips.reduce((sum, t) => sum + Number(t.runs || 0), 0);
   const totalVertical = trips.reduce((sum, t) => sum + Number(t.verticalFt || 0), 0);
   const locations = new Set(trips.map(t => t.location)).size;
-  const tripsWithSpeed = trips.filter(t => Number(t.topSpeed || 0) > 0);
-  const avgSpeed = tripsWithSpeed.length
-    ? tripsWithSpeed.reduce((sum, t) => sum + Number(t.topSpeed), 0) / tripsWithSpeed.length
+  const tripsWithAvgSpeed = trips.filter(t => Number(t.avgSpeed || 0) > 0);
+  const avgSpeed = tripsWithAvgSpeed.length
+    ? tripsWithAvgSpeed.reduce((sum, t) => sum + Number(t.avgSpeed), 0) / tripsWithAvgSpeed.length
     : null;
+  const maxSpeed = trips.reduce((max, t) => Math.max(max, Number(t.topSpeed || 0)), 0) || null;
 
   document.getElementById('metric-trips').textContent = String(trips.length);
   document.getElementById('metric-runs').textContent = String(totalRuns);
   document.getElementById('metric-vertical').textContent = String(totalVertical);
   document.getElementById('metric-locations').textContent = String(locations);
   document.getElementById('metric-avg-speed').textContent = avgSpeed != null ? avgSpeed.toFixed(1) : '—';
+  document.getElementById('metric-max-speed').textContent = maxSpeed != null ? maxSpeed.toFixed(1) : '—';
 
   const tripList = document.getElementById('trip-list');
   tripList.innerHTML = trips.length
@@ -1094,6 +1157,7 @@ document.getElementById('help-close').onclick = closeOverlay;
 document.addEventListener('keydown', e => {
   if (e.key === 'Escape') closeOverlay();
   if (
+    document.getElementById('trip-boot').style.display === 'none' &&
     !document.getElementById('help-overlay').classList.contains('visible') &&
     document.getElementById('splash').style.display === 'none' &&
     document.activeElement !== input
