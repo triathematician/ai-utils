@@ -103,7 +103,7 @@ html, body {
   caret-color: var(--accent);
 }
 #console-status { color: var(--dim); font-size: 0.8em; min-width: 180px; text-align: right; white-space: nowrap; }
-.summary-grid { display: grid; grid-template-columns: repeat(5, minmax(0,1fr)); gap: 8px; }
+.summary-grid { display: grid; grid-template-columns: repeat(6, minmax(0,1fr)); gap: 8px; }
 .metric { border: 1px solid var(--muted); padding: 6px 8px; }
 .metric-label { color: var(--dim); font-size: 0.72em; letter-spacing: 1px; }
 .metric-value { color: var(--accent); font-size: 1.2em; }
@@ -181,6 +181,7 @@ html, body {
       <div class="metric"><div class="metric-label">VERTICAL (FT)</div><div class="metric-value" id="metric-vertical">0</div></div>
       <div class="metric"><div class="metric-label">LOCATIONS</div><div class="metric-value" id="metric-locations">0</div></div>
       <div class="metric"><div class="metric-label">AVG SPEED (MPH)</div><div class="metric-value" id="metric-avg-speed">—</div></div>
+      <div class="metric"><div class="metric-label">MAX SPEED (MPH)</div><div class="metric-value" id="metric-max-speed">—</div></div>
     </div>
     <div class="section-title">TOP DAYS</div>
     <div id="top-days" class="dim">No trips yet. Use /trip.</div>
@@ -960,12 +961,14 @@ function render() {
   const avgSpeed = tripsWithAvgSpeed.length
     ? tripsWithAvgSpeed.reduce((sum, t) => sum + Number(t.avgSpeed), 0) / tripsWithAvgSpeed.length
     : null;
+  const maxSpeed = trips.reduce((max, t) => Math.max(max, Number(t.topSpeed || 0)), 0) || null;
 
   document.getElementById('metric-trips').textContent = String(trips.length);
   document.getElementById('metric-runs').textContent = String(totalRuns);
   document.getElementById('metric-vertical').textContent = String(totalVertical);
   document.getElementById('metric-locations').textContent = String(locations);
   document.getElementById('metric-avg-speed').textContent = avgSpeed != null ? avgSpeed.toFixed(1) : '—';
+  document.getElementById('metric-max-speed').textContent = maxSpeed != null ? maxSpeed.toFixed(1) : '—';
 
   const tripList = document.getElementById('trip-list');
   tripList.innerHTML = trips.length
