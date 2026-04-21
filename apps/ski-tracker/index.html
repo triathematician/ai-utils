@@ -208,6 +208,8 @@ html, body {
     </div>
     <div class="section-title">TOP DAYS</div>
     <div id="top-days" class="dim">No trips yet. Use /trip.</div>
+    <div class="section-title">RECENT RUNS</div>
+    <div id="recent-runs" class="dim">No runs logged yet. Add a trip with /trip, then runs with /run.</div>
   </div>
   <div id="main-row">
     <div id="main-panel">
@@ -317,6 +319,10 @@ function loadDB() {
     parsed.trips = parsed.trips.map(t => ({
       ...t,
       topSpeed: Math.max(0, Number(t.topSpeed || 0)),
+      downhillMiles: Math.max(0, Number(t.downhillMiles || 0)),
+      fastestRunMph: Math.max(0, Number(t.fastestRunMph || t.topSpeed || 0)),
+      longestRunMi: Math.max(0, Number(t.longestRunMi || 0)),
+      maxVertRunFt: Math.max(0, Number(t.maxVertRunFt || 0)),
       runsList: Array.isArray(t.runsList)
         ? t.runsList.map(run => ({
             ...run,
@@ -520,10 +526,14 @@ function startTripBoot() {
     { key: 'location',     ask: '◈ LOCATION / RESORT',      sys: 'required — e.g. Park City', required: true },
     { key: 'runs',         ask: '◈ NUMBER OF RUNS',         sys: 'e.g. 12 — press Enter to skip' },
     { key: 'verticalFt',   ask: '◈ VERTICAL FEET',          sys: 'e.g. 28000 — press Enter to skip' },
+    { key: 'downhillMiles',ask: '◈ DOWNHILL MILES',         sys: 'e.g. 18.6 — press Enter to skip' },
     { key: 'totalTime',    ask: '◈ TOTAL TIME ON MOUNTAIN', sys: 'HH:MM:SS — press Enter to skip',
       validate: v => { if (!v) return ''; const n = normalizeDuration(v); return n; } },
     { key: 'downhillTime', ask: '◈ DOWNHILL TIME',          sys: 'HH:MM:SS — press Enter to skip',
       validate: v => { if (!v) return ''; const n = normalizeDuration(v); return n; } },
+    { key: 'fastestRunMph',ask: '◈ FASTEST RUN (MPH)',      sys: 'e.g. 46.2 — press Enter to skip' },
+    { key: 'longestRunMi', ask: '◈ LONGEST RUN (MI)',       sys: 'e.g. 2.1 — press Enter to skip' },
+    { key: 'maxVertRunFt', ask: '◈ MAX VERT RUN (FT)',      sys: 'e.g. 1900 — press Enter to skip' },
     { key: 'notableRuns',  ask: '◈ NOTABLE RUNS',           sys: 'e.g. Daly Chutes — press Enter to skip' },
     { key: 'notes',        ask: '◈ NOTES',                  sys: 'any notes — press Enter to skip' }
   ];
@@ -566,7 +576,11 @@ function startTripBoot() {
       location: answers.location || '',
       runs: Math.max(0, parseInt(answers.runs || '0', 10) || 0),
       verticalFt: Math.max(0, parseInt(answers.verticalFt || '0', 10) || 0),
+      downhillMiles: Math.max(0, parseFloat(answers.downhillMiles || '0') || 0),
       hours: 0, totalTime: '', downhillTime: '', topSpeed: 0, avgSpeed: 0,
+      fastestRunMph: Math.max(0, parseFloat(answers.fastestRunMph || '0') || 0),
+      longestRunMi: Math.max(0, parseFloat(answers.longestRunMi || '0') || 0),
+      maxVertRunFt: Math.max(0, parseInt(answers.maxVertRunFt || '0', 10) || 0),
       notableRuns: answers.notableRuns || '',
       notes: answers.notes || '',
       runsList: [],
@@ -575,6 +589,7 @@ function startTripBoot() {
     trip.totalTime = answers.totalTime || '';
     trip.downhillTime = answers.downhillTime || '';
     trip.hours = Math.max(0, durationToHours(trip.totalTime) || 0);
+    trip.topSpeed = trip.fastestRunMph;
     db.trips.push(trip);
     saveDB();
     render();
@@ -614,10 +629,14 @@ function cmdTrip(rest) {
     location: '',
     runs: 0,
     verticalFt: 0,
+    downhillMiles: 0,
     hours: 0,
     totalTime: '',
     downhillTime: '',
     topSpeed: 0,
+    fastestRunMph: 0,
+    longestRunMi: 0,
+    maxVertRunFt: 0,
     notableRuns: '',
     notes: '',
     runsList: [],
@@ -708,9 +727,12 @@ function cmdEdit(arg1) {
       <div>Location</div><input id="edit-trip-location" value="${escAttr(t.location || '')}">
       <div>Runs</div><input id="edit-trip-runs" type="number" min="0" value="${Number(t.runs || 0)}">
       <div>Vertical (ft)</div><input id="edit-trip-vertical" type="number" min="0" value="${Number(t.verticalFt || 0)}">
+      <div>Downhill miles</div><input id="edit-trip-downhill-miles" type="number" min="0" step="0.1" value="${Number(t.downhillMiles || 0)}">
       <div>Total time</div><input id="edit-trip-total-time" placeholder="HH:MM:SS (optional)" value="${escAttr(t.totalTime || hoursToDuration(t.hours || 0) || '')}">
       <div>Downhill time</div><input id="edit-trip-downhill-time" placeholder="HH:MM:SS (optional)" value="${escAttr(t.downhillTime || '')}">
-      <div>Top speed (mph)</div><input id="edit-trip-speed" type="number" min="0" step="0.1" value="${Number(t.topSpeed || 0)}">
+      <div>Fastest run (mph)</div><input id="edit-trip-fastest-run" type="number" min="0" step="0.1" value="${Number(t.fastestRunMph || t.topSpeed || 0)}">
+      <div>Longest run (mi)</div><input id="edit-trip-longest-run" type="number" min="0" step="0.1" value="${Number(t.longestRunMi || 0)}">
+      <div>Max vert run (ft)</div><input id="edit-trip-max-vert-run" type="number" min="0" step="1" value="${Number(t.maxVertRunFt || 0)}">
       <div>Avg speed (mph)</div><input id="edit-trip-avg-speed" type="number" min="0" step="0.1" value="${Number(t.avgSpeed || 0)}">
       <div>Notable runs</div><input id="edit-trip-notable" value="${escAttr(t.notableRuns || '')}">
       <div>Notes</div><textarea id="edit-trip-notes" rows="3">${escHtml(t.notes || '')}</textarea>
@@ -836,10 +858,14 @@ function cmdEdit(arg1) {
     target.location = location;
     target.runs = Math.max(0, parseInt(body.querySelector('#edit-trip-runs').value || '0', 10) || 0);
     target.verticalFt = Math.max(0, parseInt(body.querySelector('#edit-trip-vertical').value || '0', 10) || 0);
+    target.downhillMiles = Math.max(0, parseFloat(body.querySelector('#edit-trip-downhill-miles').value || '0') || 0);
     target.totalTime = totalTime || '';
     target.downhillTime = downhillTime || '';
     target.hours = Math.max(0, durationToHours(target.totalTime) || 0);
-    target.topSpeed = Math.max(0, parseFloat(body.querySelector('#edit-trip-speed').value || '0') || 0);
+    target.fastestRunMph = Math.max(0, parseFloat(body.querySelector('#edit-trip-fastest-run').value || '0') || 0);
+    target.topSpeed = target.fastestRunMph;
+    target.longestRunMi = Math.max(0, parseFloat(body.querySelector('#edit-trip-longest-run').value || '0') || 0);
+    target.maxVertRunFt = Math.max(0, parseInt(body.querySelector('#edit-trip-max-vert-run').value || '0', 10) || 0);
     target.avgSpeed = Math.max(0, parseFloat(body.querySelector('#edit-trip-avg-speed').value || '0') || 0);
     target.notableRuns = body.querySelector('#edit-trip-notable').value.trim();
     target.notes = body.querySelector('#edit-trip-notes').value.trim();
@@ -904,7 +930,7 @@ function cmdTop(rest) {
   const trips = selectedTrips().sort((a, b) => Number(b[metricField] || 0) - Number(a[metricField] || 0)).slice(0, count);
   if (!trips.length) { statusMsg('No trips logged yet.'); return; }
   document.getElementById('help-title').textContent = `TOP ${count} DAYS BY ${metricLabel.toUpperCase()}`;
-  document.getElementById('help-body').textContent = trips.map((t, idx) => `${idx + 1}. ${t.date} | ${t.location} | runs:${t.runs || 0} vertical:${t.verticalFt || 0}ft hours:${Number(t.hours || 0).toFixed(1)} top:${Number(t.topSpeed || 0).toFixed(1)}mph`).join('\n');
+  document.getElementById('help-body').textContent = trips.map((t, idx) => `${idx + 1}. ${t.date} | ${t.location} | runs:${t.runs || 0} vertical:${t.verticalFt || 0}ft hours:${Number(t.hours || 0).toFixed(1)} fastest:${Number(t.fastestRunMph || t.topSpeed || 0).toFixed(1)}mph`).join('\n');
   openOverlay();
 }
 
@@ -913,7 +939,7 @@ function cmdList(filter) {
     const trips = selectedTrips();
     if (!trips.length) { statusMsg('No trips logged yet.'); return; }
     document.getElementById('help-title').textContent = 'TRIP LIST';
-    document.getElementById('help-body').textContent = trips.map((t, i) => `${i + 1}. ${t.date} | ${t.location} | season:${seasonFromDate(t.date)} | runs:${t.runs || 0} vertical:${t.verticalFt || 0}ft hours:${Number(t.hours || 0).toFixed(1)} top:${Number(t.topSpeed || 0).toFixed(1)}mph`).join('\n');
+    document.getElementById('help-body').textContent = trips.map((t, i) => `${i + 1}. ${t.date} | ${t.location} | season:${seasonFromDate(t.date)} | runs:${t.runs || 0} vertical:${t.verticalFt || 0}ft hours:${Number(t.hours || 0).toFixed(1)} fastest:${Number(t.fastestRunMph || t.topSpeed || 0).toFixed(1)}mph`).join('\n');
     openOverlay();
     return;
   }
@@ -1019,7 +1045,7 @@ function render() {
   const avgSpeed = tripsWithAvgSpeed.length
     ? tripsWithAvgSpeed.reduce((sum, t) => sum + Number(t.avgSpeed), 0) / tripsWithAvgSpeed.length
     : null;
-  const maxSpeed = trips.reduce((max, t) => Math.max(max, Number(t.topSpeed || 0)), 0) || null;
+  const maxSpeed = trips.reduce((max, t) => Math.max(max, Number(t.fastestRunMph || t.topSpeed || 0)), 0) || null;
 
   document.getElementById('metric-trips').textContent = String(trips.length);
   document.getElementById('metric-runs').textContent = String(totalRuns);
@@ -1037,18 +1063,38 @@ function render() {
         const times = (totalTime || downhillTime)
           ? `${totalTime ? ` · total:${totalTime}` : ''}${downhillTime ? ` · downhill:${downhillTime}` : ''}`
           : ` · hours:${Number(t.hours || 0).toFixed(1)}`;
+        const extraStats = [
+          Number(t.downhillMiles || 0) > 0 ? ` · downhill-mi:${Number(t.downhillMiles).toFixed(1)}` : '',
+          Number(t.longestRunMi || 0) > 0 ? ` · longest:${Number(t.longestRunMi).toFixed(1)}mi` : '',
+          Number(t.maxVertRunFt || 0) > 0 ? ` · max-vert:${Math.round(Number(t.maxVertRunFt))}ft` : ''
+        ].join('');
         const notable = t.notableRuns ? ` · notable:${escHtml(t.notableRuns)}` : '';
-        return `<div class="line" data-trip-num="${idx + 1}" style="cursor:pointer">${idx + 1}. <span class="ok">${escHtml(t.date)}</span> ${escHtml(t.location)} <span class="dim">season:${escHtml(seasonFromDate(t.date))} · runs:${t.runs || 0}${loggedRuns} · vertical:${t.verticalFt || 0}ft${times} · top:${Number(t.topSpeed || 0).toFixed(1)}mph${notable}</span></div>`;
+        return `<div class="line" data-trip-num="${idx + 1}" style="cursor:pointer">${idx + 1}. <span class="ok">${escHtml(t.date)}</span> ${escHtml(t.location)} <span class="dim">season:${escHtml(seasonFromDate(t.date))} · runs:${t.runs || 0}${loggedRuns} · vertical:${t.verticalFt || 0}ft${times}${extraStats} · fastest:${Number(t.fastestRunMph || t.topSpeed || 0).toFixed(1)}mph${notable}</span></div>`;
       }).join('')
     : '<span class="dim">No ski trips yet. Add one with /trip.</span>';
   tripList.querySelectorAll('[data-trip-num]').forEach(el => {
     el.addEventListener('click', () => cmdEdit(el.dataset.tripNum));
   });
 
-  const topDays = [...trips].sort((a, b) => Number(b.verticalFt || 0) - Number(a.verticalFt || 0)).slice(0, 3);
+  const topDays = [...trips].sort((a, b) => Number(b.verticalFt || 0) - Number(a.verticalFt || 0)).slice(0, 6);
   document.getElementById('top-days').innerHTML = topDays.length
-    ? topDays.map(t => `<div class="line"><span class="ok">${escHtml(t.date)}</span> ${escHtml(t.location)} <span class="dim">${t.verticalFt || 0}ft · ${t.runs || 0} runs · ${Number(t.topSpeed || 0).toFixed(1)}mph</span></div>`).join('')
+    ? topDays.map(t => `<div class="line"><span class="ok">${escHtml(t.date)}</span> ${escHtml(t.location)} <span class="dim">${t.verticalFt || 0}ft · ${t.runs || 0} runs · ${Number(t.fastestRunMph || t.topSpeed || 0).toFixed(1)}mph</span></div>`).join('')
     : '<span class="dim">No trips yet. Use /trip.</span>';
+  const recentRuns = trips.flatMap(trip => {
+    if (!Array.isArray(trip.runsList)) return [];
+    return trip.runsList.map(run => ({
+      run,
+      trip,
+      enteredAt: run.createdAt || `${trip.date || '1970-01-01'}T00:00:00.000Z`
+    }));
+  }).sort((a, b) => String(b.enteredAt).localeCompare(String(a.enteredAt))).slice(0, 6);
+  document.getElementById('recent-runs').innerHTML = recentRuns.length
+    ? recentRuns.map(item => {
+        const stars = item.run.stars ? ` · ★${item.run.stars}` : '';
+        const note = item.run.note ? ` · ${escHtml(item.run.note)}` : '';
+        return `<div class="line"><span class="ok">${escHtml((item.enteredAt || '').slice(0, 10) || item.trip.date || '')}</span> ${difficultyIconHTML(item.run.difficulty)} ${escHtml(item.run.name || '')} <span class="dim">${escHtml(item.trip.location || '')}${stars}${note}</span></div>`;
+      }).join('')
+    : '<span class="dim">No runs logged yet. Add a trip with /trip, then runs with /run.</span>';
 
   const seasonRows = aggregateBy('season').slice(0, 6);
   document.getElementById('season-rollup').innerHTML = seasonRows.length
@@ -1074,7 +1120,7 @@ function exportDataTxt() {
       downhillTime ? `downhill:${downhillTime}` : '',
       `hours:${Number(trip.hours || 0).toFixed(1)}`
     ].filter(Boolean).join(' | ');
-    lines.push(`   season: ${seasonFromDate(trip.date)} | runs: ${trip.runs || 0} | vertical: ${trip.verticalFt || 0}ft | ${timeBits} | top: ${Number(trip.topSpeed || 0).toFixed(1)}mph`);
+    lines.push(`   season: ${seasonFromDate(trip.date)} | runs: ${trip.runs || 0} | vertical: ${trip.verticalFt || 0}ft | downhill-mi: ${Number(trip.downhillMiles || 0).toFixed(1)} | longest-run: ${Number(trip.longestRunMi || 0).toFixed(1)}mi | max-vert-run: ${Math.round(Number(trip.maxVertRunFt || 0))}ft | ${timeBits} | fastest: ${Number(trip.fastestRunMph || trip.topSpeed || 0).toFixed(1)}mph`);
     if (Array.isArray(trip.runsList) && trip.runsList.length) {
       trip.runsList.forEach(run => {
         const stars = run.stars ? ` | stars:${run.stars}` : '';
