@@ -209,7 +209,7 @@ html, body {
     <div class="section-title">TOP DAYS</div>
     <div id="top-days" class="dim">No trips yet. Use /trip.</div>
     <div class="section-title">RECENT RUNS</div>
-    <div id="recent-runs" class="dim">No runs yet. Use /run.</div>
+    <div id="recent-runs" class="dim">No runs logged yet. Add a trip with /trip, then runs with /run.</div>
   </div>
   <div id="main-row">
     <div id="main-panel">
@@ -1085,7 +1085,7 @@ function render() {
     return trip.runsList.map(run => ({
       run,
       trip,
-      enteredAt: run.createdAt || `${trip.date || '0000-00-00'}T00:00:00.000Z`
+      enteredAt: run.createdAt || `${trip.date || '1970-01-01'}T00:00:00.000Z`
     }));
   }).sort((a, b) => String(b.enteredAt).localeCompare(String(a.enteredAt))).slice(0, 6);
   document.getElementById('recent-runs').innerHTML = recentRuns.length
@@ -1094,7 +1094,7 @@ function render() {
         const note = item.run.note ? ` · ${escHtml(item.run.note)}` : '';
         return `<div class="line"><span class="ok">${escHtml((item.enteredAt || '').slice(0, 10) || item.trip.date || '')}</span> ${difficultyIconHTML(item.run.difficulty)} ${escHtml(item.run.name || '')} <span class="dim">${escHtml(item.trip.location || '')}${stars}${note}</span></div>`;
       }).join('')
-    : '<span class="dim">No runs yet. Use /run.</span>';
+    : '<span class="dim">No runs logged yet. Add a trip with /trip, then runs with /run.</span>';
 
   const seasonRows = aggregateBy('season').slice(0, 6);
   document.getElementById('season-rollup').innerHTML = seasonRows.length
