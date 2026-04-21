@@ -658,7 +658,7 @@ input[type=range]::-webkit-slider-thumb {
       <option value="value">Sort: Total Value</option>
     </select>
     <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:0.1em">
-      <input type="checkbox" id="deepDiveShowClosed" onchange="renderDeepDive()" style="width:auto;accent-color:var(--cyan)">
+      <input type="checkbox" id="deepDiveShowClosed" aria-label="Include closed positions" onchange="renderDeepDive()" style="width:auto;accent-color:var(--cyan)">
       Include closed
     </label>
     <span id="ddCatBadge" style="margin-left:4px"></span>
@@ -3143,8 +3143,10 @@ function renderSalesHistory() {
   const tbody = document.getElementById('salesHistoryBody');
   const empty = document.getElementById('salesHistoryEmpty');
   if (!tbody || !empty) return;
-  const NO_DATE_SORT_KEY = '9999-99-99';
-  const chronologicalSort = (a, b) => (a.date || NO_DATE_SORT_KEY) < (b.date || NO_DATE_SORT_KEY) ? -1 : 1;
+  // Sentinel ensures entries without dates are sorted after real YYYY-MM-DD dates.
+  const MISSING_DATE_SENTINEL = '9999-99-99';
+  const chronologicalSortAsc = (a, b) => (a.date || MISSING_DATE_SENTINEL) < (b.date || MISSING_DATE_SENTINEL) ? -1 : 1;
+  const chronologicalSortDesc = (a, b) => (a.date || MISSING_DATE_SENTINEL) < (b.date || MISSING_DATE_SENTINEL) ? 1 : -1;
 
   const rows = [];
   state.positions.forEach(pos => {
@@ -3153,10 +3155,10 @@ function renderSalesHistory() {
     if (!entries.length || !exits.length) return;
 
     const buys = [...entries]
-      .sort(chronologicalSort)
+      .sort(chronologicalSortAsc)
       .map(e => ({ ...e, remaining: e.shares }));
     const sells = [...exits]
-      .sort(chronologicalSort);
+      .sort(chronologicalSortAsc);
     const currentPrice = pos.manualPrice || state.prices[pos.ticker]?.price || null;
 
     sells.forEach(sell => {
@@ -3190,12 +3192,7 @@ function renderSalesHistory() {
     });
   });
 
-  rows.sort((a, b) => {
-    if (!a.date && !b.date) return 0;
-    if (!a.date) return 1;
-    if (!b.date) return -1;
-    return a.date < b.date ? 1 : -1;
-  });
+  rows.sort(chronologicalSortDesc);
 
   if (!rows.length) {
     tbody.innerHTML = '';
