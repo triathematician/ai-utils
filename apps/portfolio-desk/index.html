@@ -653,12 +653,12 @@ input[type=range]::-webkit-slider-thumb {
     <select id="deepDiveSelect" onchange="renderDeepDive()" style="width:140px">
       <option value="">— Select ticker —</option>
     </select>
-    <select id="deepDiveSort" aria-label="Sort deep dive positions" onchange="populateDeepDiveSelect();renderDeepDive()" style="width:150px">
+    <select id="deepDiveSort" aria-label="Sort deep dive positions" onchange="renderDeepDive()" style="width:150px">
       <option value="name">Sort: Name (A→Z)</option>
       <option value="value">Sort: Total Value</option>
     </select>
     <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:0.1em">
-      <input type="checkbox" id="deepDiveShowClosed" onchange="populateDeepDiveSelect();renderDeepDive()" style="width:auto;accent-color:var(--cyan)">
+      <input type="checkbox" id="deepDiveShowClosed" onchange="renderDeepDive()" style="width:auto;accent-color:var(--cyan)">
       Include closed
     </label>
     <span id="ddCatBadge" style="margin-left:4px"></span>
@@ -3143,7 +3143,8 @@ function renderSalesHistory() {
   const tbody = document.getElementById('salesHistoryBody');
   const empty = document.getElementById('salesHistoryEmpty');
   if (!tbody || !empty) return;
-  const chronologicalSort = (a, b) => (a.date || '9999') < (b.date || '9999') ? -1 : 1;
+  const NO_DATE_SORT_KEY = '9999-99-99';
+  const chronologicalSort = (a, b) => (a.date || NO_DATE_SORT_KEY) < (b.date || NO_DATE_SORT_KEY) ? -1 : 1;
 
   const rows = [];
   state.positions.forEach(pos => {
@@ -3203,17 +3204,24 @@ function renderSalesHistory() {
   }
 
   empty.style.display = 'none';
-  tbody.innerHTML = rows.map(r => `
+  tbody.innerHTML = rows.map(r => {
+    const currentVsSaleHtml = r.currentVsSale !== null
+      ? `<span style="color:${gradeColor(r.currentVsSale)}">${r.currentVsSale >= 0 ? '▲ +' : '▼ '}${fmt1(Math.abs(r.currentVsSale))}%</span>`
+      : '<span style="color:var(--muted)">—</span>';
+    const pnlHtml = r.matchedShares
+      ? `<span style="color:${gradeColor(r.pnl)};font-weight:500">${r.pnl >= 0 ? '+' : '-'}$${fmt2(Math.abs(r.pnl))}</span>${r.unmatched ? `<span style="color:var(--muted)"> (unmatched ${r.unmatched})</span>` : ''}`
+      : '<span style="color:var(--muted)">—</span>';
+    return `
     <tr>
       <td>${r.date || '<span style="color:var(--muted)">—</span>'}</td>
       <td><span class="ticker">${r.ticker}</span></td>
       <td>${r.shares}</td>
       <td>$${fmt2(r.sellPrice)}</td>
       <td>${r.currentPrice ? '$' + fmt2(r.currentPrice) : '<span style="color:var(--muted)">—</span>'}</td>
-      <td>${r.currentVsSale !== null ? `<span style="color:${gradeColor(r.currentVsSale)}">${r.currentVsSale >= 0 ? '▲ +' : '▼ '}${fmt1(Math.abs(r.currentVsSale))}%</span>` : '<span style="color:var(--muted)">—</span>'}</td>
-      <td>${r.matchedShares ? `<span style="color:${gradeColor(r.pnl)};font-weight:500">${r.pnl >= 0 ? '+' : '-'}$${fmt2(Math.abs(r.pnl))}</span>${r.unmatched ? `<span style="color:var(--muted)"> (unmatched ${r.unmatched})</span>` : ''}` : '<span style="color:var(--muted)">—</span>'}</td>
+      <td>${currentVsSaleHtml}</td>
+      <td>${pnlHtml}</td>
     </tr>
-  `).join('');
+  `;}).join('');
 }
 
 function showAlert(msg, type) {
