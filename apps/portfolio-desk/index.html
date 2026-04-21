@@ -3146,7 +3146,7 @@ function renderSalesHistory() {
   // Sentinel ensures entries without dates are sorted after real YYYY-MM-DD dates.
   const MISSING_DATE_SENTINEL = '9999-99-99';
   const chronologicalSortAsc = (a, b) => (a.date || MISSING_DATE_SENTINEL) < (b.date || MISSING_DATE_SENTINEL) ? -1 : 1;
-  const chronologicalSortDesc = (a, b) => (a.date || MISSING_DATE_SENTINEL) < (b.date || MISSING_DATE_SENTINEL) ? 1 : -1;
+  const chronologicalSortDesc = (a, b) => -chronologicalSortAsc(a, b);
 
   const rows = [];
   state.positions.forEach(pos => {
