@@ -132,13 +132,13 @@ html, body {
 #help-overlay.visible { display: flex; }
 .overlay-box {
   background: var(--bg); border: 1px solid var(--border);
-  padding: 16px 20px; min-width: 640px; max-width: min(90vw,960px);
+  padding: 16px 20px; min-width: 736px; max-width: min(90vw,1104px);
   font-family: var(--font); color: var(--fg);
 }
 #help-title { color: var(--accent); letter-spacing: 2px; margin-bottom: 8px; }
-#help-body { white-space: pre; line-height: 1.8; max-height: 60vh; overflow-y: auto; }
+#help-body { white-space: pre; line-height: 1.8; max-height: 60vh; overflow-y: auto; padding-right: 12px; }
 #help-close { color: var(--dim); font-size: 0.82em; cursor: pointer; display: block; margin-top: 8px; }
-.dialog-grid { display: grid; grid-template-columns: 190px 1fr; gap: 8px 10px; align-items: center; }
+.dialog-grid { display: grid; grid-template-columns: 240px 1fr; gap: 8px 10px; align-items: center; }
 .dialog-grid input, .dialog-grid textarea, .dialog-grid select {
   width: 100%; background: var(--bg); color: var(--fg); border: 1px solid var(--border);
   font-family: var(--font); font-size: 1em; padding: 4px 6px; outline: none;
@@ -199,22 +199,28 @@ html, body {
   <div id="top-row">
     <div class="row-header">◈ SKI SNAPSHOT</div>
     <div class="summary-grid">
-      <div class="metric"><div class="metric-label">TOTAL TRIPS</div><div class="metric-value" id="metric-trips">0</div></div>
+      <div class="metric"><div class="metric-label">TOTAL ENTRIES</div><div class="metric-value" id="metric-trips">0</div></div>
       <div class="metric"><div class="metric-label">TOTAL RUNS</div><div class="metric-value" id="metric-runs">0</div></div>
       <div class="metric"><div class="metric-label">VERTICAL (FT)</div><div class="metric-value" id="metric-vertical">0</div></div>
       <div class="metric"><div class="metric-label">LOCATIONS</div><div class="metric-value" id="metric-locations">0</div></div>
       <div class="metric"><div class="metric-label">AVG SPEED (MPH)</div><div class="metric-value" id="metric-avg-speed">—</div></div>
       <div class="metric"><div class="metric-label">MAX SPEED (MPH)</div><div class="metric-value" id="metric-max-speed">—</div></div>
     </div>
-    <div class="section-title">TOP DAYS</div>
-    <div id="top-days" class="dim">No trips yet. Use /trip.</div>
-    <div class="section-title">RECENT RUNS</div>
-    <div id="recent-runs" class="dim">No runs logged yet. Add a trip with /trip, then runs with /run.</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:0 16px;margin-top:4px">
+      <div>
+        <div class="section-title">TOP DAYS</div>
+        <div id="top-days" class="dim">No entries yet. Use /entry.</div>
+      </div>
+      <div>
+        <div class="section-title">RECENT RUNS</div>
+        <div id="recent-runs" class="dim">No runs logged yet. Use /entry to add an entry, then /run to add runs.</div>
+      </div>
+    </div>
   </div>
   <div id="main-row">
     <div id="main-panel">
-      <div class="row-header">◈ TRIP LOG</div>
-      <div id="trip-list" class="dim">No ski trips yet. Add one with /trip.</div>
+      <div class="row-header">◈ ENTRY LOG</div>
+      <div id="trip-list" class="dim">No entries yet. Add one with /entry.</div>
     </div>
     <div id="side-panel">
       <div class="row-header">◈ ROLLUPS</div>
@@ -344,7 +350,7 @@ function statusMsg(msg) {
   setTimeout(updateStatus, 3000);
 }
 function updateStatus() {
-  document.getElementById('console-status').textContent = `${db.trips.length} TRIP${db.trips.length === 1 ? '' : 'S'}`;
+  document.getElementById('console-status').textContent = `${db.trips.length} ENTR${db.trips.length === 1 ? 'Y' : 'IES'}`;
 }
 function escHtml(str) {
   return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
@@ -445,8 +451,9 @@ function handleConsoleCmd(raw) {
   if (cmd === '/help') return showHelp();
   if (cmd === '/theme') return applyTheme(arg1);
   if (cmd === '/backlog') return handleBacklog(rest);
-  if (cmd === '/trip') return cmdTrip(rest);
+  if (cmd === '/entry') return cmdTrip(rest);
   if (cmd === '/run') return cmdRun(rest);
+  if (cmd === '/runs') return cmdRuns(arg1);
   if (cmd === '/list') return cmdList(arg1);
   if (cmd === '/edit') return cmdEdit(arg1);
   if (cmd === '/delete') return cmdDelete(arg1);
@@ -461,16 +468,17 @@ function handleConsoleCmd(raw) {
 function showHelp() {
   document.getElementById('help-title').textContent = '◈ SKI TRACKER — COMMANDS';
   document.getElementById('help-body').textContent = [
-    '── TRIPS & RUNS ───────────────────────────────────────',
-    '/trip YYYY-MM-DD | place | runs | vertical | total hh:mm:ss? | downhill hh:mm:ss? | notable runs?',
-    '/trip YYYY-MM-DD place             quick add with date + place only',
-    '/run [trip#] | name | difficulty | stars? | note?',
-    '/edit [n]                          open trip edit dialog',
-    '/list [season|location]            list trips in overlay',
-    '/delete [n]                        delete trip #n',
+    '── ENTRIES & RUNS ─────────────────────────────────────',
+    '/entry YYYY-MM-DD | place | runs | vertical | total hh:mm:ss? | downhill hh:mm:ss? | notable runs?',
+    '/entry YYYY-MM-DD place             quick add with date + place only',
+    '/run [entry#] | name | difficulty | stars? | note?',
+    '/runs [n]                          view runs for entry #n',
+    '/edit [n]                          open entry edit dialog',
+    '/list [season|location]            list entries in overlay',
+    '/delete [n]                        delete entry #n',
     '/rollup season                     show totals by season',
     '/rollup location                   show totals by location',
-    '/top [vertical|runs|hours] [n]     top X trips by metric (default vertical 5)',
+    '/top [vertical|runs|hours|speed] [n]  top X entries by metric (default vertical 5)',
     '',
     '── STANDARD ───────────────────────────────────────────',
     '/theme [name]                      switch theme',
@@ -521,7 +529,7 @@ function hideTripBoot() {
 function startTripBoot() {
   const today = todayStr();
   const steps = [
-    { key: 'date',         ask: '◈ TRIP DATE',              sys: `YYYY-MM-DD — press Enter for ${today}`,
+    { key: 'date',         ask: '◈ DATE',                   sys: `YYYY-MM-DD — press Enter for ${today}`,
       validate: v => { const n = normalizeDate(v); return (v && !n) ? null : (n || today); } },
     { key: 'location',     ask: '◈ LOCATION / RESORT',      sys: 'required — e.g. Park City', required: true },
     { key: 'runs',         ask: '◈ NUMBER OF RUNS',         sys: 'e.g. 12 — press Enter to skip' },
@@ -531,7 +539,9 @@ function startTripBoot() {
       validate: v => { if (!v) return ''; const n = normalizeDuration(v); return n; } },
     { key: 'downhillTime', ask: '◈ DOWNHILL TIME',          sys: 'HH:MM:SS — press Enter to skip',
       validate: v => { if (!v) return ''; const n = normalizeDuration(v); return n; } },
-    { key: 'fastestRunMph',ask: '◈ FASTEST RUN (MPH)',      sys: 'e.g. 46.2 — press Enter to skip' },
+    { key: 'avgSpeed',     ask: '◈ AVG SPEED (MPH)',         sys: 'overall avg speed — e.g. 22.4 — press Enter to skip' },
+    { key: 'topSpeed',     ask: '◈ TOP SPEED (MPH)',         sys: 'fastest speed recorded — e.g. 58.3 — press Enter to skip' },
+    { key: 'fastestRunMph',ask: '◈ FASTEST RUN (MPH)',       sys: 'fastest avg speed on a single run — e.g. 46.2 — press Enter to skip' },
     { key: 'longestRunMi', ask: '◈ LONGEST RUN (MI)',       sys: 'e.g. 2.1 — press Enter to skip' },
     { key: 'maxVertRunFt', ask: '◈ MAX VERT RUN (FT)',      sys: 'e.g. 1900 — press Enter to skip' },
     { key: 'notableRuns',  ask: '◈ NOTABLE RUNS',           sys: 'e.g. Daly Chutes — press Enter to skip' },
@@ -542,7 +552,7 @@ function startTripBoot() {
 
   showTripBoot();
   tbl('sep', '════════════════════════════════════════════════════════');
-  tbl('sys', `NEW TRIP — ${new Date().toDateString()}`);
+  tbl('sys', `NEW ENTRY — ${new Date().toDateString()}`);
   tbl('sep', '════════════════════════════════════════════════════════');
 
   const bootInput = document.getElementById('trip-boot-input');
@@ -577,7 +587,9 @@ function startTripBoot() {
       runs: Math.max(0, parseInt(answers.runs || '0', 10) || 0),
       verticalFt: Math.max(0, parseInt(answers.verticalFt || '0', 10) || 0),
       downhillMiles: Math.max(0, parseFloat(answers.downhillMiles || '0') || 0),
-      hours: 0, totalTime: '', downhillTime: '', topSpeed: 0, avgSpeed: 0,
+      hours: 0, totalTime: '', downhillTime: '',
+      avgSpeed: Math.max(0, parseFloat(answers.avgSpeed || '0') || 0),
+      topSpeed: Math.max(0, parseFloat(answers.topSpeed || '0') || 0),
       fastestRunMph: Math.max(0, parseFloat(answers.fastestRunMph || '0') || 0),
       longestRunMi: Math.max(0, parseFloat(answers.longestRunMi || '0') || 0),
       maxVertRunFt: Math.max(0, parseInt(answers.maxVertRunFt || '0', 10) || 0),
@@ -589,12 +601,11 @@ function startTripBoot() {
     trip.totalTime = answers.totalTime || '';
     trip.downhillTime = answers.downhillTime || '';
     trip.hours = Math.max(0, durationToHours(trip.totalTime) || 0);
-    trip.topSpeed = trip.fastestRunMph;
     db.trips.push(trip);
     saveDB();
     render();
     tbl('sep', '════════════════════════════════════════════════════════');
-    tbl('ok',  `✓ TRIP LOGGED — ${trip.date}  ${trip.location}`);
+    tbl('ok',  `✓ ENTRY LOGGED — ${trip.date}  ${trip.location}`);
     tbl('sep', '════════════════════════════════════════════════════════');
     bootInput.removeEventListener('keydown', onKey);
     setTimeout(hideTripBoot, 900);
@@ -671,20 +682,20 @@ function cmdTrip(rest) {
   }
 
   if (!trip.date || !trip.location) {
-    statusMsg('Usage: /trip YYYY-MM-DD | place | runs | vertical | total hh:mm:ss? | downhill hh:mm:ss? | notable runs?');
+    statusMsg('Usage: /entry YYYY-MM-DD | place | runs | vertical | total hh:mm:ss? | downhill hh:mm:ss? | notable runs?');
     return;
   }
 
   db.trips.push(trip);
   saveDB();
   render();
-  statusMsg(`Trip logged: ${trip.date} ${trip.location}`);
+  statusMsg(`Entry logged: ${trip.date} ${trip.location}`);
 }
 
 function cmdRun(rest) {
   const pipeParts = splitPipe(rest);
   if (pipeParts.length < 3) {
-    statusMsg('Usage: /run [trip#] | name | difficulty | stars? | note?');
+    statusMsg('Usage: /run [entry#] | name | difficulty | stars? | note?');
     return;
   }
   const lookup = getTripByNumber(pipeParts[0]);
@@ -695,7 +706,7 @@ function cmdRun(rest) {
   const starsNum = starsRaw === '' ? null : (Number.isNaN(parsedStars) ? null : Math.max(1, Math.min(5, parsedStars)));
   const note = (pipeParts[4] || '').trim();
   if (!lookup || !lookup.trip || !name) {
-    statusMsg('Usage: /run [trip#] | name | difficulty | stars? | note?');
+    statusMsg('Usage: /run [entry#] | name | difficulty | stars? | note?');
     return;
   }
 
@@ -714,12 +725,32 @@ function cmdRun(rest) {
   statusMsg(`Run added to #${lookup.n}: ${name}`);
 }
 
+function cmdRuns(arg1) {
+  const lookup = getTripByNumber(arg1);
+  if (!lookup || !lookup.trip) { statusMsg('Usage: /runs [n]'); return; }
+  const t = lookup.trip;
+  const runs = Array.isArray(t.runsList) ? t.runsList : [];
+  document.getElementById('help-title').textContent = `◈ RUNS — #${lookup.n} ${t.date} ${t.location}`;
+  const body = document.getElementById('help-body');
+  body.style.whiteSpace = 'normal';
+  if (!runs.length) {
+    body.innerHTML = '<span class="dim">No runs logged for this entry.</span>';
+  } else {
+    body.innerHTML = runs.map((run, idx) => {
+      const stars = run.stars ? ` · ★${run.stars}` : '';
+      const note = run.note ? ` · ${escHtml(run.note)}` : '';
+      return `<div class="line">${idx + 1}. ${difficultyIconHTML(run.difficulty)} ${escHtml(run.name)} <span class="dim">${escHtml(difficultyLabel(run.difficulty))}${stars}${note}</span></div>`;
+    }).join('');
+  }
+  openOverlay();
+}
+
 function cmdEdit(arg1) {
   const lookup = getTripByNumber(arg1);
   if (!lookup || !lookup.trip) { statusMsg('Usage: /edit [n]'); return; }
   const t = lookup.trip;
   const body = document.getElementById('help-body');
-  document.getElementById('help-title').textContent = `◈ EDIT TRIP #${lookup.n}`;
+  document.getElementById('help-title').textContent = `◈ EDIT ENTRY #${lookup.n}`;
   body.style.whiteSpace = 'normal';
   body.innerHTML = `
     <div class="dialog-grid">
@@ -730,10 +761,11 @@ function cmdEdit(arg1) {
       <div>Downhill miles</div><input id="edit-trip-downhill-miles" type="number" min="0" step="0.1" value="${Number(t.downhillMiles || 0)}">
       <div>Total time</div><input id="edit-trip-total-time" placeholder="HH:MM:SS (optional)" value="${escAttr(t.totalTime || hoursToDuration(t.hours || 0) || '')}">
       <div>Downhill time</div><input id="edit-trip-downhill-time" placeholder="HH:MM:SS (optional)" value="${escAttr(t.downhillTime || '')}">
-      <div>Fastest run (mph)</div><input id="edit-trip-fastest-run" type="number" min="0" step="0.1" value="${Number(t.fastestRunMph || t.topSpeed || 0)}">
+      <div>Avg speed (mph)</div><input id="edit-trip-avg-speed" type="number" min="0" step="0.1" value="${Number(t.avgSpeed || 0)}">
+      <div>Top speed (mph)</div><input id="edit-trip-top-speed" type="number" min="0" step="0.1" value="${Number(t.topSpeed || 0)}">
+      <div>Fastest run (mph)</div><input id="edit-trip-fastest-run" type="number" min="0" step="0.1" value="${Number(t.fastestRunMph || 0)}">
       <div>Longest run (mi)</div><input id="edit-trip-longest-run" type="number" min="0" step="0.1" value="${Number(t.longestRunMi || 0)}">
       <div>Max vert run (ft)</div><input id="edit-trip-max-vert-run" type="number" min="0" step="1" value="${Number(t.maxVertRunFt || 0)}">
-      <div>Avg speed (mph)</div><input id="edit-trip-avg-speed" type="number" min="0" step="0.1" value="${Number(t.avgSpeed || 0)}">
       <div>Notable runs</div><input id="edit-trip-notable" value="${escAttr(t.notableRuns || '')}">
       <div>Notes</div><textarea id="edit-trip-notes" rows="3">${escHtml(t.notes || '')}</textarea>
     </div>
@@ -750,7 +782,7 @@ function cmdEdit(arg1) {
       <span class="dialog-btn" id="edit-trip-add-run">[ADD RUN]</span>
       <span class="dialog-btn warn" id="edit-trip-cancel-run" style="display:none">[CANCEL EDIT]</span>
       <span class="dialog-btn" id="edit-trip-save">[SAVE]</span>
-      <span class="dialog-btn warn" id="edit-trip-delete">[DELETE TRIP]</span>
+      <span class="dialog-btn warn" id="edit-trip-delete">[DELETE ENTRY]</span>
     </div>
   `;
   initDifficultyPicker('edit-run-diff-picker', 'edit-run-difficulty');
@@ -862,17 +894,17 @@ function cmdEdit(arg1) {
     target.totalTime = totalTime || '';
     target.downhillTime = downhillTime || '';
     target.hours = Math.max(0, durationToHours(target.totalTime) || 0);
+    target.avgSpeed = Math.max(0, parseFloat(body.querySelector('#edit-trip-avg-speed').value || '0') || 0);
+    target.topSpeed = Math.max(0, parseFloat(body.querySelector('#edit-trip-top-speed').value || '0') || 0);
     target.fastestRunMph = Math.max(0, parseFloat(body.querySelector('#edit-trip-fastest-run').value || '0') || 0);
-    target.topSpeed = target.fastestRunMph;
     target.longestRunMi = Math.max(0, parseFloat(body.querySelector('#edit-trip-longest-run').value || '0') || 0);
     target.maxVertRunFt = Math.max(0, parseInt(body.querySelector('#edit-trip-max-vert-run').value || '0', 10) || 0);
-    target.avgSpeed = Math.max(0, parseFloat(body.querySelector('#edit-trip-avg-speed').value || '0') || 0);
     target.notableRuns = body.querySelector('#edit-trip-notable').value.trim();
     target.notes = body.querySelector('#edit-trip-notes').value.trim();
     saveDB();
     closeOverlay();
     render();
-    statusMsg(`Updated trip #${lookup.n}.`);
+    statusMsg(`Updated entry #${lookup.n}.`);
   };
 
   body.querySelector('#edit-trip-delete').onclick = () => {
@@ -895,18 +927,46 @@ function cmdDelete(arg1) {
   statusMsg(`Deleted #${lookup.n}: ${lookup.trip.date} ${lookup.trip.location}`);
 }
 
+function aggregateDays() {
+  const map = new Map();
+  selectedTrips().forEach(trip => {
+    const key = `${trip.date}||${trip.location}`;
+    const row = map.get(key);
+    if (row) {
+      row.runs += Number(trip.runs || 0);
+      row.verticalFt += Number(trip.verticalFt || 0);
+      row.hours += Number(trip.hours || 0);
+      row.topSpeed = Math.max(row.topSpeed, Number(trip.topSpeed || 0));
+      row.fastestRunMph = Math.max(row.fastestRunMph, Number(trip.fastestRunMph || 0));
+    } else {
+      map.set(key, {
+        date: trip.date, location: trip.location,
+        runs: Number(trip.runs || 0), verticalFt: Number(trip.verticalFt || 0),
+        hours: Number(trip.hours || 0), topSpeed: Number(trip.topSpeed || 0),
+        fastestRunMph: Number(trip.fastestRunMph || 0)
+      });
+    }
+  });
+  return [...map.values()];
+}
+
 function aggregateBy(field) {
   const map = new Map();
   selectedTrips().forEach(trip => {
     const key = field === 'season' ? seasonFromDate(trip.date) : trip.location;
-    const row = map.get(key) || { key, trips: 0, runs: 0, verticalFt: 0, hours: 0 };
+    if (!map.has(key)) map.set(key, { key, trips: 0, days: new Set(), runs: 0, verticalFt: 0, hours: 0, extras: new Set() });
+    const row = map.get(key);
     row.trips += 1;
+    row.days.add(trip.date);
     row.runs += Number(trip.runs || 0);
     row.verticalFt += Number(trip.verticalFt || 0);
     row.hours += Number(trip.hours || 0);
-    map.set(key, row);
+    row.extras.add(field === 'season' ? trip.location : seasonFromDate(trip.date));
   });
-  return [...map.values()].sort((a, b) => b.verticalFt - a.verticalFt || b.trips - a.trips || a.key.localeCompare(b.key));
+  return [...map.values()].map(r => ({
+    key: r.key, trips: r.trips, days: r.days.size, extras: r.extras.size,
+    runs: r.runs, verticalFt: r.verticalFt, hours: r.hours
+  })).sort((a, b) => b.verticalFt - a.verticalFt || b.days - a.days || a.key.localeCompare(b.key));
 }
 
 function cmdRollup(arg1) {
@@ -915,9 +975,15 @@ function cmdRollup(arg1) {
     return;
   }
   const rows = aggregateBy(arg1);
-  if (!rows.length) { statusMsg('No trips logged yet.'); return; }
+  if (!rows.length) { statusMsg('No entries logged yet.'); return; }
   document.getElementById('help-title').textContent = arg1 === 'season' ? 'TOTALS BY SEASON' : 'TOTALS BY LOCATION';
-  document.getElementById('help-body').textContent = rows.map(r => `${r.key.padEnd(20)} trips:${String(r.trips).padStart(3)} runs:${String(r.runs).padStart(4)} vertical:${String(r.verticalFt).padStart(7)}ft hours:${r.hours.toFixed(1)}`).join('\n');
+  const isSeasons = arg1 === 'season';
+  const body = document.getElementById('help-body');
+  body.style.whiteSpace = 'normal';
+  const v = s => `<span style="color:var(--accent)">${escHtml(String(s))}</span>`;
+  body.innerHTML = rows.map(r =>
+    `<div class="line"><span class="ok">${escHtml(r.key)}</span> <span class="dim">days:${v(r.days)} · ${isSeasons ? 'locations' : 'seasons'}:${v(r.extras)} · runs:${v(r.runs)} · vertical:${v(r.verticalFt)}ft · hours:${v(r.hours.toFixed(1))}</span></div>`
+  ).join('');
   openOverlay();
 }
 
@@ -925,21 +991,26 @@ function cmdTop(rest) {
   const bits = rest.split(/\s+/).filter(Boolean);
   const metric = bits[0] || 'vertical';
   const count = Math.max(1, Math.min(20, parseInt(bits[1] || '5', 10) || 5));
-  const metricField = metric === 'runs' ? 'runs' : metric === 'hours' ? 'hours' : 'verticalFt';
-  const metricLabel = metricField === 'verticalFt' ? 'vertical' : metricField;
-  const trips = selectedTrips().sort((a, b) => Number(b[metricField] || 0) - Number(a[metricField] || 0)).slice(0, count);
-  if (!trips.length) { statusMsg('No trips logged yet.'); return; }
+  const metricField = metric === 'runs' ? 'runs' : metric === 'hours' ? 'hours' : metric === 'speed' ? 'topSpeed' : 'verticalFt';
+  const metricLabel = metricField === 'verticalFt' ? 'vertical' : metricField === 'topSpeed' ? 'speed' : metricField;
+  const trips = aggregateDays().sort((a, b) => Number(b[metricField] || 0) - Number(a[metricField] || 0)).slice(0, count);
+  if (!trips.length) { statusMsg('No entries logged yet.'); return; }
   document.getElementById('help-title').textContent = `TOP ${count} DAYS BY ${metricLabel.toUpperCase()}`;
-  document.getElementById('help-body').textContent = trips.map((t, idx) => `${idx + 1}. ${t.date} | ${t.location} | runs:${t.runs || 0} vertical:${t.verticalFt || 0}ft hours:${Number(t.hours || 0).toFixed(1)} fastest:${Number(t.fastestRunMph || t.topSpeed || 0).toFixed(1)}mph`).join('\n');
+  const body = document.getElementById('help-body');
+  body.style.whiteSpace = 'normal';
+  const v = s => `<span style="color:var(--accent)">${escHtml(String(s))}</span>`;
+  body.innerHTML = trips.map((t, idx) =>
+    `<div class="line">${idx + 1}. <span class="ok">${escHtml(t.date)}</span> ${escHtml(t.location)} <span class="dim">runs:${v(t.runs || 0)} · vertical:${v(t.verticalFt || 0)}ft · hours:${v(Number(t.hours || 0).toFixed(1))} · top:${v(Number(t.topSpeed || 0).toFixed(1))}mph · fastest-run:${v(Number(t.fastestRunMph || 0).toFixed(1))}mph</span></div>`
+  ).join('');
   openOverlay();
 }
 
 function cmdList(filter) {
   if (!filter || filter === 'all') {
     const trips = selectedTrips();
-    if (!trips.length) { statusMsg('No trips logged yet.'); return; }
-    document.getElementById('help-title').textContent = 'TRIP LIST';
-    document.getElementById('help-body').textContent = trips.map((t, i) => `${i + 1}. ${t.date} | ${t.location} | season:${seasonFromDate(t.date)} | runs:${t.runs || 0} vertical:${t.verticalFt || 0}ft hours:${Number(t.hours || 0).toFixed(1)} fastest:${Number(t.fastestRunMph || t.topSpeed || 0).toFixed(1)}mph`).join('\n');
+    if (!trips.length) { statusMsg('No entries logged yet.'); return; }
+    document.getElementById('help-title').textContent = 'ENTRY LIST';
+    document.getElementById('help-body').textContent = trips.map((t, i) => `${i + 1}. ${t.date} | ${t.location} | season:${seasonFromDate(t.date)} | runs:${t.runs || 0} vertical:${t.verticalFt || 0}ft hours:${Number(t.hours || 0).toFixed(1)} top:${Number(t.topSpeed || 0).toFixed(1)}mph`).join('\n');
     openOverlay();
     return;
   }
@@ -1045,7 +1116,7 @@ function render() {
   const avgSpeed = tripsWithAvgSpeed.length
     ? tripsWithAvgSpeed.reduce((sum, t) => sum + Number(t.avgSpeed), 0) / tripsWithAvgSpeed.length
     : null;
-  const maxSpeed = trips.reduce((max, t) => Math.max(max, Number(t.fastestRunMph || t.topSpeed || 0)), 0) || null;
+  const maxSpeed = trips.reduce((max, t) => Math.max(max, Number(t.topSpeed || 0)), 0) || null;
 
   document.getElementById('metric-trips').textContent = String(trips.length);
   document.getElementById('metric-runs').textContent = String(totalRuns);
@@ -1069,17 +1140,17 @@ function render() {
           Number(t.maxVertRunFt || 0) > 0 ? ` · max-vert:${Math.round(Number(t.maxVertRunFt))}ft` : ''
         ].join('');
         const notable = t.notableRuns ? ` · notable:${escHtml(t.notableRuns)}` : '';
-        return `<div class="line" data-trip-num="${idx + 1}" style="cursor:pointer">${idx + 1}. <span class="ok">${escHtml(t.date)}</span> ${escHtml(t.location)} <span class="dim">season:${escHtml(seasonFromDate(t.date))} · runs:${t.runs || 0}${loggedRuns} · vertical:${t.verticalFt || 0}ft${times}${extraStats} · fastest:${Number(t.fastestRunMph || t.topSpeed || 0).toFixed(1)}mph${notable}</span></div>`;
+        return `<div class="line" data-trip-num="${idx + 1}" style="cursor:pointer">${idx + 1}. <span class="ok">${escHtml(t.date)}</span> ${escHtml(t.location)} <span class="dim">season:${escHtml(seasonFromDate(t.date))} · runs:${t.runs || 0}${loggedRuns} · vertical:${t.verticalFt || 0}ft${times}${extraStats} · top:${Number(t.topSpeed || 0).toFixed(1)}mph · fastest-run:${Number(t.fastestRunMph || 0).toFixed(1)}mph${notable}</span></div>`;
       }).join('')
-    : '<span class="dim">No ski trips yet. Add one with /trip.</span>';
+    : '<span class="dim">No entries yet. Add one with /entry.</span>';
   tripList.querySelectorAll('[data-trip-num]').forEach(el => {
     el.addEventListener('click', () => cmdEdit(el.dataset.tripNum));
   });
 
-  const topDays = [...trips].sort((a, b) => Number(b.verticalFt || 0) - Number(a.verticalFt || 0)).slice(0, 6);
+  const topDays = aggregateDays().sort((a, b) => Number(b.verticalFt || 0) - Number(a.verticalFt || 0)).slice(0, 6);
   document.getElementById('top-days').innerHTML = topDays.length
-    ? topDays.map(t => `<div class="line"><span class="ok">${escHtml(t.date)}</span> ${escHtml(t.location)} <span class="dim">${t.verticalFt || 0}ft · ${t.runs || 0} runs · ${Number(t.fastestRunMph || t.topSpeed || 0).toFixed(1)}mph</span></div>`).join('')
-    : '<span class="dim">No trips yet. Use /trip.</span>';
+    ? topDays.map(t => `<div class="line"><span class="ok">${escHtml(t.date)}</span> ${escHtml(t.location)} <span class="dim">${t.verticalFt || 0}ft · ${t.runs || 0} runs · top:${Number(t.topSpeed || 0).toFixed(1)}mph · fastest-run:${Number(t.fastestRunMph || 0).toFixed(1)}mph</span></div>`).join('')
+    : '<span class="dim">No entries yet. Use /entry.</span>';
   const recentRuns = trips.flatMap(trip => {
     if (!Array.isArray(trip.runsList)) return [];
     return trip.runsList.map(run => ({
@@ -1092,25 +1163,25 @@ function render() {
     ? recentRuns.map(item => {
         const stars = item.run.stars ? ` · ★${item.run.stars}` : '';
         const note = item.run.note ? ` · ${escHtml(item.run.note)}` : '';
-        return `<div class="line"><span class="ok">${escHtml((item.enteredAt || '').slice(0, 10) || item.trip.date || '')}</span> ${difficultyIconHTML(item.run.difficulty)} ${escHtml(item.run.name || '')} <span class="dim">${escHtml(item.trip.location || '')}${stars}${note}</span></div>`;
+        return `<div class="line"><span class="ok">${escHtml(item.trip.date || '')}</span> ${difficultyIconHTML(item.run.difficulty)} ${escHtml(item.run.name || '')} <span class="dim">${escHtml(item.trip.location || '')}${stars}${note}</span></div>`;
       }).join('')
-    : '<span class="dim">No runs logged yet. Add a trip with /trip, then runs with /run.</span>';
+    : '<span class="dim">No runs logged yet. Use /entry to add an entry, then /run to add runs.</span>';
 
   const seasonRows = aggregateBy('season').slice(0, 6);
   document.getElementById('season-rollup').innerHTML = seasonRows.length
-    ? seasonRows.map(r => `<div class="line"><span class="ok">${escHtml(r.key)}</span> <span class="dim">trips:${r.trips} · runs:${r.runs} · ${r.verticalFt}ft</span></div>`).join('')
+    ? seasonRows.map(r => `<div class="line"><span class="ok">${escHtml(r.key)}</span> <span class="dim">days:${r.days} · locations:${r.extras} · runs:${r.runs} · ${r.verticalFt}ft</span></div>`).join('')
     : '<span class="dim">No data yet.</span>';
 
   const locationRows = aggregateBy('location').slice(0, 6);
   document.getElementById('location-rollup').innerHTML = locationRows.length
-    ? locationRows.map(r => `<div class="line"><span class="ok">${escHtml(r.key)}</span> <span class="dim">trips:${r.trips} · runs:${r.runs} · ${r.verticalFt}ft</span></div>`).join('')
+    ? locationRows.map(r => `<div class="line"><span class="ok">${escHtml(r.key)}</span> <span class="dim">days:${r.days} · seasons:${r.extras} · runs:${r.runs} · ${r.verticalFt}ft</span></div>`).join('')
     : '<span class="dim">No data yet.</span>';
 
   updateStatus();
 }
 
 function exportDataTxt() {
-  const lines = ['# SKI TRACKER — ' + todayStr(), '', 'TRIPS'];
+  const lines = ['# SKI TRACKER — ' + todayStr(), '', 'ENTRIES'];
   selectedTrips().forEach((trip, idx) => {
     lines.push(`${idx + 1}. ${trip.date} | ${trip.location}`);
     const totalTime = normalizeDuration(trip.totalTime) || hoursToDuration(trip.hours || 0);
