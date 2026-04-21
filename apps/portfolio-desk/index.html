@@ -605,6 +605,7 @@ input[type=range]::-webkit-slider-thumb {
 <div class="tabs">
   <button class="tab active" onclick="switchTab('dashboard')">Dashboard</button>
   <button class="tab" onclick="switchTab('deepdive')">Deep Dive</button>
+  <button class="tab" onclick="switchTab('sales')">Sales</button>
   <button class="tab" onclick="switchTab('summary')">Summary</button>
   <button class="tab" onclick="switchTab('research')">Research</button>
   <button class="tab" onclick="switchTab('powder')">Dry Powder</button>
@@ -652,10 +653,42 @@ input[type=range]::-webkit-slider-thumb {
     <select id="deepDiveSelect" onchange="renderDeepDive()" style="width:140px">
       <option value="">— Select ticker —</option>
     </select>
+    <select id="deepDiveSort" aria-label="Sort deep dive positions" onchange="renderDeepDive()" style="width:150px">
+      <option value="name">Sort: Name (A→Z)</option>
+      <option value="value">Sort: Total Value</option>
+    </select>
+    <input type="checkbox" id="deepDiveShowClosed" onchange="renderDeepDive()" style="width:auto;accent-color:var(--cyan)">
+    <label for="deepDiveShowClosed" style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:0.1em">
+      Include closed
+    </label>
     <span id="ddCatBadge" style="margin-left:4px"></span>
   </div>
   <div id="deepDiveContent">
     <div class="no-data">Select a position to analyze</div>
+  </div>
+</div>
+
+<!-- ============ SALES VIEW ============ -->
+<div class="view" id="view-sales">
+  <div class="section-label">Recent Sales</div>
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Date</th>
+          <th>Ticker</th>
+          <th>Shares</th>
+          <th>Sell Price</th>
+          <th>Current Price</th>
+          <th>Current vs Sale</th>
+          <th>Gain / Loss</th>
+        </tr>
+      </thead>
+      <tbody id="salesHistoryBody"></tbody>
+    </table>
+    <div class="no-data" id="salesHistoryEmpty" style="display:none">
+      No sales recorded yet.
+    </div>
   </div>
 </div>
 
@@ -1206,6 +1239,12 @@ function totalShares(entries) {
   return entries.reduce((a, e) => a + e.shares, 0);
 }
 
+function isExited(pos) {
+  const buyShares = parseEntries(pos.entries).reduce((a, e) => a + e.shares, 0);
+  const sellShares = parseEntries(pos.exits).reduce((a, e) => a + e.shares, 0);
+  return buyShares > 0 && sellShares >= buyShares;
+}
+
 // ═══════════════════════════════════════════
 // VS S&P HELPERS
 // ═══════════════════════════════════════════
@@ -1298,12 +1337,6 @@ function renderDashboard() {
   const noData = document.getElementById('noData');
 
   const showExited = document.getElementById('showExited')?.checked ?? false;
-
-  const isExited = (pos) => {
-    const buyShares = parseEntries(pos.entries).reduce((a, e) => a + e.shares, 0);
-    const sellShares = parseEntries(pos.exits).reduce((a, e) => a + e.shares, 0);
-    return buyShares > 0 && sellShares >= buyShares;
-  };
 
   let positions = state.positions.filter(pos => showExited || !isExited(pos));
 
@@ -1559,23 +1592,17 @@ function buildChart(pos, price, entries, exits, range = '1Y') {
 
 function renderDeepDive(ticker) {
   const sel = document.getElementById('deepDiveSelect');
-  // populate select
-  sel.innerHTML = '<option value="">— Select ticker —</option>' +
-    [...state.positions].sort((a,b) => a.ticker.localeCompare(b.ticker))
-      .map(p => `<option value="${p.id}" ${(ticker && p.ticker === ticker) || sel.value === p.id ? 'selected' : ''}>${p.ticker}</option>`).join('') +
-    '<optgroup label="— Market —">' +
-    PINNED_INFO.map(pin => `<option value="${pin.key}" ${(ticker && ticker === pin.label) || sel.value === pin.key ? 'selected' : ''}>${pin.label} — ${pin.desc}</option>`).join('') +
-    '</optgroup>';
-
   const pinnedMatch = ticker ? PINNED_INFO.find(pin => pin.label === ticker) : null;
-  const id = pinnedMatch
+  const selectedId = pinnedMatch
     ? pinnedMatch.key
     : (ticker
         ? (state.positions.find(p => p.ticker === ticker)?.id || sel.value)
         : sel.value);
 
+  populateDeepDiveSelect(selectedId);
+  const id = sel.value;
+
   if (!id) { document.getElementById('ddCatBadge').innerHTML = ''; return; }
-  sel.value = id;
 
   const pinnedPin = PINNED_INFO.find(pin => pin.key === id);
   if (pinnedPin) { renderPinnedDeepDive(pinnedPin); return; }
@@ -3077,17 +3104,121 @@ function switchTab(name) {
   if (name === 'summary') renderSummary();
   if (name === 'research') renderResearch();
   if (name === 'deepdive') populateDeepDiveSelect();
+  if (name === 'sales') renderSalesHistory();
 }
 
-function populateDeepDiveSelect() {
+function populateDeepDiveSelect(preferredId) {
   const sel = document.getElementById('deepDiveSelect');
-  const cur = sel.value;
+  const cur = preferredId || sel.value;
+  const sortMode = document.getElementById('deepDiveSort')?.value || 'name';
+  const includeClosed = document.getElementById('deepDiveShowClosed')?.checked ?? false;
+  const positions = state.positions
+    .filter(p => includeClosed || !isExited(p))
+    .sort((a, b) => {
+      if (sortMode === 'value') {
+        const aEntries = parseEntries(a.entries);
+        const aExits = parseEntries(a.exits);
+        const aActive = fifoCalc(aEntries, aExits).activeShares;
+        const aPrice = a.manualPrice || state.prices[a.ticker]?.price || 0;
+        const bEntries = parseEntries(b.entries);
+        const bExits = parseEntries(b.exits);
+        const bActive = fifoCalc(bEntries, bExits).activeShares;
+        const bPrice = b.manualPrice || state.prices[b.ticker]?.price || 0;
+        const av = aActive * aPrice;
+        const bv = bActive * bPrice;
+        if (av !== bv) return bv - av;
+      }
+      return a.ticker.localeCompare(b.ticker);
+    });
+
   sel.innerHTML = '<option value="">— Select ticker —</option>' +
-    [...state.positions].sort((a,b) => a.ticker.localeCompare(b.ticker))
-      .map(p => `<option value="${p.id}" ${p.id === cur ? 'selected' : ''}>${p.ticker}</option>`).join('') +
+    positions.map(p => `<option value="${p.id}" ${p.id === cur ? 'selected' : ''}>${p.ticker}</option>`).join('') +
     '<optgroup label="— Market —">' +
     PINNED_INFO.map(pin => `<option value="${pin.key}" ${cur === pin.key ? 'selected' : ''}>${pin.label} — ${pin.desc}</option>`).join('') +
     '</optgroup>';
+  if (cur) sel.value = cur;
+}
+
+function renderSalesHistory() {
+  const tbody = document.getElementById('salesHistoryBody');
+  const empty = document.getElementById('salesHistoryEmpty');
+  if (!tbody || !empty) return;
+  // Sentinel ensures entries without dates are sorted after real YYYY-MM-DD dates.
+  const MISSING_DATE_SENTINEL = '9999-99-99';
+  const chronologicalSortAsc = (a, b) => (a.date || MISSING_DATE_SENTINEL).localeCompare(b.date || MISSING_DATE_SENTINEL);
+  const chronologicalSortDesc = (a, b) => -chronologicalSortAsc(a, b);
+
+  const rows = [];
+  state.positions.forEach(pos => {
+    const entries = parseEntries(pos.entries);
+    const exits = parseEntries(pos.exits);
+    if (!entries.length || !exits.length) return;
+
+    const buys = [...entries]
+      .sort(chronologicalSortAsc)
+      .map(e => ({ ...e, remaining: e.shares }));
+    const sells = [...exits]
+      .sort(chronologicalSortAsc);
+    const currentPrice = pos.manualPrice || state.prices[pos.ticker]?.price || null;
+
+    sells.forEach(sell => {
+      let toSell = sell.shares;
+      let matchedCost = 0;
+      let matchedShares = 0;
+
+      for (const buy of buys) {
+        if (buy.remaining <= 0 || toSell <= 0) continue;
+        const matched = Math.min(buy.remaining, toSell);
+        matchedCost += matched * buy.price;
+        matchedShares += matched;
+        buy.remaining -= matched;
+        toSell -= matched;
+      }
+
+      const proceeds = sell.price * sell.shares;
+      const pnl = proceeds - matchedCost;
+      const currentVsSale = (currentPrice && sell.price > 0) ? ((currentPrice - sell.price) / sell.price) * 100 : null;
+      rows.push({
+        date: sell.date,
+        ticker: pos.ticker,
+        shares: sell.shares,
+        sellPrice: sell.price,
+        currentPrice,
+        currentVsSale,
+        pnl,
+        unmatchedShares: toSell,
+        matchedShares
+      });
+    });
+  });
+
+  rows.sort(chronologicalSortDesc);
+
+  if (!rows.length) {
+    tbody.innerHTML = '';
+    empty.style.display = 'block';
+    return;
+  }
+
+  empty.style.display = 'none';
+  tbody.innerHTML = rows.map(r => {
+    const currentVsSaleHtml = r.currentVsSale !== null
+      ? `<span style="color:${gradeColor(r.currentVsSale)}" aria-label="${r.currentVsSale >= 0 ? 'increase' : 'decrease'} ${fmt1(Math.abs(r.currentVsSale))} percent">${r.currentVsSale >= 0 ? '▲ +' : '▼ '}${fmt1(Math.abs(r.currentVsSale))}%</span>`
+      : '<span style="color:var(--muted)">—</span>';
+    const pnlHtml = r.matchedShares
+      ? `<span style="color:${gradeColor(r.pnl)};font-weight:500">${r.pnl >= 0 ? '+' : '-'}$${fmt2(Math.abs(r.pnl))}</span>${r.unmatchedShares ? `<span style="color:var(--muted)"> (unmatched ${r.unmatchedShares})</span>` : ''}`
+      : '<span style="color:var(--muted)">—</span>';
+    return `
+    <tr>
+      <td>${r.date || '<span style="color:var(--muted)">—</span>'}</td>
+      <td><span class="ticker">${r.ticker}</span></td>
+      <td>${r.shares}</td>
+      <td>$${fmt2(r.sellPrice)}</td>
+      <td>${r.currentPrice ? '$' + fmt2(r.currentPrice) : '<span style="color:var(--muted)">—</span>'}</td>
+      <td>${currentVsSaleHtml}</td>
+      <td>${pnlHtml}</td>
+    </tr>
+  `;}).join('');
 }
 
 function showAlert(msg, type) {
@@ -3164,6 +3295,7 @@ function fmt0(n) { return n !== null && !isNaN(n) ? Math.round(n).toLocaleString
 function renderAll() {
   renderDashboard();
   populateDeepDiveSelect();
+  renderSalesHistory();
 }
 
 // ═══════════════════════════════════════════
