@@ -657,8 +657,8 @@ input[type=range]::-webkit-slider-thumb {
       <option value="name">Sort: Name (A→Z)</option>
       <option value="value">Sort: Total Value</option>
     </select>
-    <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:0.1em">
-      <input type="checkbox" id="deepDiveShowClosed" onchange="renderDeepDive()" style="width:auto;accent-color:var(--cyan)">
+    <input type="checkbox" id="deepDiveShowClosed" onchange="renderDeepDive()" style="width:auto;accent-color:var(--cyan)">
+    <label for="deepDiveShowClosed" style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:0.1em">
       Include closed
     </label>
     <span id="ddCatBadge" style="margin-left:4px"></span>
@@ -3203,7 +3203,7 @@ function renderSalesHistory() {
   empty.style.display = 'none';
   tbody.innerHTML = rows.map(r => {
     const currentVsSaleHtml = r.currentVsSale !== null
-      ? `<span style="color:${gradeColor(r.currentVsSale)}">${r.currentVsSale >= 0 ? '▲ +' : '▼ '}${fmt1(Math.abs(r.currentVsSale))}%</span>`
+      ? `<span style="color:${gradeColor(r.currentVsSale)}" aria-label="${r.currentVsSale >= 0 ? 'increase' : 'decrease'} ${fmt1(Math.abs(r.currentVsSale))} percent">${r.currentVsSale >= 0 ? '▲ +' : '▼ '}${fmt1(Math.abs(r.currentVsSale))}%</span>`
       : '<span style="color:var(--muted)">—</span>';
     const pnlHtml = r.matchedShares
       ? `<span style="color:${gradeColor(r.pnl)};font-weight:500">${r.pnl >= 0 ? '+' : '-'}$${fmt2(Math.abs(r.pnl))}</span>${r.unmatchedShares ? `<span style="color:var(--muted)"> (unmatched ${r.unmatchedShares})</span>` : ''}`
