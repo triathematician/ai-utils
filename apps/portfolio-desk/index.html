@@ -658,7 +658,7 @@ input[type=range]::-webkit-slider-thumb {
       <option value="value">Sort: Total Value</option>
     </select>
     <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:0.1em">
-      <input type="checkbox" id="deepDiveShowClosed" aria-label="Include closed positions" onchange="renderDeepDive()" style="width:auto;accent-color:var(--cyan)">
+      <input type="checkbox" id="deepDiveShowClosed" onchange="renderDeepDive()" style="width:auto;accent-color:var(--cyan)">
       Include closed
     </label>
     <span id="ddCatBadge" style="margin-left:4px"></span>
@@ -3145,7 +3145,7 @@ function renderSalesHistory() {
   if (!tbody || !empty) return;
   // Sentinel ensures entries without dates are sorted after real YYYY-MM-DD dates.
   const MISSING_DATE_SENTINEL = '9999-99-99';
-  const chronologicalSortAsc = (a, b) => (a.date || MISSING_DATE_SENTINEL) < (b.date || MISSING_DATE_SENTINEL) ? -1 : 1;
+  const chronologicalSortAsc = (a, b) => (a.date || MISSING_DATE_SENTINEL).localeCompare(b.date || MISSING_DATE_SENTINEL);
   const chronologicalSortDesc = (a, b) => -chronologicalSortAsc(a, b);
 
   const rows = [];
@@ -3186,7 +3186,7 @@ function renderSalesHistory() {
         currentPrice,
         currentVsSale,
         pnl,
-        unmatched: toSell,
+        unmatchedShares: toSell,
         matchedShares
       });
     });
@@ -3206,7 +3206,7 @@ function renderSalesHistory() {
       ? `<span style="color:${gradeColor(r.currentVsSale)}">${r.currentVsSale >= 0 ? '▲ +' : '▼ '}${fmt1(Math.abs(r.currentVsSale))}%</span>`
       : '<span style="color:var(--muted)">—</span>';
     const pnlHtml = r.matchedShares
-      ? `<span style="color:${gradeColor(r.pnl)};font-weight:500">${r.pnl >= 0 ? '+' : '-'}$${fmt2(Math.abs(r.pnl))}</span>${r.unmatched ? `<span style="color:var(--muted)"> (unmatched ${r.unmatched})</span>` : ''}`
+      ? `<span style="color:${gradeColor(r.pnl)};font-weight:500">${r.pnl >= 0 ? '+' : '-'}$${fmt2(Math.abs(r.pnl))}</span>${r.unmatchedShares ? `<span style="color:var(--muted)"> (unmatched ${r.unmatchedShares})</span>` : ''}`
       : '<span style="color:var(--muted)">—</span>';
     return `
     <tr>
