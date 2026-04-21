@@ -653,7 +653,7 @@ input[type=range]::-webkit-slider-thumb {
     <select id="deepDiveSelect" onchange="renderDeepDive()" style="width:140px">
       <option value="">— Select ticker —</option>
     </select>
-    <select id="deepDiveSort" onchange="populateDeepDiveSelect();renderDeepDive()" style="width:150px">
+    <select id="deepDiveSort" aria-label="Sort deep dive positions" onchange="populateDeepDiveSelect();renderDeepDive()" style="width:150px">
       <option value="name">Sort: Name (A→Z)</option>
       <option value="value">Sort: Total Value</option>
     </select>
@@ -3143,6 +3143,7 @@ function renderSalesHistory() {
   const tbody = document.getElementById('salesHistoryBody');
   const empty = document.getElementById('salesHistoryEmpty');
   if (!tbody || !empty) return;
+  const chronologicalSort = (a, b) => (a.date || '9999') < (b.date || '9999') ? -1 : 1;
 
   const rows = [];
   state.positions.forEach(pos => {
@@ -3151,10 +3152,10 @@ function renderSalesHistory() {
     if (!entries.length || !exits.length) return;
 
     const buys = [...entries]
-      .sort((a, b) => (a.date || '9999') < (b.date || '9999') ? -1 : 1)
+      .sort(chronologicalSort)
       .map(e => ({ ...e, remaining: e.shares }));
     const sells = [...exits]
-      .sort((a, b) => (a.date || '9999') < (b.date || '9999') ? -1 : 1);
+      .sort(chronologicalSort);
     const currentPrice = pos.manualPrice || state.prices[pos.ticker]?.price || null;
 
     sells.forEach(sell => {
@@ -3173,7 +3174,7 @@ function renderSalesHistory() {
 
       const proceeds = sell.price * sell.shares;
       const pnl = proceeds - matchedCost;
-      const currentVsSale = currentPrice ? ((currentPrice - sell.price) / sell.price) * 100 : null;
+      const currentVsSale = (currentPrice && sell.price > 0) ? ((currentPrice - sell.price) / sell.price) * 100 : null;
       rows.push({
         date: sell.date,
         ticker: pos.ticker,
