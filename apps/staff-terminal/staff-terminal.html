@@ -99,6 +99,17 @@
   --scale-div-1:#b71c1c;--scale-div-2:#e65100;--scale-div-3:#8a9a8a;--scale-div-4:#388e3c;--scale-div-5:#1b5e20;
   --scale-seq-1:#d0e8d0;--scale-seq-2:#8ab88a;--scale-seq-3:#4e8a4e;--scale-seq-4:#2e5c2e;--scale-seq-5:#0d2b0d;
 }
+[data-theme="winter"] {
+  --bg:#0d1b2a; --fg:#d8eaf4; --accent:#7ec8e3;
+  --dim:#5a7f94; --muted:#1a2f40; --border:#3d6b8c;
+  --success:#4ecdc4; --warn:#f4a261;
+  --font:'Fira Code',monospace;
+  --cat-1:#7ec8e3; --cat-2:#a8d8ea; --cat-3:#cde8f5; --cat-4:#9bb7d4;
+  --cat-5:#b8a8d0; --cat-6:#4ecdc4; --cat-7:#8fcfb8; --cat-8:#f4a261;
+  --cat-9:#d4c5a9; --cat-10:#a8c0d0;
+  --scale-div-1:#e05252;--scale-div-2:#f4a261;--scale-div-3:#5a7f94;--scale-div-4:#7ec8e3;--scale-div-5:#cdf0fb;
+  --scale-seq-1:#1a2f40;--scale-seq-2:#2d5a73;--scale-seq-3:#4a8fa3;--scale-seq-4:#7ec8e3;--scale-seq-5:#cdf0fb;
+}
 
 /* ═══════════════════════════════════════════════
    RESET & BASE
@@ -602,7 +613,7 @@ html, body {
    CONSTANTS
    ═══════════════════════════════════════════════════════════════════ */
 const STORAGE_KEY = 'staff_terminal_db';
-const THEMES = ['legacy','solar','monk','space','synth','dos','notebook','engineering'];
+const THEMES = ['legacy','solar','monk','space','synth','dos','notebook','engineering','winter'];
 const NOTE_TYPES = ['general','meeting','performance','concern','highlight','todo','role'];
 const MILESTONE_TYPES = ['achievement','promotion','certification','other'];
 const MILESTONE_ICONS = { achievement:'★', promotion:'▲', certification:'◆', other:'·' };
@@ -2282,7 +2293,7 @@ function showHelp() {
     '/backlog archive list    show archived batches',
     '/backlog export          download backlog as .txt',
     '',
-    '/theme [name]            switch theme  (legacy|solar|monk|space|synth|dos|notebook)',
+    '/theme [name]            switch theme  (legacy|solar|monk|space|synth|dos|notebook|engineering|winter)',
     '/help                    show this help',
   ].join('\n');
 
