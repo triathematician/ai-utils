@@ -73,6 +73,14 @@
   --cat-5:#1565c0; --cat-6:#4a148c; --cat-7:#00695c; --cat-8:#4e342e;
   --cat-9:#37474f; --cat-10:#880e4f;
 }
+[data-theme="winter"] {
+  --bg:#0d1b2a; --fg:#d8eaf4; --accent:#7ec8e3;
+  --dim:#5a7f94; --muted:#1a2f40; --border:#3d6b8c;
+  --success:#4ecdc4; --warn:#f4a261; --diamond:#eeeeee; --font:'Fira Code',monospace;
+  --cat-1:#7ec8e3; --cat-2:#a8d8ea; --cat-3:#cde8f5; --cat-4:#9bb7d4;
+  --cat-5:#b8a8d0; --cat-6:#4ecdc4; --cat-7:#8fcfb8; --cat-8:#f4a261;
+  --cat-9:#d4c5a9; --cat-10:#a8c0d0;
+}
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 html, body {
   height: 100%; background: var(--bg); color: var(--fg);
@@ -258,7 +266,7 @@ html, body {
 <script>
 const STORAGE_KEY = 'ski_tracker_db';
 const EXPORT_SLUG = 'ski-tracker';
-const THEMES = ['legacy','solar','monk','space','synth','dos','notebook','engineering'];
+const THEMES = ['legacy','solar','monk','space','synth','dos','notebook','engineering','winter'];
 
 const PARK_PILL = '<span style="background:#ff8800;color:#fff;border-radius:20px;padding:0 6px;font-size:0.62em;letter-spacing:0.5px;display:inline-block;line-height:1.7;vertical-align:middle;">PARK</span>';
 
