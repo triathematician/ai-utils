@@ -293,6 +293,41 @@
   --scale-seq-1: #d0e8d0; --scale-seq-2: #8ab88a; --scale-seq-3: #4e8a4e;
   --scale-seq-4: #2e5c2e; --scale-seq-5: #0d2b0d;
 }
+[data-theme="winter"] {
+  --bg: #0d1b2a;
+  --fg: #d8eaf4;
+  --accent: #7ec8e3;
+  --dim: #5a7f94;
+  --muted: #1a2f40;
+  --border: #3d6b8c;
+  --success: #4ecdc4;
+  --warn: #f4a261;
+  --font: 'Fira Code', monospace;
+  --grid-important-today: #7ec8e3;
+  --grid-important-week: #2d5a73;
+  --grid-notimportant-today: #f4a261;
+  --grid-notimportant-week: #9a6030;
+  --quadrant-ui: #7ec8e3;
+  --quadrant-di: #f4a261;
+  --quadrant-un: #cde8f5;
+  --quadrant-ni: #2d4458;
+  --cat-1: #7ec8e3;
+  --cat-2: #a8d8ea;
+  --cat-3: #cde8f5;
+  --cat-4: #9bb7d4;
+  --cat-5: #b8a8d0;
+  --cat-6: #4ecdc4;
+  --cat-7: #8fcfb8;
+  --cat-8: #f4a261;
+  --cat-9: #d4c5a9;
+  --cat-10: #a8c0d0;
+  /* divergent scale */
+  --scale-div-1: #e05252; --scale-div-2: #f4a261; --scale-div-3: #5a7f94;
+  --scale-div-4: #7ec8e3; --scale-div-5: #cdf0fb;
+  /* sequential scale */
+  --scale-seq-1: #1a2f40; --scale-seq-2: #2d5a73; --scale-seq-3: #4a8fa3;
+  --scale-seq-4: #7ec8e3; --scale-seq-5: #cdf0fb;
+}
 
 /* ═══════════════════════════════════════════════
    RESET & BASE
@@ -1920,7 +1955,7 @@ function showHelp(title, lines) {
     '/scores          view balance scores over time',
     '',
     '── STANDARD ───────────────────────────────────────────',
-    '/theme [name]    legacy | solar | monk | space | synth | dos | notebook | engineering',
+    '/theme [name]    legacy | solar | monk | space | synth | dos | notebook | engineering | winter',
     '/backlog [text]         add item to backlog',
     '/backlog list           show all backlog items',
     '/backlog done [n]       toggle item #n as done/open',
@@ -2197,8 +2232,8 @@ function editScoresBoot() {
 }
 
 function setTheme(name) {
-  const valid = ['legacy','solar','monk','space','synth','dos','notebook','engineering'];
-  const themes = {legacy:'',solar:'solar',monk:'monk',space:'space',synth:'synth',dos:'dos',notebook:'notebook',engineering:'engineering'};
+  const valid = ['legacy','solar','monk','space','synth','dos','notebook','engineering','winter'];
+  const themes = {legacy:'',solar:'solar',monk:'monk',space:'space',synth:'synth',dos:'dos',notebook:'notebook',engineering:'engineering',winter:'winter'};
   if (!name) {
     const others = valid.filter(t => t !== (db.theme||'legacy'));
     name = others[Math.floor(Math.random() * others.length)];
@@ -2298,7 +2333,7 @@ function escHtml(s) {
    ═══════════════════════════════════════════════════════════════════ */
 loadDB();
 // Apply saved theme
-const themeMap = {legacy:'',solar:'solar',monk:'monk',space:'space',synth:'synth',dos:'dos',notebook:'notebook',engineering:'engineering'};
+const themeMap = {legacy:'',solar:'solar',monk:'monk',space:'space',synth:'synth',dos:'dos',notebook:'notebook',engineering:'engineering',winter:'winter'};
 if (db.theme && db.theme!=='legacy') {
   document.documentElement.setAttribute('data-theme', themeMap[db.theme]);
 }

@@ -39,6 +39,11 @@
   --dim:#5555ff; --muted:#0000cc; --border:#aaaaaa;
   --success:#55ff55; --warn:#ffff55; --font:'VT323',monospace;
 }
+[data-theme="winter"] {
+  --bg:#0d1b2a; --fg:#d8eaf4; --accent:#7ec8e3;
+  --dim:#5a7f94; --muted:#1a2f40; --border:#3d6b8c;
+  --success:#4ecdc4; --warn:#f4a261; --font:'Fira Code',monospace;
+}
 
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 html, body {
@@ -163,7 +168,7 @@ const STAR_CRITERIA = {
   5: '5★ — indispensable'
 };
 
-const THEMES = ['legacy','solar','monk','space','synth','dos'];
+const THEMES = ['legacy','solar','monk','space','synth','dos','winter'];
 const STORAGE_KEY = 'ai_utils_launcher';
 const SORT_MODES = ['date', 'stars', 'type', 'name'];
 const DEFAULT_SORT_MODE = 'date';
@@ -257,7 +262,7 @@ function showHelp() {
   appendLine('/help             show this help', 'log-sys');
   appendLine('/list             reprint app list', 'log-sys');
   appendLine('/launch <n|name>  open app in new window', 'log-sys');
-  appendLine('/theme [name]     legacy | solar | monk | space | synth | dos  (random if omitted)', 'log-sys');
+  appendLine('/theme [name]     legacy | solar | monk | space | synth | dos | winter  (random if omitted)', 'log-sys');
   appendLine('/sort [mode]      date | stars | type | name', 'log-sys');
   appendLine('/boot             reboot launcher startup sequence', 'log-sys');
   appendLine('/backlog [text]         add item to backlog', 'log-sys');
