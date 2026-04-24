@@ -1054,8 +1054,11 @@ function buildHypChart(simResults) {
   const W=900, H=320, PL=68, PR=16, PT=16, PB=28;
   const chartW = W-PL-PR, chartH = H-PT-PB;
   const useLog = state.hypScale === 'log';
-  const allDates = simResults[0].timeseries.map(p => p.date);
+  // Shared date axis: full SP500 range from earliest enabled strategy's start
+  const earliestDate = simResults.reduce((min, r) => r.timeseries[0].date < min ? r.timeseries[0].date : min, '9999-99');
+  const allDates = SP500_MONTHLY.filter(d => d.date >= earliestDate).map(d => d.date);
   const n = allDates.length;
+  const dateIndex = Object.fromEntries(allDates.map((d,i) => [d,i]));
   const allVals = simResults.flatMap(r => r.timeseries.map(p => p.value)).filter(v => v > 0);
   if (!allVals.length) return '<div style="color:var(--muted);font-size:10px;padding:40px;text-align:center">No data</div>';
   const minV = useLog ? Math.min(...allVals) : 0;
@@ -1099,7 +1102,10 @@ function buildHypChart(simResults) {
   }).join('');
 
   const lines = simResults.map(r => {
-    const pts = r.timeseries.map((p,i) => `${scaleX(i).toFixed(1)},${scaleY(p.value).toFixed(1)}`).join(' ');
+    const pts = r.timeseries
+      .filter(p => dateIndex[p.date] !== undefined)
+      .map(p => `${scaleX(dateIndex[p.date]).toFixed(1)},${scaleY(p.value).toFixed(1)}`)
+      .join(' ');
     return `<polyline points="${pts}" fill="none" stroke="${r.strategy.colorHex}" stroke-width="1.5" opacity="0.9"/>`;
   }).join('');
 
@@ -1120,8 +1126,11 @@ function attachHypChartHover(simResults) {
   const svg = document.getElementById('hypSvg');
   if (!chartEl || !crosshair || !tooltip || !svg || !simResults.length) return;
 
-  const allDates = simResults[0].timeseries.map(p => p.date);
+  const earliestDate = simResults.reduce((min, r) => r.timeseries[0].date < min ? r.timeseries[0].date : min, '9999-99');
+  const allDates = SP500_MONTHLY.filter(d => d.date >= earliestDate).map(d => d.date);
   const n = allDates.length;
+  // build per-strategy date lookup for tooltip
+  const seriesMap = simResults.map(r => Object.fromEntries(r.timeseries.map(p => [p.date, p])));
   const W=900, PL=68, PR=16, chartW=W-PL-PR;
 
   chartEl.addEventListener('mousemove', e => {
@@ -1134,8 +1143,9 @@ function attachHypChartHover(simResults) {
     crosshair.style.display = 'block';
     crosshair.style.left = pct + '%';
     const date = allDates[idx];
-    const lines = simResults.map(r => {
-      const pt = r.timeseries[idx];
+    const lines = simResults.map((r, ri) => {
+      const pt = seriesMap[ri][date];
+      if (!pt) return `<div><span style="color:${r.strategy.colorHex}">● ${r.strategy.name}</span><span style="margin-left:8px;color:var(--muted)">not started</span></div>`;
       const unrealized = pt.value - pt.invested;
       const sign = unrealized >= 0 ? '+' : '';
       return `<div><span style="color:${r.strategy.colorHex}">● ${r.strategy.name}</span>
