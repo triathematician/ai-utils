@@ -971,8 +971,29 @@ let state = {
   sortCol: 'ticker',
   sortDir: 1,
   salesSortCol: 'date',
-  salesSortDir: -1
+  salesSortDir: -1,
+  hypScale: 'log',
+  hypStrategies: null
 };
+
+// ── Hypothesis strategy defaults ──
+const HYP_STRATEGY_DEFAULTS = [
+  { id:0, enabled:true,  name:'DCA Monthly',  colorHex:'#20d0e0', startCapital:0, monthly:500, startYear:1975, rule:'dca', dipThreshold:15, dipMultiplier:2, maWindow:12 },
+  { id:1, enabled:false, name:'Buy the Dip',  colorHex:'#f0a030', startCapital:0, monthly:500, startYear:1975, rule:'dip', dipThreshold:15, dipMultiplier:2, maWindow:12 },
+  { id:2, enabled:false, name:'MA Filter',    colorHex:'#00e5a0', startCapital:0, monthly:500, startYear:1975, rule:'ma',  dipThreshold:15, dipMultiplier:2, maWindow:12 },
+];
+function loadHypStrategies() {
+  try {
+    const saved = JSON.parse(localStorage.getItem('hyp_strategies_v1'));
+    if (saved && saved.length === 3) return saved.map((s,i) => ({ ...HYP_STRATEGY_DEFAULTS[i], ...s }));
+  } catch(e) {}
+  return HYP_STRATEGY_DEFAULTS.map(s => ({ ...s }));
+}
+function saveHypStrategies() {
+  localStorage.setItem('hyp_strategies_v1', JSON.stringify(state.hypStrategies));
+}
+state.hypStrategies = loadHypStrategies();
+
 
 let ddChartRange = '1Y';
 
