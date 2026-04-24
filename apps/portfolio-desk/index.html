@@ -994,6 +994,57 @@ function saveHypStrategies() {
 }
 state.hypStrategies = loadHypStrategies();
 
+// ── Hypothesis card renderer ──
+function renderHypStrategyCards() {
+  const container = document.getElementById('hypStrategyCards');
+  if (!container) return;
+  container.innerHTML = state.hypStrategies.map((s, i) => {
+    const yearOpts = Array.from({length:50}, (_,k) => {
+      const y = 1975 + k;
+      return `<option value="${y}" ${s.startYear===y?'selected':''}>${y}</option>`;
+    }).join('');
+    const ruleOpts = [['dca','DCA — Buy every month'],['dip','Buy the Dip'],['ma','Moving Average filter']]
+      .map(([v,l]) => `<option value="${v}" ${s.rule===v?'selected':''}>${l}</option>`).join('');
+    const dipParams = s.rule === 'dip' ? `<div class="hyp-rule-params">
+      <div class="hyp-field"><label>Drawdown threshold %</label>
+        <input type="number" class="input" value="${s.dipThreshold}" min="1" max="60" step="1" oninput="updateHypStrategy(${i},'dipThreshold',+this.value)"></div>
+      <div class="hyp-field"><label>Extra multiplier (×)</label>
+        <input type="number" class="input" value="${s.dipMultiplier}" min="1.1" max="10" step="0.1" oninput="updateHypStrategy(${i},'dipMultiplier',+this.value)"></div>
+    </div>` : '';
+    const maParams = s.rule === 'ma' ? `<div class="hyp-rule-params">
+      <div class="hyp-field"><label>SMA window (months)</label>
+        <input type="number" class="input" value="${s.maWindow}" min="2" max="60" step="1" oninput="updateHypStrategy(${i},'maWindow',+this.value)"></div>
+    </div>` : '';
+    return `<div class="hyp-card ${s.enabled?'':'disabled'}" id="hypCard${i}">
+      <div class="hyp-card-header">
+        <div class="hyp-color-dot" style="background:${s.colorHex}"></div>
+        <input class="hyp-card-name" type="text" value="${s.name}" oninput="updateHypStrategy(${i},'name',this.value)">
+        <div class="hyp-toggle ${s.enabled?'on':''}" onclick="toggleHypStrategy(${i})"></div>
+      </div>
+      <div class="hyp-field"><label>Starting capital ($)</label>
+        <input type="number" class="input" value="${s.startCapital}" min="0" step="100" oninput="updateHypStrategy(${i},'startCapital',+this.value)"></div>
+      <div class="hyp-field"><label>Monthly contribution ($)</label>
+        <input type="number" class="input" value="${s.monthly}" min="0" step="50" oninput="updateHypStrategy(${i},'monthly',+this.value)"></div>
+      <div class="hyp-field"><label>Start year</label>
+        <select class="input" onchange="updateHypStrategy(${i},'startYear',+this.value)">${yearOpts}</select></div>
+      <div class="hyp-field"><label>Rule</label>
+        <select class="input" onchange="updateHypStrategy(${i},'rule',this.value);renderHypStrategyCards();renderHypothesis()">${ruleOpts}</select></div>
+      ${dipParams}${maParams}
+    </div>`;
+  }).join('');
+}
+function toggleHypStrategy(i) {
+  state.hypStrategies[i].enabled = !state.hypStrategies[i].enabled;
+  saveHypStrategies(); renderHypStrategyCards(); renderHypothesis();
+}
+function updateHypStrategy(i, key, val) {
+  state.hypStrategies[i][key] = val;
+  saveHypStrategies(); renderHypothesis();
+}
+function renderHypothesis() {
+  renderHypStrategyCards();
+}
+
 
 let ddChartRange = '1Y';
 
