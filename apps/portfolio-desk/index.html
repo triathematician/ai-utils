@@ -1045,6 +1045,95 @@ function renderHypothesis() {
   renderHypStrategyCards();
 }
 
+// ── Hypothesis simulation engine ──
+function runHypSimulation(strategy) {
+  const data = SP500_MONTHLY.filter(d => d.date >= strategy.startYear + '-01');
+  if (data.length < 2) return null;
+
+  let shares = 0, cash = 0;
+  const runningAth = [];
+  let ath = 0;
+  data.forEach(d => { ath = Math.max(ath, d.close); runningAth.push(ath); });
+
+  const smaValues = data.map((_, idx) => {
+    const win = Math.max(1, strategy.maWindow || 12);
+    const slice = data.slice(Math.max(0, idx - win + 1), idx + 1);
+    return slice.reduce((s, x) => s + x.close, 0) / slice.length;
+  });
+
+  if (strategy.startCapital > 0) shares += strategy.startCapital / data[0].close;
+
+  let monthsInvested = 0;
+  const series = [];
+
+  data.forEach((d, idx) => {
+    const price = d.close;
+    const base = strategy.monthly;
+    let buy = 0;
+
+    if (strategy.rule === 'dca') {
+      buy = base;
+    } else if (strategy.rule === 'dip') {
+      const dd = runningAth[idx] > 0 ? (runningAth[idx] - price) / runningAth[idx] * 100 : 0;
+      buy = dd >= (strategy.dipThreshold || 15) ? base * (strategy.dipMultiplier || 2) : base;
+    } else if (strategy.rule === 'ma') {
+      if (price >= smaValues[idx]) { buy = base + cash; cash = 0; }
+      else { cash += base; buy = 0; }
+    }
+
+    if (buy > 0) shares += buy / price;
+    if (idx > 0) monthsInvested++;
+
+    series.push({
+      date: d.date,
+      value: shares * price + cash,
+      invested: strategy.startCapital + base * monthsInvested,
+      inMarket: shares * price > 0
+    });
+  });
+
+  return { timeseries: series };
+}
+
+// ── Hypothesis stats computation ──
+function computeHypStats(timeseries) {
+  if (!timeseries || timeseries.length < 2) return null;
+  const last = timeseries.at(-1);
+  const finalValue = last.value;
+  const totalInvested = last.invested;
+  const totalReturnPct = totalInvested > 0 ? (finalValue - totalInvested) / totalInvested * 100 : 0;
+  const years = timeseries.length / 12;
+  const cagr = years > 0 ? (Math.pow(finalValue / Math.max(totalInvested, 1), 1 / years) - 1) * 100 : 0;
+
+  let peak = 0, maxDD = 0;
+  timeseries.forEach(p => {
+    if (p.value > peak) peak = p.value;
+    const dd = peak > 0 ? (peak - p.value) / peak * 100 : 0;
+    if (dd > maxDD) maxDD = dd;
+  });
+
+  const byYear = {};
+  timeseries.forEach(p => { const y = p.date.slice(0,4); (byYear[y] = byYear[y]||[]).push(p.value); });
+  const annualReturns = Object.entries(byYear)
+    .filter(([,v]) => v.length >= 11)
+    .map(([yr,v]) => ({ yr, ret: (v.at(-1) - v[0]) / v[0] * 100 }));
+  const bestYear  = annualReturns.length ? annualReturns.reduce((b,x) => x.ret > b.ret ? x : b) : null;
+  const worstYear = annualReturns.length ? annualReturns.reduce((b,x) => x.ret < b.ret ? x : b) : null;
+
+  const monthlyReturns = [];
+  for (let i = 1; i < timeseries.length; i++) {
+    const prev = timeseries[i-1].value;
+    if (prev > 0) monthlyReturns.push((timeseries[i].value - prev) / prev);
+  }
+  const meanR = monthlyReturns.reduce((s,r) => s+r, 0) / monthlyReturns.length;
+  const variance = monthlyReturns.reduce((s,r) => s+(r-meanR)**2, 0) / monthlyReturns.length;
+  const sharpe = variance > 0 ? (meanR / Math.sqrt(variance)) * Math.sqrt(12) : 0;
+  const timeInMarketPct = timeseries.length > 0 ? timeseries.filter(p => p.inMarket).length / timeseries.length * 100 : 100;
+
+  return { finalValue, totalInvested, totalReturnPct, cagr, maxDD, bestYear, worstYear, sharpe, timeInMarketPct };
+}
+
+
 
 let ddChartRange = '1Y';
 
