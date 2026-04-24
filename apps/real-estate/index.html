@@ -244,6 +244,13 @@ tbody td:first-child { text-align: left; color: var(--muted); font-size: 10px; }
 .cost-bar-fill { height: 100%; border-radius: 3px; transition: width 0.4s; }
 .cost-bar-label { display: flex; justify-content: space-between; font-size: 9px; color: var(--muted); margin-bottom: 3px; }
 
+/* COST TABLE FOOTER */
+tfoot td {
+  padding: 7px 10px; vertical-align: middle; white-space: nowrap; text-align: right;
+  font-size: 11px; color: var(--muted);
+}
+tfoot td:first-child { text-align: left; }
+
 /* WINNER INDICATOR */
 .winner-badge {
   font-size: 8px; font-weight: 700; letter-spacing: 0.15em; text-transform: uppercase;
@@ -271,10 +278,10 @@ tbody td:first-child { text-align: left; color: var(--muted); font-size: 10px; }
 <!-- TABS -->
 <div class="tabs">
   <button class="tab active" onclick="showTab('overview', event)">OVERVIEW</button>
+  <button class="tab" onclick="showTab('assumptions', event)">ASSUMPTIONS</button>
   <button class="tab" onclick="showTab('buy', event)">BUY</button>
   <button class="tab" onclick="showTab('rent', event)">RENT</button>
   <button class="tab" onclick="showTab('compare', event)">COMPARE</button>
-  <button class="tab" onclick="showTab('settings', event)">SETTINGS</button>
 </div>
 
 <!-- OVERVIEW TAB -->
@@ -301,6 +308,93 @@ tbody td:first-child { text-align: left; color: var(--muted); font-size: 10px; }
       <div id="assumptionCards"></div>
       <div class="section-label" style="margin-top:16px">Break-Even Analysis</div>
       <div id="breakEvenCards"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ASSUMPTIONS TAB -->
+<div id="view-assumptions" class="view">
+  <div class="two-col">
+    <div>
+      <div class="section-label">General Parameters</div>
+      <div class="form-grid">
+        <div class="form-group">
+          <label>Starting Cash ($)</label>
+          <input type="number" id="startingCash" min="10000" step="5000" oninput="save();recalc()">
+        </div>
+        <div class="form-group">
+          <label>Monthly Allocation ($/mo)</label>
+          <input type="number" id="monthlyAllocation" min="500" step="100" oninput="save();recalc()">
+        </div>
+        <div class="form-group">
+          <label>Time Horizon (years)</label>
+          <input type="number" id="horizon" min="1" max="40" step="1" oninput="save();recalc()">
+        </div>
+        <div class="form-group">
+          <label>Tax Bracket (%)</label>
+          <input type="number" id="taxBracket" min="0" max="50" step="1" oninput="save();recalc()">
+        </div>
+        <div class="form-group">
+          <label>Mortgage Tax Deduction</label>
+          <select id="mortgageDeduction" onchange="save();recalc()">
+            <option value="yes">Yes — itemize deductions</option>
+            <option value="no">No — standard deduction</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="section-label">Growth Assumptions</div>
+      <div class="form-grid">
+        <div class="form-group">
+          <label>Home Appreciation (%/yr)</label>
+          <input type="number" id="homeAppreciation" min="-5" max="20" step="0.1" oninput="save();recalc()">
+        </div>
+        <div class="form-group">
+          <label>Market Return (%/yr)</label>
+          <input type="number" id="marketReturn2" min="-5" max="30" step="0.5" oninput="save();recalc()">
+        </div>
+        <div class="form-group">
+          <label>Cost Inflation (%/yr)</label>
+          <input type="number" id="costInflation" min="0" max="15" step="0.1" oninput="save();recalc()">
+        </div>
+        <div class="form-group">
+          <label>Inflation Rate (%/yr)</label>
+          <input type="number" id="inflation" min="0" max="15" step="0.1" oninput="save();recalc()">
+        </div>
+        <div class="form-group">
+          <label>Salary Growth (%/yr)</label>
+          <input type="number" id="salaryGrowth" min="0" max="20" step="0.1" oninput="save();recalc()">
+        </div>
+      </div>
+    </div>
+
+    <div>
+      <div class="section-label">Scenario Presets</div>
+      <div style="display:flex;flex-direction:column;gap:10px">
+        <div class="summary-card">
+          <div class="summary-card-label" style="color:var(--cyan)">BASELINE</div>
+          <div class="summary-card-note">Typical historical patterns: ~4% home appreciation, ~7% market return, ~3% inflation, ~3% rent increase.</div>
+          <button class="btn btn-cyan btn-sm" style="margin-top:10px" onclick="applyPreset('baseline')">APPLY BASELINE</button>
+        </div>
+        <div class="summary-card">
+          <div class="summary-card-label" style="color:var(--green)">OPTIMISTIC (90th percentile)</div>
+          <div class="summary-card-note">Strong growth: ~6% home appreciation, ~10% market return, ~2% inflation, ~2% rent increase.</div>
+          <button class="btn btn-green btn-sm" style="margin-top:10px" onclick="applyPreset('optimistic')">APPLY OPTIMISTIC</button>
+        </div>
+        <div class="summary-card">
+          <div class="summary-card-label" style="color:var(--amber)">PESSIMISTIC (10th percentile)</div>
+          <div class="summary-card-note">Slow/declining: ~1% home appreciation, ~4% market return, ~4% inflation, ~5% rent increase.</div>
+          <button class="btn btn-amber btn-sm" style="margin-top:10px" onclick="applyPreset('pessimistic')">APPLY PESSIMISTIC</button>
+        </div>
+      </div>
+
+      <div class="section-label" style="margin-top:20px">Data Management</div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <button class="btn btn-dim btn-sm" onclick="resetDefaults()">RESET ALL TO DEFAULTS</button>
+        <button class="btn btn-dim btn-sm" onclick="exportJSON()">EXPORT SETTINGS</button>
+        <button class="btn btn-dim btn-sm" onclick="document.getElementById('importFile').click()">IMPORT SETTINGS</button>
+        <input type="file" id="importFile" accept=".json" style="display:none" onchange="importJSON(this)">
+      </div>
     </div>
   </div>
 </div>
@@ -369,12 +463,23 @@ tbody td:first-child { text-align: left; color: var(--muted); font-size: 10px; }
           <input type="number" id="yardCare" min="0" step="25" oninput="save();recalc()">
         </div>
       </div>
+
+      <div class="section-label">Investment of Surplus</div>
+      <div class="form-grid">
+        <div class="form-group">
+          <label>Invest Remaining Funds?</label>
+          <select id="investBuySavings" onchange="save();recalc()">
+            <option value="yes">Yes — invest monthly surplus</option>
+            <option value="no">No — keep as cash</option>
+          </select>
+        </div>
+      </div>
     </div>
 
     <div>
       <div class="section-label">Buy Scenario Summary</div>
       <div id="buySummaryCards"></div>
-      <div class="section-label" style="margin-top:16px">Monthly Cost Breakdown</div>
+      <div class="section-label" style="margin-top:16px">Monthly Expenses by Category</div>
       <div id="buyCostBreakdown"></div>
       <div class="section-label" style="margin-top:16px">Mortgage Amortization (Year 1)</div>
       <div id="mortgageSummary"></div>
@@ -429,7 +534,7 @@ tbody td:first-child { text-align: left; color: var(--muted); font-size: 10px; }
     <div>
       <div class="section-label">Rent Scenario Summary</div>
       <div id="rentSummaryCards"></div>
-      <div class="section-label" style="margin-top:16px">Monthly Cost Breakdown</div>
+      <div class="section-label" style="margin-top:16px">Monthly Expenses by Category</div>
       <div id="rentCostBreakdown"></div>
       <div class="section-label" style="margin-top:16px">Investment Growth (freed capital)</div>
       <div id="rentInvestSummary"></div>
@@ -468,85 +573,6 @@ tbody td:first-child { text-align: left; color: var(--muted); font-size: 10px; }
   <div id="costBreakdownTable"></div>
 </div>
 
-<!-- SETTINGS TAB -->
-<div id="view-settings" class="view">
-  <div class="two-col">
-    <div>
-      <div class="section-label">General Parameters</div>
-      <div class="form-grid">
-        <div class="form-group">
-          <label>Starting Cash ($)</label>
-          <input type="number" id="startingCash" min="10000" step="5000" oninput="save();recalc()">
-        </div>
-        <div class="form-group">
-          <label>Time Horizon (years)</label>
-          <input type="number" id="horizon" min="1" max="40" step="1" oninput="save();recalc()">
-        </div>
-        <div class="form-group">
-          <label>Inflation Rate (%/yr)</label>
-          <input type="number" id="inflation" min="0" max="15" step="0.1" oninput="save();recalc()">
-        </div>
-        <div class="form-group">
-          <label>Tax Bracket (%)</label>
-          <input type="number" id="taxBracket" min="0" max="50" step="1" oninput="save();recalc()">
-        </div>
-        <div class="form-group">
-          <label>Mortgage Tax Deduction</label>
-          <select id="mortgageDeduction" onchange="save();recalc()">
-            <option value="yes">Yes — itemize deductions</option>
-            <option value="no">No — standard deduction</option>
-          </select>
-        </div>
-      </div>
-
-      <div class="section-label">Growth Assumptions</div>
-      <div class="form-grid">
-        <div class="form-group">
-          <label>Home Appreciation (%/yr)</label>
-          <input type="number" id="homeAppreciation" min="-5" max="20" step="0.1" oninput="save();recalc()">
-        </div>
-        <div class="form-group">
-          <label>Market Return (%/yr)</label>
-          <input type="number" id="marketReturn2" min="-5" max="30" step="0.5" oninput="save();recalc()">
-        </div>
-        <div class="form-group">
-          <label>Cost Inflation (%/yr)</label>
-          <input type="number" id="costInflation" min="0" max="15" step="0.1" oninput="save();recalc()">
-        </div>
-      </div>
-    </div>
-
-    <div>
-      <div class="section-label">Scenario Presets</div>
-      <div style="display:flex;flex-direction:column;gap:10px">
-        <div class="summary-card">
-          <div class="summary-card-label" style="color:var(--cyan)">BASELINE</div>
-          <div class="summary-card-note">Typical historical patterns: ~4% home appreciation, ~7% market return, ~3% inflation, ~3% rent increase.</div>
-          <button class="btn btn-cyan btn-sm" style="margin-top:10px" onclick="applyPreset('baseline')">APPLY BASELINE</button>
-        </div>
-        <div class="summary-card">
-          <div class="summary-card-label" style="color:var(--green)">OPTIMISTIC (90th percentile)</div>
-          <div class="summary-card-note">Strong growth: ~6% home appreciation, ~10% market return, ~2% inflation, ~2% rent increase.</div>
-          <button class="btn btn-green btn-sm" style="margin-top:10px" onclick="applyPreset('optimistic')">APPLY OPTIMISTIC</button>
-        </div>
-        <div class="summary-card">
-          <div class="summary-card-label" style="color:var(--amber)">PESSIMISTIC (10th percentile)</div>
-          <div class="summary-card-note">Slow/declining: ~1% home appreciation, ~4% market return, ~4% inflation, ~5% rent increase.</div>
-          <button class="btn btn-amber btn-sm" style="margin-top:10px" onclick="applyPreset('pessimistic')">APPLY PESSIMISTIC</button>
-        </div>
-      </div>
-
-      <div class="section-label" style="margin-top:20px">Data Management</div>
-      <div style="display:flex;gap:8px;flex-wrap:wrap">
-        <button class="btn btn-dim btn-sm" onclick="resetDefaults()">RESET ALL TO DEFAULTS</button>
-        <button class="btn btn-dim btn-sm" onclick="exportJSON()">EXPORT SETTINGS</button>
-        <button class="btn btn-dim btn-sm" onclick="document.getElementById('importFile').click()">IMPORT SETTINGS</button>
-        <input type="file" id="importFile" accept=".json" style="display:none" onchange="importJSON(this)">
-      </div>
-    </div>
-  </div>
-</div>
-
 <!-- TOAST -->
 <div id="toast"></div>
 
@@ -558,11 +584,13 @@ const STORAGE_KEY = 'real_estate_desk';
 // ══════════════════════════════════════════════
 const DEFAULTS = {
   // General
-  startingCash:        80000,
+  startingCash:        400000,
+  monthlyAllocation:   6000,
   horizon:             10,
   inflation:           3.0,
   taxBracket:          22,
   mortgageDeduction:   'yes',
+  salaryGrowth:        3.0,
   // Buy
   homePrice:           450000,
   downPct:             20,
@@ -576,6 +604,7 @@ const DEFAULTS = {
   maintenancePct:      1.0,
   buyUtilities:        200,
   yardCare:            100,
+  investBuySavings:    'yes',
   // Rent
   monthlyRent:         2400,
   rentIncrease:        3.0,
@@ -679,6 +708,8 @@ function monthlyPayment(principal, annualRate, years) {
 function calcScenarios(s) {
   const horizon     = Math.max(1, Math.round(s.horizon));
   const cash        = s.startingCash;
+  const monthlyAlloc= s.monthlyAllocation || 6000;
+  const salaryGrowth= (s.salaryGrowth || 0) / 100;
   const homePrice   = s.homePrice;
   const downPct     = s.downPct / 100;
   const downAmt     = homePrice * downPct;
@@ -694,6 +725,7 @@ function calcScenarios(s) {
   const taxBracket  = s.taxBracket / 100;
   const useMortDeduct = s.mortgageDeduction === 'yes';
   const investSav   = s.investSavings === 'yes';
+  const investBuySav= s.investBuySavings === 'yes';
 
   // Monthly payments
   const mortgagePayment = monthlyPayment(loanAmt, mortRate, loanTerm);
@@ -720,6 +752,7 @@ function calcScenarios(s) {
     const yearIdx = yr - 1;
     const costMult = Math.pow(1 + costInfl, yearIdx);
     const rentForYear = initRent * Math.pow(1 + rentInc, yearIdx);
+    const allocForYear = monthlyAlloc * Math.pow(1 + salaryGrowth, yearIdx);
 
     // ── BUY: monthly simulation for this year
     let annualInterest = 0;
@@ -749,8 +782,14 @@ function calcScenarios(s) {
 
     cumulBuyCost += annualBuyCash;
 
-    // Buy portfolio grows from leftovers
-    buyPortfolio = buyPortfolio * (1 + mktReturn);
+    // Buy portfolio: grows + optional monthly surplus from allocation
+    const monthlyBuySurplus = allocForYear - (annualBuyCash / 12);
+    if (investBuySav) {
+      buyPortfolio = buyPortfolio * (1 + mktReturn) + monthlyBuySurplus * 12;
+    } else {
+      buyPortfolio = buyPortfolio * (1 + mktReturn);
+    }
+    buyPortfolio = Math.max(0, buyPortfolio);
 
     const sellingCosts = homeValue * (s.sellingCostPct / 100);
     const buyNetWorth  = homeValue - runLoanBalance - sellingCosts + buyPortfolio;
@@ -763,17 +802,15 @@ function calcScenarios(s) {
 
     cumulRentCost += annualRentTotal;
 
-    // Monthly savings from renting vs buying, invested
-    const monthlyBuyCost   = annualBuyCash / 12;
+    // Monthly surplus from allocation vs rent costs
     const monthlyRentTotal = annualRentTotal / 12;
+    const monthlyRentSurplus = allocForYear - monthlyRentTotal;
+    // Legacy savings metric (vs buy housing cost) for display
+    const monthlyBuyCost   = annualBuyCash / 12;
     const monthlySavings   = monthlyBuyCost - monthlyRentTotal;
 
-    if (investSav && monthlySavings > 0) {
-      // Invest monthly savings (simplified: add at end of year)
-      rentPortfolio = rentPortfolio * (1 + mktReturn) + monthlySavings * 12;
-    } else if (investSav && monthlySavings < 0) {
-      // Renting costs more — draw from portfolio
-      rentPortfolio = rentPortfolio * (1 + mktReturn) + monthlySavings * 12;
+    if (investSav) {
+      rentPortfolio = rentPortfolio * (1 + mktReturn) + monthlyRentSurplus * 12;
     } else {
       rentPortfolio = rentPortfolio * (1 + mktReturn);
     }
@@ -795,6 +832,9 @@ function calcScenarios(s) {
       cumulRentCost,
       annualRentCost: annualRentTotal,
       monthlySavings,
+      monthlyBuySurplus,
+      monthlyRentSurplus,
+      allocForYear,
       // Monthly breakdown for display
       monthlyMortgage: mortgagePayment,
       monthlyPropTax:  annualPropTax / 12,
@@ -857,6 +897,46 @@ function costBarRow(label, amount, total, color) {
     <div class="cost-bar-label"><span>${label}</span><span>${fmtDollarFull(amount)}/mo</span></div>
     <div class="cost-bar-bg"><div class="cost-bar-fill" style="width:${pct}%;background:${color}"></div></div>
   </div>`;
+}
+
+function costTableHtml(items, total, allocation) {
+  const remaining = allocation - total;
+  const posColor = 'var(--green)';
+  const negColor = 'var(--red)';
+  const remColor = remaining >= 0 ? posColor : negColor;
+  const rows = items.map(([label, amount, color]) => {
+    const pct = total > 0 ? ((amount / total) * 100).toFixed(0) + '%' : '0%';
+    return `<tr>
+      <td><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${color};margin-right:6px;vertical-align:middle"></span>${label}</td>
+      <td>${fmtDollarFull(amount)}</td>
+      <td style="color:var(--muted)">${pct}</td>
+    </tr>`;
+  }).join('');
+  return `<table>
+    <thead><tr>
+      <th style="text-align:left">Category</th>
+      <th>Monthly (Yr 1)</th>
+      <th>% of Total</th>
+    </tr></thead>
+    <tbody>${rows}</tbody>
+    <tfoot>
+      <tr style="border-top:1px solid var(--border2)">
+        <td style="color:var(--text);font-weight:500">TOTAL HOUSING</td>
+        <td style="font-weight:500">${fmtDollarFull(total)}</td>
+        <td>100%</td>
+      </tr>
+      <tr>
+        <td style="color:var(--muted)">Monthly Allocation</td>
+        <td style="color:var(--muted)">${fmtDollarFull(allocation)}</td>
+        <td></td>
+      </tr>
+      <tr>
+        <td style="color:${remColor}">${remaining >= 0 ? 'Available to Invest' : 'Shortfall'}</td>
+        <td style="color:${remColor};font-weight:500">${fmtDollarFull(Math.abs(remaining))}</td>
+        <td></td>
+      </tr>
+    </tfoot>
+  </table>`;
 }
 
 // ══════════════════════════════════════════════
@@ -1000,19 +1080,20 @@ function recalc() {
       ${infoRow('Total Upfront', fmtDollarFull(downAmt + closingAmt))}
       ${infoRow('Monthly Mortgage', fmtDollarFull(mr1.monthlyMortgage))}
       ${infoRow('Monthly Total (Yr 1)', fmtDollarFull(mr1.monthlyBuyCost))}
-      ${infoRow('Cash Remaining', fmtDollarFull(Math.max(0, s.startingCash - downAmt - closingAmt)))}
+      ${infoRow('Monthly Surplus (Yr 1)', fmtDollarFull(mr1.monthlyBuySurplus), mr1.monthlyBuySurplus >= 0 ? 'up' : 'down')}
     </div>
   `;
 
   const buyTotal = mr1.monthlyBuyCost;
-  document.getElementById('buyCostBreakdown').innerHTML =
-    costBarRow('Mortgage P+I', mr1.monthlyMortgage, buyTotal, 'var(--cyan)') +
-    costBarRow('Property Tax', mr1.monthlyPropTax, buyTotal, 'var(--blue)') +
-    costBarRow('HOA', mr1.monthlyHOA, buyTotal, 'var(--violet)') +
-    costBarRow('Insurance', mr1.monthlyInsurance, buyTotal, 'var(--amber)') +
-    costBarRow('Maintenance', mr1.monthlyMaint, buyTotal, 'var(--green)') +
-    costBarRow('Utilities', mr1.monthlyUtilBuy, buyTotal, 'var(--muted)') +
-    costBarRow('Yard/Landscaping', mr1.monthlyYard, buyTotal, 'var(--dim)');
+  document.getElementById('buyCostBreakdown').innerHTML = costTableHtml([
+    ['Mortgage P+I',    mr1.monthlyMortgage,  'var(--cyan)'],
+    ['Property Tax',    mr1.monthlyPropTax,   'var(--blue)'],
+    ['HOA',             mr1.monthlyHOA,       'var(--violet)'],
+    ['Insurance',       mr1.monthlyInsurance, 'var(--amber)'],
+    ['Maintenance',     mr1.monthlyMaint,     'var(--green)'],
+    ['Utilities',       mr1.monthlyUtilBuy,   'var(--muted)'],
+    ['Yard/Landscaping',mr1.monthlyYard,      'var(--dim)'],
+  ], buyTotal, s.monthlyAllocation || 6000);
 
   const loanAmt = s.homePrice * (1 - s.downPct / 100);
   const mp = monthlyPayment(loanAmt, s.mortgageRate, s.loanTerm);
@@ -1041,15 +1122,16 @@ function recalc() {
     </div>
   `;
 
-  document.getElementById('rentCostBreakdown').innerHTML =
-    costBarRow('Rent', mr1.monthlyRent, rentTotal, 'var(--green)') +
-    costBarRow("Renter's Insurance", mr1.monthlyRentIns, rentTotal, 'var(--amber)') +
-    costBarRow('Utilities', mr1.monthlyRentUtil, rentTotal, 'var(--muted)');
+  document.getElementById('rentCostBreakdown').innerHTML = costTableHtml([
+    ['Rent',               mr1.monthlyRent,    'var(--green)'],
+    ["Renter's Insurance", mr1.monthlyRentIns, 'var(--amber)'],
+    ['Utilities',          mr1.monthlyRentUtil,'var(--muted)'],
+  ], rentTotal, s.monthlyAllocation || 6000);
 
   document.getElementById('rentInvestSummary').innerHTML = `
     <div class="info-grid">
       ${infoRow('Initial Investment', fmtDollarFull(Math.max(0, s.startingCash - s.monthlyRent * s.securityDeposit)))}
-      ${infoRow('Monthly Savings vs Buy', fmtDollarFull(mr1.monthlySavings))}
+      ${infoRow('Monthly Surplus (Yr 1)', fmtDollarFull(mr1.monthlyRentSurplus), mr1.monthlyRentSurplus >= 0 ? 'up' : 'down')}
       ${infoRow('Market Return (%/yr)', (s.marketReturn2||s.marketReturn) + '%')}
       ${infoRow('Portfolio (' + horizon + ' yr)', fmtDollar(last.rentPortfolio))}
     </div>
