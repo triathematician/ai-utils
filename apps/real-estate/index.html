@@ -752,7 +752,7 @@ function calcScenarios(s) {
     const yearIdx = yr - 1;
     const costMult = Math.pow(1 + costInfl, yearIdx);
     const rentForYear = initRent * Math.pow(1 + rentInc, yearIdx);
-    const allocForYear = monthlyAlloc * Math.pow(1 + salaryGrowth, yearIdx);
+    const monthlyAllocForYear = monthlyAlloc * Math.pow(1 + salaryGrowth, yearIdx);
 
     // ── BUY: monthly simulation for this year
     let annualInterest = 0;
@@ -783,7 +783,7 @@ function calcScenarios(s) {
     cumulBuyCost += annualBuyCash;
 
     // Buy portfolio: grows + optional monthly surplus from allocation
-    const monthlyBuySurplus = allocForYear - (annualBuyCash / 12);
+    const monthlyBuySurplus = monthlyAllocForYear - (annualBuyCash / 12);
     if (investBuySav) {
       buyPortfolio = buyPortfolio * (1 + mktReturn) + monthlyBuySurplus * 12;
     } else {
@@ -804,7 +804,7 @@ function calcScenarios(s) {
 
     // Monthly surplus from allocation vs rent costs
     const monthlyRentTotal = annualRentTotal / 12;
-    const monthlyRentSurplus = allocForYear - monthlyRentTotal;
+    const monthlyRentSurplus = monthlyAllocForYear - monthlyRentTotal;
     // Legacy savings metric (vs buy housing cost) for display
     const monthlyBuyCost   = annualBuyCash / 12;
     const monthlySavings   = monthlyBuyCost - monthlyRentTotal;
@@ -834,7 +834,7 @@ function calcScenarios(s) {
       monthlySavings,
       monthlyBuySurplus,
       monthlyRentSurplus,
-      allocForYear,
+      allocForYear: monthlyAllocForYear,
       // Monthly breakdown for display
       monthlyMortgage: mortgagePayment,
       monthlyPropTax:  annualPropTax / 12,
