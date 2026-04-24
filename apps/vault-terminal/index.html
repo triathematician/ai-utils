@@ -293,9 +293,11 @@ html, body {
 .rollup-table td:first-child { text-align: left; color: var(--dim); }
 .rollup-table tr.current-month td { color: var(--fg); font-weight: 600; }
 .rollup-table tr.rollup-divider td {
-  border-top: 1px solid var(--muted);
+  background: var(--muted);
   padding: 0;
-  height: 4px;
+  height: 1px;
+  line-height: 0;
+  font-size: 0;
 }
 .rollup-table tr.avg-row td { color: var(--dim); border-top: 1px solid var(--muted); font-style: italic; }
 .rollup-table tr.avg-row td:first-child { color: var(--accent); }
@@ -353,6 +355,11 @@ html, body {
 .analysis-content { padding-right: 10px; }
 .entry-excl { color: var(--dim); font-size: 0.78em; font-style: italic; flex-shrink: 0; }
 .summary-type-label.stl-excl { color: var(--dim); }
+.rollup-table tr.cat-subtotal td { font-weight: 600; color: var(--fg); border-top: 1px solid var(--muted); padding-top: 4px; }
+.rollup-table tr.cat-subtotal td:first-child { color: var(--accent); }
+.rollup-table tr.cat-subrow td:first-child { color: transparent; }
+.rollup-table tr.cat-subrow td:nth-child(2) { color: transparent; }
+.rollup-table .rc-pct { color: var(--dim); font-size: 0.85em; }
 
 /* ═══════════════════════════════════════════════
    CONSOLE ROW
@@ -533,21 +540,25 @@ html, body {
         <span class="sc-label">◈ INCOME</span>
         <div class="sc-value sc-income" id="stat-income">$0.00</div>
         <div class="sc-subvalue" id="stat-income-ytd">YTD $0.00</div>
+        <div class="sc-subvalue" id="stat-income-all">ALL $0.00</div>
       </div>
       <div class="stat-card">
         <span class="sc-label">◈ EXPENSES</span>
         <div class="sc-value sc-expense" id="stat-expense">$0.00</div>
         <div class="sc-subvalue" id="stat-expense-ytd">YTD $0.00</div>
+        <div class="sc-subvalue" id="stat-expense-all">ALL $0.00</div>
       </div>
       <div class="stat-card">
         <span class="sc-label">◈ NET</span>
         <div class="sc-value sc-net-pos" id="stat-net">$0.00</div>
         <div class="sc-subvalue" id="stat-net-ytd">YTD $0.00</div>
+        <div class="sc-subvalue" id="stat-net-all">ALL $0.00</div>
       </div>
       <div class="stat-card">
         <span class="sc-label">◈ INVEST</span>
         <div class="sc-value sc-invest" id="stat-invest">$0.00</div>
         <div class="sc-subvalue" id="stat-invest-ytd">YTD $0.00</div>
+        <div class="sc-subvalue" id="stat-invest-all">ALL $0.00</div>
       </div>
     </div>
   </div>
@@ -839,6 +850,11 @@ function renderTopRow() {
   const ytdInvest = sumType(ytdEntries, 'investment');
   const ytdNet = ytdIncome - ytdExpense;
 
+  const allIncome  = sumPrimaryIncome(db.entries);
+  const allExpense = sumPrimaryExpense(db.entries);
+  const allInvest  = sumType(db.entries, 'investment');
+  const allNet     = allIncome - allExpense;
+
   document.getElementById('stat-income').textContent  = fmtMoneyCompact(income);
   document.getElementById('stat-expense').textContent = fmtMoneyCompact(expense);
   document.getElementById('stat-invest').textContent  = fmtMoneyCompact(invest);
@@ -846,6 +862,10 @@ function renderTopRow() {
   document.getElementById('stat-expense-ytd').textContent = 'YTD ' + fmtMoneyCompact(ytdExpense);
   document.getElementById('stat-invest-ytd').textContent  = 'YTD ' + fmtMoneyCompact(ytdInvest);
   document.getElementById('stat-net-ytd').textContent     = 'YTD ' + (ytdNet < 0 ? '-' : '') + fmtMoneyCompact(ytdNet);
+  document.getElementById('stat-income-all').textContent  = 'ALL ' + fmtMoneyCompact(allIncome);
+  document.getElementById('stat-expense-all').textContent = 'ALL ' + fmtMoneyCompact(allExpense);
+  document.getElementById('stat-invest-all').textContent  = 'ALL ' + fmtMoneyCompact(allInvest);
+  document.getElementById('stat-net-all').textContent     = 'ALL ' + (allNet < 0 ? '-' : '') + fmtMoneyCompact(Math.abs(allNet));
 
   const netEl = document.getElementById('stat-net');
   netEl.textContent = (net < 0 ? '-' : '') + fmtMoneyCompact(net);
@@ -1104,18 +1124,49 @@ function renderRollupCategories() {
     bySub[key].total += e.amount;
   });
 
-  const rows = Object.values(bySub).sort((a, b) => b.total - a.total || a.type.localeCompare(b.type) || a.category.localeCompare(b.category) || a.subcategory.localeCompare(b.subcategory));
-  html += `<table class="rollup-table">`;
-  html += `<tr><th>TYPE</th><th>CATEGORY</th><th>SUBCATEGORY</th><th>TOTAL</th></tr>`;
-  rows.forEach(r => {
-    const typeClass = r.type === 'income' ? 'rt-income' : (r.type === 'expense' ? 'rt-expense' : 'rt-invest');
-    html += `<tr>`;
-    html += `<td class="${typeClass}">${escHtml(r.type.toUpperCase())}</td>`;
-    html += `<td>${escHtml(r.category)}</td>`;
-    html += `<td>${escHtml(r.subcategory)}</td>`;
-    html += `<td class="${typeClass}">${fmtMoneyCompact(r.total)}</td>`;
-    html += `</tr>`;
+  const catTotals = {}, typeTotals = {};
+  Object.values(bySub).forEach(r => {
+    const ck = r.type + '|' + r.category;
+    catTotals[ck] = (catTotals[ck] || 0) + r.total;
+    typeTotals[r.type] = (typeTotals[r.type] || 0) + r.total;
   });
+
+  const TYPE_ORDER = ['income', 'expense', 'investment'];
+  const pct = (a, b) => b ? (a / b * 100).toFixed(1) + '%' : '—';
+
+  html += `<table class="rollup-table">`;
+  html += `<tr><th>TYPE</th><th>CATEGORY</th><th>SUBCATEGORY</th><th>TOTAL</th><th>%</th></tr>`;
+
+  TYPE_ORDER.forEach(type => {
+    const typeClass = type === 'income' ? 'rt-income' : (type === 'expense' ? 'rt-expense' : 'rt-invest');
+    const cats = Array.from(new Set(Object.values(bySub).filter(r => r.type === type).map(r => r.category)))
+      .sort((a, b) => catTotals[type + '|' + b] - catTotals[type + '|' + a]);
+    if (!cats.length) return;
+
+    cats.forEach(cat => {
+      const catTotal = catTotals[type + '|' + cat];
+      html += `<tr class="cat-subtotal">`;
+      html += `<td class="${typeClass}">${escHtml(type.toUpperCase())}</td>`;
+      html += `<td>${escHtml(cat)}</td>`;
+      html += `<td></td>`;
+      html += `<td class="${typeClass}">${fmtMoneyCompact(catTotal)}</td>`;
+      html += `<td class="rc-pct">${pct(catTotal, typeTotals[type])}</td>`;
+      html += `</tr>`;
+
+      const subs = Object.values(bySub).filter(r => r.type === type && r.category === cat)
+        .sort((a, b) => b.total - a.total);
+      subs.forEach(r => {
+        html += `<tr class="cat-subrow">`;
+        html += `<td></td>`;
+        html += `<td></td>`;
+        html += `<td>${escHtml(r.subcategory)}</td>`;
+        html += `<td class="${typeClass}">${fmtMoneyCompact(r.total)}</td>`;
+        html += `<td class="rc-pct">${pct(r.total, typeTotals[type])}</td>`;
+        html += `</tr>`;
+      });
+    });
+  });
+
   html += `</table>`;
   document.getElementById('side-content').innerHTML = html;
 }
