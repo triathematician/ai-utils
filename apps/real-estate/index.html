@@ -270,11 +270,11 @@ tbody td:first-child { text-align: left; color: var(--muted); font-size: 10px; }
 
 <!-- TABS -->
 <div class="tabs">
-  <button class="tab active" onclick="showTab('overview')">OVERVIEW</button>
-  <button class="tab" onclick="showTab('buy')">BUY</button>
-  <button class="tab" onclick="showTab('rent')">RENT</button>
-  <button class="tab" onclick="showTab('compare')">COMPARE</button>
-  <button class="tab" onclick="showTab('settings')">SETTINGS</button>
+  <button class="tab active" onclick="showTab('overview', event)">OVERVIEW</button>
+  <button class="tab" onclick="showTab('buy', event)">BUY</button>
+  <button class="tab" onclick="showTab('rent', event)">RENT</button>
+  <button class="tab" onclick="showTab('compare', event)">COMPARE</button>
+  <button class="tab" onclick="showTab('settings', event)">SETTINGS</button>
 </div>
 
 <!-- OVERVIEW TAB -->
@@ -703,10 +703,6 @@ function calcScenarios(s) {
   const buyInitCash     = cash - downAmt - closingAmt;
   const rentInitCash    = cash - (s.monthlyRent * s.securityDeposit); // security deposit
 
-  if (buyInitCash < 0) {
-    // Not enough cash to buy
-  }
-
   // Year-by-year simulation
   const rows = [];
   let buyPortfolio  = Math.max(0, buyInitCash);  // invested remainder
@@ -754,7 +750,7 @@ function calcScenarios(s) {
     cumulBuyCost += annualBuyCash;
 
     // Buy portfolio grows from leftovers
-    buyPortfolio = buyPortfolio * (1 + mktReturn) + 0; // no extra savings from buying
+    buyPortfolio = buyPortfolio * (1 + mktReturn);
 
     const sellingCosts = homeValue * (s.sellingCostPct / 100);
     const buyNetWorth  = homeValue - runLoanBalance - sellingCosts + buyPortfolio;
@@ -1150,11 +1146,11 @@ function buildCostBreakdown(rows, last) {
 // ══════════════════════════════════════════════
 //  TAB SWITCHING
 // ══════════════════════════════════════════════
-function showTab(name) {
+function showTab(name, evt) {
   document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
   document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
   document.getElementById('view-' + name).classList.add('active');
-  event.currentTarget.classList.add('active');
+  evt.currentTarget.classList.add('active');
   if (name === 'overview') setTimeout(() => drawChart(calcScenarios(state)), 50);
 }
 
