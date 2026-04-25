@@ -24,7 +24,7 @@ ai-utils/
     focus-terminal/               ← FOCUS TERMINAL: productivity + task management
     geo-firsts/                   ← GEO-FIRSTS: travel tracker — states, national parks, countries
     portfolio-desk/               ← PORTFOLIO DESK: portfolio monitoring
-    real-estate/                  ← REAL ESTATE DESK: housing projection — buy vs. rent scenarios
+    real-estate/                  ← REAL ESTATE DESK: monthly financial simulation — housing, investing, buy/rent events on a timeline
     staff-terminal/               ← STAFF TERMINAL: staff development, LDP goals, notes
     strategy-atlas/               ← STRATEGY ATLAS: strategic planning, goal groups, OKRs, RAG pulse tracking
     skill-port/                   ← SKILL-PORT: blueprint rail map for skill and project pathways
