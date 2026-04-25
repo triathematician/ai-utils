@@ -781,11 +781,6 @@ function fmtDollarFull(n) {
   if (!isFinite(n)) return '—';
   return (n < 0 ? '-' : '') + '$' + Math.abs(Math.round(n)).toLocaleString();
 }
-function fmtMonth(mo) {
-  const yr  = Math.ceil(mo / 12);
-  const rem = ((mo - 1) % 12) + 1;
-  return 'Mo ' + mo + ' (Yr ' + yr + (rem === 1 ? ')' : ', Mo ' + rem + ')');
-}
 function colorClass(n) { return n > 0 ? 'up' : n < 0 ? 'down' : 'neutral'; }
 
 function summaryCard(label, val, sub, extraClass) {
