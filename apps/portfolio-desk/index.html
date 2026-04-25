@@ -580,6 +580,12 @@ input[type=range]::-webkit-slider-thumb {
 .hyp-stats-table { width:100%;border-collapse:collapse;font-size:11px; }
 .hyp-stats-table td { padding:6px 10px;border-bottom:1px solid var(--border); }
 .hyp-stats-table td:first-child { color:var(--muted);font-size:10px;letter-spacing:0.06em;text-transform:uppercase;width:160px; }
+.hyp-month-grid { display:grid;grid-template-columns:repeat(6,1fr);gap:3px;margin-top:3px; }
+.hyp-month-btn { background:var(--bg3);border:1px solid var(--border);border-radius:2px;color:var(--muted);font-family:var(--mono);font-size:9px;padding:3px 0;cursor:pointer;text-align:center; }
+.hyp-month-btn.on { background:var(--cyan);border-color:var(--cyan);color:var(--bg); }
+.hyp-tier-row { display:flex;gap:5px;align-items:center;margin-bottom:5px; }
+.hyp-tier-row span { font-size:10px;color:var(--muted);white-space:nowrap; }
+.hyp-tier-row .input { padding:3px 5px; }
 .hyp-crosshair { position:absolute;top:0;bottom:0;width:1px;background:var(--border2);pointer-events:none;display:none; }
 .hyp-tooltip { position:absolute;background:var(--bg2);border:1px solid var(--border2);border-radius:3px;padding:6px 10px;font-size:10px;pointer-events:none;display:none;white-space:nowrap;z-index:10; }
 </style>
@@ -830,7 +836,11 @@ input[type=range]::-webkit-slider-thumb {
 
 <!-- ============ HYPOTHESIS VIEW ============ -->
 <div class="view" id="view-hypothesis">
-  <div id="hypStrategyCards" style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:16px"></div>
+  <div id="hypStrategyCards" style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:8px"></div>
+  <div style="display:flex;align-items:center;gap:8px;margin-bottom:14px">
+    <button class="btn btn-dim" onclick="scaleHypToMatchDCA()" style="padding:3px 8px;font-size:9px;letter-spacing:0.06em">SCALE TO DCA</button>
+    <span id="hypScaleNote" style="font-size:10px;color:var(--muted)"></span>
+  </div>
   <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px">
     <span class="section-label" style="margin:0">PORTFOLIO GROWTH</span>
     <button class="btn btn-dim" id="hypScaleBtn" onclick="toggleHypScale()" style="padding:3px 8px;font-size:9px">LOG</button>
@@ -978,9 +988,18 @@ let state = {
 
 // ── Hypothesis strategy defaults ──
 const HYP_STRATEGY_DEFAULTS = [
-  { id:0, enabled:true,  name:'DCA Monthly',  colorHex:'#20d0e0', startCapital:0, monthly:500, startYear:1975, rule:'dca', dipThreshold:15, dipMultiplier:2, maWindow:12 },
-  { id:1, enabled:false, name:'Buy the Dip',  colorHex:'#f0a030', startCapital:0, monthly:500, startYear:1975, rule:'dip', dipThreshold:15, dipMultiplier:2, maWindow:12 },
-  { id:2, enabled:false, name:'MA Filter',    colorHex:'#00e5a0', startCapital:0, monthly:500, startYear:1975, rule:'ma',  dipThreshold:15, dipMultiplier:2, maWindow:12 },
+  { id:0, enabled:true,  name:'DCA Monthly',      colorHex:'#20d0e0', startCapital:0, monthly:500, startYear:1975, rule:'dca',
+    dipThreshold:15, dipMultiplier:2, maWindow:12, momentumWindow:12, momentumMultiplier:2,
+    vaMonthlyGrowth:600, seasonalMonths:[1,2,3,4,11,12],
+    dip2Window:24, dip2Mode:'continual', dip2Tiers:[{threshold:10,extra:500},{threshold:20,extra:1000},{threshold:30,extra:2000}], annualIncrease:0 },
+  { id:1, enabled:false, name:'Buy the Dip',       colorHex:'#f0a030', startCapital:0, monthly:500, startYear:1975, rule:'dip',
+    dipThreshold:15, dipMultiplier:2, maWindow:12, momentumWindow:12, momentumMultiplier:2,
+    vaMonthlyGrowth:600, seasonalMonths:[1,2,3,4,11,12],
+    dip2Window:24, dip2Mode:'continual', dip2Tiers:[{threshold:10,extra:500},{threshold:20,extra:1000},{threshold:30,extra:2000}], annualIncrease:0 },
+  { id:2, enabled:false, name:'MA Filter',          colorHex:'#00e5a0', startCapital:0, monthly:500, startYear:1975, rule:'ma',
+    dipThreshold:15, dipMultiplier:2, maWindow:12, momentumWindow:12, momentumMultiplier:2,
+    vaMonthlyGrowth:600, seasonalMonths:[1,2,3,4,11,12],
+    dip2Window:24, dip2Mode:'continual', dip2Tiers:[{threshold:10,extra:500},{threshold:20,extra:1000},{threshold:30,extra:2000}], annualIncrease:0 },
 ];
 function loadHypStrategies() {
   try {
@@ -995,6 +1014,7 @@ function saveHypStrategies() {
 state.hypStrategies = loadHypStrategies();
 
 // ── Hypothesis card renderer ──
+const MONTH_LABELS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 function renderHypStrategyCards() {
   const container = document.getElementById('hypStrategyCards');
   if (!container) return;
@@ -1003,33 +1023,116 @@ function renderHypStrategyCards() {
       const y = 1975 + k;
       return `<option value="${y}" ${s.startYear===y?'selected':''}>${y}</option>`;
     }).join('');
-    const ruleOpts = [['dca','DCA — Buy every month'],['dip','Buy the Dip'],['ma','Moving Average filter']]
-      .map(([v,l]) => `<option value="${v}" ${s.rule===v?'selected':''}>${l}</option>`).join('');
+    const ruleOpts = [
+      ['dca','DCA — Buy every month'],
+      ['dip','Buy the Dip (simple)'],
+      ['dip2','Buy the Dip (tiered)'],
+      ['ma','Moving Average filter'],
+      ['momentum','Momentum'],
+      ['va','Value Averaging'],
+      ['seasonal','Seasonal'],
+    ].map(([v,l]) => `<option value="${v}" ${s.rule===v?'selected':''}>${l}</option>`).join('');
+
     const dipParams = s.rule === 'dip' ? `<div class="hyp-rule-params">
       <div class="hyp-field"><label>Drawdown threshold %</label>
-        <input type="number" class="input" value="${s.dipThreshold}" min="1" max="60" step="1" oninput="updateHypStrategy(${i},'dipThreshold',+this.value)"></div>
+        <input type="number" class="input" value="${s.dipThreshold}" min="1" max="60" step="1" onchange="updateHypStrategy(${i},'dipThreshold',+this.value)"></div>
       <div class="hyp-field"><label>Extra multiplier (×)</label>
-        <input type="number" class="input" value="${s.dipMultiplier}" min="1.1" max="10" step="0.1" oninput="updateHypStrategy(${i},'dipMultiplier',+this.value)"></div>
+        <input type="number" class="input" value="${s.dipMultiplier}" min="1.1" max="10" step="0.1" onchange="updateHypStrategy(${i},'dipMultiplier',+this.value)"></div>
     </div>` : '';
+
+    const dip2Tiers = (s.dip2Tiers || []).map((t, ti) => `
+      <div class="hyp-tier-row">
+        <span>Tier ${ti+1}</span>
+        <input type="number" class="input" style="width:52px" value="${t.threshold}" min="1" max="80" step="1" onchange="updateHypDip2Tier(${i},${ti},'threshold',+this.value)">
+        <span>% drop →</span>
+        <input type="number" class="input" style="width:64px" value="${t.extra}" min="0" max="50000" step="100" onchange="updateHypDip2Tier(${i},${ti},'extra',+this.value)">
+        <span>extra</span>
+      </div>`).join('');
+    const dip2Params = s.rule === 'dip2' ? `<div class="hyp-rule-params">
+      <div class="hyp-field"><label>Lookback window (months, 0 = all-time)</label>
+        <input type="number" class="input" value="${s.dip2Window}" min="0" max="120" step="1" onchange="updateHypStrategy(${i},'dip2Window',+this.value)"></div>
+      <div class="hyp-field"><label>Trigger mode</label>
+        <select class="input" onchange="updateHypStrategy(${i},'dip2Mode',this.value)">
+          <option value="continual" ${s.dip2Mode==='continual'?'selected':''}>Continual — every month in dip zone</option>
+          <option value="once" ${s.dip2Mode==='once'?'selected':''}>One-time — once per dip event</option>
+        </select></div>
+      <div class="hyp-field"><label>Drawdown tiers</label>${dip2Tiers}</div>
+    </div>` : '';
+
     const maParams = s.rule === 'ma' ? `<div class="hyp-rule-params">
       <div class="hyp-field"><label>SMA window (months)</label>
-        <input type="number" class="input" value="${s.maWindow}" min="2" max="60" step="1" oninput="updateHypStrategy(${i},'maWindow',+this.value)"></div>
+        <input type="number" class="input" value="${s.maWindow}" min="2" max="60" step="1" onchange="updateHypStrategy(${i},'maWindow',+this.value)"></div>
     </div>` : '';
+
+    const momentumParams = s.rule === 'momentum' ? `<div class="hyp-rule-params">
+      <div class="hyp-field"><label>SMA window (months)</label>
+        <input type="number" class="input" value="${s.momentumWindow}" min="2" max="60" step="1" onchange="updateHypStrategy(${i},'momentumWindow',+this.value)"></div>
+      <div class="hyp-field"><label>Uptrend multiplier (×)</label>
+        <input type="number" class="input" value="${s.momentumMultiplier}" min="1.1" max="10" step="0.1" onchange="updateHypStrategy(${i},'momentumMultiplier',+this.value)"></div>
+    </div>` : '';
+
+    const vaParams = s.rule === 'va' ? `<div class="hyp-rule-params">
+      <div class="hyp-field"><label>Monthly target growth ($)</label>
+        <input type="number" class="input" value="${s.vaMonthlyGrowth}" min="50" max="20000" step="50" onchange="updateHypStrategy(${i},'vaMonthlyGrowth',+this.value)"></div>
+    </div>` : '';
+
+    const activeMo = s.seasonalMonths || [];
+    const seasonalParams = s.rule === 'seasonal' ? `<div class="hyp-rule-params">
+      <div class="hyp-field"><label>Active months (cash deploys at season start)</label>
+        <div class="hyp-month-grid">${MONTH_LABELS.map((m, mi) =>
+          `<button class="hyp-month-btn ${activeMo.includes(mi+1)?'on':''}" onclick="toggleHypSeasonalMonth(${i},${mi+1})">${m}</button>`
+        ).join('')}</div>
+      </div>
+    </div>` : '';
+
+    const fmtMoney = v => v >= 1000 ? '$' + (v/1000).toFixed(v%1000===0?0:1) + 'k' : '$' + v;
+    const inflationDesc = s.annualIncrease > 0 ? `, increasing ${s.annualIncrease}%/yr` : '';
+    const capitalDesc = s.startCapital > 0 && s.monthly > 0
+      ? `starting with ${fmtMoney(s.startCapital)} and adding ${fmtMoney(s.monthly)}/mo${inflationDesc}`
+      : s.startCapital > 0
+        ? `starting with a ${fmtMoney(s.startCapital)} lump sum, no monthly contributions`
+        : `investing ${fmtMoney(s.monthly)}/mo${inflationDesc} with no initial capital`;
+    const cap1 = capitalDesc.charAt(0).toUpperCase() + capitalDesc.slice(1);
+
+    let ruleDesc;
+    if (s.rule === 'dca') {
+      ruleDesc = `Buys S&P 500 at end of every month at market price — pure dollar-cost averaging. ${cap1}, starting ${s.startYear}.`;
+    } else if (s.rule === 'dip') {
+      ruleDesc = `Normally ${capitalDesc}, starting ${s.startYear}. When the S&P is ≥${s.dipThreshold}% below its all-time high, invests ${s.dipMultiplier}× the usual amount.`;
+    } else if (s.rule === 'dip2') {
+      const win = s.dip2Window > 0 ? `${s.dip2Window}-month` : 'all-time';
+      const tierList = (s.dip2Tiers||[]).map(t => `≥${t.threshold}% → +${fmtMoney(t.extra)}`).join(', ');
+      const mode = s.dip2Mode === 'once' ? 'one-time per dip event' : 'every month while in zone';
+      ruleDesc = `${cap1}, starting ${s.startYear}. Tracks drawdown from the ${win} high; deploys extra cash at tiered thresholds (${tierList}), ${mode}.`;
+    } else if (s.rule === 'ma') {
+      ruleDesc = `${cap1}, starting ${s.startYear}. Only buys when price is above its ${s.maWindow}-month average; otherwise accumulates cash and deploys it all when price recovers.`;
+    } else if (s.rule === 'momentum') {
+      ruleDesc = `${cap1}, starting ${s.startYear}. Invests ${s.momentumMultiplier}× the usual amount when price is above its ${s.momentumWindow}-month average (uptrend), normal amount when below.`;
+    } else if (s.rule === 'va') {
+      ruleDesc = `Targets portfolio growth of ${fmtMoney(s.vaMonthlyGrowth)}/mo, starting ${s.startYear}. Invests exactly what's needed to hit that path — more after down months, less (or nothing) after big gains.`;
+    } else if (s.rule === 'seasonal') {
+      const onNames = (s.seasonalMonths||[]).sort((a,b)=>a-b).map(m => MONTH_LABELS[m-1]).join(', ');
+      ruleDesc = `${cap1}, starting ${s.startYear}. Only deployed during active months (${onNames||'none'}); cash accumulates in off-months and is invested at the start of each active season.`;
+    }
+
     return `<div class="hyp-card ${s.enabled?'':'disabled'}" id="hypCard${i}">
       <div class="hyp-card-header">
         <div class="hyp-color-dot" style="background:${s.colorHex}"></div>
-        <input class="hyp-card-name" type="text" value="${s.name}" oninput="updateHypStrategy(${i},'name',this.value)">
+        <input class="hyp-card-name" type="text" value="${s.name}" onchange="updateHypStrategy(${i},'name',this.value)">
         <div class="hyp-toggle ${s.enabled?'on':''}" onclick="toggleHypStrategy(${i})"></div>
       </div>
       <div class="hyp-field"><label>Starting capital ($)</label>
-        <input type="number" class="input" value="${s.startCapital}" min="0" step="100" oninput="updateHypStrategy(${i},'startCapital',+this.value)"></div>
+        <input type="number" class="input" value="${s.startCapital}" min="0" step="100" onchange="updateHypStrategy(${i},'startCapital',+this.value)"></div>
       <div class="hyp-field"><label>Monthly contribution ($)</label>
-        <input type="number" class="input" value="${s.monthly}" min="0" step="50" oninput="updateHypStrategy(${i},'monthly',+this.value)"></div>
+        <input type="number" class="input" value="${s.monthly}" min="0" step="50" onchange="updateHypStrategy(${i},'monthly',+this.value)"></div>
+      <div class="hyp-field"><label>Annual contribution increase (%)</label>
+        <input type="number" class="input" value="${s.annualIncrease||0}" min="0" max="20" step="0.5" onchange="updateHypStrategy(${i},'annualIncrease',+this.value)"></div>
       <div class="hyp-field"><label>Start year</label>
         <select class="input" onchange="updateHypStrategy(${i},'startYear',+this.value)">${yearOpts}</select></div>
       <div class="hyp-field"><label>Rule</label>
-        <select class="input" onchange="updateHypStrategy(${i},'rule',this.value);renderHypStrategyCards();renderHypothesis()">${ruleOpts}</select></div>
-      ${dipParams}${maParams}
+        <select class="input" onchange="setHypRule(${i},this.value)">${ruleOpts}</select></div>
+      ${dipParams}${dip2Params}${maParams}${momentumParams}${vaParams}${seasonalParams}
+      <div style="margin-top:10px;font-size:10px;line-height:1.5;color:var(--muted);font-style:italic">${ruleDesc}</div>
     </div>`;
   }).join('');
 }
@@ -1039,6 +1142,46 @@ function toggleHypStrategy(i) {
 }
 function updateHypStrategy(i, key, val) {
   state.hypStrategies[i][key] = val;
+  saveHypStrategies(); renderHypothesis();
+}
+const HYP_RULE_NAMES = { dca:'DCA Monthly', dip:'Buy the Dip', dip2:'Buy the Dip (Tiered)', ma:'MA Filter', momentum:'Momentum', va:'Value Averaging', seasonal:'Seasonal' };
+function setHypRule(i, rule) {
+  state.hypStrategies[i].rule = rule;
+  state.hypStrategies[i].name = HYP_RULE_NAMES[rule] || rule;
+  saveHypStrategies(); renderHypStrategyCards(); renderHypothesis();
+}
+function toggleHypSeasonalMonth(i, month) {
+  const months = state.hypStrategies[i].seasonalMonths || [];
+  const idx = months.indexOf(month);
+  if (idx >= 0) months.splice(idx, 1); else months.push(month);
+  state.hypStrategies[i].seasonalMonths = months;
+  saveHypStrategies(); renderHypStrategyCards(); renderHypothesis();
+}
+function scaleHypToMatchDCA() {
+  const dcaStrat = state.hypStrategies.find(s => s.enabled && s.rule === 'dca');
+  const note = document.getElementById('hypScaleNote');
+  if (!dcaStrat) { if (note) note.textContent = 'No enabled DCA strategy to match.'; return; }
+  const dcaSim = runHypSimulation(dcaStrat);
+  if (!dcaSim) return;
+  const dcaTotal = dcaSim.timeseries.at(-1).invested;
+
+  state.hypStrategies.forEach(s => {
+    if (!s.enabled || s.rule === 'dca') return;
+    const sim = runHypSimulation(s);
+    if (!sim) return;
+    const stratTotal = sim.timeseries.at(-1).invested;
+    if (stratTotal <= 0) return;
+    const f = dcaTotal / stratTotal;
+    s.monthly = Math.round(s.monthly * f);
+    if (s.rule === 'dip2') s.dip2Tiers = s.dip2Tiers.map(t => ({ ...t, extra: Math.round(t.extra * f) }));
+    if (s.rule === 'va') s.vaMonthlyGrowth = Math.round(s.vaMonthlyGrowth * f);
+  });
+
+  if (note) note.textContent = `Scaled to $${Math.round(dcaTotal).toLocaleString()} total invested.`;
+  saveHypStrategies(); renderHypStrategyCards(); renderHypothesis();
+}
+function updateHypDip2Tier(i, ti, key, val) {
+  state.hypStrategies[i].dip2Tiers[ti][key] = val;
   saveHypStrategies(); renderHypothesis();
 }
 // ── Recession bands ──
@@ -1054,9 +1197,8 @@ function buildHypChart(simResults) {
   const W=900, H=320, PL=68, PR=16, PT=16, PB=28;
   const chartW = W-PL-PR, chartH = H-PT-PB;
   const useLog = state.hypScale === 'log';
-  // Shared date axis: full SP500 range from earliest enabled strategy's start
-  const earliestDate = simResults.reduce((min, r) => r.timeseries[0].date < min ? r.timeseries[0].date : min, '9999-99');
-  const allDates = SP500_MONTHLY.filter(d => d.date >= earliestDate).map(d => d.date);
+  // Shared date axis: union of all enabled series dates, sorted
+  const allDates = [...new Set(simResults.flatMap(r => r.timeseries.map(p => p.date)))].sort();
   const n = allDates.length;
   const dateIndex = Object.fromEntries(allDates.map((d,i) => [d,i]));
   const allVals = simResults.flatMap(r => r.timeseries.map(p => p.value)).filter(v => v > 0);
@@ -1217,43 +1359,90 @@ function runHypSimulation(strategy) {
   if (data.length < 2) return null;
 
   let shares = 0, cash = 0;
+
+  // Running all-time high
   const runningAth = [];
   let ath = 0;
   data.forEach(d => { ath = Math.max(ath, d.close); runningAth.push(ath); });
 
-  const smaValues = data.map((_, idx) => {
-    const win = Math.max(1, strategy.maWindow || 12);
+  // SMA for MA and momentum rules
+  const smaFor = win => data.map((_, idx) => {
     const slice = data.slice(Math.max(0, idx - win + 1), idx + 1);
     return slice.reduce((s, x) => s + x.close, 0) / slice.length;
   });
+  const maSma = smaFor(Math.max(1, strategy.maWindow || 12));
+  const momSma = smaFor(Math.max(1, strategy.momentumWindow || 12));
 
   if (strategy.startCapital > 0) shares += strategy.startCapital / data[0].close;
 
-  let monthsInvested = 0;
+  let totalInvested = strategy.startCapital;
+  let vaTarget = strategy.startCapital;
+  const tierFired = (strategy.dip2Tiers || []).map(() => false);
   const series = [];
 
   data.forEach((d, idx) => {
     const price = d.close;
-    const base = strategy.monthly;
+    const yearIdx = Math.floor(idx / 12);
+    const base = strategy.monthly * Math.pow(1 + (strategy.annualIncrease || 0) / 100, yearIdx);
     let buy = 0;
 
     if (strategy.rule === 'dca') {
       buy = base;
+
     } else if (strategy.rule === 'dip') {
       const dd = runningAth[idx] > 0 ? (runningAth[idx] - price) / runningAth[idx] * 100 : 0;
       buy = dd >= (strategy.dipThreshold || 15) ? base * (strategy.dipMultiplier || 2) : base;
+
+    } else if (strategy.rule === 'dip2') {
+      const win = strategy.dip2Window > 0 ? strategy.dip2Window : null;
+      const high = win
+        ? Math.max(...data.slice(Math.max(0, idx - win + 1), idx + 1).map(x => x.close))
+        : runningAth[idx];
+      const dd = high > 0 ? (high - price) / high * 100 : 0;
+      buy = base;
+      (strategy.dip2Tiers || []).forEach((tier, ti) => {
+        if (dd >= tier.threshold) {
+          if (strategy.dip2Mode === 'once') {
+            if (!tierFired[ti]) { buy += tier.extra; tierFired[ti] = true; }
+          } else {
+            buy += tier.extra;
+          }
+        } else {
+          tierFired[ti] = false;
+        }
+      });
+
     } else if (strategy.rule === 'ma') {
-      if (price >= smaValues[idx]) { buy = base + cash; cash = 0; }
+      if (price >= maSma[idx]) { buy = base + cash; cash = 0; }
+      else { cash += base; buy = 0; }
+
+    } else if (strategy.rule === 'momentum') {
+      buy = price >= momSma[idx]
+        ? base * (strategy.momentumMultiplier || 2)
+        : base;
+
+    } else if (strategy.rule === 'va') {
+      vaTarget += (strategy.vaMonthlyGrowth || 600);
+      const currentValue = shares * price;
+      buy = Math.max(0, vaTarget - currentValue);
+
+    } else if (strategy.rule === 'seasonal') {
+      const month = parseInt(d.date.split('-')[1]);
+      const active = (strategy.seasonalMonths || []).includes(month);
+      if (active) { buy = base + cash; cash = 0; }
       else { cash += base; buy = 0; }
     }
 
     if (buy > 0) shares += buy / price;
-    if (idx > 0) monthsInvested++;
+
+    // Track invested: for buy-more rules track actual outlay; for accumulate rules track monthly budget
+    const accumulates = strategy.rule === 'ma' || strategy.rule === 'seasonal';
+    totalInvested += accumulates ? base : buy;
 
     series.push({
       date: d.date,
       value: shares * price + cash,
-      invested: strategy.startCapital + base * monthsInvested,
+      invested: totalInvested,
       inMarket: shares * price > 0
     });
   });
