@@ -244,6 +244,27 @@ tbody td:first-child { text-align: left; color: var(--muted); font-size: 10px; }
 .year-btn.active { border-color: var(--cyan); color: var(--cyan); background: rgba(32,208,224,0.08); }
 
 .info-muted { font-size: 10px; color: var(--muted); line-height: 1.6; }
+.scenario-toolbar {
+  display: flex; justify-content: space-between; align-items: flex-end; gap: 12px;
+  flex-wrap: wrap; margin-bottom: 16px; padding: 12px;
+  background: var(--bg1); border: 1px solid var(--border); border-radius: 4px;
+}
+.scenario-toolbar-main { display: flex; gap: 10px; align-items: flex-end; flex-wrap: wrap; }
+.scenario-toolbar-meta { font-size: 9px; color: var(--muted); letter-spacing: 0.08em; text-transform: uppercase; }
+.cashflow-blocks {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px;
+}
+.cashflow-block {
+  background: var(--bg2); border: 1px solid var(--border); border-radius: 4px; padding: 12px;
+}
+.cashflow-block-title {
+  font-size: 9px; color: var(--cyan); font-weight: 600; letter-spacing: 0.12em;
+  text-transform: uppercase; margin-bottom: 10px;
+}
+.compare-grid {
+  display: grid; grid-template-columns: minmax(0, 2fr) minmax(260px, 1fr); gap: 16px; align-items: start;
+}
+.compare-side { display: flex; flex-direction: column; gap: 16px; }
 tfoot td {
   padding: 7px 10px; vertical-align: middle; white-space: nowrap; text-align: right;
   font-size: 11px; color: var(--muted);
@@ -257,7 +278,7 @@ tfoot td:first-child { text-align: left; }
 <div class="header">
   <div>
     <div class="logo">REAL ESTATE DESK <span>// financial simulation</span></div>
-    <div class="header-sub" id="headerSub">monthly financial simulation</div>
+    <div class="header-sub" id="headerSub">baseline preset — monthly financial simulation</div>
   </div>
   <div class="header-actions">
     <button class="scenario-btn" id="btnBaseline"    onclick="setScenario('baseline')">BASELINE</button>
@@ -272,6 +293,7 @@ tfoot td:first-child { text-align: left; }
   <button class="tab active" onclick="showTab('overview',    event)">OVERVIEW</button>
   <button class="tab"        onclick="showTab('timeline',    event)">TIMELINE</button>
   <button class="tab"        onclick="showTab('simulation',  event)">SIMULATION</button>
+  <button class="tab"        onclick="showTab('compare',     event)">COMPARE</button>
   <button class="tab"        onclick="showTab('assumptions', event)">ASSUMPTIONS</button>
 </div>
 
@@ -318,10 +340,26 @@ tfoot td:first-child { text-align: left; }
     <button class="btn btn-cyan btn-sm" onclick="openAddEvent()">+ ADD EVENT</button>
   </div>
 
+  <div class="scenario-toolbar">
+    <div>
+      <div class="section-label" style="margin:0 0 8px">Timeline Scenario</div>
+      <div class="scenario-toolbar-main">
+        <div class="form-group" style="min-width:220px">
+          <label>Active Scenario</label>
+          <select id="timelineScenarioSelect" onchange="switchEventScenario(this.value)"></select>
+        </div>
+        <button class="btn btn-dim btn-sm" onclick="createEventScenario()">NEW</button>
+        <button class="btn btn-dim btn-sm" onclick="cloneEventScenario()">CLONE</button>
+        <button class="btn btn-red btn-sm" onclick="removeEventScenario()">DELETE</button>
+      </div>
+    </div>
+    <div class="scenario-toolbar-meta" id="timelineScenarioMeta">1 scenario</div>
+  </div>
+
   <div id="eventList"></div>
 
   <div id="cashFlowPanel" style="margin-top:16px;background:var(--bg1);border:1px solid var(--border);border-radius:4px;padding:16px;display:none">
-    <div class="section-label" style="margin-top:0">Month 1 Cash Flow</div>
+    <div class="section-label" style="margin-top:0">Cash Flow Snapshots</div>
     <div id="cashFlowSummary"></div>
   </div>
 </div>
@@ -338,17 +376,63 @@ tfoot td:first-child { text-align: left; }
       <thead>
         <tr>
           <th style="text-align:left">MONTH</th>
+          <th style="text-align:left">EVENTS</th>
           <th>INCOME</th>
           <th>EXPENSES</th>
           <th>NET FLOW</th>
           <th>CASH</th>
           <th>PORTFOLIO</th>
+          <th>HOUSING DEBT</th>
           <th>HOME EQUITY</th>
           <th>NET WORTH</th>
         </tr>
       </thead>
       <tbody id="simBody"></tbody>
     </table>
+  </div>
+</div>
+
+<!-- ══ COMPARE TAB ══ -->
+<div id="view-compare" class="view">
+  <div class="scenario-toolbar">
+    <div>
+      <div class="section-label" style="margin:0 0 8px">Scenario Comparison</div>
+      <div class="scenario-toolbar-main">
+        <div class="form-group" style="min-width:220px">
+          <label>Scenario A</label>
+          <select id="compareScenarioA" onchange="setCompareScenario('a', this.value)"></select>
+        </div>
+        <div class="form-group" style="min-width:220px">
+          <label>Scenario B</label>
+          <select id="compareScenarioB" onchange="setCompareScenario('b', this.value)"></select>
+        </div>
+      </div>
+    </div>
+    <div class="scenario-toolbar-meta" id="compareScenarioMeta">Comparing saved timeline scenarios</div>
+  </div>
+
+  <div class="summary-row" id="compareSummary"></div>
+
+  <div class="compare-grid">
+    <div>
+      <div class="section-label">Net Worth Comparison</div>
+      <div class="chart-wrap">
+        <div class="chart-legend" id="compareLegend"></div>
+        <div class="chart-area">
+          <canvas id="compareChart" width="600" height="260"></canvas>
+        </div>
+      </div>
+    </div>
+    <div class="compare-side">
+      <div>
+        <div class="section-label">Crossover Points</div>
+        <div id="compareCrossovers"></div>
+      </div>
+      <div>
+        <div class="section-label">Comparison Notes</div>
+        <div id="compareNotes"></div>
+      </div>
+    </div>
   </div>
 </div>
 
@@ -409,7 +493,7 @@ tfoot td:first-child { text-align: left; }
     </div>
 
     <div>
-      <div class="section-label">Scenario Presets</div>
+      <div class="section-label">Market Presets</div>
       <div style="display:flex;flex-direction:column;gap:10px">
         <div class="summary-card">
           <div class="summary-card-label" style="color:var(--cyan)">BASELINE</div>
@@ -453,6 +537,8 @@ tfoot td:first-child { text-align: left; }
           <option value="buy_house">Buy House</option>
           <option value="sell_house">Sell House</option>
           <option value="invest">Start Investing</option>
+          <option value="invest_lump_sum">Invest Lump Sum</option>
+          <option value="sell_investments">Sell Investments</option>
           <option value="stop_invest">Stop Investing</option>
         </select>
       </div>
@@ -499,7 +585,7 @@ const DEFAULTS = {
     { id: 'e1', type: 'rent',   month: 1, label: '',
       params: { monthlyRent: 2400, annualIncrease: 3.0, securityDeposit: 2, insurance: 20, utilities: 150 } },
     { id: 'e2', type: 'invest', month: 1, label: '',
-      params: {} },
+      params: { mode: 'surplus', monthlyAmount: 1000 } },
   ],
 };
 
@@ -509,7 +595,16 @@ const PRESETS = {
   pessimistic: { homeAppreciation: 1.0, marketReturn: 4.0,  costInflation: 4.0, inflation: 4.0 },
 };
 
-const EVENT_ORDER = { sell_house: 0, stop_rent: 1, stop_invest: 2, buy_house: 3, rent: 4, invest: 5 };
+const EVENT_ORDER = {
+  sell_house: 0,
+  sell_investments: 1,
+  invest_lump_sum: 2,
+  stop_rent: 3,
+  stop_invest: 4,
+  buy_house: 5,
+  rent: 6,
+  invest: 7,
+};
 
 const EVENT_DEFAULTS = {
   rent:       { monthlyRent: 2400, annualIncrease: 3.0, securityDeposit: 2, insurance: 20, utilities: 150 },
@@ -518,14 +613,92 @@ const EVENT_DEFAULTS = {
                 closingCostPct: 2.5, sellingCostPct: 6.0, propTaxRate: 1.1,
                 hoa: 200, homeInsurance: 1800, maintenancePct: 1.0, utilities: 200, yardCare: 100 },
   sell_house: { sellingCostPct: 6.0 },
-  invest:     {},
+  invest:     { mode: 'surplus', monthlyAmount: 1000 },
+  invest_lump_sum: { amount: 50000 },
+  sell_investments: { amount: 50000 },
   stop_invest:{},
 };
 
 let state = {};
 let currentScenario = 'baseline';
 let editingEventId   = null;
-let simInterval      = 12; // months between displayed rows
+let simInterval      = 1; // months between displayed rows
+
+function deepClone(value) {
+  return JSON.parse(JSON.stringify(value));
+}
+
+function escapeHtml(value) {
+  return String(value)
+    .replaceAll('&', '&amp;')
+    .replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;')
+    .replaceAll('"', '&quot;');
+}
+
+function makeId(prefix) {
+  return prefix + '_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2, 8);
+}
+
+function makeDefaultEventScenarios(events) {
+  return [{ id: 'scenario_default', name: 'Default', events: deepClone(events || DEFAULTS.events) }];
+}
+
+function getActiveEventScenario() {
+  return (state.eventScenarios || []).find(s => s.id === state.activeEventScenarioId) || null;
+}
+
+function getScenarioById(id) {
+  return (state.eventScenarios || []).find(s => s.id === id) || null;
+}
+
+function ensureComparisonSelections() {
+  const ids = (state.eventScenarios || []).map(s => s.id);
+  if (!ids.length) {
+    state.compareScenarioAId = null;
+    state.compareScenarioBId = null;
+    return;
+  }
+  if (!state.compareScenarioAId || !ids.includes(state.compareScenarioAId)) {
+    state.compareScenarioAId = state.activeEventScenarioId && ids.includes(state.activeEventScenarioId)
+      ? state.activeEventScenarioId
+      : ids[0];
+  }
+  const otherId = ids.find(id => id !== state.compareScenarioAId);
+  if (!state.compareScenarioBId || !ids.includes(state.compareScenarioBId) || (ids.length > 1 && state.compareScenarioBId === state.compareScenarioAId)) {
+    state.compareScenarioBId = otherId || state.compareScenarioAId;
+  }
+}
+
+function initializeEventScenarios() {
+  if (!Array.isArray(state.eventScenarios) || !state.eventScenarios.length) {
+    state.eventScenarios = makeDefaultEventScenarios(Array.isArray(state.events) ? state.events : DEFAULTS.events);
+  } else {
+    state.eventScenarios = state.eventScenarios.map((scenario, index) => ({
+      id: scenario?.id || makeId('scenario'),
+      name: (scenario?.name || `Scenario ${index + 1}`).trim() || `Scenario ${index + 1}`,
+      events: Array.isArray(scenario?.events) ? deepClone(scenario.events) : [],
+    }));
+  }
+  if (!state.activeEventScenarioId || !state.eventScenarios.some(s => s.id === state.activeEventScenarioId)) {
+    state.activeEventScenarioId = state.eventScenarios[0].id;
+  }
+  ensureComparisonSelections();
+  const active = getActiveEventScenario();
+  state.events = deepClone(active ? active.events : DEFAULTS.events);
+}
+
+function syncActiveEventScenario() {
+  if (!Array.isArray(state.eventScenarios) || !state.eventScenarios.length) {
+    state.eventScenarios = makeDefaultEventScenarios(state.events);
+  }
+  if (!state.activeEventScenarioId || !state.eventScenarios.some(s => s.id === state.activeEventScenarioId)) {
+    state.activeEventScenarioId = state.eventScenarios[0].id;
+  }
+  ensureComparisonSelections();
+  const active = getActiveEventScenario();
+  if (active) active.events = deepClone(Array.isArray(state.events) ? state.events : []);
+}
 
 // ══════════════════════════════════════════════
 //  PERSISTENCE
@@ -535,6 +708,7 @@ function load() {
 }
 function save() {
   readInputs();
+  syncActiveEventScenario();
   localStorage.setItem(STORAGE_KEY, JSON.stringify({ ...state, _scenario: currentScenario }));
 }
 function readInputs() {
@@ -562,7 +736,14 @@ function writeInputs() {
   if (sel) sel.value = state.mortgageDeduction ?? DEFAULTS.mortgageDeduction;
 }
 function resetDefaults() {
-  state = { ...DEFAULTS, events: JSON.parse(JSON.stringify(DEFAULTS.events)) };
+  state = {
+    ...DEFAULTS,
+    events: deepClone(DEFAULTS.events),
+    eventScenarios: makeDefaultEventScenarios(DEFAULTS.events),
+    activeEventScenarioId: 'scenario_default',
+    compareScenarioAId: 'scenario_default',
+    compareScenarioBId: 'scenario_default',
+  };
   currentScenario = 'baseline';
   writeInputs();
   save();
@@ -586,7 +767,7 @@ function updateScenarioBtns() {
     if (btn) btn.className = 'scenario-btn' + (s === currentScenario ? ' active-' + s : '');
   });
   document.getElementById('headerSub').textContent =
-    currentScenario.toUpperCase() + ' scenario — ' + (state.horizonYears||10) + '-year financial simulation';
+    currentScenario.toUpperCase() + ' preset — ' + (state.horizonYears||10) + '-year financial simulation';
 }
 
 // ══════════════════════════════════════════════
@@ -619,6 +800,11 @@ function runSimulation(gs) {
     if (a.month !== b.month) return a.month - b.month;
     return (EVENT_ORDER[a.type] || 9) - (EVENT_ORDER[b.type] || 9);
   });
+  const eventsByMonth = new Map();
+  events.forEach(ev => {
+    if (!eventsByMonth.has(ev.month)) eventsByMonth.set(ev.month, []);
+    eventsByMonth.get(ev.month).push(ev);
+  });
 
   // Simulation mutable state
   let cash            = gs.startingCash || 0;
@@ -629,15 +815,21 @@ function runSimulation(gs) {
   let rentDepositPaid = 0;
   let house           = null; // { params, loanBalance, homeValue, purchasePrice, mortgagePayment, mortRateM, loanTermM }
   let investing       = false;
+  let investCfg       = null;
 
   const rows = [];
 
   for (let mo = 1; mo <= horizonMonths; mo++) {
     const costMult      = Math.pow(1 + costInflM, mo - 1);
     const monthlyIncome = baseIncome * Math.pow(1 + salaryGrowthM, mo - 1);
+    const monthEvents   = eventsByMonth.get(mo) || [];
+    let oneTimeCashIn   = 0;
+    let oneTimeCashOut  = 0;
+    let oneTimePortfolioIn = 0;
+    let oneTimePortfolioOut = 0;
 
     // ── Apply events at this month
-    for (const ev of events.filter(e => e.month === mo)) {
+    for (const ev of monthEvents) {
       const p = ev.params || {};
       if (ev.type === 'rent') {
         renting         = true;
@@ -678,9 +870,27 @@ function runSimulation(gs) {
 
       } else if (ev.type === 'invest') {
         investing = true;
+        investCfg = { mode: p.mode || 'surplus', monthlyAmount: p.monthlyAmount || 0 };
+
+      } else if (ev.type === 'invest_lump_sum') {
+        const amount = Math.max(0, p.amount || 0);
+        const transfer = Math.min(cash, amount);
+        cash -= transfer;
+        portfolio += transfer;
+        oneTimeCashOut += transfer;
+        oneTimePortfolioIn += transfer;
+
+      } else if (ev.type === 'sell_investments') {
+        const amount = Math.max(0, p.amount || 0);
+        const transfer = Math.min(portfolio, amount);
+        portfolio -= transfer;
+        cash += transfer;
+        oneTimePortfolioOut += transfer;
+        oneTimeCashIn += transfer;
 
       } else if (ev.type === 'stop_invest') {
         investing = false;
+        investCfg = null;
       }
     }
 
@@ -732,9 +942,15 @@ function runSimulation(gs) {
     const netFlow = monthlyIncome - expenses;
 
     // Portfolio grows, then allocate surplus/deficit
+    let investmentContribution = 0;
     portfolio *= (1 + mktReturnM);
-    if (investing) {
+    if (investing && investCfg?.mode === 'fixed') {
+      investmentContribution = Math.max(0, investCfg.monthlyAmount || 0);
+      portfolio += investmentContribution;
+      cash += netFlow - investmentContribution;
+    } else if (investing) {
       if (netFlow >= 0) {
+        investmentContribution = netFlow;
         portfolio += netFlow;
       } else {
         const shortfall = -netFlow;
@@ -761,6 +977,12 @@ function runSimulation(gs) {
       homeValue:  house ? house.homeValue  : 0,
       loanBalance:house ? house.loanBalance: 0,
       homeEquity,
+      investmentContribution,
+      oneTimeCashIn,
+      oneTimeCashOut,
+      oneTimePortfolioIn,
+      oneTimePortfolioOut,
+      eventCount: monthEvents.length,
       netWorth: cash + portfolio + homeEquity,
     });
   }
@@ -795,6 +1017,41 @@ function infoRow(key, val, valClass) {
     <span class="info-key">${key}</span>
     <span class="info-val ${valClass||''}">${val}</span>
   </div>`;
+}
+
+function eventSummaryText(ev) {
+  const p = ev.params || {};
+  switch (ev.type) {
+    case 'rent':
+      return `Rent ${fmtDollarFull(p.monthlyRent || 0)}/mo`;
+    case 'buy_house':
+      return `Buy ${fmtDollarFull(p.homePrice || 0)}`;
+    case 'sell_house':
+      return 'Sell house';
+    case 'invest':
+      return p.mode === 'fixed'
+        ? `Invest ${fmtDollarFull(p.monthlyAmount || 0)}/mo`
+        : 'Invest surplus';
+    case 'invest_lump_sum':
+      return `Invest ${fmtDollarFull(p.amount || 0)}`;
+    case 'sell_investments':
+      return `Sell investments ${fmtDollarFull(p.amount || 0)}`;
+    case 'stop_rent':
+      return 'Stop rent';
+    case 'stop_invest':
+      return 'Stop investing';
+    default:
+      return eventTypeLabel(ev.type);
+  }
+}
+
+function getEventMonthMap(events) {
+  const monthMap = new Map();
+  (events || []).forEach(ev => {
+    if (!monthMap.has(ev.month)) monthMap.set(ev.month, []);
+    monthMap.get(ev.month).push(eventSummaryText(ev));
+  });
+  return monthMap;
 }
 
 // ══════════════════════════════════════════════
@@ -877,6 +1134,168 @@ function drawChart(rows, events) {
   drawLine(r => r.netWorth,    '#20d0e0', 2.5);   // net worth (cyan, thicker)
 }
 
+function monthYearLabel(month, withMonthDetail) {
+  const roundedMonth = Math.max(1, Math.ceil(month));
+  const year = Math.ceil(roundedMonth / 12);
+  const inYearMonth = ((roundedMonth - 1) % 12) + 1;
+  const monthText = Number.isInteger(month) ? String(month) : month.toFixed(1);
+  return withMonthDetail ? `Month ${monthText} (Year ${year}, Month ${inYearMonth})` : `Year ${year}`;
+}
+
+function getScenarioSimulation(id) {
+  const scenario = getScenarioById(id);
+  if (!scenario) return null;
+  return {
+    scenario,
+    rows: runSimulation({ ...state, events: deepClone(scenario.events) }),
+  };
+}
+
+function getCrossoverPoints(rowsA, rowsB) {
+  const points = [];
+  if (!rowsA.length || !rowsB.length) return points;
+  let prevDiff = rowsA[0].netWorth - rowsB[0].netWorth;
+  if (prevDiff === 0) {
+    points.push({ month: 1, netWorth: rowsA[0].netWorth, exact: true });
+  }
+  for (let i = 1; i < Math.min(rowsA.length, rowsB.length); i++) {
+    const diff = rowsA[i].netWorth - rowsB[i].netWorth;
+    if (diff === 0) {
+      points.push({ month: rowsA[i].month, netWorth: rowsA[i].netWorth, exact: true });
+    } else if (prevDiff !== 0 && Math.sign(prevDiff) !== Math.sign(diff)) {
+      const frac = Math.abs(prevDiff) / (Math.abs(prevDiff) + Math.abs(diff));
+      const month = rowsA[i - 1].month + frac;
+      const netWorth = rowsA[i - 1].netWorth + (rowsA[i].netWorth - rowsA[i - 1].netWorth) * frac;
+      points.push({ month, netWorth, exact: false });
+    }
+    prevDiff = diff;
+  }
+  return points;
+}
+
+function drawComparisonChart(rowsA, rowsB, labels) {
+  const canvas = document.getElementById('compareChart');
+  if (!canvas || !rowsA.length || !rowsB.length) return;
+  const ctx = canvas.getContext('2d');
+  const W = canvas.offsetWidth || 600;
+  const H = 260;
+  canvas.width = W;
+  canvas.height = H;
+  ctx.clearRect(0, 0, W, H);
+
+  const allVals = [...rowsA.map(r => r.netWorth), ...rowsB.map(r => r.netWorth), 0];
+  const minVal  = Math.min(...allVals);
+  const maxVal  = Math.max(...allVals);
+  const range   = maxVal - minVal || 1;
+  const pad = { top: 20, right: 20, bottom: 30, left: 68 };
+  const pw = W - pad.left - pad.right;
+  const ph = H - pad.top - pad.bottom;
+
+  const xOf = mo => pad.left + ((mo - 1) / Math.max(rowsA.length - 1, 1)) * pw;
+  const yOf = v  => pad.top + (1 - (v - minVal) / range) * ph;
+
+  ctx.lineWidth = 1;
+  for (let i = 0; i <= 4; i++) {
+    const y = pad.top + (i / 4) * ph;
+    ctx.strokeStyle = '#1e2d3d';
+    ctx.beginPath(); ctx.moveTo(pad.left, y); ctx.lineTo(pad.left + pw, y); ctx.stroke();
+    const v = maxVal - (i / 4) * range;
+    ctx.fillStyle = '#4a6070'; ctx.font = '9px IBM Plex Mono'; ctx.textAlign = 'right';
+    ctx.fillText(fmtDollar(v), pad.left - 4, y + 3);
+  }
+
+  ctx.fillStyle = '#4a6070'; ctx.font = '9px IBM Plex Mono'; ctx.textAlign = 'center';
+  const horizonYears = Math.round(rowsA.length / 12);
+  for (let yr = 1; yr <= horizonYears; yr++) {
+    const mo = yr * 12;
+    if (mo <= rowsA.length && (horizonYears <= 15 || yr % Math.ceil(horizonYears / 10) === 0 || yr === horizonYears)) {
+      ctx.fillText('Yr' + yr, xOf(mo), H - 4);
+    }
+  }
+
+  function drawLine(rows, color, width) {
+    ctx.strokeStyle = color; ctx.lineWidth = width; ctx.lineJoin = 'round';
+    ctx.beginPath();
+    rows.forEach((row, i) => {
+      const x = xOf(row.month), y = yOf(row.netWorth);
+      i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+    });
+    ctx.stroke();
+    const last = rows[rows.length - 1];
+    ctx.fillStyle = color;
+    ctx.beginPath(); ctx.arc(xOf(last.month), yOf(last.netWorth), 3.5, 0, Math.PI * 2); ctx.fill();
+  }
+
+  drawLine(rowsA, '#20d0e0', 2.5);
+  drawLine(rowsB, '#a060ff', 2.5);
+
+  document.getElementById('compareLegend').innerHTML = [
+    `<div class="legend-item"><div class="legend-dot" style="background:#20d0e0"></div>${escapeHtml(labels[0])}</div>`,
+    `<div class="legend-item"><div class="legend-dot" style="background:#a060ff"></div>${escapeHtml(labels[1])}</div>`,
+  ].join('');
+}
+
+function buildComparisonTab() {
+  ensureComparisonSelections();
+  const selectA = document.getElementById('compareScenarioA');
+  const selectB = document.getElementById('compareScenarioB');
+  if (!selectA || !selectB) return;
+
+  const optionsHtml = (state.eventScenarios || []).map(s =>
+    `<option value="${escapeHtml(s.id)}">${escapeHtml(s.name)}</option>`
+  ).join('');
+  selectA.innerHTML = optionsHtml;
+  selectB.innerHTML = optionsHtml;
+  selectA.value = state.compareScenarioAId || '';
+  selectB.value = state.compareScenarioBId || '';
+
+  const simA = getScenarioSimulation(state.compareScenarioAId);
+  const simB = getScenarioSimulation(state.compareScenarioBId);
+  if (!simA || !simB) return;
+
+  const finalA = simA.rows[simA.rows.length - 1];
+  const finalB = simB.rows[simB.rows.length - 1];
+  const delta = finalA.netWorth - finalB.netWorth;
+  const leader = delta === 0 ? 'Tie' : delta > 0 ? simA.scenario.name : simB.scenario.name;
+  const sameScenarioSelected = simA.scenario.id === simB.scenario.id;
+  const crossovers = sameScenarioSelected ? [] : getCrossoverPoints(simA.rows, simB.rows);
+
+  document.getElementById('compareScenarioMeta').textContent =
+    `${simA.scenario.name} vs ${simB.scenario.name} over ${(state.horizonYears || 10)} years`;
+
+  document.getElementById('compareSummary').innerHTML = [
+    summaryCard(`${simA.scenario.name} Final Net Worth`, fmtDollarFull(finalA.netWorth), 'scenario A', 'highlight'),
+    summaryCard(`${simB.scenario.name} Final Net Worth`, fmtDollarFull(finalB.netWorth), 'scenario B'),
+    summaryCard('Final Difference', fmtDollarFull(Math.abs(delta)), delta === 0 ? 'same ending value' : `${leader} finishes ahead`),
+    summaryCard('Crossover Count', String(crossovers.length), crossovers.length ? 'lead changed over time' : 'no crossover'),
+  ].join('');
+
+  drawComparisonChart(simA.rows, simB.rows, [simA.scenario.name, simB.scenario.name]);
+
+  document.getElementById('compareCrossovers').innerHTML = crossovers.length
+    ? `<div class="info-grid" style="grid-template-columns:1fr">${
+        crossovers.map((point, index) => infoRow(
+          point.exact ? `Crossover ${index + 1}` : `Approx Crossover ${index + 1}`,
+          `${monthYearLabel(point.month, true)} · ${fmtDollarFull(point.netWorth)}`
+        )).join('')
+      }</div>`
+    : `<div class="empty-state" style="padding:24px 16px">${
+        sameScenarioSelected ? 'Select two different saved timelines to calculate crossovers.' : 'No crossover points found.'
+      }</div>`;
+
+  const firstLeader = simA.rows[0].netWorth === simB.rows[0].netWorth
+    ? 'Neither scenario leads at month 1.'
+    : (simA.rows[0].netWorth > simB.rows[0].netWorth ? `${simA.scenario.name} leads at month 1.` : `${simB.scenario.name} leads at month 1.`);
+  const finalLeader = delta === 0
+    ? 'Both scenarios finish at the same net worth.'
+    : `${leader} finishes with the higher final net worth.`;
+  document.getElementById('compareNotes').innerHTML = `<div class="info-grid" style="grid-template-columns:1fr">
+    ${infoRow('Starting Lead', firstLeader)}
+    ${infoRow('Final Lead', finalLeader)}
+    ${infoRow('Comparison Basis', sameScenarioSelected ? 'Same timeline selected in both slots' : 'Shared assumptions with different timeline event scenarios')}
+  </div>`;
+}
+
 // ══════════════════════════════════════════════
 //  MAIN RECALC
 // ══════════════════════════════════════════════
@@ -930,6 +1349,9 @@ function recalc() {
   // ── SIMULATION TABLE
   buildSimTable(rows);
 
+  // ── COMPARISON TAB
+  buildComparisonTab();
+
   updateScenarioBtns();
 }
 
@@ -943,6 +1365,8 @@ function eventTypeLabel(type) {
     buy_house:  'BUY HOUSE',
     sell_house: 'SELL HOUSE',
     invest:     'START INVESTING',
+    invest_lump_sum: 'INVEST LUMP SUM',
+    sell_investments: 'SELL INVESTMENTS',
     stop_invest:'STOP INVESTING',
   };
   return MAP[type] || type.toUpperCase();
@@ -951,7 +1375,7 @@ function eventTagClass(type) {
   if (type === 'rent')        return 'tag-rent';
   if (type === 'buy_house')   return 'tag-buy';
   if (type === 'sell_house')  return 'tag-sell';
-  if (type === 'invest')      return 'tag-invest';
+  if (type === 'invest' || type === 'invest_lump_sum' || type === 'sell_investments') return 'tag-invest';
   return 'tag-stop';
 }
 function eventDetailText(ev) {
@@ -973,16 +1397,71 @@ function eventDetailText(ev) {
     case 'sell_house':
       return `${p.sellingCostPct||6}% selling costs · proceeds added to cash`;
     case 'invest':
-      return `All monthly surplus invested at global market return (${state.marketReturn||7}%/yr)`;
+      return p.mode === 'fixed'
+        ? `Invest ${fmtDollarFull(p.monthlyAmount || 0)}/mo at global market return (${state.marketReturn||7}%/yr); contribution comes from cash if surplus is not enough`
+        : `All monthly surplus invested at global market return (${state.marketReturn||7}%/yr)`;
+    case 'invest_lump_sum':
+      return `${fmtDollarFull(p.amount || 0)} moved from cash to portfolio as a one-time investment.`;
+    case 'sell_investments':
+      return `${fmtDollarFull(p.amount || 0)} moved from portfolio to cash as a one-time sale.`;
     case 'stop_invest':
       return 'Surplus/deficit flows to/from cash instead of portfolio.';
     default: return '';
   }
 }
 
+function cashFlowSnapshotTitle(month, finalMonth) {
+  if (month === 1) return 'Month 1 Cash Flow';
+  if (month === finalMonth) return 'Final Month Cash Flow';
+  return `Year ${Math.ceil(month / 12)} Month 1 Cash Flow`;
+}
+
+function cashFlowSnapshotMonths(rows) {
+  const months = new Set([1]);
+  const totalYears = Math.ceil(rows.length / 12);
+  for (let year = 5; year <= totalYears; year += 5) {
+    const month = (year - 1) * 12 + 1;
+    if (month <= rows.length) months.add(month);
+  }
+  months.add(rows.length);
+  return [...months].sort((a, b) => a - b);
+}
+
+function buildCashFlowSnapshot(row, finalMonth) {
+  const eb = row.expBreak;
+  let html = `<div class="cashflow-block"><div class="cashflow-block-title">${cashFlowSnapshotTitle(row.month, finalMonth)}</div>`;
+  html += `<div class="info-grid" style="grid-template-columns:1fr">`;
+  html += infoRow('Monthly Income', fmtDollarFull(row.monthlyIncome) + '/mo', 'up');
+  if (eb.rent)      html += infoRow('Rent', '-' + fmtDollarFull(eb.rent) + '/mo', 'down');
+  if (eb.rentIns)   html += infoRow('Rent Insurance', '-' + fmtDollarFull(eb.rentIns) + '/mo', 'down');
+  if (eb.rentUtil)  html += infoRow('Utilities (rent)', '-' + fmtDollarFull(eb.rentUtil) + '/mo', 'down');
+  if (eb.mortgage)  html += infoRow('Mortgage P+I', '-' + fmtDollarFull(eb.mortgage) + '/mo', 'down');
+  if (eb.propTax)   html += infoRow('Property Tax', '-' + fmtDollarFull(eb.propTax) + '/mo', 'down');
+  if (eb.hoa)       html += infoRow('HOA', '-' + fmtDollarFull(eb.hoa) + '/mo', 'down');
+  if (eb.homeIns)   html += infoRow('Home Insurance', '-' + fmtDollarFull(eb.homeIns) + '/mo', 'down');
+  if (eb.maint)     html += infoRow('Maintenance', '-' + fmtDollarFull(eb.maint) + '/mo', 'down');
+  if (eb.homeUtil)  html += infoRow('Utilities (home)', '-' + fmtDollarFull(eb.homeUtil) + '/mo', 'down');
+  if (eb.yard)      html += infoRow('Yard/Landscaping', '-' + fmtDollarFull(eb.yard) + '/mo', 'down');
+  if (eb.mortDeduct) html += infoRow('Mortgage Deduction', '+' + fmtDollarFull(-eb.mortDeduct) + '/mo', 'up');
+  if (row.oneTimeCashOut && row.oneTimePortfolioIn) {
+    html += infoRow('Invest Lump Sum', '-' + fmtDollarFull(row.oneTimeCashOut), 'down');
+  }
+  if (row.oneTimeCashIn && row.oneTimePortfolioOut) {
+    html += infoRow('Sell Investments', '+' + fmtDollarFull(row.oneTimeCashIn), 'up');
+  }
+  if (row.investmentContribution) {
+    html += infoRow('Investment Transfer', '-' + fmtDollarFull(row.investmentContribution) + '/mo', 'down');
+  }
+  html += infoRow('Total Expenses', '-' + fmtDollarFull(row.expenses) + '/mo', 'down');
+  html += infoRow('Net Flow', fmtDollarFull(row.netFlow) + '/mo', colorClass(row.netFlow));
+  html += `</div></div>`;
+  return html;
+}
+
 function buildTimeline() {
   const gs   = state;
   const evts = [...(gs.events || [])].sort((a, b) => a.month !== b.month ? a.month - b.month : (EVENT_ORDER[a.type]||9) - (EVENT_ORDER[b.type]||9));
+  buildEventScenarioSelect();
 
   // Timeline header info
   document.getElementById('tlStartingCash').textContent  = fmtDollarFull(gs.startingCash);
@@ -1035,27 +1514,12 @@ function buildTimeline() {
   }
   document.getElementById('eventList').innerHTML = html;
 
-  // Cash flow summary for month 1
+  // Cash flow snapshots
   const rows = runSimulation(gs);
   if (rows.length) {
-    const r1 = rows[0];
-    const eb = r1.expBreak;
-    let cfHtml = `<div class="info-grid" style="grid-template-columns:1fr">`;
-    cfHtml += infoRow('Monthly Income', fmtDollarFull(r1.monthlyIncome) + '/mo', 'up');
-    if (eb.rent)      cfHtml += infoRow('Rent',          '-' + fmtDollarFull(eb.rent) + '/mo', 'down');
-    if (eb.rentIns)   cfHtml += infoRow('Rent Insurance', '-' + fmtDollarFull(eb.rentIns) + '/mo', 'down');
-    if (eb.rentUtil)  cfHtml += infoRow('Utilities (rent)', '-' + fmtDollarFull(eb.rentUtil) + '/mo', 'down');
-    if (eb.mortgage)  cfHtml += infoRow('Mortgage P+I',  '-' + fmtDollarFull(eb.mortgage) + '/mo', 'down');
-    if (eb.propTax)   cfHtml += infoRow('Property Tax',  '-' + fmtDollarFull(eb.propTax) + '/mo', 'down');
-    if (eb.hoa)       cfHtml += infoRow('HOA',           '-' + fmtDollarFull(eb.hoa) + '/mo', 'down');
-    if (eb.homeIns)   cfHtml += infoRow('Home Insurance','-' + fmtDollarFull(eb.homeIns) + '/mo', 'down');
-    if (eb.maint)     cfHtml += infoRow('Maintenance',   '-' + fmtDollarFull(eb.maint) + '/mo', 'down');
-    if (eb.homeUtil)  cfHtml += infoRow('Utilities (home)', '-' + fmtDollarFull(eb.homeUtil) + '/mo', 'down');
-    if (eb.yard)      cfHtml += infoRow('Yard/Landscaping', '-' + fmtDollarFull(eb.yard) + '/mo', 'down');
-    if (eb.mortDeduct)cfHtml += infoRow('Mortgage Deduction', '+' + fmtDollarFull(-eb.mortDeduct) + '/mo', 'up');
-    cfHtml += infoRow('Total Expenses', '-' + fmtDollarFull(r1.expenses) + '/mo', 'down');
-    cfHtml += infoRow('Net Flow', fmtDollarFull(r1.netFlow) + '/mo', colorClass(r1.netFlow));
-    cfHtml += '</div>';
+    const cfHtml = `<div class="cashflow-blocks">${
+      cashFlowSnapshotMonths(rows).map(month => buildCashFlowSnapshot(rows[month - 1], rows.length)).join('')
+    }</div>`;
     document.getElementById('cashFlowSummary').innerHTML = cfHtml;
     document.getElementById('cashFlowPanel').style.display = 'block';
   }
@@ -1085,9 +1549,11 @@ function setSimInterval(n) {
 function buildSimTable(rows) {
   buildSimIntervalSelect();
   const horizMonths = (state.horizonYears || 10) * 12;
+  const eventMonthMap = getEventMonthMap(state.events);
   // Always include month 1, then every simInterval months, plus the last month
   const shown = new Set([1]);
   for (let m = simInterval; m <= horizMonths; m += simInterval) shown.add(m);
+  eventMonthMap.forEach((_, month) => shown.add(month));
   shown.add(rows.length);
 
   document.getElementById('simBody').innerHTML = rows
@@ -1099,17 +1565,101 @@ function buildSimTable(rows) {
       const label = r.month % 12 === 0
         ? `Yr ${yr}`
         : `Mo ${r.month} (Yr ${yr})`;
-      return `<tr>
+      const monthEvents = eventMonthMap.get(r.month) || [];
+      return `<tr class="${monthEvents.length ? 'highlight-row' : ''}">
         <td>${label}</td>
-        <td class="up">${fmtDollar(r.monthlyIncome)}</td>
-        <td class="down">${fmtDollar(r.expenses)}</td>
-        <td class="${nfClass}">${fmtDollar(r.netFlow)}</td>
-        <td>${fmtDollar(r.cash)}</td>
-        <td>${fmtDollar(r.portfolio)}</td>
-        <td>${fmtDollar(r.homeEquity)}</td>
-        <td class="${nwClass}" style="font-weight:500">${fmtDollar(r.netWorth)}</td>
+        <td style="text-align:left;color:${monthEvents.length ? 'var(--cyan)' : 'var(--muted)'}">${monthEvents.join(' · ') || '—'}</td>
+        <td class="up">${fmtDollarFull(r.monthlyIncome)}</td>
+        <td class="down">${fmtDollarFull(r.expenses)}</td>
+        <td class="${nfClass}">${fmtDollarFull(r.netFlow)}</td>
+        <td>${fmtDollarFull(r.cash)}</td>
+        <td>${fmtDollarFull(r.portfolio)}</td>
+        <td class="${r.loanBalance > 0 ? 'down' : 'neutral'}">${fmtDollarFull(r.loanBalance)}</td>
+        <td>${fmtDollarFull(r.homeEquity)}</td>
+        <td class="${nwClass}" style="font-weight:500">${fmtDollarFull(r.netWorth)}</td>
       </tr>`;
     }).join('');
+}
+
+function buildEventScenarioSelect() {
+  syncActiveEventScenario();
+  const select = document.getElementById('timelineScenarioSelect');
+  if (!select) return;
+  select.innerHTML = (state.eventScenarios || []).map(s =>
+    `<option value="${escapeHtml(s.id)}" ${s.id === state.activeEventScenarioId ? 'selected' : ''}>${escapeHtml(s.name)}</option>`
+  ).join('');
+  document.getElementById('timelineScenarioMeta').textContent =
+    `${state.eventScenarios.length} scenario${state.eventScenarios.length === 1 ? '' : 's'}`;
+}
+
+function setCompareScenario(slot, id) {
+  if (slot === 'a') state.compareScenarioAId = id;
+  if (slot === 'b') state.compareScenarioBId = id;
+  ensureComparisonSelections();
+  save();
+  buildComparisonTab();
+}
+
+function switchEventScenario(id) {
+  if (!id || id === state.activeEventScenarioId) return;
+  syncActiveEventScenario();
+  state.activeEventScenarioId = id;
+  const active = getActiveEventScenario();
+  state.events = deepClone(active ? active.events : []);
+  save();
+  recalc();
+  toast('Timeline scenario switched');
+}
+
+function createEventScenario() {
+  const rawName = prompt('New timeline scenario name?', 'New Scenario');
+  if (rawName === null) return;
+  syncActiveEventScenario();
+  const scenario = {
+    id: makeId('scenario'),
+    name: rawName.trim() || `Scenario ${state.eventScenarios.length + 1}`,
+    events: [],
+  };
+  state.eventScenarios.push(scenario);
+  state.activeEventScenarioId = scenario.id;
+  state.events = [];
+  save();
+  recalc();
+  toast('Timeline scenario created');
+}
+
+function cloneEventScenario() {
+  const active = getActiveEventScenario();
+  if (!active) return;
+  const rawName = prompt('Clone timeline scenario as?', `${active.name} Copy`);
+  if (rawName === null) return;
+  syncActiveEventScenario();
+  const scenario = {
+    id: makeId('scenario'),
+    name: rawName.trim() || `${active.name} Copy`,
+    events: deepClone(state.events),
+  };
+  state.eventScenarios.push(scenario);
+  state.activeEventScenarioId = scenario.id;
+  state.events = deepClone(scenario.events);
+  save();
+  recalc();
+  toast('Timeline scenario cloned');
+}
+
+function removeEventScenario() {
+  if ((state.eventScenarios || []).length <= 1) {
+    toast('At least one timeline scenario is required');
+    return;
+  }
+  const active = getActiveEventScenario();
+  if (!active || !confirm(`Delete timeline scenario "${active.name}"?`)) return;
+  state.eventScenarios = state.eventScenarios.filter(s => s.id !== active.id);
+  state.activeEventScenarioId = state.eventScenarios[0].id;
+  state.events = deepClone(state.eventScenarios[0].events);
+  save();
+  recalc();
+  toast('Timeline scenario deleted');
 }
 
 // ══════════════════════════════════════════════
@@ -1207,11 +1757,40 @@ function getEventFormHTML(type, p) {
       </div>
       <p class="info-muted" style="margin-top:8px">Proceeds (home value − loan balance − selling costs) are added to cash.</p>`;
     case 'invest':
-      return `<p class="info-muted">All monthly surplus will be invested at the global market return (${state.marketReturn||7}%/yr set in Assumptions). Deficits draw from the portfolio first, then from cash.</p>`;
+      return `<div class="form-grid">
+        <div class="form-group"><label>Investment Mode</label>
+          <select id="ep_investMode" onchange="toggleInvestModeField()">
+            <option value="surplus" ${v('mode','surplus') === 'surplus' ? 'selected' : ''}>Invest all monthly surplus</option>
+            <option value="fixed" ${v('mode','surplus') === 'fixed' ? 'selected' : ''}>Invest fixed amount each month</option>
+          </select></div>
+        <div class="form-group" id="ep_fixedAmountWrap" style="display:${v('mode','surplus') === 'fixed' ? 'block' : 'none'}">
+          <label>Fixed Amount ($/mo)</label>
+          <input type="number" id="ep_monthlyAmount" value="${v('monthlyAmount',1000)}" min="0" step="50">
+        </div>
+      </div>
+      <p class="info-muted" style="margin-top:8px">Use surplus mode to sweep positive monthly cash flow into the portfolio. Use fixed mode to contribute a set monthly amount regardless of that month's surplus.</p>`;
+    case 'invest_lump_sum':
+      return `<div class="form-grid">
+        <div class="form-group"><label>Lump Sum Amount ($)</label>
+          <input type="number" id="ep_amount" value="${v('amount',50000)}" min="0" step="1000"></div>
+      </div>
+      <p class="info-muted" style="margin-top:8px">Moves a one-time amount from cash into the investment portfolio in the selected month.</p>`;
+    case 'sell_investments':
+      return `<div class="form-grid">
+        <div class="form-group"><label>Sale Amount ($)</label>
+          <input type="number" id="ep_amount" value="${v('amount',50000)}" min="0" step="1000"></div>
+      </div>
+      <p class="info-muted" style="margin-top:8px">Moves a one-time amount from the portfolio back into cash in the selected month.</p>`;
     case 'stop_invest':
       return `<p class="info-muted">Stops active investing. Future surplus/deficit will affect cash balance.</p>`;
     default: return '';
   }
+}
+
+function toggleInvestModeField() {
+  const wrap = document.getElementById('ep_fixedAmountWrap');
+  const mode = document.getElementById('ep_investMode')?.value;
+  if (wrap) wrap.style.display = mode === 'fixed' ? 'block' : 'none';
 }
 
 function readEventParams(type) {
@@ -1229,6 +1808,11 @@ function readEventParams(type) {
                utilities: n('ep_utilities'), yardCare: n('ep_yardCare') };
     case 'sell_house':
       return { sellingCostPct: n('ep_sellingCostPct') };
+    case 'invest':
+      return { mode: s('ep_investMode') || 'surplus', monthlyAmount: n('ep_monthlyAmount') };
+    case 'invest_lump_sum':
+    case 'sell_investments':
+      return { amount: n('ep_amount') };
     default: return {};
   }
 }
@@ -1273,6 +1857,7 @@ function showTab(name, evt) {
   document.getElementById('view-' + name).classList.add('active');
   evt.currentTarget.classList.add('active');
   if (name === 'overview') setTimeout(() => drawChart(runSimulation(state), state.events), 50);
+  if (name === 'compare') setTimeout(() => buildComparisonTab(), 50);
 }
 
 // ══════════════════════════════════════════════
@@ -1280,11 +1865,13 @@ function showTab(name, evt) {
 // ══════════════════════════════════════════════
 function exportCSV() {
   const rows = runSimulation(state);
-  const header = 'Month,Year,Income,Expenses,NetFlow,Cash,Portfolio,HomeEquity,NetWorth\n';
+  const eventMonthMap = getEventMonthMap(state.events);
+  const header = 'Month,Year,Events,Income,Expenses,NetFlow,Cash,Portfolio,HousingDebt,HomeEquity,NetWorth\n';
   const body = rows.map(r =>
     [r.month, Math.ceil(r.month/12),
+     `"${(eventMonthMap.get(r.month) || []).join(' | ')}"`,
      Math.round(r.monthlyIncome), Math.round(r.expenses), Math.round(r.netFlow),
-     Math.round(r.cash), Math.round(r.portfolio), Math.round(r.homeEquity), Math.round(r.netWorth)
+     Math.round(r.cash), Math.round(r.portfolio), Math.round(r.loanBalance), Math.round(r.homeEquity), Math.round(r.netWorth)
     ].join(',')
   ).join('\n');
   const blob = new Blob([header + body], { type: 'text/csv' });
@@ -1307,6 +1894,7 @@ function importJSON(input) {
   reader.onload = e => {
     try {
       Object.assign(state, JSON.parse(e.target.result));
+      initializeEventScenarios();
       writeInputs(); save(); recalc();
       toast('Settings imported');
     } catch { toast('Import failed'); }
@@ -1335,13 +1923,17 @@ function init() {
   // Merge saved with defaults; preserve events if present
   state = { ...DEFAULTS, ...saved };
   if (!state.events || !Array.isArray(state.events)) {
-    state.events = JSON.parse(JSON.stringify(DEFAULTS.events));
+    state.events = deepClone(DEFAULTS.events);
   }
+  initializeEventScenarios();
   currentScenario = saved._scenario || 'baseline';
   writeInputs();
   recalc();
   updateScenarioBtns();
-  window.addEventListener('resize', () => drawChart(runSimulation(state), state.events));
+  window.addEventListener('resize', () => {
+    drawChart(runSimulation(state), state.events);
+    buildComparisonTab();
+  });
 }
 
 init();
