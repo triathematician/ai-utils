@@ -380,7 +380,7 @@ body::before {
         <option value="D">Democratic win</option>
         <option value="R">Republican win</option>
       </select>
-      <span id="state-count"></span>
+      <span id="state-count" aria-label="Filtered state count"></span>
     </div>
     <div id="states-table-wrap">
       <table id="states-table">
@@ -749,8 +749,11 @@ function stateColor(abbr, year, mode) {
     if (margin > -15) return '#c03040';
     return '#8e0f1a';
   }
-  // continuous: interpolate blue → red by R-D margin, clamped ±40
-  const t = Math.max(0, Math.min(1, (r - d + 40) / 80));
+  // Continuous gradient: blue (D) → purple → red (R).
+  // Margin range: ±40 points; beyond ±40 is clamped. t=0 → full D blue, t=1 → full R red.
+  const MARGIN_CLAMP = 40;
+  const t = Math.max(0, Math.min(1, (r - d + MARGIN_CLAMP) / (MARGIN_CLAMP * 2)));
+  // RGB endpoints: D blue = (14, 62, 200), R red = (160, 10, 28)
   const rC = Math.round(14  + t * (160 - 14));
   const gC = Math.round(62  - t * 52);
   const bC = Math.round(200 - t * 172);
@@ -948,7 +951,8 @@ document.getElementById('btn-sunbelt').addEventListener('click', () => setTrendP
 document.getElementById('btn-rust').addEventListener('click',    () => setTrendPreset(PRESET_GROUPS.rust));
 document.getElementById('btn-clear').addEventListener('click',   () => setTrendPreset([]));
 
-// Assign a line color based on recent partisan lean
+// Assign a line color based on 2024 partisan lean (intentionally fixed regardless of
+// currentYear so line colors remain stable while comparing trends across elections).
 function trendLineColor(abbr) {
   const margin = getMargin(abbr, 2024);
   if (margin >  15) return 'rgba(14,59,158,0.90)';
