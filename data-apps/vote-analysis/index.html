@@ -1,0 +1,1187 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>VOTE ANALYSIS</title>
+<script src="https://cdn.jsdelivr.net/npm/d3@7"></script>
+<script src="https://cdn.jsdelivr.net/npm/topojson-client@3"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@300;400;500;600&family=IBM+Plex+Sans:wght@300;400;500;600&display=swap');
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg:       #070b13;
+  --bg1:      #0b1020;
+  --bg2:      #0f1828;
+  --bg3:      #141e32;
+  --border:   #1e2d42;
+  --border2:  #243350;
+  --text:     #bccadf;
+  --muted:    #485a72;
+  --dim:      #283858;
+  --d-strong: #0f3a9f;
+  --d-mid:    #1e58cc;
+  --d-lean:   #5a8de8;
+  --d-text:   #78acf2;
+  --r-strong: #8f0f1a;
+  --r-mid:    #c01e28;
+  --r-lean:   #e05060;
+  --r-text:   #f07888;
+  --swing:    #9858c8;
+  --mono:     'IBM Plex Mono', monospace;
+  --sans:     'IBM Plex Sans', sans-serif;
+}
+
+html, body { height: 100%; overflow: hidden; }
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--mono);
+  font-size: 12px;
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+}
+
+body::before {
+  content: '';
+  position: fixed; inset: 0;
+  background: repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,0.025) 2px, rgba(0,0,0,0.025) 4px);
+  pointer-events: none; z-index: 1000;
+}
+
+/* ── HEADER ── */
+#top-bar {
+  display: flex; align-items: center; gap: 16px;
+  padding: 9px 18px;
+  background: var(--bg1);
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0; z-index: 100; flex-wrap: wrap;
+}
+#logo { font-size: 13px; font-weight: 600; color: var(--d-text); letter-spacing: 0.16em; }
+#logo .dot { color: var(--r-text); }
+#logo-sub { font-size: 9px; color: var(--muted); letter-spacing: 0.09em; display: block; margin-top: 2px; }
+#logo-area { flex-shrink: 0; }
+
+#year-selector { display: flex; align-items: center; gap: 5px; }
+.year-label { font-size: 9px; color: var(--muted); letter-spacing: 0.1em; margin-right: 2px; }
+.year-btn {
+  font-family: var(--mono); font-size: 10px; font-weight: 500; letter-spacing: 0.07em;
+  padding: 3px 9px; background: var(--bg2); border: 1px solid var(--border);
+  color: var(--muted); cursor: pointer; border-radius: 2px; transition: all 0.1s;
+}
+.year-btn:hover { color: var(--text); border-color: var(--border2); }
+.year-btn.active { color: var(--text); border-color: var(--d-text); background: rgba(30,88,204,0.13); }
+
+#map-mode-toggle { display: flex; align-items: center; gap: 3px; margin-left: auto; }
+.mode-btn {
+  font-family: var(--mono); font-size: 9px; letter-spacing: 0.08em;
+  padding: 3px 8px; background: var(--bg2); border: 1px solid var(--border);
+  color: var(--muted); cursor: pointer; transition: all 0.1s; border-radius: 2px;
+}
+.mode-btn:hover { color: var(--text); }
+.mode-btn.active { color: var(--text); border-color: var(--d-text); background: rgba(30,88,204,0.13); }
+
+/* ── SCORE BAR ── */
+#score-bar {
+  display: flex; align-items: stretch; height: 32px;
+  background: var(--bg2); border-bottom: 1px solid var(--border);
+  flex-shrink: 0; overflow: hidden;
+}
+#score-d, #score-r {
+  display: flex; align-items: center; gap: 7px; padding: 0 12px;
+  min-width: 110px; z-index: 2; flex-shrink: 0;
+}
+#score-d { background: rgba(30,88,204,0.16); border-right: 1px solid var(--border); }
+#score-r { background: rgba(192,30,40,0.16); border-left: 1px solid var(--border); }
+.score-ev { font-size: 15px; font-weight: 600; }
+#score-d .score-ev { color: var(--d-text); }
+#score-r .score-ev { color: var(--r-text); }
+.score-name { font-size: 9px; color: var(--muted); letter-spacing: 0.09em; }
+#score-bar-inner { flex: 1; display: flex; position: relative; overflow: hidden; }
+#score-d-fill { background: linear-gradient(90deg, var(--d-strong), var(--d-mid)); height: 100%; transition: width 0.5s ease; min-width: 0; }
+#score-r-fill { flex: 1; background: linear-gradient(90deg, var(--r-mid), var(--r-strong)); }
+#score-270-line {
+  position: absolute; top: 0; bottom: 0; width: 1px;
+  background: rgba(255,255,255,0.25); pointer-events: none;
+}
+#score-270-label {
+  position: absolute; top: 50%; transform: translate(-50%,-50%);
+  font-size: 8px; color: rgba(255,255,255,0.5); white-space: nowrap; pointer-events: none; z-index: 3;
+}
+
+/* ── TABS ── */
+#tabs {
+  display: flex; background: var(--bg1);
+  border-bottom: 1px solid var(--border); padding: 0 18px; flex-shrink: 0;
+}
+.tab {
+  font-family: var(--mono); font-size: 10px; font-weight: 500;
+  letter-spacing: 0.12em; text-transform: uppercase; padding: 8px 15px;
+  background: none; border: none; border-bottom: 2px solid transparent;
+  color: var(--muted); cursor: pointer; transition: all 0.1s;
+}
+.tab:hover { color: var(--text); }
+.tab.active { color: var(--d-text); border-bottom-color: var(--d-text); }
+
+/* ── APP BODY ── */
+#app-body { flex: 1; overflow: hidden; position: relative; }
+.tab-panel { display: none; height: 100%; overflow: hidden; }
+.tab-panel.active { display: flex; flex-direction: column; }
+
+/* ── MAP TAB ── */
+#map-container { flex: 1; position: relative; overflow: hidden; }
+#map-svg { width: 100%; height: 100%; display: block; }
+.state-path { stroke: #050810; stroke-width: 0.5px; cursor: pointer; transition: opacity 0.12s; }
+.state-path:hover { opacity: 0.78; stroke: rgba(255,255,255,0.7); stroke-width: 1.5px; }
+
+#map-legend {
+  position: absolute; bottom: 14px; left: 14px;
+  background: rgba(7,11,19,0.92); border: 1px solid var(--border);
+  border-radius: 3px; padding: 10px 12px; font-size: 10px; min-width: 145px;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+}
+#map-legend h4 { font-size: 9px; letter-spacing: 0.12em; color: var(--muted); margin-bottom: 8px; text-transform: uppercase; }
+.legend-item { display: flex; align-items: center; gap: 6px; margin-bottom: 4px; font-size: 10px; color: var(--text); }
+.legend-swatch { width: 13px; height: 10px; border-radius: 1px; flex-shrink: 0; }
+
+#map-tooltip {
+  position: fixed; background: var(--bg1); border: 1px solid var(--border2);
+  border-radius: 3px; padding: 9px 12px; font-size: 11px; pointer-events: none;
+  z-index: 500; display: none; max-width: 210px; box-shadow: 0 6px 24px rgba(0,0,0,0.6);
+}
+#map-tooltip .tt-title { font-weight: 600; font-size: 12px; margin-bottom: 6px; color: var(--text); }
+#map-tooltip .tt-row { display: flex; justify-content: space-between; gap: 14px; color: var(--muted); font-size: 10px; margin-bottom: 2px; }
+#map-tooltip .tt-row span:last-child { color: var(--text); }
+#map-tooltip .tt-divider { border-top: 1px solid var(--border); margin: 5px 0; }
+
+/* ── BY STATE TAB ── */
+#states-controls {
+  display: flex; gap: 8px; align-items: center; padding: 8px 14px;
+  background: var(--bg2); border-bottom: 1px solid var(--border); flex-shrink: 0; flex-wrap: wrap;
+}
+#state-search {
+  font-family: var(--mono); font-size: 11px; padding: 4px 8px;
+  background: var(--bg3); border: 1px solid var(--border); color: var(--text); width: 180px; outline: none;
+}
+#state-search:focus { border-color: var(--d-text); }
+#winner-filter {
+  font-family: var(--mono); font-size: 10px; padding: 4px 8px;
+  background: var(--bg3); border: 1px solid var(--border); color: var(--text); outline: none; cursor: pointer;
+}
+#state-count { margin-left: auto; font-size: 9px; color: var(--muted); letter-spacing: 0.06em; }
+
+#states-table-wrap { flex: 1; overflow-y: auto; scrollbar-width: thin; scrollbar-color: var(--border) transparent; }
+#states-table { width: 100%; border-collapse: collapse; }
+#states-table thead th {
+  position: sticky; top: 0; background: var(--bg2);
+  padding: 7px 12px; text-align: left; font-size: 9px;
+  letter-spacing: 0.11em; text-transform: uppercase; color: var(--muted);
+  border-bottom: 1px solid var(--border); cursor: pointer; user-select: none; white-space: nowrap;
+}
+#states-table thead th:hover { color: var(--text); }
+#states-table thead th.sort-asc::after  { content: ' ↑'; color: var(--d-text); }
+#states-table thead th.sort-desc::after { content: ' ↓'; color: var(--d-text); }
+#states-table tbody tr { border-bottom: 1px solid var(--border); cursor: default; transition: background 0.1s; }
+#states-table tbody tr:hover { background: var(--bg2); }
+#states-table tbody td { padding: 6px 12px; font-size: 11px; vertical-align: middle; }
+.state-abbr-cell { font-weight: 600; font-size: 12px; color: var(--text); }
+
+.winner-badge {
+  display: inline-block; padding: 1px 6px; border-radius: 2px;
+  font-size: 9px; font-weight: 600; letter-spacing: 0.05em;
+}
+.winner-d { background: rgba(30,88,204,0.22); color: var(--d-text); border: 1px solid rgba(30,88,204,0.45); }
+.winner-r { background: rgba(192,30,40,0.22); color: var(--r-text); border: 1px solid rgba(192,30,40,0.45); }
+
+.pct-d { color: var(--d-text); }
+.pct-r { color: var(--r-text); }
+
+.margin-cell { display: flex; align-items: center; gap: 6px; }
+.margin-bar-outer {
+  width: 56px; height: 6px; background: var(--bg3); border-radius: 1px;
+  overflow: hidden; position: relative; flex-shrink: 0;
+}
+.margin-bar-fill {
+  position: absolute; top: 0; height: 100%; border-radius: 1px;
+  transition: width 0.3s;
+}
+.margin-bar-fill.d { right: 50%; background: var(--d-mid); }
+.margin-bar-fill.r { left: 50%; background: var(--r-mid); }
+.margin-val { font-size: 10px; width: 42px; }
+
+/* ── TRENDS TAB ── */
+#trends-controls {
+  display: flex; align-items: flex-start; gap: 10px; padding: 10px 14px;
+  background: var(--bg2); border-bottom: 1px solid var(--border); flex-shrink: 0; flex-wrap: wrap;
+}
+.trends-label { font-size: 9px; color: var(--muted); letter-spacing: 0.1em; padding-top: 4px; flex-shrink: 0; }
+#trends-select-wrap { display: flex; flex-wrap: wrap; gap: 4px; flex: 1; min-width: 200px; }
+.state-chip {
+  display: inline-block; padding: 2px 7px; background: var(--bg3);
+  border: 1px solid var(--border2); border-radius: 2px; font-size: 10px;
+  cursor: pointer; transition: all 0.1s; color: var(--muted);
+}
+.state-chip:hover { color: var(--text); border-color: var(--d-text); }
+.state-chip.selected { background: rgba(30,88,204,0.16); border-color: var(--d-text); color: var(--d-text); }
+#trends-btn-row { display: flex; gap: 4px; flex-shrink: 0; }
+.ctrl-btn {
+  font-family: var(--mono); font-size: 9px; letter-spacing: 0.08em; padding: 3px 8px;
+  background: var(--bg3); border: 1px solid var(--border); color: var(--muted); cursor: pointer;
+  transition: all 0.1s; white-space: nowrap;
+}
+.ctrl-btn:hover { color: var(--text); border-color: var(--border2); }
+
+#trends-chart-wrap {
+  flex: 1; padding: 16px 20px; overflow: hidden;
+  display: flex; flex-direction: column; align-items: stretch;
+}
+#trends-zero-line { font-size: 10px; color: var(--muted); text-align: center; padding-top: 20px; }
+
+/* ── SUMMARY TAB ── */
+#tab-summary { overflow-y: auto; scrollbar-width: thin; scrollbar-color: var(--border) transparent; }
+#summary-inner {
+  padding: 16px 18px; display: grid; gap: 14px;
+  grid-template-columns: 1fr 1fr; max-width: 920px;
+}
+.s-card {
+  background: var(--bg2); border: 1px solid var(--border); border-radius: 3px; padding: 14px 16px;
+}
+.s-card.wide { grid-column: 1 / -1; }
+.s-card-title {
+  font-size: 9px; letter-spacing: 0.12em; text-transform: uppercase;
+  color: var(--muted); margin-bottom: 12px; padding-bottom: 7px; border-bottom: 1px solid var(--border);
+}
+
+.ec-bar-wrap { height: 28px; display: flex; border-radius: 2px; overflow: hidden; margin-bottom: 10px; }
+.ec-bar-d {
+  background: var(--d-mid); height: 100%; display: flex; align-items: center;
+  justify-content: flex-end; padding-right: 8px; font-size: 13px; font-weight: 600; color: #fff; transition: width 0.5s;
+}
+.ec-bar-r {
+  flex: 1; background: var(--r-mid); height: 100%; display: flex;
+  align-items: center; padding-left: 8px; font-size: 13px; font-weight: 600; color: #fff;
+}
+.ec-labels { display: flex; justify-content: space-between; font-size: 10px; margin-bottom: 6px; }
+.ec-d-info { color: var(--d-text); }
+.ec-r-info { color: var(--r-text); }
+.ec-270-note { font-size: 9px; color: var(--muted); text-align: center; margin-top: 4px; }
+
+.pv-bar-wrap { height: 16px; display: flex; border-radius: 2px; overflow: hidden; margin-bottom: 6px; }
+.pv-bar-d { background: var(--d-lean); height: 100%; transition: width 0.5s; }
+.pv-bar-r { flex: 1; background: var(--r-lean); }
+.pv-labels { display: flex; justify-content: space-between; font-size: 10px; }
+.pv-d-pct { color: var(--d-text); }
+.pv-r-pct { color: var(--r-text); }
+
+.stat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.stat-box { background: var(--bg3); border-radius: 2px; padding: 8px 10px; }
+.stat-box-label { font-size: 8px; letter-spacing: 0.09em; color: var(--muted); margin-bottom: 3px; text-transform: uppercase; }
+.stat-box-val { font-size: 13px; font-weight: 600; }
+
+.closest-list { list-style: none; }
+.closest-item {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 5px 0; border-bottom: 1px solid var(--border); font-size: 11px;
+}
+.closest-item:last-child { border-bottom: none; }
+.closest-state { color: var(--text); font-weight: 500; }
+.closest-margin { font-size: 10px; }
+
+.flip-list { list-style: none; }
+.flip-item {
+  display: flex; align-items: center; gap: 8px;
+  padding: 5px 0; border-bottom: 1px solid var(--border); font-size: 11px;
+}
+.flip-item:last-child { border-bottom: none; }
+.flip-state { font-weight: 500; color: var(--text); min-width: 28px; }
+.flip-arrow { color: var(--muted); font-size: 10px; }
+.flip-d { color: var(--d-text); }
+.flip-r { color: var(--r-text); }
+.no-flips { font-size: 10px; color: var(--muted); padding: 8px 0; }
+
+@media (max-width: 600px) {
+  #summary-inner { grid-template-columns: 1fr; }
+  .s-card.wide { grid-column: 1; }
+  #top-bar { gap: 10px; }
+  #map-mode-toggle { margin-left: 0; }
+}
+</style>
+</head>
+<body>
+
+<!-- ══ TOP BAR ══ -->
+<header id="top-bar">
+  <div id="logo-area">
+    <span id="logo">VOTE<span class="dot">·</span>ANALYSIS</span>
+    <span id="logo-sub">US PRESIDENTIAL ELECTIONS &middot; 2008–2024</span>
+  </div>
+  <div id="year-selector">
+    <span class="year-label">YEAR</span>
+    <!-- year buttons filled by JS -->
+  </div>
+  <div id="map-mode-toggle">
+    <button class="mode-btn active" data-mode="winner">WINNER</button>
+    <button class="mode-btn" data-mode="margin">MARGIN</button>
+  </div>
+</header>
+
+<!-- ══ SCORE BAR ══ -->
+<div id="score-bar">
+  <div id="score-d">
+    <span class="score-ev" id="score-d-ev">—</span>
+    <span class="score-name" id="score-d-name">DEM</span>
+  </div>
+  <div id="score-bar-inner">
+    <div id="score-d-fill" style="width:50%"></div>
+    <div id="score-r-fill"></div>
+    <div id="score-270-line"></div>
+    <div id="score-270-label">270 TO WIN</div>
+  </div>
+  <div id="score-r">
+    <span class="score-ev" id="score-r-ev">—</span>
+    <span class="score-name" id="score-r-name">REP</span>
+  </div>
+</div>
+
+<!-- ══ TABS ══ -->
+<nav id="tabs">
+  <button class="tab active" data-tab="map">MAP</button>
+  <button class="tab" data-tab="states">BY STATE</button>
+  <button class="tab" data-tab="trends">TRENDS</button>
+  <button class="tab" data-tab="summary">SUMMARY</button>
+</nav>
+
+<!-- ══ APP BODY ══ -->
+<div id="app-body">
+
+  <!-- MAP TAB -->
+  <div id="tab-map" class="tab-panel active">
+    <div id="map-container">
+      <svg id="map-svg"></svg>
+      <div id="map-legend">
+        <h4 id="legend-title">MARGIN SCALE</h4>
+        <div id="legend-items"></div>
+      </div>
+    </div>
+    <div id="map-tooltip"></div>
+  </div>
+
+  <!-- BY STATE TAB -->
+  <div id="tab-states" class="tab-panel">
+    <div id="states-controls">
+      <input type="text" id="state-search" placeholder="Search state or abbr…">
+      <select id="winner-filter">
+        <option value="">All states</option>
+        <option value="D">Democratic win</option>
+        <option value="R">Republican win</option>
+      </select>
+      <span id="state-count"></span>
+    </div>
+    <div id="states-table-wrap">
+      <table id="states-table">
+        <thead>
+          <tr>
+            <th data-col="name">STATE</th>
+            <th data-col="abbr">ST</th>
+            <th data-col="ev">EV</th>
+            <th data-col="d">DEM %</th>
+            <th data-col="r">REP %</th>
+            <th data-col="margin">MARGIN</th>
+            <th data-col="winner">RESULT</th>
+          </tr>
+        </thead>
+        <tbody id="states-tbody"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- TRENDS TAB -->
+  <div id="tab-trends" class="tab-panel">
+    <div id="trends-controls">
+      <span class="trends-label">STATES</span>
+      <div id="trends-select-wrap"><!-- chips --></div>
+      <div id="trends-btn-row">
+        <button class="ctrl-btn" id="btn-swing">SWING</button>
+        <button class="ctrl-btn" id="btn-sunbelt">SUN BELT</button>
+        <button class="ctrl-btn" id="btn-rust">RUST BELT</button>
+        <button class="ctrl-btn" id="btn-clear">CLEAR</button>
+      </div>
+    </div>
+    <div id="trends-chart-wrap">
+      <canvas id="trends-chart"></canvas>
+      <div id="trends-zero-line" style="display:none">Select one or more states to compare trends.</div>
+    </div>
+  </div>
+
+  <!-- SUMMARY TAB -->
+  <div id="tab-summary" class="tab-panel">
+    <div id="summary-inner">
+      <div class="s-card wide" id="ec-card">
+        <div class="s-card-title">ELECTORAL COLLEGE</div>
+        <div id="ec-content"></div>
+      </div>
+      <div class="s-card" id="pv-card">
+        <div class="s-card-title">POPULAR VOTE</div>
+        <div id="pv-content"></div>
+      </div>
+      <div class="s-card" id="stats-card">
+        <div class="s-card-title">KEY STATS</div>
+        <div id="stats-content"></div>
+      </div>
+      <div class="s-card" id="closest-card">
+        <div class="s-card-title">CLOSEST STATES</div>
+        <ul class="closest-list" id="closest-content"></ul>
+      </div>
+      <div class="s-card" id="flips-card">
+        <div class="s-card-title">STATE FLIPS VS PRIOR ELECTION</div>
+        <ul class="flip-list" id="flips-content"></ul>
+      </div>
+    </div>
+  </div>
+
+</div><!-- #app-body -->
+
+<script>
+// ═══════════════════════════════════════════════════════════════════
+//  DATA
+// ═══════════════════════════════════════════════════════════════════
+
+// [name, abbr, fips, ev_2000census(2008), ev_2010census(2012-2020), ev_2020census(2024)]
+const STATE_META = [
+  ['Alabama',       'AL','01', 9, 9, 9],
+  ['Alaska',        'AK','02', 3, 3, 3],
+  ['Arizona',       'AZ','04',10,11,11],
+  ['Arkansas',      'AR','05', 6, 6, 6],
+  ['California',    'CA','06',55,55,54],
+  ['Colorado',      'CO','08', 9, 9,10],
+  ['Connecticut',   'CT','09', 7, 7, 7],
+  ['Delaware',      'DE','10', 3, 3, 3],
+  ['D.C.',          'DC','11', 3, 3, 3],
+  ['Florida',       'FL','12',27,29,30],
+  ['Georgia',       'GA','13',15,16,16],
+  ['Hawaii',        'HI','15', 4, 4, 4],
+  ['Idaho',         'ID','16', 4, 4, 4],
+  ['Illinois',      'IL','17',21,20,19],
+  ['Indiana',       'IN','18',11,11,11],
+  ['Iowa',          'IA','19', 7, 6, 6],
+  ['Kansas',        'KS','20', 6, 6, 6],
+  ['Kentucky',      'KY','21', 8, 8, 8],
+  ['Louisiana',     'LA','22', 9, 8, 8],
+  ['Maine',         'ME','23', 4, 4, 4],
+  ['Maryland',      'MD','24',10,10,10],
+  ['Massachusetts', 'MA','25',12,11,11],
+  ['Michigan',      'MI','26',17,16,15],
+  ['Minnesota',     'MN','27',10,10,10],
+  ['Mississippi',   'MS','28', 6, 6, 6],
+  ['Missouri',      'MO','29',11,10,10],
+  ['Montana',       'MT','30', 3, 3, 4],
+  ['Nebraska',      'NE','31', 5, 5, 5],
+  ['Nevada',        'NV','32', 5, 6, 6],
+  ['New Hampshire', 'NH','33', 4, 4, 4],
+  ['New Jersey',    'NJ','34',15,14,14],
+  ['New Mexico',    'NM','35', 5, 5, 5],
+  ['New York',      'NY','36',31,29,28],
+  ['North Carolina','NC','37',15,15,16],
+  ['North Dakota',  'ND','38', 3, 3, 3],
+  ['Ohio',          'OH','39',20,18,17],
+  ['Oklahoma',      'OK','40', 7, 7, 7],
+  ['Oregon',        'OR','41', 7, 7, 8],
+  ['Pennsylvania',  'PA','42',21,20,19],
+  ['Rhode Island',  'RI','44', 4, 4, 4],
+  ['South Carolina','SC','45', 8, 9, 9],
+  ['South Dakota',  'SD','46', 3, 3, 3],
+  ['Tennessee',     'TN','47',11,11,11],
+  ['Texas',         'TX','48',34,38,40],
+  ['Utah',          'UT','49', 5, 6, 6],
+  ['Vermont',       'VT','50', 3, 3, 3],
+  ['Virginia',      'VA','51',13,13,13],
+  ['Washington',    'WA','53',11,12,12],
+  ['West Virginia', 'WV','54', 5, 5, 4],
+  ['Wisconsin',     'WI','55',10,10,10],
+  ['Wyoming',       'WY','56', 3, 3, 3],
+];
+
+const ELECTIONS = [2008, 2012, 2016, 2020, 2024];
+
+const CANDIDATES = {
+  2008: { d:'Obama',   r:'McCain' },
+  2012: { d:'Obama',   r:'Romney' },
+  2016: { d:'Clinton', r:'Trump'  },
+  2020: { d:'Biden',   r:'Trump'  },
+  2024: { d:'Harris',  r:'Trump'  },
+};
+
+// National popular vote [d%, r%]
+const NATIONAL_PV = {
+  2008: [52.9, 45.7],
+  2012: [51.1, 47.2],
+  2016: [48.2, 46.1],
+  2020: [51.3, 46.8],
+  2024: [48.4, 49.9],
+};
+
+// State results: { abbr: [d%, r%] }
+const RESULTS = {
+  2008: {
+    AL:[38.7,60.3],AK:[37.9,59.4],AZ:[44.9,53.6],AR:[38.9,58.7],
+    CA:[61.0,36.9],CO:[53.7,44.7],CT:[60.6,38.2],DE:[61.9,36.9],
+    DC:[92.5, 6.5],FL:[51.0,48.1],GA:[47.0,52.2],HI:[71.8,26.6],
+    ID:[36.1,61.5],IL:[61.9,36.8],IN:[49.9,48.9],IA:[53.9,44.4],
+    KS:[41.7,56.6],KY:[41.2,57.4],LA:[39.9,58.6],ME:[57.7,40.4],
+    MD:[61.9,36.5],MA:[61.8,36.0],MI:[57.4,41.0],MN:[54.1,43.8],
+    MS:[43.0,56.2],MO:[49.3,49.4],MT:[47.3,49.5],NE:[41.6,56.5],
+    NV:[55.1,42.7],NH:[54.1,44.5],NJ:[57.2,41.7],NM:[56.9,41.8],
+    NY:[62.6,36.0],NC:[49.9,49.4],ND:[44.6,53.3],OH:[51.5,46.9],
+    OK:[34.4,65.6],OR:[56.7,40.4],PA:[54.5,44.2],RI:[63.0,35.2],
+    SC:[44.9,53.9],SD:[44.7,53.2],TN:[41.8,56.9],TX:[43.7,55.5],
+    UT:[34.4,62.6],VT:[67.5,30.4],VA:[52.6,46.3],WA:[57.6,40.5],
+    WV:[42.6,55.7],WI:[56.2,42.3],WY:[32.5,65.2],
+  },
+  2012: {
+    AL:[38.4,60.7],AK:[40.8,54.8],AZ:[44.6,53.7],AR:[36.9,60.6],
+    CA:[60.2,37.1],CO:[51.5,46.1],CT:[58.1,40.7],DE:[58.6,40.0],
+    DC:[90.9, 7.3],FL:[50.0,49.1],GA:[45.5,53.3],HI:[70.6,27.8],
+    ID:[32.6,64.5],IL:[57.6,40.7],IN:[43.9,54.1],IA:[52.1,46.5],
+    KS:[38.0,60.0],KY:[37.8,60.5],LA:[40.6,57.8],ME:[56.3,41.0],
+    MD:[62.0,36.5],MA:[60.7,37.5],MI:[54.2,44.7],MN:[52.8,45.0],
+    MS:[43.8,55.3],MO:[44.4,53.8],MT:[41.7,55.4],NE:[38.2,59.8],
+    NV:[52.4,45.7],NH:[52.0,46.4],NJ:[58.1,40.6],NM:[52.9,42.8],
+    NY:[63.4,35.2],NC:[48.4,50.4],ND:[38.7,58.3],OH:[50.7,47.7],
+    OK:[33.2,66.8],OR:[54.2,42.8],PA:[52.0,46.6],RI:[62.7,35.7],
+    SC:[44.1,54.6],SD:[39.9,57.9],TN:[39.1,59.5],TX:[41.4,57.2],
+    UT:[24.8,72.8],VT:[66.6,31.0],VA:[51.2,47.3],WA:[56.2,41.3],
+    WV:[35.5,62.3],WI:[52.8,46.1],WY:[27.8,69.3],
+  },
+  2016: {
+    AL:[34.4,62.1],AK:[36.6,51.3],AZ:[45.1,48.7],AR:[33.7,60.6],
+    CA:[61.7,31.6],CO:[48.2,43.3],CT:[54.6,40.9],DE:[53.4,41.9],
+    DC:[90.9, 4.1],FL:[47.8,49.0],GA:[45.9,51.0],HI:[62.2,30.0],
+    ID:[27.5,59.2],IL:[55.8,38.8],IN:[37.8,56.9],IA:[41.7,51.2],
+    KS:[36.1,56.7],KY:[32.7,62.5],LA:[38.4,58.1],ME:[47.8,44.9],
+    MD:[60.3,33.9],MA:[60.0,32.8],MI:[47.3,47.5],MN:[46.4,44.9],
+    MS:[40.1,57.9],MO:[38.0,56.8],MT:[35.7,56.2],NE:[34.0,58.7],
+    NV:[47.9,45.5],NH:[47.6,46.5],NJ:[55.0,41.4],NM:[48.3,40.0],
+    NY:[59.0,36.5],NC:[46.2,49.8],ND:[27.2,63.0],OH:[43.6,51.7],
+    OK:[28.9,65.3],OR:[50.1,39.1],PA:[47.5,48.2],RI:[54.4,38.9],
+    SC:[40.7,54.9],SD:[31.7,61.5],TN:[34.9,60.7],TX:[43.2,52.2],
+    UT:[27.8,45.5],VT:[55.7,30.3],VA:[49.8,44.4],WA:[52.5,36.8],
+    WV:[26.5,68.5],WI:[46.5,47.2],WY:[21.9,68.2],
+  },
+  2020: {
+    AL:[36.6,62.0],AK:[42.8,52.8],AZ:[49.4,49.1],AR:[34.8,62.4],
+    CA:[63.5,34.3],CO:[55.9,41.9],CT:[59.3,39.2],DE:[58.7,39.8],
+    DC:[92.1, 5.4],FL:[47.9,51.2],GA:[49.5,49.3],HI:[63.7,34.3],
+    ID:[33.1,63.8],IL:[57.5,40.6],IN:[41.1,57.0],IA:[44.9,53.1],
+    KS:[41.6,56.2],KY:[36.2,62.1],LA:[39.9,58.5],ME:[53.1,44.0],
+    MD:[65.4,32.6],MA:[65.6,32.1],MI:[50.6,47.8],MN:[52.4,45.3],
+    MS:[41.0,57.6],MO:[41.3,56.8],MT:[40.5,56.9],NE:[39.2,58.2],
+    NV:[50.1,47.7],NH:[52.7,45.5],NJ:[57.3,41.4],NM:[54.3,43.5],
+    NY:[60.9,37.7],NC:[48.6,49.9],ND:[31.8,65.1],OH:[45.2,53.3],
+    OK:[32.3,65.4],OR:[56.5,40.4],PA:[50.0,48.8],RI:[59.4,38.6],
+    SC:[43.4,55.1],SD:[35.6,61.8],TN:[37.5,60.7],TX:[46.5,52.1],
+    UT:[37.7,58.1],VT:[66.1,30.7],VA:[54.1,44.0],WA:[58.4,38.8],
+    WV:[29.7,68.6],WI:[49.5,48.9],WY:[26.6,69.9],
+  },
+  2024: {
+    AL:[35.5,63.0],AK:[38.2,57.5],AZ:[47.2,52.2],AR:[32.6,65.8],
+    CA:[60.5,37.0],CO:[54.0,44.0],CT:[56.5,42.0],DE:[57.0,41.5],
+    DC:[91.6, 6.0],FL:[43.2,56.1],GA:[48.9,50.7],HI:[60.5,37.5],
+    ID:[30.0,67.0],IL:[55.1,42.8],IN:[38.7,59.8],IA:[42.2,55.4],
+    KS:[38.0,59.5],KY:[34.2,63.5],LA:[37.0,61.5],ME:[51.3,46.2],
+    MD:[66.8,31.5],MA:[64.5,33.8],MI:[48.3,49.7],MN:[51.8,46.1],
+    MS:[39.2,59.4],MO:[38.5,59.4],MT:[38.0,58.7],NE:[36.2,61.8],
+    NV:[48.4,50.0],NH:[51.9,46.8],NJ:[54.1,44.1],NM:[52.0,45.8],
+    NY:[56.8,41.4],NC:[47.7,51.3],ND:[30.7,66.0],OH:[42.1,55.9],
+    OK:[28.8,68.4],OR:[55.1,41.9],PA:[48.6,50.3],RI:[57.8,40.8],
+    SC:[41.6,56.9],SD:[33.8,63.7],TN:[33.6,64.9],TX:[43.2,55.3],
+    UT:[38.2,57.6],VT:[64.8,31.5],VA:[52.0,46.0],WA:[57.2,40.2],
+    WV:[27.3,70.2],WI:[49.5,49.9],WY:[24.5,73.0],
+  },
+};
+
+// State groupings for trend presets
+const PRESET_GROUPS = {
+  swing:   ['PA','MI','WI','AZ','GA','NV','NC','MN','NH'],
+  sunbelt: ['TX','FL','GA','AZ','NV','NC','VA'],
+  rust:    ['PA','MI','WI','OH','IN','IA','MO'],
+};
+
+// ═══════════════════════════════════════════════════════════════════
+//  APP STATE
+// ═══════════════════════════════════════════════════════════════════
+let currentYear = 2024;
+let currentTab  = 'map';
+let mapMode     = 'winner';
+let stateSort   = { col: 'name', dir: 'asc' };
+let stateFilter = { search: '', winner: '' };
+let selectedTrendStates = new Set(PRESET_GROUPS.swing);
+let topoData = null;
+let mapSvgG  = null;
+let trendsChart = null;
+
+// ═══════════════════════════════════════════════════════════════════
+//  HELPERS
+// ═══════════════════════════════════════════════════════════════════
+function getEV(abbr, year) {
+  const s = STATE_META.find(m => m[1] === abbr);
+  if (!s) return 0;
+  if (year <= 2008) return s[3];
+  if (year <= 2020) return s[4];
+  return s[5];
+}
+
+function getResult(abbr, year) {
+  return (RESULTS[year] && RESULTS[year][abbr]) ? RESULTS[year][abbr] : [0, 0];
+}
+
+function getWinner(abbr, year) {
+  const [d, r] = getResult(abbr, year);
+  return d > r ? 'D' : 'R';
+}
+
+function getMargin(abbr, year) {
+  const [d, r] = getResult(abbr, year);
+  return +(d - r).toFixed(1);
+}
+
+function computeEVs(year) {
+  let dEV = 0, rEV = 0;
+  STATE_META.forEach(m => {
+    const ev = getEV(m[1], year);
+    if (getWinner(m[1], year) === 'D') dEV += ev; else rEV += ev;
+  });
+  return { dEV, rEV };
+}
+
+// ═══════════════════════════════════════════════════════════════════
+//  YEAR BUTTONS
+// ═══════════════════════════════════════════════════════════════════
+function buildYearButtons() {
+  const container = document.getElementById('year-selector');
+  ELECTIONS.forEach(yr => {
+    const btn = document.createElement('button');
+    btn.className = 'year-btn' + (yr === currentYear ? ' active' : '');
+    btn.textContent = yr;
+    btn.dataset.year = yr;
+    btn.addEventListener('click', () => selectYear(yr));
+    container.appendChild(btn);
+  });
+}
+
+function selectYear(year) {
+  currentYear = year;
+  document.querySelectorAll('.year-btn').forEach(b =>
+    b.classList.toggle('active', +b.dataset.year === year));
+  updateScoreBar();
+  if (currentTab === 'map')     { if (mapSvgG) renderMap(); }
+  if (currentTab === 'states')  renderStatesTable();
+  if (currentTab === 'trends')  renderTrends();
+  if (currentTab === 'summary') renderSummary();
+}
+
+// ═══════════════════════════════════════════════════════════════════
+//  SCORE BAR
+// ═══════════════════════════════════════════════════════════════════
+function updateScoreBar() {
+  const { dEV, rEV } = computeEVs(currentYear);
+  const cands = CANDIDATES[currentYear];
+  document.getElementById('score-d-ev').textContent   = dEV;
+  document.getElementById('score-r-ev').textContent   = rEV;
+  document.getElementById('score-d-name').textContent = cands.d.toUpperCase();
+  document.getElementById('score-r-name').textContent = cands.r.toUpperCase();
+  const pct = dEV / 538 * 100;
+  document.getElementById('score-d-fill').style.width = pct + '%';
+  // 270-to-win line
+  const linePct = 270 / 538 * 100;
+  document.getElementById('score-270-line').style.left  = linePct + '%';
+  document.getElementById('score-270-label').style.left = linePct + '%';
+}
+
+// ═══════════════════════════════════════════════════════════════════
+//  TABS
+// ═══════════════════════════════════════════════════════════════════
+function selectTab(tab) {
+  currentTab = tab;
+  document.querySelectorAll('.tab').forEach(t =>
+    t.classList.toggle('active', t.dataset.tab === tab));
+  document.querySelectorAll('.tab-panel').forEach(p =>
+    p.classList.toggle('active', p.id === 'tab-' + tab));
+  if (tab === 'map'     && topoData) initOrRenderMap();
+  if (tab === 'states')  renderStatesTable();
+  if (tab === 'trends')  renderTrends();
+  if (tab === 'summary') renderSummary();
+}
+document.querySelectorAll('.tab').forEach(t =>
+  t.addEventListener('click', () => selectTab(t.dataset.tab)));
+
+// ═══════════════════════════════════════════════════════════════════
+//  MAP MODE
+// ═══════════════════════════════════════════════════════════════════
+document.querySelectorAll('.mode-btn').forEach(b => {
+  b.addEventListener('click', () => {
+    mapMode = b.dataset.mode;
+    document.querySelectorAll('.mode-btn').forEach(x =>
+      x.classList.toggle('active', x.dataset.mode === mapMode));
+    updateLegend();
+    if (mapSvgG) renderMap();
+  });
+});
+
+// ═══════════════════════════════════════════════════════════════════
+//  D3 CHOROPLETH MAP
+// ═══════════════════════════════════════════════════════════════════
+const FIPS_TO_ABBR = {};
+STATE_META.forEach(m => { FIPS_TO_ABBR[m[2]] = m[1]; });
+
+function stateColor(abbr, year, mode) {
+  const [d, r] = getResult(abbr, year);
+  const margin  = d - r;  // positive = D, negative = R
+  if (mode === 'winner') {
+    if (margin > 15)  return '#0e3b9e';
+    if (margin > 5)   return '#1e58cc';
+    if (margin > 0)   return '#5a8de8';
+    if (margin > -5)  return '#e07080';
+    if (margin > -15) return '#c03040';
+    return '#8e0f1a';
+  }
+  // continuous: interpolate blue → red by R-D margin, clamped ±40
+  const t = Math.max(0, Math.min(1, (r - d + 40) / 80));
+  const rC = Math.round(14  + t * (160 - 14));
+  const gC = Math.round(62  - t * 52);
+  const bC = Math.round(200 - t * 172);
+  return `rgb(${rC},${gC},${bC})`;
+}
+
+function initOrRenderMap() {
+  if (!topoData) return;
+  if (!mapSvgG) { initMap(); return; }
+  renderMap();
+}
+
+function initMap() {
+  const container = document.getElementById('map-container');
+  const W = container.clientWidth  || 800;
+  const H = container.clientHeight || 500;
+  const svg = d3.select('#map-svg')
+    .attr('viewBox', `0 0 ${W} ${H}`)
+    .attr('preserveAspectRatio', 'xMidYMid meet');
+  svg.append('rect').attr('width', W).attr('height', H).attr('fill', 'var(--bg)');
+  const states     = topojson.feature(topoData, topoData.objects.states);
+  const projection = d3.geoAlbersUsa().fitSize([W, H - 16], states);
+  const path       = d3.geoPath().projection(projection);
+  mapSvgG = svg.append('g');
+  mapSvgG.selectAll('path')
+    .data(states.features)
+    .join('path')
+      .attr('class', 'state-path')
+      .attr('d', path)
+      .on('mousemove', (event, d) => {
+        const fips = String(d.id).padStart(2, '0');
+        const abbr = FIPS_TO_ABBR[fips];
+        if (!abbr) return;
+        const meta = STATE_META.find(m => m[1] === abbr);
+        const [dp, rp] = getResult(abbr, currentYear);
+        const margin   = dp - rp;
+        const winner   = dp > rp ? 'D' : 'R';
+        const cands    = CANDIDATES[currentYear];
+        const wCol     = winner === 'D' ? 'var(--d-text)' : 'var(--r-text)';
+        const wName    = winner === 'D' ? cands.d : cands.r;
+        const mSign    = margin >= 0 ? '+' : '';
+        const ev       = getEV(abbr, currentYear);
+        const tip = document.getElementById('map-tooltip');
+        tip.innerHTML = `
+          <div class="tt-title">${meta ? meta[0] : abbr}</div>
+          <div class="tt-row"><span>${cands.d}</span><span class="pct-d">${dp.toFixed(1)}%</span></div>
+          <div class="tt-row"><span>${cands.r}</span><span class="pct-r">${rp.toFixed(1)}%</span></div>
+          <div class="tt-divider"></div>
+          <div class="tt-row"><span>Margin</span><span style="color:${wCol}">${mSign}${margin.toFixed(1)}%</span></div>
+          <div class="tt-row"><span>Electoral Votes</span><span>${ev}</span></div>
+          <div class="tt-row"><span>Winner</span><span style="color:${wCol}">${wName}</span></div>`;
+        tip.style.display = 'block';
+        tip.style.left    = (event.pageX + 14) + 'px';
+        tip.style.top     = (event.pageY - 10) + 'px';
+      })
+      .on('mouseleave', () => {
+        document.getElementById('map-tooltip').style.display = 'none';
+      });
+  updateLegend();
+  renderMap();
+}
+
+function renderMap() {
+  if (!mapSvgG) return;
+  mapSvgG.selectAll('.state-path').attr('fill', function(d) {
+    const fips = String(d.id).padStart(2, '0');
+    const abbr = FIPS_TO_ABBR[fips];
+    return abbr ? stateColor(abbr, currentYear, mapMode) : 'var(--dim)';
+  });
+}
+
+function updateLegend() {
+  document.getElementById('legend-title').textContent =
+    mapMode === 'winner' ? 'MARGIN SCALE' : 'MARGIN GRADIENT';
+  const items = document.getElementById('legend-items');
+  if (mapMode === 'winner') {
+    items.innerHTML = `
+      <div class="legend-item"><div class="legend-swatch" style="background:#0e3b9e"></div>Strong D (&gt;+15)</div>
+      <div class="legend-item"><div class="legend-swatch" style="background:#1e58cc"></div>Solid D (+5 – +15)</div>
+      <div class="legend-item"><div class="legend-swatch" style="background:#5a8de8"></div>Lean D (0 – +5)</div>
+      <div class="legend-item"><div class="legend-swatch" style="background:#e07080"></div>Lean R (0 – +5)</div>
+      <div class="legend-item"><div class="legend-swatch" style="background:#c03040"></div>Solid R (+5 – +15)</div>
+      <div class="legend-item"><div class="legend-swatch" style="background:#8e0f1a"></div>Strong R (&gt;+15)</div>`;
+  } else {
+    items.innerHTML = `
+      <div style="height:11px;border-radius:2px;background:linear-gradient(90deg,#0e3bbd,#8840b8,#b8101e);margin-bottom:5px"></div>
+      <div style="display:flex;justify-content:space-between;font-size:9px;color:var(--muted)">
+        <span>D+40</span><span>Even</span><span>R+40</span>
+      </div>`;
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════
+//  STATE TABLE
+// ═══════════════════════════════════════════════════════════════════
+function renderStatesTable() {
+  const cands = CANDIDATES[currentYear];
+  let rows = STATE_META.map(m => {
+    const abbr   = m[1];
+    const [d, r] = getResult(abbr, currentYear);
+    const margin = d - r;
+    const winner = d > r ? 'D' : 'R';
+    return { name: m[0], abbr, ev: getEV(abbr, currentYear), d, r, margin, winner };
+  });
+
+  const search  = stateFilter.search.toLowerCase();
+  const winnerF = stateFilter.winner;
+  if (search)  rows = rows.filter(r2 =>
+    r2.name.toLowerCase().includes(search) || r2.abbr.toLowerCase().includes(search));
+  if (winnerF) rows = rows.filter(r2 => r2.winner === winnerF);
+
+  rows.sort((a, b) => {
+    let va = a[stateSort.col], vb = b[stateSort.col];
+    if (typeof va === 'string') { va = va.toLowerCase(); vb = vb.toLowerCase(); }
+    const cmp = va < vb ? -1 : va > vb ? 1 : 0;
+    return stateSort.dir === 'asc' ? cmp : -cmp;
+  });
+
+  const tbody = document.getElementById('states-tbody');
+  tbody.innerHTML = rows.map(row => {
+    const absM  = Math.min(Math.abs(row.margin), 40);
+    const barW  = (absM / 40 * 50).toFixed(1);
+    const side  = row.winner.toLowerCase();
+    const mSign = row.margin >= 0 ? '+' : '';
+    const mCol  = row.winner === 'D' ? 'var(--d-text)' : 'var(--r-text)';
+    return `<tr>
+      <td>${row.name}</td>
+      <td class="state-abbr-cell">${row.abbr}</td>
+      <td>${row.ev}</td>
+      <td class="pct-d">${row.d.toFixed(1)}%</td>
+      <td class="pct-r">${row.r.toFixed(1)}%</td>
+      <td>
+        <div class="margin-cell">
+          <div class="margin-bar-outer">
+            <div class="margin-bar-fill ${side}" style="width:${barW}%"></div>
+          </div>
+          <span class="margin-val" style="color:${mCol}">${mSign}${row.margin.toFixed(1)}%</span>
+        </div>
+      </td>
+      <td><span class="winner-badge winner-${side}">${row.winner === 'D' ? cands.d : cands.r}</span></td>
+    </tr>`;
+  }).join('');
+  document.getElementById('state-count').textContent = rows.length + ' states';
+}
+
+document.querySelectorAll('#states-table thead th').forEach(th => {
+  th.addEventListener('click', () => {
+    const col = th.dataset.col;
+    stateSort.dir = (stateSort.col === col && stateSort.dir === 'asc') ? 'desc' : 'asc';
+    stateSort.col = col;
+    document.querySelectorAll('#states-table thead th')
+      .forEach(h => h.classList.remove('sort-asc', 'sort-desc'));
+    th.classList.add(stateSort.dir === 'asc' ? 'sort-asc' : 'sort-desc');
+    renderStatesTable();
+  });
+});
+document.getElementById('state-search').addEventListener('input', e => {
+  stateFilter.search = e.target.value; renderStatesTable();
+});
+document.getElementById('winner-filter').addEventListener('change', e => {
+  stateFilter.winner = e.target.value; renderStatesTable();
+});
+
+// ═══════════════════════════════════════════════════════════════════
+//  TRENDS CHART
+// ═══════════════════════════════════════════════════════════════════
+function buildTrendsChips() {
+  const wrap = document.getElementById('trends-select-wrap');
+  wrap.innerHTML = '';
+  STATE_META.forEach(m => {
+    const abbr = m[1];
+    const chip = document.createElement('span');
+    chip.className   = 'state-chip' + (selectedTrendStates.has(abbr) ? ' selected' : '');
+    chip.textContent = abbr;
+    chip.dataset.abbr = abbr;
+    chip.addEventListener('click', () => {
+      if (selectedTrendStates.has(abbr)) selectedTrendStates.delete(abbr);
+      else selectedTrendStates.add(abbr);
+      chip.classList.toggle('selected', selectedTrendStates.has(abbr));
+      renderTrends();
+    });
+    wrap.appendChild(chip);
+  });
+}
+
+function setTrendPreset(abbrs) {
+  selectedTrendStates = new Set(abbrs);
+  document.querySelectorAll('.state-chip').forEach(c =>
+    c.classList.toggle('selected', selectedTrendStates.has(c.dataset.abbr)));
+  renderTrends();
+}
+
+document.getElementById('btn-swing').addEventListener('click',   () => setTrendPreset(PRESET_GROUPS.swing));
+document.getElementById('btn-sunbelt').addEventListener('click', () => setTrendPreset(PRESET_GROUPS.sunbelt));
+document.getElementById('btn-rust').addEventListener('click',    () => setTrendPreset(PRESET_GROUPS.rust));
+document.getElementById('btn-clear').addEventListener('click',   () => setTrendPreset([]));
+
+// Assign a line color based on recent partisan lean
+function trendLineColor(abbr) {
+  const margin = getMargin(abbr, 2024);
+  if (margin >  15) return 'rgba(14,59,158,0.90)';
+  if (margin >   3) return 'rgba(30,88,204,0.90)';
+  if (margin >  -3) return 'rgba(152,88,200,0.90)';
+  if (margin > -15) return 'rgba(192,48,64,0.90)';
+  return 'rgba(142,15,26,0.90)';
+}
+
+function renderTrends() {
+  const canvas = document.getElementById('trends-chart');
+  const zero   = document.getElementById('trends-zero-line');
+  const labels = ELECTIONS.map(String);
+
+  if (selectedTrendStates.size === 0) {
+    if (trendsChart) { trendsChart.destroy(); trendsChart = null; }
+    canvas.style.display = 'none';
+    zero.style.display   = 'block';
+    return;
+  }
+  canvas.style.display = '';
+  zero.style.display   = 'none';
+
+  const datasets = [...selectedTrendStates].sort().map(abbr => ({
+    label:           abbr,
+    data:            ELECTIONS.map(yr => +(getResult(abbr, yr)[0] - getResult(abbr, yr)[1]).toFixed(1)),
+    borderColor:     trendLineColor(abbr),
+    backgroundColor: 'transparent',
+    borderWidth:     2,
+    pointRadius:     4,
+    pointHoverRadius:6,
+    tension:         0.3,
+  }));
+
+  const chartCfg = {
+    type: 'line',
+    data: { labels, datasets },
+    options: {
+      responsive: true,
+      maintainAspectRatio: true,
+      animation: { duration: 300 },
+      plugins: {
+        legend: {
+          labels: { color: '#bccadf', font: { family: "'IBM Plex Mono'", size: 10 }, boxWidth: 18 }
+        },
+        tooltip: {
+          backgroundColor: '#0b1020',
+          borderColor: '#1e2d42',
+          borderWidth: 1,
+          titleColor: '#bccadf',
+          bodyColor: '#485a72',
+          callbacks: {
+            label: ctx => {
+              const v = ctx.parsed.y;
+              return `  ${ctx.dataset.label}: ${v >= 0 ? '+' : ''}${v.toFixed(1)}% (D margin)`;
+            },
+          },
+        },
+        annotation: { /* zero line via y-scale */ },
+      },
+      scales: {
+        x: {
+          grid: { color: 'rgba(30,45,66,0.6)' },
+          ticks: { color: '#485a72', font: { family: "'IBM Plex Mono'", size: 10 } },
+        },
+        y: {
+          grid: {
+            color: ctx => ctx.tick.value === 0 ? 'rgba(255,255,255,0.18)' : 'rgba(30,45,66,0.6)',
+            lineWidth: ctx => ctx.tick.value === 0 ? 2 : 1,
+          },
+          ticks: {
+            color: '#485a72',
+            font: { family: "'IBM Plex Mono'", size: 10 },
+            callback: v => (v > 0 ? '+' : '') + v + '%',
+          },
+          title: {
+            display: true,
+            text: 'D − R MARGIN (%)',
+            color: '#485a72',
+            font: { family: "'IBM Plex Mono'", size: 9 },
+          },
+        },
+      },
+    },
+  };
+
+  if (trendsChart) {
+    trendsChart.data.datasets = datasets;
+    trendsChart.update();
+  } else {
+    trendsChart = new Chart(canvas, chartCfg);
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════
+//  SUMMARY
+// ═══════════════════════════════════════════════════════════════════
+function renderSummary() {
+  const yr    = currentYear;
+  const cands = CANDIDATES[yr];
+  const { dEV, rEV } = computeEVs(yr);
+  const pv = NATIONAL_PV[yr];
+
+  // ── Electoral College
+  const dPct = (dEV / 538 * 100).toFixed(1);
+  document.getElementById('ec-content').innerHTML = `
+    <div class="ec-labels">
+      <span class="ec-d-info">${cands.d.toUpperCase()} — ${dEV} EV</span>
+      <span class="ec-r-info">${cands.r.toUpperCase()} — ${rEV} EV</span>
+    </div>
+    <div class="ec-bar-wrap">
+      <div class="ec-bar-d" style="width:${dPct}%">${dEV >= 80 ? dEV : ''}</div>
+      <div class="ec-bar-r">${rEV >= 80 ? rEV : ''}</div>
+    </div>
+    <div class="ec-270-note">270 electoral votes needed to win &bull; Total: 538</div>`;
+
+  // ── Popular Vote
+  document.getElementById('pv-content').innerHTML = `
+    <div class="pv-bar-wrap">
+      <div class="pv-bar-d" style="width:${pv[0]}%"></div>
+      <div class="pv-bar-r"></div>
+    </div>
+    <div class="pv-labels">
+      <span class="pv-d-pct">${cands.d}: ${pv[0].toFixed(1)}%</span>
+      <span class="pv-r-pct">${cands.r}: ${pv[1].toFixed(1)}%</span>
+    </div>
+    <div style="font-size:9px;color:var(--muted);margin-top:8px">National popular vote totals</div>`;
+
+  // ── Key Stats
+  const allRows = STATE_META.map(m => {
+    const [d, r] = getResult(m[1], yr);
+    return { abbr: m[1], name: m[0], ev: getEV(m[1], yr), margin: +(d - r).toFixed(1), winner: d > r ? 'D' : 'R' };
+  });
+  const dStates = allRows.filter(s => s.winner === 'D');
+  const rStates = allRows.filter(s => s.winner === 'R');
+  const dEVtotal = dStates.reduce((a, s) => a + s.ev, 0);
+  const rEVtotal = rStates.reduce((a, s) => a + s.ev, 0);
+  const winner   = dEV >= 270 ? `${cands.d} (D)` : `${cands.r} (R)`;
+  const mostD    = [...dStates].sort((a,b) => b.margin - a.margin)[0];
+  const mostR    = [...rStates].sort((a,b) => a.margin - b.margin)[0];
+  const marginPv = pv[0] - pv[1];
+
+  document.getElementById('stats-content').innerHTML = `
+    <div class="stat-grid">
+      <div class="stat-box">
+        <div class="stat-box-label">WINNER</div>
+        <div class="stat-box-val" style="color:${dEV>=270?'var(--d-text)':'var(--r-text)'};font-size:11px">${winner}</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-box-label">POP VOTE MARGIN</div>
+        <div class="stat-box-val" style="color:${marginPv>=0?'var(--d-text)':'var(--r-text)'}">${marginPv>=0?'+':''}${marginPv.toFixed(1)}%</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-box-label">D STATES / EV</div>
+        <div class="stat-box-val" style="color:var(--d-text)">${dStates.length} / ${dEVtotal}</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-box-label">R STATES / EV</div>
+        <div class="stat-box-val" style="color:var(--r-text)">${rStates.length} / ${rEVtotal}</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-box-label">MOST D STATE</div>
+        <div class="stat-box-val" style="color:var(--d-text);font-size:11px">${mostD ? mostD.name : '—'}</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-box-label">MOST R STATE</div>
+        <div class="stat-box-val" style="color:var(--r-text);font-size:11px">${mostR ? mostR.name : '—'}</div>
+      </div>
+    </div>`;
+
+  // ── Closest States
+  const sorted = allRows.slice().sort((a, b) => Math.abs(a.margin) - Math.abs(b.margin));
+  const closest10 = sorted.slice(0, 10);
+  document.getElementById('closest-content').innerHTML = closest10.map(s => {
+    const col  = s.winner === 'D' ? 'var(--d-text)' : 'var(--r-text)';
+    const sign = s.margin >= 0 ? '+' : '';
+    return `<li class="closest-item">
+      <span class="closest-state">${s.abbr} <span style="color:var(--muted);font-size:9px">${s.name}</span></span>
+      <span class="closest-margin" style="color:${col}">${sign}${s.margin.toFixed(1)}%
+        <span class="winner-badge winner-${s.winner.toLowerCase()}" style="margin-left:4px">${s.ev} EV</span>
+      </span>
+    </li>`;
+  }).join('');
+
+  // ── Flips vs previous election
+  const prevYr = ELECTIONS[ELECTIONS.indexOf(yr) - 1];
+  let flipsHtml = '';
+  if (!prevYr) {
+    flipsHtml = '<li class="flip-item"><span class="no-flips">No prior election in dataset.</span></li>';
+  } else {
+    const flips = STATE_META
+      .map(m => {
+        const a = m[1];
+        const prevW = getWinner(a, prevYr);
+        const currW = getWinner(a, yr);
+        return prevW !== currW ? { abbr: a, name: m[0], ev: getEV(a, yr), from: prevW, to: currW } : null;
+      })
+      .filter(Boolean)
+      .sort((a, b) => b.ev - a.ev);
+    if (flips.length === 0) {
+      flipsHtml = '<li class="flip-item"><span class="no-flips">No state flips from ' + prevYr + ' → ' + yr + '.</span></li>';
+    } else {
+      flipsHtml = flips.map(f => `
+        <li class="flip-item">
+          <span class="flip-state">${f.abbr}</span>
+          <span class="flip-${f.from.toLowerCase()}">${f.from === 'D' ? CANDIDATES[prevYr].d : CANDIDATES[prevYr].r}</span>
+          <span class="flip-arrow">→</span>
+          <span class="flip-${f.to.toLowerCase()}">${f.to === 'D' ? cands.d : cands.r}</span>
+          <span style="margin-left:auto;font-size:9px;color:var(--muted)">${f.ev} EV</span>
+        </li>`).join('');
+    }
+  }
+  document.getElementById('flips-content').innerHTML = flipsHtml;
+}
+
+// ═══════════════════════════════════════════════════════════════════
+//  BOOT
+// ═══════════════════════════════════════════════════════════════════
+buildYearButtons();
+updateScoreBar();
+buildTrendsChips();
+renderStatesTable();
+
+fetch('https://cdn.jsdelivr.net/npm/us-atlas@3/states-10m.json')
+  .then(r => r.json())
+  .then(data => {
+    topoData = data;
+    if (currentTab === 'map') initOrRenderMap();
+  })
+  .catch(() => {
+    document.getElementById('map-container').innerHTML =
+      '<div style="display:flex;align-items:center;justify-content:center;height:100%;color:var(--muted);font-size:11px">Map unavailable — could not load geographic data.</div>';
+  });
+</script>
+</body>
+</html>

@@ -17,6 +17,7 @@ ai-utils/
     soft-utility-template.html  ← copy-me template for new soft-utility apps
     signal-grid.md              ← signal-grid design category (placeholder)
     design-canvas.md            ← design-canvas design category guidelines
+    data-apps.md                ← data-apps design category guidelines
   apps/
     life-tracker/                 ← LIFE TRACKER: appointments and life events
     chrono-zoom/                  ← CHRONO ZOOM: timeline and event tracking
@@ -33,6 +34,8 @@ ai-utils/
     ski-tracker/                  ← SKI TRACKER: ski trip tracker — dates, places, stats, and rollups
   common/                       ← shared assets (if any)
     yahoo-finance-proxy/          ← Java proxy service for Yahoo Finance data
+  data-apps/
+    vote-analysis/                ← VOTE ANALYSIS: US presidential election trends 2008–2024
 ```
 
 Most of these apps can be run directly from the file system. Exceptions:
@@ -89,6 +92,17 @@ Precise, single-file visual layout and design tools with direct canvas interacti
 **To start a new design-canvas app:** copy `display-wall/display-wall.html`, strip to the skeleton (CSS vars, background texture, chrome), and build from there.
 
 **Guidelines:** `docs/design-canvas.md`
+
+### data-apps
+
+Analytical, data-first dashboards built around fixed or embedded datasets. Focus is on interactive exploration — choropleth maps, sortable tables, trend charts, sliders, and summary cards — rather than user-entered data. Dark analytical aesthetic with IBM Plex Mono/Sans and semantic accent colours. Apps live in their own subdirectories under `data-apps/` at the repo root.
+
+**Apps in this category:**
+- `data-apps/vote-analysis/index.html` — VOTE ANALYSIS
+
+**To start a new data-app:** copy `data-apps/vote-analysis/index.html`, swap in your dataset and semantic colours, and adapt the tabs to your data shape.
+
+**Guidelines:** `docs/data-apps.md`
 
 ## One-off apps
 
