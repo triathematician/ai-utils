@@ -160,6 +160,33 @@ body::before {
 #map-tooltip .tt-row span:last-child { color: var(--text); }
 #map-tooltip .tt-divider { border-top: 1px solid var(--border); margin: 5px 0; }
 
+/* ── COUNTY & DISTRICT MAP TABS ── */
+#county-map-container, #district-map-container {
+  flex: 1; position: relative; overflow: hidden;
+}
+#county-map-svg, #district-map-svg { width: 100%; height: 100%; display: block; }
+.county-path {
+  stroke: #050810; stroke-width: 0.15px; cursor: pointer; transition: opacity 0.12s;
+}
+.county-path:hover { opacity: 0.8; stroke: rgba(255,255,255,0.45); stroke-width: 0.5px; }
+.district-path {
+  stroke: #050810; stroke-width: 0.4px; cursor: pointer; transition: opacity 0.12s;
+}
+.district-path:hover { opacity: 0.8; stroke: rgba(255,255,255,0.6); stroke-width: 1px; }
+#county-legend, #district-legend {
+  position: absolute; bottom: 14px; left: 14px;
+  background: rgba(7,11,19,0.92); border: 1px solid var(--border);
+  border-radius: 3px; padding: 10px 12px; font-size: 10px; min-width: 145px;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+}
+#county-legend h4, #district-legend h4 {
+  font-size: 9px; letter-spacing: 0.12em; color: var(--muted); margin-bottom: 8px; text-transform: uppercase;
+}
+#district-loading {
+  position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+  color: var(--muted); font-size: 11px;
+}
+
 /* ── BY STATE TAB ── */
 #states-controls {
   display: flex; gap: 8px; align-items: center; padding: 8px 14px;
@@ -376,6 +403,8 @@ body::before {
 <!-- ══ TABS ══ -->
 <nav id="tabs">
   <button class="tab active" data-tab="map">MAP</button>
+  <button class="tab" data-tab="county">COUNTY</button>
+  <button class="tab" data-tab="district">DISTRICT</button>
   <button class="tab" data-tab="states">BY STATE</button>
   <button class="tab" data-tab="trends">TRENDS</button>
   <button class="tab" data-tab="summary">SUMMARY</button>
@@ -394,7 +423,31 @@ body::before {
         <div id="legend-items"></div>
       </div>
     </div>
-    <div id="map-tooltip"></div>
+  </div>
+
+  <!-- COUNTY MAP TAB -->
+  <div id="tab-county" class="tab-panel">
+    <div id="county-map-container">
+      <svg id="county-map-svg"></svg>
+      <div id="county-legend">
+        <h4 id="county-legend-title">MARGIN SCALE</h4>
+        <div id="county-legend-items"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- DISTRICT MAP TAB -->
+  <div id="tab-district" class="tab-panel">
+    <div id="district-map-container">
+      <svg id="district-map-svg"></svg>
+      <div id="district-legend">
+        <h4 id="district-legend-title">MARGIN SCALE</h4>
+        <div id="district-legend-items"></div>
+      </div>
+      <div id="district-loading" style="display:none">
+        <span>Loading district boundaries…</span>
+      </div>
+    </div>
   </div>
 
   <!-- BY STATE TAB -->
@@ -496,7 +549,7 @@ body::before {
 // ═══════════════════════════════════════════════════════════════════
 //  DATA  (loaded from external JSON files on boot)
 // ═══════════════════════════════════════════════════════════════════
-let STATE_META, ELECTIONS, CANDIDATES, NATIONAL_PV, RESULTS, DEMOGRAPHICS;
+let STATE_META, ELECTIONS, CANDIDATES, NATIONAL_PV, RESULTS, DEMOGRAPHICS, RESULTS_COUNTY, RESULTS_DISTRICT;
 
 // UI config — not a data file
 const PRESET_GROUPS = {
@@ -517,6 +570,9 @@ let selectedTrendStates = new Set(PRESET_GROUPS.swing);
 let topoData = null;
 let mapSvgG  = null;
 let trendsChart = null;
+let countyTopoData = null;
+let countyMapSvgG  = null;
+const COUNTY_INFO  = {};
 
 // ═══════════════════════════════════════════════════════════════════
 //  HELPERS
@@ -574,6 +630,7 @@ function selectYear(year) {
     b.classList.toggle('active', +b.dataset.year === year));
   updateScoreBar();
   if (currentTab === 'map')     { if (mapSvgG) renderMap(); }
+  if (currentTab === 'county') renderCountyMap();
   if (currentTab === 'states')  renderStatesTable();
   if (currentTab === 'trends')  renderTrends();
   if (currentTab === 'summary') renderSummary();
@@ -609,6 +666,7 @@ function selectTab(tab) {
   document.querySelectorAll('.tab-panel').forEach(p =>
     p.classList.toggle('active', p.id === 'tab-' + tab));
   if (tab === 'map'     && topoData) initOrRenderMap();
+  if (tab === 'county') initOrRenderCountyMap();
   if (tab === 'states')  renderStatesTable();
   if (tab === 'trends')  renderTrends();
   if (tab === 'summary') renderSummary();
@@ -639,6 +697,8 @@ document.querySelectorAll('.mode-btn').forEach(b => {
       x.classList.toggle('active', x.dataset.mode === mapMode));
     updateLegend();
     if (mapSvgG) renderMap();
+    updateCountyLegend();
+    if (countyMapSvgG) renderCountyMap();
   });
 });
 
@@ -647,9 +707,7 @@ document.querySelectorAll('.mode-btn').forEach(b => {
 // ═══════════════════════════════════════════════════════════════════
 const FIPS_TO_ABBR = {};
 
-function stateColor(abbr, year, mode) {
-  const [d, r] = getResult(abbr, year);
-  const margin  = d - r;  // positive = D, negative = R
+function marginColor(margin, mode) {
   if (mode === 'winner') {
     if (margin > 15)  return '#0e3b9e';
     if (margin > 5)   return '#1e58cc';
@@ -658,19 +716,15 @@ function stateColor(abbr, year, mode) {
     if (margin > -15) return '#c03040';
     return '#8e0f1a';
   }
-  // Continuous gradient: blue (D) → purple → red (R).
-  // Margin range: ±40 points; beyond ±40 is clamped. t=0 → full D blue, t=1 → full R red.
   const MARGIN_CLAMP = 40;
-  const t = Math.max(0, Math.min(1, (r - d + MARGIN_CLAMP) / (MARGIN_CLAMP * 2)));
-  // RGB endpoints: D blue = (14, 62, 200), R red = (160, 10, 28)
+  const t = Math.max(0, Math.min(1, (-margin + MARGIN_CLAMP) / (MARGIN_CLAMP * 2)));
   const rC = Math.round(14  + t * (160 - 14));
   const gC = Math.round(62  - t * 52);
   const bC = Math.round(200 - t * 172);
   return `rgb(${rC},${gC},${bC})`;
 }
 
-function stateSwingColor(abbr, year) {
-  const swing = getSwing(abbr, year);
+function swingColor(swing) {
   if (swing === null) return 'var(--dim)';
   if (swing >  15) return '#0e3b9e';
   if (swing >   5) return '#1e58cc';
@@ -680,10 +734,32 @@ function stateSwingColor(abbr, year) {
   return '#8e0f1a';
 }
 
+function stateColor(abbr, year, mode) {
+  const [d, r] = getResult(abbr, year);
+  return marginColor(d - r, mode);
+}
+
+function stateSwingColor(abbr, year) {
+  return swingColor(getSwing(abbr, year));
+}
+
 function getSwing(abbr, year) {
   const prevYear = ELECTIONS[ELECTIONS.indexOf(year) - 1];
   if (!prevYear) return null;
   return +(getMargin(abbr, year) - getMargin(abbr, prevYear)).toFixed(1);
+}
+
+function getCountyResult(fips, year) {
+  return (RESULTS_COUNTY?.[year]?.[fips]) ?? [0, 0];
+}
+function getCountyMargin(fips, year) {
+  const [d, r] = getCountyResult(fips, year);
+  return +(d - r).toFixed(1);
+}
+function getCountySwing(fips, year) {
+  const prevYear = ELECTIONS[ELECTIONS.indexOf(year) - 1];
+  if (!prevYear) return null;
+  return +(getCountyMargin(fips, year) - getCountyMargin(fips, prevYear)).toFixed(1);
 }
 
 function initOrRenderMap() {
@@ -761,6 +837,111 @@ function updateLegend() {
   const titles = { winner: 'MARGIN SCALE', margin: 'MARGIN GRADIENT', swing: 'SWING SCALE' };
   document.getElementById('legend-title').textContent = titles[mapMode] || 'SCALE';
   const items = document.getElementById('legend-items');
+  if (mapMode === 'winner') {
+    items.innerHTML = `
+      <div class="legend-item"><div class="legend-swatch" style="background:#0e3b9e"></div>Strong D (&gt;+15)</div>
+      <div class="legend-item"><div class="legend-swatch" style="background:#1e58cc"></div>Solid D (+5 – +15)</div>
+      <div class="legend-item"><div class="legend-swatch" style="background:#5a8de8"></div>Lean D (0 – +5)</div>
+      <div class="legend-item"><div class="legend-swatch" style="background:#e07080"></div>Lean R (0 – +5)</div>
+      <div class="legend-item"><div class="legend-swatch" style="background:#c03040"></div>Solid R (+5 – +15)</div>
+      <div class="legend-item"><div class="legend-swatch" style="background:#8e0f1a"></div>Strong R (&gt;+15)</div>`;
+  } else if (mapMode === 'margin') {
+    items.innerHTML = `
+      <div style="height:11px;border-radius:2px;background:linear-gradient(90deg,#0e3bbd,#8840b8,#b8101e);margin-bottom:5px"></div>
+      <div style="display:flex;justify-content:space-between;font-size:9px;color:var(--muted)">
+        <span>D+40</span><span>Even</span><span>R+40</span>
+      </div>`;
+  } else {
+    items.innerHTML = `
+      <div class="legend-item"><div class="legend-swatch" style="background:#0e3b9e"></div>Strong D shift (&gt;+15)</div>
+      <div class="legend-item"><div class="legend-swatch" style="background:#1e58cc"></div>Solid D shift (+5 – +15)</div>
+      <div class="legend-item"><div class="legend-swatch" style="background:#5a8de8"></div>Lean D shift (0 – +5)</div>
+      <div class="legend-item"><div class="legend-swatch" style="background:#e07080"></div>Lean R shift (0 – +5)</div>
+      <div class="legend-item"><div class="legend-swatch" style="background:#c03040"></div>Solid R shift (+5 – +15)</div>
+      <div class="legend-item"><div class="legend-swatch" style="background:#8e0f1a"></div>Strong R shift (&gt;+15)</div>`;
+  }
+}
+
+function initOrRenderCountyMap() {
+  if (!countyTopoData) return;
+  if (!countyMapSvgG) { initCountyMap(); return; }
+  renderCountyMap();
+}
+
+function initCountyMap() {
+  const container = document.getElementById('county-map-container');
+  const W = container.clientWidth  || 800;
+  const H = container.clientHeight || 500;
+  const svg = d3.select('#county-map-svg')
+    .attr('viewBox', `0 0 ${W} ${H}`)
+    .attr('preserveAspectRatio', 'xMidYMid meet');
+  svg.append('rect').attr('width', W).attr('height', H).attr('fill', 'var(--bg)');
+  const counties   = topojson.feature(countyTopoData, countyTopoData.objects.counties);
+  const projection = d3.geoAlbersUsa().fitSize([W, H - 16], counties);
+  const path       = d3.geoPath().projection(projection);
+
+  counties.features.forEach(f => {
+    const fips = String(f.id).padStart(5, '0');
+    COUNTY_INFO[fips] = {
+      name: f.properties.name,
+      stateAbbr: FIPS_TO_ABBR[fips.substring(0, 2)] || ''
+    };
+  });
+
+  countyMapSvgG = svg.append('g');
+  countyMapSvgG.selectAll('path')
+    .data(counties.features)
+    .join('path')
+      .attr('class', 'county-path')
+      .attr('d', path)
+      .on('mousemove', (event, d) => {
+        const fips = String(d.id).padStart(5, '0');
+        const info = COUNTY_INFO[fips];
+        if (!info) return;
+        const [dp, rp] = getCountyResult(fips, currentYear);
+        const margin   = dp - rp;
+        const winner   = dp > rp ? 'D' : 'R';
+        const cands    = CANDIDATES[currentYear];
+        const wCol     = winner === 'D' ? 'var(--d-text)' : 'var(--r-text)';
+        const mSign    = margin >= 0 ? '+' : '';
+        const swing    = getCountySwing(fips, currentYear);
+        const swingStr = swing === null ? '—'
+          : (swing >= 0 ? `D +${swing}` : `R +${Math.abs(swing)}`) + ' vs ' + ELECTIONS[ELECTIONS.indexOf(currentYear) - 1];
+        const swingCol = swing === null ? 'var(--muted)' : swing >= 0 ? 'var(--d-text)' : 'var(--r-text)';
+        const tip = document.getElementById('map-tooltip');
+        tip.innerHTML = `
+          <div class="tt-title">${info.name}</div>
+          <div class="tt-row"><span>State</span><span>${info.stateAbbr}</span></div>
+          <div class="tt-row"><span>${cands.d}</span><span class="pct-d">${dp.toFixed(1)}%</span></div>
+          <div class="tt-row"><span>${cands.r}</span><span class="pct-r">${rp.toFixed(1)}%</span></div>
+          <div class="tt-divider"></div>
+          <div class="tt-row"><span>Margin</span><span style="color:${wCol}">${mSign}${margin.toFixed(1)}%</span></div>
+          <div class="tt-row"><span>Swing</span><span style="color:${swingCol}">${swingStr}</span></div>`;
+        tip.style.display = 'block';
+        tip.style.left    = (event.pageX + 14) + 'px';
+        tip.style.top     = (event.pageY - 10) + 'px';
+      })
+      .on('mouseleave', () => { document.getElementById('map-tooltip').style.display = 'none'; });
+  updateCountyLegend();
+  renderCountyMap();
+}
+
+function renderCountyMap() {
+  if (!countyMapSvgG) return;
+  countyMapSvgG.selectAll('.county-path').attr('fill', d => {
+    const fips = String(d.id).padStart(5, '0');
+    const [dp, rp] = getCountyResult(fips, currentYear);
+    if (dp === 0 && rp === 0) return 'var(--dim)';
+    return mapMode === 'swing'
+      ? swingColor(getCountySwing(fips, currentYear))
+      : marginColor(dp - rp, mapMode);
+  });
+}
+
+function updateCountyLegend() {
+  const titles = { winner: 'MARGIN SCALE', margin: 'MARGIN GRADIENT', swing: 'SWING SCALE' };
+  document.getElementById('county-legend-title').textContent = titles[mapMode] || 'SCALE';
+  const items = document.getElementById('county-legend-items');
   if (mapMode === 'winner') {
     items.innerHTML = `
       <div class="legend-item"><div class="legend-swatch" style="background:#0e3b9e"></div>Strong D (&gt;+15)</div>
@@ -1326,8 +1507,10 @@ Promise.all([
   fetch('elections.json').then(r => r.json()),
   fetch('results.json').then(r => r.json()),
   fetch('demographics.json').then(r => r.json()),
+  fetch('results-county.json').then(r => r.json()),
   fetch('https://cdn.jsdelivr.net/npm/us-atlas@3/states-10m.json').then(r => r.json()).catch(() => null),
-]).then(([statesData, electionsData, resultsData, demoData, topo]) => {
+  fetch('https://cdn.jsdelivr.net/npm/us-atlas@3/counties-10m.json').then(r => r.json()).catch(() => null),
+]).then(([statesData, electionsData, resultsData, demoData, countyData, topo, countyTopo]) => {
   STATE_META   = statesData;
   ELECTIONS    = electionsData.map(e => e.year);
   CANDIDATES   = Object.fromEntries(electionsData.map(e => [e.year, { d: e.d_candidate, r: e.r_candidate }]));
@@ -1339,6 +1522,12 @@ Promise.all([
   });
   STATE_META.forEach(m => { FIPS_TO_ABBR[m.fips] = m.abbr; });
   DEMOGRAPHICS = Object.fromEntries(demoData.map(d => [d.abbr, d]));
+  RESULTS_COUNTY = {};
+  countyData.forEach(row => {
+    if (!RESULTS_COUNTY[row.year]) RESULTS_COUNTY[row.year] = {};
+    RESULTS_COUNTY[row.year][row.fips] = [row.d, row.r];
+  });
+  if (countyTopo) countyTopoData = countyTopo;
 
   if (topo) topoData = topo;
   else document.getElementById('map-container').innerHTML =
@@ -1355,5 +1544,6 @@ Promise.all([
   document.body.innerHTML = `<div style="display:flex;align-items:center;justify-content:center;height:100vh;color:var(--muted);font-size:11px;font-family:monospace">Failed to load data: ${err.message}</div>`;
 });
 </script>
+<div id="map-tooltip"></div>
 </body>
 </html>
