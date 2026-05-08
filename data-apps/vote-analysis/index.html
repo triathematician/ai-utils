@@ -326,6 +326,7 @@ body::before {
   display: flex; flex-direction: column; align-items: stretch;
 }
 #demo-var-label { margin-left: auto; font-size: 9px; color: var(--muted); letter-spacing: 0.08em; }
+#demo-corr { font-size: 9px; letter-spacing: 0.08em; padding: 2px 7px; background: var(--bg3); border: 1px solid var(--border); border-radius: 2px; white-space: nowrap; }
 
 @media (max-width: 600px) {
   #summary-inner { grid-template-columns: 1fr; }
@@ -482,6 +483,7 @@ body::before {
         <button class="demo-var-btn" data-var="median_age">AGE</button>
       </div>
       <span id="demo-var-label"></span>
+      <span id="demo-corr"></span>
     </div>
     <div id="demo-chart-wrap">
       <canvas id="demo-chart"></canvas>
@@ -1166,9 +1168,12 @@ function linearRegression(points) {
   const sumY  = points.reduce((s, p) => s + p.y, 0);
   const sumXY = points.reduce((s, p) => s + p.x * p.y, 0);
   const sumX2 = points.reduce((s, p) => s + p.x * p.x, 0);
+  const sumY2 = points.reduce((s, p) => s + p.y * p.y, 0);
   const slope = (n * sumXY - sumX * sumY) / (n * sumX2 - sumX * sumX);
   const intercept = (sumY - slope * sumX) / n;
-  return { slope, intercept };
+  const r = (n * sumXY - sumX * sumY) /
+    Math.sqrt((n * sumX2 - sumX * sumX) * (n * sumY2 - sumY * sumY));
+  return { slope, intercept, r };
 }
 
 function buildDemoButtons() {
@@ -1198,10 +1203,14 @@ function renderDemographics() {
       winner:  getWinner(m.abbr, currentYear),
     }));
 
-  const { slope, intercept } = linearRegression(points);
+  const { slope, intercept, r } = linearRegression(points);
   const xs   = points.map(p => p.x);
   const minX = Math.min(...xs);
   const maxX = Math.max(...xs);
+
+  const rCol = r >= 0 ? 'var(--d-text)' : 'var(--r-text)';
+  document.getElementById('demo-corr').innerHTML =
+    `r = <span style="color:${rCol}">${r >= 0 ? '+' : ''}${r.toFixed(2)}</span>`;
 
   const scatterDataset = {
     type: 'scatter',
