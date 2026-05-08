@@ -624,9 +624,8 @@ function stateColor(abbr, year, mode) {
 }
 
 function stateSwingColor(abbr, year) {
-  const prevYear = ELECTIONS[ELECTIONS.indexOf(year) - 1];
-  if (!prevYear) return 'var(--dim)';
-  const swing = getMargin(abbr, year) - getMargin(abbr, prevYear);
+  const swing = getSwing(abbr, year);
+  if (swing === null) return 'var(--dim)';
   if (swing >  15) return '#0e3b9e';
   if (swing >   5) return '#1e58cc';
   if (swing >   0) return '#5a8de8';
@@ -763,6 +762,9 @@ function renderStatesTable() {
   rows.sort((a, b) => {
     let va = a[stateSort.col], vb = b[stateSort.col];
     if (typeof va === 'string') { va = va.toLowerCase(); vb = vb.toLowerCase(); }
+    if (va === null && vb === null) return 0;
+    if (va === null) return 1;
+    if (vb === null) return -1;
     const cmp = va < vb ? -1 : va > vb ? 1 : 0;
     return stateSort.dir === 'asc' ? cmp : -cmp;
   });
