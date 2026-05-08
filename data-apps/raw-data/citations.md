@@ -22,6 +22,28 @@ Citations for source files in this folder. Each entry documents the download, th
 **Downloaded:** 2026-05-08  
 **Transform script:** `transform_county.js` — filters to `US PRESIDENT` / `TOTAL` mode rows, aggregates D/R votes by FIPS, computes share of total votes cast  
 **Intermediate:** none (script writes output directly)  
-**Output:** `data-apps/vote-analysis/results-county.json` — 20,854 rows, years 2000–2024
+**Output:** `data-apps/vote-analysis/results-county.json` — 21,796 rows, years 2000–2024 (Alaska excluded — EDSL reports by legislative district, not borough; Shannon/Oglala Lakota FIPS 46113 remapped to 46102)
+
+---
+
+## `Daily Kos Elections 2008, 2012, 2016 & 2020 presidential election results for congressional districts used in 2020 elections - Results.csv`
+
+**Source:** Daily Kos Elections, "Presidential results by congressional district (2020 district lines)"  
+**URL:** https://docs.google.com/spreadsheets/d/1XbUXnI9OyfAuhP5P3vWtMuGc5UJlrhXbzZo3AwMuHtk/edit  
+**Downloaded:** 2026-05-08  
+**Transform script:** `transform_district.js` — extracts D/R % for 2008/2012/2016/2020; normalizes at-large districts (AL → 01); zero-pads district numbers  
+**Intermediate:** none  
+**Output:** contributes 2008–2020 rows to `data-apps/vote-analysis/results-district.json`; results correspond to `districts-2010s.json` (116th Congress boundary file)
+
+---
+
+## `The Downballot's 2020 & 2024 presidential election results for congressional districts used in the 2024 elections - Percentages.csv`
+
+**Source:** The Downballot, "2024 presidential results by congressional district (2024 district lines)"  
+**URL:** https://docs.google.com/spreadsheets/d/1ng1i_Dm_RMDnEvauH44pgE6JCUsapcuu8F2pCfeLWFo/edit  
+**Downloaded:** 2026-05-08  
+**Transform script:** `transform_district.js` — extracts Harris/Trump % for 2024 only (2020 column from this file not used); normalizes district IDs  
+**Intermediate:** none  
+**Output:** contributes 2024 rows to `data-apps/vote-analysis/results-district.json`; results correspond to `districts-2020s.json` (118th Congress boundary file)
 
 ---
