@@ -46,7 +46,8 @@ dist/
 .worktrees/
 
 # ── Raw data (local downloads, not committed) ─────────────────────────────────
-data-apps/raw-data/
+data-apps/raw-data/*
+!data-apps/raw-data/*.md
 
 # ── General ───────────────────────────────────────────────────────────────────
 .DS_Store
