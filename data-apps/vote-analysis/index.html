@@ -182,6 +182,10 @@ body::before {
 #county-legend h4, #district-legend h4 {
   font-size: 9px; letter-spacing: 0.12em; color: var(--muted); margin-bottom: 8px; text-transform: uppercase;
 }
+#county-ak-note {
+  position: absolute; bottom: 14px; left: 175px;
+  font-size: 9px; color: var(--muted); letter-spacing: 0.06em; pointer-events: none;
+}
 #district-loading {
   position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
   color: var(--muted); font-size: 11px;
@@ -433,6 +437,7 @@ body::before {
         <h4 id="county-legend-title">MARGIN SCALE</h4>
         <div id="county-legend-items"></div>
       </div>
+      <div id="county-ak-note">AK: county-level data not available</div>
     </div>
   </div>
 
