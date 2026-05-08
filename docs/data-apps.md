@@ -221,7 +221,7 @@ Large source files (CSVs, shapefiles) are not committed to the repo. They live i
 
 **Conventions:**
 
-- **Transform scripts** live in `raw-data/` alongside their source files. Write them in Node.js (not Python) since Node is always available in this repo. Output goes directly to the target app directory (e.g. `data-apps/vote-analysis/results-county.json`).
+- **Transform scripts** live in `raw-data/` alongside their source files and are committed (`.js` files are tracked; raw data files are not). Write them in Node.js (not Python) since Node is always available in this repo. Output goes directly to the target app directory (e.g. `data-apps/vote-analysis/results-county.json`).
 - **Intermediate files** (e.g. a full transform output where only a subset of years is used downstream) also live in `raw-data/` and are gitignored.
 - **`raw-data/citations.md`** is committed and documents every source file in the folder. Each entry includes:
   - The raw filename and its source (URL, dataset name, publisher)
