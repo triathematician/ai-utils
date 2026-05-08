@@ -176,6 +176,9 @@ body::before {
 }
 #state-count { margin-left: auto; font-size: 9px; color: var(--muted); letter-spacing: 0.06em; }
 
+.national-row td { background: var(--bg3); border-bottom: 2px solid var(--border2); font-weight: 500; }
+.national-row:hover td { background: var(--bg3) !important; }
+
 #states-table-wrap { flex: 1; overflow-y: auto; scrollbar-width: thin; scrollbar-color: var(--border) transparent; }
 #states-table { width: 100%; border-collapse: collapse; }
 #states-table thead th {
@@ -809,8 +812,41 @@ function renderStatesTable() {
     return stateSort.dir === 'asc' ? cmp : -cmp;
   });
 
+  const [natD, natR]  = NATIONAL_PV[currentYear];
+  const natMargin     = natD - natR;
+  const { dEV, rEV }  = computeEVs(currentYear);
+  const natWinner     = dEV > rEV ? 'D' : 'R';
+  const natSide       = natWinner.toLowerCase();
+  const natMCol       = natWinner === 'D' ? 'var(--d-text)' : 'var(--r-text)';
+  const natMSign      = natMargin >= 0 ? '+' : '';
+  const natBarW       = (Math.min(Math.abs(natMargin), 40) / 40 * 50).toFixed(1);
+  const prevYear      = ELECTIONS[ELECTIONS.indexOf(currentYear) - 1];
+  const natSwing      = prevYear
+    ? +((natD - natR) - (NATIONAL_PV[prevYear][0] - NATIONAL_PV[prevYear][1])).toFixed(1)
+    : null;
+  const natSwingHtml  = natSwing === null
+    ? '<span style="color:var(--muted)">—</span>'
+    : `<span style="color:${natSwing >= 0 ? 'var(--d-text)' : 'var(--r-text)'}">${natSwing >= 0 ? 'D +' : 'R +'}${Math.abs(natSwing).toFixed(1)}</span>`;
+  const natRow = `<tr class="national-row">
+    <td>United States</td>
+    <td class="state-abbr-cell">US</td>
+    <td><span style="color:var(--d-text)">${dEV}</span><span style="color:var(--muted)"> / </span><span style="color:var(--r-text)">${rEV}</span></td>
+    <td class="pct-d">${natD.toFixed(1)}%</td>
+    <td class="pct-r">${natR.toFixed(1)}%</td>
+    <td>
+      <div class="margin-cell">
+        <div class="margin-bar-outer">
+          <div class="margin-bar-fill ${natSide}" style="width:${natBarW}%"></div>
+        </div>
+        <span class="margin-val" style="color:${natMCol}">${natMSign}${natMargin.toFixed(1)}%</span>
+      </div>
+    </td>
+    <td>${natSwingHtml}</td>
+    <td><span class="winner-badge winner-${natSide}">${cands[natSide]}</span></td>
+  </tr>`;
+
   const tbody = document.getElementById('states-tbody');
-  tbody.innerHTML = rows.map(row => {
+  tbody.innerHTML = natRow + rows.map(row => {
     const absM  = Math.min(Math.abs(row.margin), 40);
     const barW  = (absM / 40 * 50).toFixed(1);
     const side  = row.winner.toLowerCase();
