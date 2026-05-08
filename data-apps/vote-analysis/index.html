@@ -342,7 +342,7 @@ body::before {
 <header id="top-bar">
   <div id="logo-area">
     <span id="logo">VOTE<span class="dot">·</span>ANALYSIS</span>
-    <span id="logo-sub">US PRESIDENTIAL ELECTIONS &middot; 2008–2024</span>
+    <span id="logo-sub">US PRESIDENTIAL ELECTIONS &middot; 2000–2024</span>
   </div>
   <div id="year-selector">
     <span class="year-label">YEAR</span>
@@ -524,9 +524,10 @@ let trendsChart = null;
 function getEV(abbr, year) {
   const s = STATE_META.find(m => m.abbr === abbr);
   if (!s) return 0;
-  if (year <= 2008) return s.ev[0];
-  if (year <= 2020) return s.ev[1];
-  return s.ev[2];
+  if (year <= 2000) return s.ev[0];
+  if (year <= 2008) return s.ev[1];
+  if (year <= 2020) return s.ev[2];
+  return s.ev[3];
 }
 
 function getResult(abbr, year) {
