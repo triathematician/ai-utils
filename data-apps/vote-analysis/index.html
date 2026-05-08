@@ -394,6 +394,7 @@ body::before {
             <th data-col="d">DEM %</th>
             <th data-col="r">REP %</th>
             <th data-col="margin">MARGIN</th>
+            <th data-col="swing">SWING</th>
             <th data-col="winner">RESULT</th>
           </tr>
         </thead>
@@ -749,7 +750,8 @@ function renderStatesTable() {
     const [d, r] = getResult(m.abbr, currentYear);
     const margin = d - r;
     const winner = d > r ? 'D' : 'R';
-    return { name: m.name, abbr: m.abbr, ev: getEV(m.abbr, currentYear), d, r, margin, winner };
+    const swing = getSwing(m.abbr, currentYear);
+    return { name: m.name, abbr: m.abbr, ev: getEV(m.abbr, currentYear), d, r, margin, swing, winner };
   });
 
   const search  = stateFilter.search.toLowerCase();
@@ -785,6 +787,12 @@ function renderStatesTable() {
           </div>
           <span class="margin-val" style="color:${mCol}">${mSign}${row.margin.toFixed(1)}%</span>
         </div>
+      </td>
+      <td>
+        ${row.swing === null
+          ? '<span style="color:var(--muted)">—</span>'
+          : `<span style="color:${row.swing >= 0 ? 'var(--d-text)' : 'var(--r-text)'}">${row.swing >= 0 ? 'D +' : 'R +'}${Math.abs(row.swing).toFixed(1)}</span>`
+        }
       </td>
       <td><span class="winner-badge winner-${side}">${row.winner === 'D' ? cands.d : cands.r}</span></td>
     </tr>`;
