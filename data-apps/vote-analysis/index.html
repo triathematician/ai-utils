@@ -788,7 +788,10 @@ function getDistrictMargin(district, year) {
 function getDistrictSwing(district, year) {
   const prevYear = ELECTIONS[ELECTIONS.indexOf(year) - 1];
   if (!prevYear) return null;
-  return +(getDistrictMargin(district, year) - getDistrictMargin(district, prevYear)).toFixed(1);
+  const [dp, rp]   = getDistrictResult(district, year);
+  const [pdp, prp] = getDistrictResult(district, prevYear);
+  if ((dp === 0 && rp === 0) || (pdp === 0 && prp === 0)) return null;
+  return +(dp - rp - (pdp - prp)).toFixed(1);
 }
 
 function initOrRenderMap() {
@@ -1048,7 +1051,7 @@ function initOrRenderDistrictMap() {
     .then(r => r.json())
     .then(topo => {
       districtTopoData[cycle] = topo;
-      loading.style.display = 'none';
+      if (getDistrictCycle(currentYear) === cycle) loading.style.display = 'none';
       if (currentTab === 'district' && getDistrictCycle(currentYear) === cycle) {
         districtMapSvgG = null;
         document.getElementById('district-map-svg').innerHTML = '';
@@ -1120,9 +1123,11 @@ function renderDistrictMap() {
     const dist = d.id;
     const [dp, rp] = getDistrictResult(dist, currentYear);
     if (dp === 0 && rp === 0) return 'var(--dim)';
-    return mapMode === 'swing'
-      ? swingColor(getDistrictSwing(dist, currentYear))
-      : marginColor(dp - rp, mapMode);
+    if (mapMode === 'swing') {
+      const swing = getDistrictSwing(dist, currentYear);
+      return swing === null ? 'var(--dim)' : swingColor(swing);
+    }
+    return marginColor(dp - rp, mapMode);
   });
 }
 
