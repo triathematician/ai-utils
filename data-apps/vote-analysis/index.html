@@ -305,6 +305,24 @@ body::before {
 .flip-r { color: var(--r-text); }
 .no-flips { font-size: 10px; color: var(--muted); padding: 8px 0; }
 
+/* ── DEMOGRAPHICS TAB ── */
+#demo-controls {
+  display: flex; align-items: center; gap: 10px; padding: 10px 14px;
+  background: var(--bg2); border-bottom: 1px solid var(--border); flex-shrink: 0; flex-wrap: wrap;
+}
+#demo-btn-row { display: flex; gap: 4px; }
+.demo-var-btn {
+  font-family: var(--mono); font-size: 9px; letter-spacing: 0.08em; padding: 3px 10px;
+  background: var(--bg3); border: 1px solid var(--border); color: var(--muted); cursor: pointer;
+  transition: all 0.1s; border-radius: 2px;
+}
+.demo-var-btn:hover { color: var(--text); border-color: var(--border2); }
+.demo-var-btn.active { color: var(--d-text); border-color: var(--d-text); background: rgba(30,88,204,0.13); }
+#demo-chart-wrap {
+  flex: 1; padding: 20px 24px; overflow: hidden;
+  display: flex; flex-direction: column; align-items: stretch;
+}
+
 @media (max-width: 600px) {
   #summary-inner { grid-template-columns: 1fr; }
   .s-card.wide { grid-column: 1; }
@@ -356,6 +374,7 @@ body::before {
   <button class="tab" data-tab="states">BY STATE</button>
   <button class="tab" data-tab="trends">TRENDS</button>
   <button class="tab" data-tab="summary">SUMMARY</button>
+  <button class="tab" data-tab="demo">DEMOGRAPHICS</button>
 </nav>
 
 <!-- ══ APP BODY ══ -->
@@ -447,13 +466,31 @@ body::before {
     </div>
   </div>
 
+  <!-- DEMOGRAPHICS TAB -->
+  <div id="tab-demo" class="tab-panel">
+    <div id="demo-controls">
+      <span class="trends-label">VARIABLE</span>
+      <div id="demo-btn-row">
+        <button class="demo-var-btn active" data-var="pct_bachelors">EDU</button>
+        <button class="demo-var-btn" data-var="median_hh_income">INCOME</button>
+        <button class="demo-var-btn" data-var="pct_urban">URBAN</button>
+        <button class="demo-var-btn" data-var="pct_white_nh">RACE</button>
+        <button class="demo-var-btn" data-var="median_age">AGE</button>
+      </div>
+      <span id="demo-var-label" style="margin-left:auto;font-size:9px;color:var(--muted);letter-spacing:0.08em"></span>
+    </div>
+    <div id="demo-chart-wrap">
+      <canvas id="demo-chart"></canvas>
+    </div>
+  </div>
+
 </div><!-- #app-body -->
 
 <script>
 // ═══════════════════════════════════════════════════════════════════
 //  DATA  (loaded from external JSON files on boot)
 // ═══════════════════════════════════════════════════════════════════
-let STATE_META, ELECTIONS, CANDIDATES, NATIONAL_PV, RESULTS;
+let STATE_META, ELECTIONS, CANDIDATES, NATIONAL_PV, RESULTS, DEMOGRAPHICS;
 
 // UI config — not a data file
 const PRESET_GROUPS = {
@@ -533,6 +570,7 @@ function selectYear(year) {
   if (currentTab === 'states')  renderStatesTable();
   if (currentTab === 'trends')  renderTrends();
   if (currentTab === 'summary') renderSummary();
+  if (currentTab === 'demo')    renderDemographics();
   updateSwingBtn();
 }
 
@@ -567,6 +605,7 @@ function selectTab(tab) {
   if (tab === 'states')  renderStatesTable();
   if (tab === 'trends')  renderTrends();
   if (tab === 'summary') renderSummary();
+  if (tab === 'demo')    renderDemographics();
 }
 document.querySelectorAll('.tab').forEach(t =>
   t.addEventListener('click', () => selectTab(t.dataset.tab)));
@@ -1071,14 +1110,169 @@ function renderSummary() {
 }
 
 // ═══════════════════════════════════════════════════════════════════
+//  DEMOGRAPHICS
+// ═══════════════════════════════════════════════════════════════════
+const DEMO_VARS = {
+  pct_bachelors:    { label: '% Bachelor\'s Degree or Higher', fmt: v => v.toFixed(1) + '%' },
+  median_hh_income: { label: 'Median Household Income',        fmt: v => '$' + v.toLocaleString() },
+  pct_urban:        { label: '% Urban Population',             fmt: v => v.toFixed(1) + '%' },
+  pct_white_nh:     { label: '% White Non-Hispanic',           fmt: v => v.toFixed(1) + '%' },
+  median_age:       { label: 'Median Age',                     fmt: v => v.toFixed(1) },
+};
+
+let currentDemoVar = 'pct_bachelors';
+let demoChart = null;
+
+function linearRegression(points) {
+  const n = points.length;
+  const sumX  = points.reduce((s, p) => s + p.x, 0);
+  const sumY  = points.reduce((s, p) => s + p.y, 0);
+  const sumXY = points.reduce((s, p) => s + p.x * p.y, 0);
+  const sumX2 = points.reduce((s, p) => s + p.x * p.x, 0);
+  const slope = (n * sumXY - sumX * sumY) / (n * sumX2 - sumX * sumX);
+  const intercept = (sumY - slope * sumX) / n;
+  return { slope, intercept };
+}
+
+function buildDemoButtons() {
+  document.querySelectorAll('.demo-var-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      currentDemoVar = btn.dataset.var;
+      document.querySelectorAll('.demo-var-btn').forEach(b =>
+        b.classList.toggle('active', b.dataset.var === currentDemoVar));
+      document.getElementById('demo-var-label').textContent =
+        DEMO_VARS[currentDemoVar].label;
+      renderDemographics();
+    });
+  });
+  document.getElementById('demo-var-label').textContent =
+    DEMO_VARS[currentDemoVar].label;
+}
+
+function renderDemographics() {
+  if (!DEMOGRAPHICS) return;
+  const varMeta = DEMO_VARS[currentDemoVar];
+  const points  = STATE_META
+    .filter(m => DEMOGRAPHICS[m.abbr])
+    .map(m => ({
+      abbr:    m.abbr,
+      x:       DEMOGRAPHICS[m.abbr][currentDemoVar],
+      y:       getMargin(m.abbr, currentYear),
+      winner:  getWinner(m.abbr, currentYear),
+    }));
+
+  const { slope, intercept } = linearRegression(points);
+  const xs   = points.map(p => p.x);
+  const minX = Math.min(...xs);
+  const maxX = Math.max(...xs);
+
+  const scatterDataset = {
+    type: 'scatter',
+    label: 'States',
+    data: points.map(p => ({ x: p.x, y: p.y, abbr: p.abbr, winner: p.winner })),
+    backgroundColor: points.map(p => p.winner === 'D' ? 'rgba(120,172,242,0.85)' : 'rgba(240,120,136,0.85)'),
+    pointRadius: 5,
+    pointHoverRadius: 7,
+  };
+
+  const regressionDataset = {
+    type: 'line',
+    label: 'Trend',
+    data: [
+      { x: minX, y: slope * minX + intercept },
+      { x: maxX, y: slope * maxX + intercept },
+    ],
+    borderColor: 'rgba(255,255,255,0.22)',
+    borderDash: [4, 4],
+    borderWidth: 1.5,
+    pointRadius: 0,
+    fill: false,
+  };
+
+  const cfg = {
+    type: 'scatter',
+    data: { datasets: [scatterDataset, regressionDataset] },
+    options: {
+      responsive: true,
+      maintainAspectRatio: true,
+      animation: { duration: 200 },
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          backgroundColor: '#0b1020',
+          borderColor: '#1e2d42',
+          borderWidth: 1,
+          titleColor: '#bccadf',
+          bodyColor: '#485a72',
+          callbacks: {
+            title: ctx => ctx[0]?.raw?.abbr ?? '',
+            label: ctx => {
+              if (!ctx.raw.abbr) return '';
+              const margin = ctx.parsed.y;
+              return [
+                `  ${varMeta.label}: ${varMeta.fmt(ctx.parsed.x)}`,
+                `  D−R Margin: ${margin >= 0 ? '+' : ''}${margin.toFixed(1)}%`,
+              ];
+            },
+          },
+        },
+      },
+      scales: {
+        x: {
+          grid: { color: 'rgba(30,45,66,0.6)' },
+          ticks: {
+            color: '#485a72',
+            font: { family: "'IBM Plex Mono'", size: 10 },
+            callback: v => varMeta.fmt(v),
+          },
+          title: {
+            display: true,
+            text: varMeta.label.toUpperCase(),
+            color: '#485a72',
+            font: { family: "'IBM Plex Mono'", size: 9 },
+          },
+        },
+        y: {
+          grid: {
+            color: ctx => ctx.tick.value === 0 ? 'rgba(255,255,255,0.18)' : 'rgba(30,45,66,0.6)',
+            lineWidth: ctx => ctx.tick.value === 0 ? 2 : 1,
+          },
+          ticks: {
+            color: '#485a72',
+            font: { family: "'IBM Plex Mono'", size: 10 },
+            callback: v => (v > 0 ? '+' : '') + v + '%',
+          },
+          title: {
+            display: true,
+            text: 'D − R MARGIN (%)',
+            color: '#485a72',
+            font: { family: "'IBM Plex Mono'", size: 9 },
+          },
+        },
+      },
+    },
+  };
+
+  if (demoChart) {
+    demoChart.data.datasets = [scatterDataset, regressionDataset];
+    demoChart.options.scales.x.title.text = varMeta.label.toUpperCase();
+    demoChart.options.scales.x.ticks.callback = v => varMeta.fmt(v);
+    demoChart.update();
+  } else {
+    demoChart = new Chart(document.getElementById('demo-chart'), cfg);
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════
 //  BOOT
 // ═══════════════════════════════════════════════════════════════════
 Promise.all([
   fetch('states.json').then(r => r.json()),
   fetch('elections.json').then(r => r.json()),
   fetch('results.json').then(r => r.json()),
+  fetch('demographics.json').then(r => r.json()),
   fetch('https://cdn.jsdelivr.net/npm/us-atlas@3/states-10m.json').then(r => r.json()).catch(() => null),
-]).then(([statesData, electionsData, resultsData, topo]) => {
+]).then(([statesData, electionsData, resultsData, demoData, topo]) => {
   STATE_META   = statesData;
   ELECTIONS    = electionsData.map(e => e.year);
   CANDIDATES   = Object.fromEntries(electionsData.map(e => [e.year, { d: e.d_candidate, r: e.r_candidate }]));
@@ -1089,6 +1283,7 @@ Promise.all([
     RESULTS[row.year][row.abbr] = [row.d, row.r];
   });
   STATE_META.forEach(m => { FIPS_TO_ABBR[m.fips] = m.abbr; });
+  DEMOGRAPHICS = Object.fromEntries(demoData.map(d => [d.abbr, d]));
 
   if (topo) topoData = topo;
   else document.getElementById('map-container').innerHTML =
@@ -1098,6 +1293,7 @@ Promise.all([
   updateSwingBtn();
   updateScoreBar();
   buildTrendsChips();
+  buildDemoButtons();
   renderStatesTable();
   if (currentTab === 'map' && topoData) initOrRenderMap();
 }).catch(err => {
