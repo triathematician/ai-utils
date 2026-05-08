@@ -208,11 +208,28 @@ body::before {
 
 ## Data conventions
 
-- Embed data as compact JavaScript objects/arrays at the top of the `<script>` block.
-- Use a clear comment header to separate DATA, APP STATE, HELPERS, and rendering sections.
-- Use lookup functions (`getResult(abbr, year)`, `getEV(abbr, year)`) instead of repeated inline lookups.
-- Keep raw percentages as numbers (not strings); format only at render time with `.toFixed(1)`.
-- Document the source of each dataset in a comment near the data declaration.
+- Keep data in **external JSON files** alongside `index.html`, not embedded in the script block. Each file is a flat array of objects — one logical "table" per file. Name files semantically after their content (`states.json`, `elections.json`, `results.json`), not generically (`data.json`).
+- Fetch all data files on boot using `Promise.all`, alongside any CDN data (e.g. TopoJSON). Build in-memory lookup objects from the raw arrays after loading.
+- Use lookup helpers (`getResult(abbr, year)`, `getEV(abbr, year)`) so rendering functions stay concise.
+- Keep raw numbers as numbers (not strings); format only at render time with `.toFixed(1)`.
+- Include a **`data-notes.md`** file in the app directory documenting: each file's fields, its authoritative source URL, and a procedure for updating or extending the data.
+- Data files must be sourced from authoritative references (official government sources, academic datasets, etc.). Never invent or estimate figures.
+
+### Raw data processing
+
+Large source files (CSVs, shapefiles) are not committed to the repo. They live in `data-apps/raw-data/`, which is gitignored except for `.md` files.
+
+**Conventions:**
+
+- **Transform scripts** live in `raw-data/` alongside their source files. Write them in Node.js (not Python) since Node is always available in this repo. Output goes directly to the target app directory (e.g. `data-apps/vote-analysis/results-county.json`).
+- **Intermediate files** (e.g. a full transform output where only a subset of years is used downstream) also live in `raw-data/` and are gitignored.
+- **`raw-data/citations.md`** is committed and documents every source file in the folder. Each entry includes:
+  - The raw filename and its source (URL, dataset name, publisher)
+  - Download date
+  - The transform script used, with a one-line description of what it does
+  - Any intermediate file produced
+  - The output file path and a brief description of what was written (row count, years covered, etc.)
+- Keep one entry per source file, not per output. If the same source feeds multiple outputs, list each output under the same entry.
 
 ---
 
@@ -224,9 +241,10 @@ Checklist for starting a new data-app:
 - [ ] Start from `data-apps/vote-analysis/index.html` — copy the HTML skeleton (header, score bar, tabs, app-body, scanline)
 - [ ] Copy the full `:root` CSS variable block; rename semantic vars to match your data domain
 - [ ] Load only the CDN libs you need (D3 + TopoJSON for maps, Chart.js for charts)
-- [ ] Define your dataset as compact JS objects near the top of the `<script>` block
+- [ ] Create semantic JSON data files (one flat array per file); fetch them all in `Promise.all` on boot
+- [ ] Write `data-notes.md` documenting each file's fields, source URL, and update procedure
 - [ ] Implement lookup helpers so rendering functions are concise
-- [ ] Year/period selector: build dynamically from a `PERIODS` array
+- [ ] Year/period selector: build dynamically from the loaded periods array
 - [ ] If including a map: fetch TopoJSON, handle errors gracefully, never re-initialise the SVG on data change
 - [ ] If including a chart: initialise once, call `.data.datasets = …` + `.update()` on subsequent renders
 - [ ] Summary tab: always include a full-width electoral/aggregate KPI card at the top
