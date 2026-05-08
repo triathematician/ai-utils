@@ -10,6 +10,7 @@ Citations for source files in this folder. Each entry documents the download, th
 **URL:** https://dataverse.harvard.edu/dataset.xhtml?persistentId=doi:10.7910/DVN/42MVDX  
 **Downloaded:** 2026-05-08  
 **Transform script:** `transform_state.js` — filters to 2000/2004, aggregates D/R votes by state, computes share of total votes cast  
+**Intermediate:** `state_2000_2020.json` — full transform output (all years 2000–2020, 306 rows); only 2000 and 2004 rows were used downstream  
 **Output:** rows prepended to `data-apps/vote-analysis/results.json` (years 2000 and 2004 only; 2008–2020 rows from this file were not used as those years were already present)
 
 ---
