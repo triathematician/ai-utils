@@ -26,13 +26,18 @@ for (let i = 1; i < lines.length; i++) {
   if (get('office') !== 'US PRESIDENT') continue;
 
   const year  = parseInt(get('year'));
-  const fips  = get('county_fips').padStart(5, '0');
+  let fips    = get('county_fips').padStart(5, '0');
   const party = get('party');
   const mode  = get('mode');
   const votes = parseInt(get('candidatevotes')) || 0;
   const total = parseInt(get('totalvotes')) || 0;
 
   if (!fips || fips === '00000') continue;
+  // AK reports by legislative district with non-standard sequential FIPS — not mappable to TopoJSON boroughs
+  if (fips.startsWith('02')) continue;
+  // Shannon County SD (46113) was renamed Oglala Lakota County and renumbered to 46102 in 2015;
+  // normalise all years to the current FIPS so results match the TopoJSON
+  if (fips === '46113') { fips = '46102'; }
 
   if (!results[year]) results[year] = {};
   if (!results[year][fips]) results[year][fips] = { hasTOTAL: false, D_total: 0, R_total: 0, D_other: 0, R_other: 0, total: 0 };
