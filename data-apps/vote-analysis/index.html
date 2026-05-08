@@ -85,6 +85,7 @@ body::before {
 }
 .mode-btn:hover { color: var(--text); }
 .mode-btn.active { color: var(--text); border-color: var(--d-text); background: rgba(30,88,204,0.13); }
+.mode-btn:disabled { opacity: 0.35; cursor: not-allowed; }
 
 /* ── SCORE BAR ── */
 #score-bar {
@@ -327,6 +328,7 @@ body::before {
   <div id="map-mode-toggle">
     <button class="mode-btn active" data-mode="winner">WINNER</button>
     <button class="mode-btn" data-mode="margin">MARGIN</button>
+    <button class="mode-btn" data-mode="swing" id="btn-swing-mode">SWING</button>
   </div>
 </header>
 
@@ -448,163 +450,11 @@ body::before {
 
 <script>
 // ═══════════════════════════════════════════════════════════════════
-//  DATA
+//  DATA  (loaded from external JSON files on boot)
 // ═══════════════════════════════════════════════════════════════════
+let STATE_META, ELECTIONS, CANDIDATES, NATIONAL_PV, RESULTS;
 
-// [name, abbr, fips, ev_2000census(2008), ev_2010census(2012-2020), ev_2020census(2024)]
-const STATE_META = [
-  ['Alabama',       'AL','01', 9, 9, 9],
-  ['Alaska',        'AK','02', 3, 3, 3],
-  ['Arizona',       'AZ','04',10,11,11],
-  ['Arkansas',      'AR','05', 6, 6, 6],
-  ['California',    'CA','06',55,55,54],
-  ['Colorado',      'CO','08', 9, 9,10],
-  ['Connecticut',   'CT','09', 7, 7, 7],
-  ['Delaware',      'DE','10', 3, 3, 3],
-  ['D.C.',          'DC','11', 3, 3, 3],
-  ['Florida',       'FL','12',27,29,30],
-  ['Georgia',       'GA','13',15,16,16],
-  ['Hawaii',        'HI','15', 4, 4, 4],
-  ['Idaho',         'ID','16', 4, 4, 4],
-  ['Illinois',      'IL','17',21,20,19],
-  ['Indiana',       'IN','18',11,11,11],
-  ['Iowa',          'IA','19', 7, 6, 6],
-  ['Kansas',        'KS','20', 6, 6, 6],
-  ['Kentucky',      'KY','21', 8, 8, 8],
-  ['Louisiana',     'LA','22', 9, 8, 8],
-  ['Maine',         'ME','23', 4, 4, 4],
-  ['Maryland',      'MD','24',10,10,10],
-  ['Massachusetts', 'MA','25',12,11,11],
-  ['Michigan',      'MI','26',17,16,15],
-  ['Minnesota',     'MN','27',10,10,10],
-  ['Mississippi',   'MS','28', 6, 6, 6],
-  ['Missouri',      'MO','29',11,10,10],
-  ['Montana',       'MT','30', 3, 3, 4],
-  ['Nebraska',      'NE','31', 5, 5, 5],
-  ['Nevada',        'NV','32', 5, 6, 6],
-  ['New Hampshire', 'NH','33', 4, 4, 4],
-  ['New Jersey',    'NJ','34',15,14,14],
-  ['New Mexico',    'NM','35', 5, 5, 5],
-  ['New York',      'NY','36',31,29,28],
-  ['North Carolina','NC','37',15,15,16],
-  ['North Dakota',  'ND','38', 3, 3, 3],
-  ['Ohio',          'OH','39',20,18,17],
-  ['Oklahoma',      'OK','40', 7, 7, 7],
-  ['Oregon',        'OR','41', 7, 7, 8],
-  ['Pennsylvania',  'PA','42',21,20,19],
-  ['Rhode Island',  'RI','44', 4, 4, 4],
-  ['South Carolina','SC','45', 8, 9, 9],
-  ['South Dakota',  'SD','46', 3, 3, 3],
-  ['Tennessee',     'TN','47',11,11,11],
-  ['Texas',         'TX','48',34,38,40],
-  ['Utah',          'UT','49', 5, 6, 6],
-  ['Vermont',       'VT','50', 3, 3, 3],
-  ['Virginia',      'VA','51',13,13,13],
-  ['Washington',    'WA','53',11,12,12],
-  ['West Virginia', 'WV','54', 5, 5, 4],
-  ['Wisconsin',     'WI','55',10,10,10],
-  ['Wyoming',       'WY','56', 3, 3, 3],
-];
-
-const ELECTIONS = [2008, 2012, 2016, 2020, 2024];
-
-const CANDIDATES = {
-  2008: { d:'Obama',   r:'McCain' },
-  2012: { d:'Obama',   r:'Romney' },
-  2016: { d:'Clinton', r:'Trump'  },
-  2020: { d:'Biden',   r:'Trump'  },
-  2024: { d:'Harris',  r:'Trump'  },
-};
-
-// National popular vote [d%, r%]
-const NATIONAL_PV = {
-  2008: [52.9, 45.7],
-  2012: [51.1, 47.2],
-  2016: [48.2, 46.1],
-  2020: [51.3, 46.8],
-  2024: [48.4, 49.9],
-};
-
-// State results: { abbr: [d%, r%] }
-const RESULTS = {
-  2008: {
-    AL:[38.7,60.3],AK:[37.9,59.4],AZ:[44.9,53.6],AR:[38.9,58.7],
-    CA:[61.0,36.9],CO:[53.7,44.7],CT:[60.6,38.2],DE:[61.9,36.9],
-    DC:[92.5, 6.5],FL:[51.0,48.1],GA:[47.0,52.2],HI:[71.8,26.6],
-    ID:[36.1,61.5],IL:[61.9,36.8],IN:[49.9,48.9],IA:[53.9,44.4],
-    KS:[41.7,56.6],KY:[41.2,57.4],LA:[39.9,58.6],ME:[57.7,40.4],
-    MD:[61.9,36.5],MA:[61.8,36.0],MI:[57.4,41.0],MN:[54.1,43.8],
-    MS:[43.0,56.2],MO:[49.3,49.4],MT:[47.3,49.5],NE:[41.6,56.5],
-    NV:[55.1,42.7],NH:[54.1,44.5],NJ:[57.2,41.7],NM:[56.9,41.8],
-    NY:[62.6,36.0],NC:[49.9,49.4],ND:[44.6,53.3],OH:[51.5,46.9],
-    OK:[34.4,65.6],OR:[56.7,40.4],PA:[54.5,44.2],RI:[63.0,35.2],
-    SC:[44.9,53.9],SD:[44.7,53.2],TN:[41.8,56.9],TX:[43.7,55.5],
-    UT:[34.4,62.6],VT:[67.5,30.4],VA:[52.6,46.3],WA:[57.6,40.5],
-    WV:[42.6,55.7],WI:[56.2,42.3],WY:[32.5,65.2],
-  },
-  2012: {
-    AL:[38.4,60.7],AK:[40.8,54.8],AZ:[44.6,53.7],AR:[36.9,60.6],
-    CA:[60.2,37.1],CO:[51.5,46.1],CT:[58.1,40.7],DE:[58.6,40.0],
-    DC:[90.9, 7.3],FL:[50.0,49.1],GA:[45.5,53.3],HI:[70.6,27.8],
-    ID:[32.6,64.5],IL:[57.6,40.7],IN:[43.9,54.1],IA:[52.1,46.5],
-    KS:[38.0,60.0],KY:[37.8,60.5],LA:[40.6,57.8],ME:[56.3,41.0],
-    MD:[62.0,36.5],MA:[60.7,37.5],MI:[54.2,44.7],MN:[52.8,45.0],
-    MS:[43.8,55.3],MO:[44.4,53.8],MT:[41.7,55.4],NE:[38.2,59.8],
-    NV:[52.4,45.7],NH:[52.0,46.4],NJ:[58.1,40.6],NM:[52.9,42.8],
-    NY:[63.4,35.2],NC:[48.4,50.4],ND:[38.7,58.3],OH:[50.7,47.7],
-    OK:[33.2,66.8],OR:[54.2,42.8],PA:[52.0,46.6],RI:[62.7,35.7],
-    SC:[44.1,54.6],SD:[39.9,57.9],TN:[39.1,59.5],TX:[41.4,57.2],
-    UT:[24.8,72.8],VT:[66.6,31.0],VA:[51.2,47.3],WA:[56.2,41.3],
-    WV:[35.5,62.3],WI:[52.8,46.1],WY:[27.8,69.3],
-  },
-  2016: {
-    AL:[34.4,62.1],AK:[36.6,51.3],AZ:[45.1,48.7],AR:[33.7,60.6],
-    CA:[61.7,31.6],CO:[48.2,43.3],CT:[54.6,40.9],DE:[53.4,41.9],
-    DC:[90.9, 4.1],FL:[47.8,49.0],GA:[45.9,51.0],HI:[62.2,30.0],
-    ID:[27.5,59.2],IL:[55.8,38.8],IN:[37.8,56.9],IA:[41.7,51.2],
-    KS:[36.1,56.7],KY:[32.7,62.5],LA:[38.4,58.1],ME:[47.8,44.9],
-    MD:[60.3,33.9],MA:[60.0,32.8],MI:[47.3,47.5],MN:[46.4,44.9],
-    MS:[40.1,57.9],MO:[38.0,56.8],MT:[35.7,56.2],NE:[34.0,58.7],
-    NV:[47.9,45.5],NH:[47.6,46.5],NJ:[55.0,41.4],NM:[48.3,40.0],
-    NY:[59.0,36.5],NC:[46.2,49.8],ND:[27.2,63.0],OH:[43.6,51.7],
-    OK:[28.9,65.3],OR:[50.1,39.1],PA:[47.5,48.2],RI:[54.4,38.9],
-    SC:[40.7,54.9],SD:[31.7,61.5],TN:[34.9,60.7],TX:[43.2,52.2],
-    UT:[27.8,45.5],VT:[55.7,30.3],VA:[49.8,44.4],WA:[52.5,36.8],
-    WV:[26.5,68.5],WI:[46.5,47.2],WY:[21.9,68.2],
-  },
-  2020: {
-    AL:[36.6,62.0],AK:[42.8,52.8],AZ:[49.4,49.1],AR:[34.8,62.4],
-    CA:[63.5,34.3],CO:[55.9,41.9],CT:[59.3,39.2],DE:[58.7,39.8],
-    DC:[92.1, 5.4],FL:[47.9,51.2],GA:[49.5,49.3],HI:[63.7,34.3],
-    ID:[33.1,63.8],IL:[57.5,40.6],IN:[41.1,57.0],IA:[44.9,53.1],
-    KS:[41.6,56.2],KY:[36.2,62.1],LA:[39.9,58.5],ME:[53.1,44.0],
-    MD:[65.4,32.6],MA:[65.6,32.1],MI:[50.6,47.8],MN:[52.4,45.3],
-    MS:[41.0,57.6],MO:[41.3,56.8],MT:[40.5,56.9],NE:[39.2,58.2],
-    NV:[50.1,47.7],NH:[52.7,45.5],NJ:[57.3,41.4],NM:[54.3,43.5],
-    NY:[60.9,37.7],NC:[48.6,49.9],ND:[31.8,65.1],OH:[45.2,53.3],
-    OK:[32.3,65.4],OR:[56.5,40.4],PA:[50.0,48.8],RI:[59.4,38.6],
-    SC:[43.4,55.1],SD:[35.6,61.8],TN:[37.5,60.7],TX:[46.5,52.1],
-    UT:[37.7,58.1],VT:[66.1,30.7],VA:[54.1,44.0],WA:[58.4,38.8],
-    WV:[29.7,68.6],WI:[49.5,48.9],WY:[26.6,69.9],
-  },
-  2024: {
-    AL:[35.5,63.0],AK:[38.2,57.5],AZ:[47.2,52.2],AR:[32.6,65.8],
-    CA:[60.5,37.0],CO:[54.0,44.0],CT:[56.5,42.0],DE:[57.0,41.5],
-    DC:[91.6, 6.0],FL:[43.2,56.1],GA:[48.9,50.7],HI:[60.5,37.5],
-    ID:[30.0,67.0],IL:[55.1,42.8],IN:[38.7,59.8],IA:[42.2,55.4],
-    KS:[38.0,59.5],KY:[34.2,63.5],LA:[37.0,61.5],ME:[51.3,46.2],
-    MD:[66.8,31.5],MA:[64.5,33.8],MI:[48.3,49.7],MN:[51.8,46.1],
-    MS:[39.2,59.4],MO:[38.5,59.4],MT:[38.0,58.7],NE:[36.2,61.8],
-    NV:[48.4,50.0],NH:[51.9,46.8],NJ:[54.1,44.1],NM:[52.0,45.8],
-    NY:[56.8,41.4],NC:[47.7,51.3],ND:[30.7,66.0],OH:[42.1,55.9],
-    OK:[28.8,68.4],OR:[55.1,41.9],PA:[48.6,50.3],RI:[57.8,40.8],
-    SC:[41.6,56.9],SD:[33.8,63.7],TN:[33.6,64.9],TX:[43.2,55.3],
-    UT:[38.2,57.6],VT:[64.8,31.5],VA:[52.0,46.0],WA:[57.2,40.2],
-    WV:[27.3,70.2],WI:[49.5,49.9],WY:[24.5,73.0],
-  },
-};
-
-// State groupings for trend presets
+// UI config — not a data file
 const PRESET_GROUPS = {
   swing:   ['PA','MI','WI','AZ','GA','NV','NC','MN','NH'],
   sunbelt: ['TX','FL','GA','AZ','NV','NC','VA'],
@@ -628,11 +478,11 @@ let trendsChart = null;
 //  HELPERS
 // ═══════════════════════════════════════════════════════════════════
 function getEV(abbr, year) {
-  const s = STATE_META.find(m => m[1] === abbr);
+  const s = STATE_META.find(m => m.abbr === abbr);
   if (!s) return 0;
-  if (year <= 2008) return s[3];
-  if (year <= 2020) return s[4];
-  return s[5];
+  if (year <= 2008) return s.ev[0];
+  if (year <= 2020) return s.ev[1];
+  return s.ev[2];
 }
 
 function getResult(abbr, year) {
@@ -652,8 +502,8 @@ function getMargin(abbr, year) {
 function computeEVs(year) {
   let dEV = 0, rEV = 0;
   STATE_META.forEach(m => {
-    const ev = getEV(m[1], year);
-    if (getWinner(m[1], year) === 'D') dEV += ev; else rEV += ev;
+    const ev = getEV(m.abbr, year);
+    if (getWinner(m.abbr, year) === 'D') dEV += ev; else rEV += ev;
   });
   return { dEV, rEV };
 }
@@ -682,6 +532,7 @@ function selectYear(year) {
   if (currentTab === 'states')  renderStatesTable();
   if (currentTab === 'trends')  renderTrends();
   if (currentTab === 'summary') renderSummary();
+  updateSwingBtn();
 }
 
 // ═══════════════════════════════════════════════════════════════════
@@ -722,6 +573,18 @@ document.querySelectorAll('.tab').forEach(t =>
 // ═══════════════════════════════════════════════════════════════════
 //  MAP MODE
 // ═══════════════════════════════════════════════════════════════════
+function updateSwingBtn() {
+  const btn = document.getElementById('btn-swing-mode');
+  btn.disabled = (currentYear === ELECTIONS[0]);
+  if (btn.disabled && mapMode === 'swing') {
+    mapMode = 'winner';
+    document.querySelectorAll('.mode-btn').forEach(x =>
+      x.classList.toggle('active', x.dataset.mode === 'winner'));
+    updateLegend();
+    if (mapSvgG) renderMap();
+  }
+}
+
 document.querySelectorAll('.mode-btn').forEach(b => {
   b.addEventListener('click', () => {
     mapMode = b.dataset.mode;
@@ -736,7 +599,6 @@ document.querySelectorAll('.mode-btn').forEach(b => {
 //  D3 CHOROPLETH MAP
 // ═══════════════════════════════════════════════════════════════════
 const FIPS_TO_ABBR = {};
-STATE_META.forEach(m => { FIPS_TO_ABBR[m[2]] = m[1]; });
 
 function stateColor(abbr, year, mode) {
   const [d, r] = getResult(abbr, year);
@@ -758,6 +620,24 @@ function stateColor(abbr, year, mode) {
   const gC = Math.round(62  - t * 52);
   const bC = Math.round(200 - t * 172);
   return `rgb(${rC},${gC},${bC})`;
+}
+
+function stateSwingColor(abbr, year) {
+  const prevYear = ELECTIONS[ELECTIONS.indexOf(year) - 1];
+  if (!prevYear) return 'var(--dim)';
+  const swing = getMargin(abbr, year) - getMargin(abbr, prevYear);
+  if (swing >  15) return '#0e3b9e';
+  if (swing >   5) return '#1e58cc';
+  if (swing >   0) return '#5a8de8';
+  if (swing >  -5) return '#e07080';
+  if (swing > -15) return '#c03040';
+  return '#8e0f1a';
+}
+
+function getSwing(abbr, year) {
+  const prevYear = ELECTIONS[ELECTIONS.indexOf(year) - 1];
+  if (!prevYear) return null;
+  return +(getMargin(abbr, year) - getMargin(abbr, prevYear)).toFixed(1);
 }
 
 function initOrRenderMap() {
@@ -787,7 +667,7 @@ function initMap() {
         const fips = String(d.id).padStart(2, '0');
         const abbr = FIPS_TO_ABBR[fips];
         if (!abbr) return;
-        const meta = STATE_META.find(m => m[1] === abbr);
+        const meta = STATE_META.find(m => m.abbr === abbr);
         const [dp, rp] = getResult(abbr, currentYear);
         const margin   = dp - rp;
         const winner   = dp > rp ? 'D' : 'R';
@@ -796,13 +676,18 @@ function initMap() {
         const wName    = winner === 'D' ? cands.d : cands.r;
         const mSign    = margin >= 0 ? '+' : '';
         const ev       = getEV(abbr, currentYear);
+        const swing    = getSwing(abbr, currentYear);
+        const swingStr = swing === null ? '—'
+          : (swing >= 0 ? `D +${swing}` : `R +${Math.abs(swing)}`) + ' vs ' + ELECTIONS[ELECTIONS.indexOf(currentYear) - 1];
+        const swingCol = swing === null ? 'var(--muted)' : swing >= 0 ? 'var(--d-text)' : 'var(--r-text)';
         const tip = document.getElementById('map-tooltip');
         tip.innerHTML = `
-          <div class="tt-title">${meta ? meta[0] : abbr}</div>
+          <div class="tt-title">${meta ? meta.name : abbr}</div>
           <div class="tt-row"><span>${cands.d}</span><span class="pct-d">${dp.toFixed(1)}%</span></div>
           <div class="tt-row"><span>${cands.r}</span><span class="pct-r">${rp.toFixed(1)}%</span></div>
           <div class="tt-divider"></div>
           <div class="tt-row"><span>Margin</span><span style="color:${wCol}">${mSign}${margin.toFixed(1)}%</span></div>
+          <div class="tt-row"><span>Swing</span><span style="color:${swingCol}">${swingStr}</span></div>
           <div class="tt-row"><span>Electoral Votes</span><span>${ev}</span></div>
           <div class="tt-row"><span>Winner</span><span style="color:${wCol}">${wName}</span></div>`;
         tip.style.display = 'block';
@@ -821,13 +706,14 @@ function renderMap() {
   mapSvgG.selectAll('.state-path').attr('fill', function(d) {
     const fips = String(d.id).padStart(2, '0');
     const abbr = FIPS_TO_ABBR[fips];
-    return abbr ? stateColor(abbr, currentYear, mapMode) : 'var(--dim)';
+    if (!abbr) return 'var(--dim)';
+    return mapMode === 'swing' ? stateSwingColor(abbr, currentYear) : stateColor(abbr, currentYear, mapMode);
   });
 }
 
 function updateLegend() {
-  document.getElementById('legend-title').textContent =
-    mapMode === 'winner' ? 'MARGIN SCALE' : 'MARGIN GRADIENT';
+  const titles = { winner: 'MARGIN SCALE', margin: 'MARGIN GRADIENT', swing: 'SWING SCALE' };
+  document.getElementById('legend-title').textContent = titles[mapMode] || 'SCALE';
   const items = document.getElementById('legend-items');
   if (mapMode === 'winner') {
     items.innerHTML = `
@@ -837,12 +723,20 @@ function updateLegend() {
       <div class="legend-item"><div class="legend-swatch" style="background:#e07080"></div>Lean R (0 – +5)</div>
       <div class="legend-item"><div class="legend-swatch" style="background:#c03040"></div>Solid R (+5 – +15)</div>
       <div class="legend-item"><div class="legend-swatch" style="background:#8e0f1a"></div>Strong R (&gt;+15)</div>`;
-  } else {
+  } else if (mapMode === 'margin') {
     items.innerHTML = `
       <div style="height:11px;border-radius:2px;background:linear-gradient(90deg,#0e3bbd,#8840b8,#b8101e);margin-bottom:5px"></div>
       <div style="display:flex;justify-content:space-between;font-size:9px;color:var(--muted)">
         <span>D+40</span><span>Even</span><span>R+40</span>
       </div>`;
+  } else {
+    items.innerHTML = `
+      <div class="legend-item"><div class="legend-swatch" style="background:#0e3b9e"></div>Strong D shift (&gt;+15)</div>
+      <div class="legend-item"><div class="legend-swatch" style="background:#1e58cc"></div>Solid D shift (+5 – +15)</div>
+      <div class="legend-item"><div class="legend-swatch" style="background:#5a8de8"></div>Lean D shift (0 – +5)</div>
+      <div class="legend-item"><div class="legend-swatch" style="background:#e07080"></div>Lean R shift (0 – +5)</div>
+      <div class="legend-item"><div class="legend-swatch" style="background:#c03040"></div>Solid R shift (+5 – +15)</div>
+      <div class="legend-item"><div class="legend-swatch" style="background:#8e0f1a"></div>Strong R shift (&gt;+15)</div>`;
   }
 }
 
@@ -852,11 +746,10 @@ function updateLegend() {
 function renderStatesTable() {
   const cands = CANDIDATES[currentYear];
   let rows = STATE_META.map(m => {
-    const abbr   = m[1];
-    const [d, r] = getResult(abbr, currentYear);
+    const [d, r] = getResult(m.abbr, currentYear);
     const margin = d - r;
     const winner = d > r ? 'D' : 'R';
-    return { name: m[0], abbr, ev: getEV(abbr, currentYear), d, r, margin, winner };
+    return { name: m.name, abbr: m.abbr, ev: getEV(m.abbr, currentYear), d, r, margin, winner };
   });
 
   const search  = stateFilter.search.toLowerCase();
@@ -924,7 +817,7 @@ function buildTrendsChips() {
   const wrap = document.getElementById('trends-select-wrap');
   wrap.innerHTML = '';
   STATE_META.forEach(m => {
-    const abbr = m[1];
+    const abbr = m.abbr;
     const chip = document.createElement('span');
     chip.className   = 'state-chip' + (selectedTrendStates.has(abbr) ? ' selected' : '');
     chip.textContent = abbr;
@@ -1083,8 +976,8 @@ function renderSummary() {
 
   // ── Key Stats
   const allRows = STATE_META.map(m => {
-    const [d, r] = getResult(m[1], yr);
-    return { abbr: m[1], name: m[0], ev: getEV(m[1], yr), margin: +(d - r).toFixed(1), winner: d > r ? 'D' : 'R' };
+    const [d, r] = getResult(m.abbr, yr);
+    return { abbr: m.abbr, name: m.name, ev: getEV(m.abbr, yr), margin: +(d - r).toFixed(1), winner: d > r ? 'D' : 'R' };
   });
   const dStates = allRows.filter(s => s.winner === 'D');
   const rStates = allRows.filter(s => s.winner === 'R');
@@ -1145,10 +1038,9 @@ function renderSummary() {
   } else {
     const flips = STATE_META
       .map(m => {
-        const a = m[1];
-        const prevW = getWinner(a, prevYr);
-        const currW = getWinner(a, yr);
-        return prevW !== currW ? { abbr: a, name: m[0], ev: getEV(a, yr), from: prevW, to: currW } : null;
+        const prevW = getWinner(m.abbr, prevYr);
+        const currW = getWinner(m.abbr, yr);
+        return prevW !== currW ? { abbr: m.abbr, name: m.name, ev: getEV(m.abbr, yr), from: prevW, to: currW } : null;
       })
       .filter(Boolean)
       .sort((a, b) => b.ev - a.ev);
@@ -1171,21 +1063,36 @@ function renderSummary() {
 // ═══════════════════════════════════════════════════════════════════
 //  BOOT
 // ═══════════════════════════════════════════════════════════════════
-buildYearButtons();
-updateScoreBar();
-buildTrendsChips();
-renderStatesTable();
-
-fetch('https://cdn.jsdelivr.net/npm/us-atlas@3/states-10m.json')
-  .then(r => r.json())
-  .then(data => {
-    topoData = data;
-    if (currentTab === 'map') initOrRenderMap();
-  })
-  .catch(() => {
-    document.getElementById('map-container').innerHTML =
-      '<div style="display:flex;align-items:center;justify-content:center;height:100%;color:var(--muted);font-size:11px">Map unavailable — could not load geographic data.</div>';
+Promise.all([
+  fetch('states.json').then(r => r.json()),
+  fetch('elections.json').then(r => r.json()),
+  fetch('results.json').then(r => r.json()),
+  fetch('https://cdn.jsdelivr.net/npm/us-atlas@3/states-10m.json').then(r => r.json()).catch(() => null),
+]).then(([statesData, electionsData, resultsData, topo]) => {
+  STATE_META   = statesData;
+  ELECTIONS    = electionsData.map(e => e.year);
+  CANDIDATES   = Object.fromEntries(electionsData.map(e => [e.year, { d: e.d_candidate, r: e.r_candidate }]));
+  NATIONAL_PV  = Object.fromEntries(electionsData.map(e => [e.year, [e.d_pv, e.r_pv]]));
+  RESULTS      = {};
+  resultsData.forEach(row => {
+    if (!RESULTS[row.year]) RESULTS[row.year] = {};
+    RESULTS[row.year][row.abbr] = [row.d, row.r];
   });
+  STATE_META.forEach(m => { FIPS_TO_ABBR[m.fips] = m.abbr; });
+
+  if (topo) topoData = topo;
+  else document.getElementById('map-container').innerHTML =
+    '<div style="display:flex;align-items:center;justify-content:center;height:100%;color:var(--muted);font-size:11px">Map unavailable — could not load geographic data.</div>';
+
+  buildYearButtons();
+  updateSwingBtn();
+  updateScoreBar();
+  buildTrendsChips();
+  renderStatesTable();
+  if (currentTab === 'map' && topoData) initOrRenderMap();
+}).catch(err => {
+  document.body.innerHTML = `<div style="display:flex;align-items:center;justify-content:center;height:100vh;color:var(--muted);font-size:11px;font-family:monospace">Failed to load data: ${err.message}</div>`;
+});
 </script>
 </body>
 </html>
