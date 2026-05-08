@@ -48,6 +48,7 @@ dist/
 # ── Raw data (local downloads, not committed) ─────────────────────────────────
 data-apps/raw-data/*
 !data-apps/raw-data/*.md
+!data-apps/raw-data/*.js
 
 # ── General ───────────────────────────────────────────────────────────────────
 .DS_Store
