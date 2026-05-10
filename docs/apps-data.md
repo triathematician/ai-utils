@@ -1,6 +1,6 @@
 # Data Apps — UI Guidelines
 
-Guidelines for building **data-apps** in this repo. Data-apps is a design category: analytical, data-first, single-file dashboards built around fixed or embedded datasets. The focus is interactive exploration — charts, maps, sortable tables, sliders, and filters — rather than user-editable data. See `data-apps/vote-analysis/index.html` for the reference implementation.
+Guidelines for building **apps-data** in this repo. Data-apps is a design category: analytical, data-first, single-file dashboards built around fixed or embedded datasets. The focus is interactive exploration — charts, maps, sortable tables, sliders, and filters — rather than user-editable data. See `apps-data/vote-analysis/index.html` for the reference implementation.
 
 ---
 
@@ -217,11 +217,11 @@ body::before {
 
 ### Raw data processing
 
-Large source files (CSVs, shapefiles) are not committed to the repo. They live in `data-apps/raw-data/`, which is gitignored except for `.md` files.
+Large source files (CSVs, shapefiles) are not committed to the repo. They live in `apps-data/raw-data/`, which is gitignored except for `.md` files.
 
 **Conventions:**
 
-- **Transform scripts** live in `raw-data/` alongside their source files and are committed (`.js` files are tracked; raw data files are not). Write them in Node.js (not Python) since Node is always available in this repo. Output goes directly to the target app directory (e.g. `data-apps/vote-analysis/results-county.json`).
+- **Transform scripts** live in `raw-data/` alongside their source files and are committed (`.js` files are tracked; raw data files are not). Write them in Node.js (not Python) since Node is always available in this repo. Output goes directly to the target app directory (e.g. `apps-data/vote-analysis/results-county.json`).
 - **Intermediate files** (e.g. a full transform output where only a subset of years is used downstream) also live in `raw-data/` and are gitignored.
 - **`raw-data/citations.md`** is committed and documents every source file in the folder. Each entry includes:
   - The raw filename and its source (URL, dataset name, publisher)
@@ -237,8 +237,8 @@ Large source files (CSVs, shapefiles) are not committed to the repo. They live i
 
 Checklist for starting a new data-app:
 
-- [ ] Create a subdirectory under `data-apps/` (e.g. `data-apps/my-app/`)
-- [ ] Start from `data-apps/vote-analysis/index.html` — copy the HTML skeleton (header, score bar, tabs, app-body, scanline)
+- [ ] Create a subdirectory under `apps-data/` (e.g. `apps-data/my-app/`)
+- [ ] Start from `apps-data/vote-analysis/index.html` — copy the HTML skeleton (header, score bar, tabs, app-body, scanline)
 - [ ] Copy the full `:root` CSS variable block; rename semantic vars to match your data domain
 - [ ] Load only the CDN libs you need (D3 + TopoJSON for maps, Chart.js for charts)
 - [ ] Create semantic JSON data files (one flat array per file); fetch them all in `Promise.all` on boot
@@ -249,5 +249,5 @@ Checklist for starting a new data-app:
 - [ ] If including a chart: initialise once, call `.data.datasets = …` + `.update()` on subsequent renders
 - [ ] Summary tab: always include a full-width electoral/aggregate KPI card at the top
 - [ ] Responsive: collapse the summary grid to single column below 600px
-- [ ] Add entry to `index.html` APPS array with `category: 'data-apps'`
-- [ ] Update `README.md` under the `data-apps` category section
+- [ ] Add entry to `index.html` APPS array with `category: 'apps-data'`
+- [ ] Update `README.md` under the `apps-data` category section

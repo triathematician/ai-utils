@@ -1,6 +1,10 @@
-const fs = require('fs');
+const fs   = require('fs');
+const path = require('path');
 
-const csv = fs.readFileSync('countypres_2000-2024.csv', 'utf8');
+const RAW     = path.join(__dirname, '../../raw/elections');
+const DERIVED = path.join(__dirname, '../../derived/elections');
+
+const csv = fs.readFileSync(path.join(RAW, 'countypres_2000-2024.csv'), 'utf8');
 const lines = csv.split('\n');
 const headers = lines[0].split(',').map(h => h.trim().replace(/^"|"$/g, ''));
 const h = Object.fromEntries(headers.map((k, i) => [k, i]));
@@ -71,5 +75,5 @@ for (const year of Object.keys(results).sort((a, b) => a - b)) {
   }
 }
 
-fs.writeFileSync('../vote-analysis/results-county.json', JSON.stringify(output));
+fs.writeFileSync(path.join(DERIVED, 'results-county.json'), JSON.stringify(output));
 console.log(`${output.length} rows, years: ${[...new Set(output.map(r => r.year))].join(', ')}`);

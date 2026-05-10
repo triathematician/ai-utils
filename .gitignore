@@ -46,9 +46,9 @@ dist/
 .worktrees/
 
 # ── Raw data (local downloads, not committed) ─────────────────────────────────
-data-apps/raw-data/*
-!data-apps/raw-data/*.md
-!data-apps/raw-data/*.js
+apps-data/raw-data/*
+!apps-data/raw-data/*.md
+!apps-data/raw-data/*.js
 data/raw/**/*
 !data/raw/**/
 !data/raw/**/*.md

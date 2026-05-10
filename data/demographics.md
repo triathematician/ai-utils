@@ -40,4 +40,4 @@ This is a static 2020 ACS 5-year snapshot — not updated per election year.
 `demographics.json` is a hand-assembled static file. To update or extend it:
 1. Download the relevant ACS tables from [data.census.gov](https://data.census.gov/).
 2. Update the values in `derived/demographics/demographics.json` directly, or write a transform script and place it under `scripts/demographics/`.
-3. If adding new fields, update the table above and the `DEMO_VARS` array in `data-apps/vote-analysis/index.html`.
+3. If adding new fields, update the table above and the `DEMO_VARS` array in `apps-data/vote-analysis/index.html`.

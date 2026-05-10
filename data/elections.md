@@ -156,7 +156,7 @@ Cross-check state results against [Dave Leip's Atlas of U.S. Presidential Electi
 **To add a future election year — state level:**
 1. Add a row to `elections.json` with the year, candidates, and national popular vote.
 2. Add 51 rows to `results.json` (one per state/DC) with certified state results.
-3. If a new census has reallocated electoral votes, add a fifth element to each state's `ev` array in `states.json` and update the `getEV()` boundary conditions in `data-apps/vote-analysis/index.html`.
+3. If a new census has reallocated electoral votes, add a fifth element to each state's `ev` array in `states.json` and update the `getEV()` boundary conditions in `apps-data/vote-analysis/index.html`.
 
 **To add a future election year — county level:**
 1. Add rows to `results-county.json` using the MIT EDSL county dataset (doi:10.7910/DVN/VOQCHQ).
@@ -164,4 +164,4 @@ Cross-check state results against [Dave Leip's Atlas of U.S. Presidential Electi
 
 **To add a future election year — district level:**
 1. Add rows to `results-district.json` with results on the applicable Congress's district lines.
-2. If a new census cycle has been applied, add a new boundary TopoJSON file and update the `getDistrictCycle()` logic in `data-apps/vote-analysis/index.html` to point to it.
+2. If a new census cycle has been applied, add a new boundary TopoJSON file and update the `getDistrictCycle()` logic in `apps-data/vote-analysis/index.html` to point to it.

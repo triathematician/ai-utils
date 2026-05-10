@@ -4,7 +4,7 @@
 
 **Goal:** Add a SWING map/table overlay showing per-state partisan shift vs the prior election, and a new DEMOGRAPHICS tab with a scatter plot correlating five 2020 ACS variables against the selected year's D−R margin.
 
-**Architecture:** All changes are to `data-apps/vote-analysis/index.html` (HTML structure, CSS, and JS) plus two new/updated data files (`demographics.json`, `data-notes.md`). Boot fetches demographics.json alongside the existing three files. No new libraries needed — regression is computed inline (~10 lines).
+**Architecture:** All changes are to `apps-data/vote-analysis/index.html` (HTML structure, CSS, and JS) plus two new/updated data files (`demographics.json`, `data-notes.md`). Boot fetches demographics.json alongside the existing three files. No new libraries needed — regression is computed inline (~10 lines).
 
 **Tech Stack:** Vanilla JS, D3 v7 (map only), Chart.js v4, 2020 ACS 5-year Census data.
 
@@ -13,7 +13,7 @@
 ## Task 1: Create demographics.json
 
 **Files:**
-- Create: `data-apps/vote-analysis/demographics.json`
+- Create: `apps-data/vote-analysis/demographics.json`
 
 **Step 1: Create the file with 2020 ACS 5-year data**
 
@@ -78,14 +78,14 @@ Values sourced from: ACS Table S1501 (education), S1901 (income), P2 (urban), P1
 **Step 2: Verify 51 entries**
 
 ```bash
-node -e "const d = require('./data-apps/vote-analysis/demographics.json'); console.log(d.length)"
+node -e "const d = require('./apps-data/vote-analysis/demographics.json'); console.log(d.length)"
 ```
 Expected: `51`
 
 **Step 3: Commit**
 
 ```bash
-git add data-apps/vote-analysis/demographics.json
+git add apps-data/vote-analysis/demographics.json
 git commit -m "data: add 2020 ACS demographics data for vote-analysis"
 ```
 
@@ -94,7 +94,7 @@ git commit -m "data: add 2020 ACS demographics data for vote-analysis"
 ## Task 2: Update data-notes.md
 
 **Files:**
-- Modify: `data-apps/vote-analysis/data-notes.md`
+- Modify: `apps-data/vote-analysis/data-notes.md`
 
 **Step 1: Add demographics.json section**
 
@@ -120,7 +120,7 @@ This is a static 2020 ACS 5-year snapshot — not updated per election year.
 **Step 2: Commit**
 
 ```bash
-git add data-apps/vote-analysis/data-notes.md
+git add apps-data/vote-analysis/data-notes.md
 git commit -m "docs: document demographics.json sources in data-notes"
 ```
 
@@ -129,7 +129,7 @@ git commit -m "docs: document demographics.json sources in data-notes"
 ## Task 3: Swing map mode
 
 **Files:**
-- Modify: `data-apps/vote-analysis/index.html`
+- Modify: `apps-data/vote-analysis/index.html`
 
 This task adds the SWING button to the header, the `stateSwingColor()` helper, the swing legend, and the swing row in the map tooltip.
 
@@ -293,7 +293,7 @@ Add this after the existing Margin row.
 
 **Step 8: Manual verification**
 
-Open `data-apps/vote-analysis/index.html` via a local server. Verify:
+Open `apps-data/vote-analysis/index.html` via a local server. Verify:
 - SWING button appears greyed out on 2008, clickable on other years
 - Switching to SWING mode on 2024 shows blue/red shift colors
 - Tooltip shows Swing row correctly
@@ -302,7 +302,7 @@ Open `data-apps/vote-analysis/index.html` via a local server. Verify:
 **Step 9: Commit**
 
 ```bash
-git add data-apps/vote-analysis/index.html
+git add apps-data/vote-analysis/index.html
 git commit -m "feat: add swing map overlay mode to vote-analysis"
 ```
 
@@ -311,7 +311,7 @@ git commit -m "feat: add swing map overlay mode to vote-analysis"
 ## Task 4: Swing column in By State table
 
 **Files:**
-- Modify: `data-apps/vote-analysis/index.html`
+- Modify: `apps-data/vote-analysis/index.html`
 
 **Step 1: Add SWING column header**
 
@@ -364,7 +364,7 @@ In the `tbody.innerHTML` row template, find the margin cell and add the swing ce
 **Step 5: Commit**
 
 ```bash
-git add data-apps/vote-analysis/index.html
+git add apps-data/vote-analysis/index.html
 git commit -m "feat: add swing column to by-state table"
 ```
 
@@ -373,7 +373,7 @@ git commit -m "feat: add swing column to by-state table"
 ## Task 5: Demographics tab
 
 **Files:**
-- Modify: `data-apps/vote-analysis/index.html`
+- Modify: `apps-data/vote-analysis/index.html`
 
 **Step 1: Add DEMOGRAPHICS tab button in HTML**
 
@@ -646,7 +646,7 @@ if (currentTab === 'demo') renderDemographics();
 **Step 9: Commit**
 
 ```bash
-git add data-apps/vote-analysis/index.html
+git add apps-data/vote-analysis/index.html
 git commit -m "feat: add demographics scatter tab to vote-analysis"
 ```
 

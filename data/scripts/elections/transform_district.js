@@ -1,4 +1,8 @@
-const fs = require('fs');
+const fs   = require('fs');
+const path = require('path');
+
+const RAW     = path.join(__dirname, '../../raw/elections');
+const DERIVED = path.join(__dirname, '../../derived/elections');
 
 // CSV line parser that handles quoted fields containing commas
 function parseCSVLine(line) {
@@ -27,7 +31,7 @@ const output = [];
 // ── Daily Kos: 2000, 2004, 2008 on 2006-2010 district lines ──────────────────
 // Row 1: ,,,2008,,2004,,2000,
 // Row 2: CD,Incumbent,Party,Obama,McCain,Kerry,Bush,Gore,Bush
-const dk0810File = 'Daily Kos Elections 2008 presidential election results for congressional districts used in 2006, 2008 & 2010 elections - Results.csv';
+const dk0810File = path.join(RAW, 'Daily Kos Elections 2008 presidential election results for congressional districts used in 2006, 2008 & 2010 elections - Results.csv');
 const dk0810Lines = fs.readFileSync(dk0810File, 'utf8').split('\n').slice(2); // skip 2 header rows
 
 for (const line of dk0810Lines) {
@@ -52,7 +56,7 @@ for (const line of dk0810Lines) {
 // Expected header row 1: ,,,2012,,2008,  (or similar)
 // Expected header row 2: District,Incumbent,Party,Obama,Romney,...
 // TODO: verify column layout once file is downloaded
-const dk1214File = 'Daily Kos Elections 2008 & 2012 presidential election results for congressional districts used in 2012 & 2014 elections - Results.csv';
+const dk1214File = path.join(RAW, 'Daily Kos Elections 2008 & 2012 presidential election results for congressional districts used in 2012 & 2014 elections - Results.csv');
 if (fs.existsSync(dk1214File)) {
   const dk1214Lines = fs.readFileSync(dk1214File, 'utf8').split('\n').slice(2);
   for (const line of dk1214Lines) {
@@ -83,7 +87,7 @@ if (fs.existsSync(dk1214File)) {
 // ── Daily Kos: 2016, 2020 on 2020 district lines (116th Congress) ─────────────
 // Row 1: ,,,2020,,2016,,2012,,2008,
 // Row 2: District,Incumbent,Party,Biden,Trump,Clinton,Trump,Obama,Romney,Obama,McCain
-const dkFile = 'Daily Kos Elections 2008, 2012, 2016 & 2020 presidential election results for congressional districts used in 2020 elections - Results.csv';
+const dkFile = path.join(RAW, 'Daily Kos Elections 2008, 2012, 2016 & 2020 presidential election results for congressional districts used in 2020 elections - Results.csv');
 const dkLines = fs.readFileSync(dkFile, 'utf8').split('\n').slice(2);
 
 for (const line of dkLines) {
@@ -108,7 +112,7 @@ for (const line of dkLines) {
 // Row 2: year headers            (skip)
 // Row 3: candidate headers       (skip)
 // Row 4+: District(0), Incumbent(1), Party(2), Harris(3), Trump(4), Margin(5), Biden(6), Trump(7), Margin(8)
-const dbFile = "The Downballot's 2020 & 2024 presidential election results for congressional districts used in the 2024 elections - Percentages.csv";
+const dbFile = path.join(RAW, "The Downballot's 2020 & 2024 presidential election results for congressional districts used in the 2024 elections - Percentages.csv");
 const dbLines = fs.readFileSync(dbFile, 'utf8').split('\n').slice(3);
 
 for (const line of dbLines) {
@@ -122,7 +126,7 @@ for (const line of dbLines) {
 
 output.sort((a, b) => a.year - b.year || a.district.localeCompare(b.district));
 
-fs.writeFileSync('../vote-analysis/results-district.json', JSON.stringify(output));
+fs.writeFileSync(path.join(DERIVED, 'results-district.json'), JSON.stringify(output));
 const years = [...new Set(output.map(r => r.year))];
 console.log(`${output.length} rows, years: ${years.join(', ')}`);
 

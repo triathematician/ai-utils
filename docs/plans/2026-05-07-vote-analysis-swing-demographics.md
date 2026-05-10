@@ -1,7 +1,7 @@
 # Design: Swing Overlay + Demographics Tab — vote-analysis
 
 **Date:** 2026-05-07
-**App:** `data-apps/vote-analysis/`
+**App:** `apps-data/vote-analysis/`
 
 ---
 
@@ -80,7 +80,7 @@ Fifth tab labeled `DEMOGRAPHICS`, inserted after SUMMARY.
 
 ### Data file
 
-New file: `data-apps/vote-analysis/demographics.json`
+New file: `apps-data/vote-analysis/demographics.json`
 
 Flat array, one object per state:
 

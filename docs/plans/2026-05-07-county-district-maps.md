@@ -13,9 +13,9 @@
 ## Task 1: Extend elections.json and states.json to 2000
 
 **Files:**
-- Modify: `data-apps/vote-analysis/elections.json`
-- Modify: `data-apps/vote-analysis/states.json`
-- Modify: `data-apps/vote-analysis/index.html` (getEV + logo subtitle)
+- Modify: `apps-data/vote-analysis/elections.json`
+- Modify: `apps-data/vote-analysis/states.json`
+- Modify: `apps-data/vote-analysis/index.html` (getEV + logo subtitle)
 
 **Step 1: Prepend 2000 and 2004 to elections.json**
 
@@ -101,7 +101,7 @@ Replace the entire file content with:
 
 Verify the 1990 census total sums to 538:
 ```bash
-node -e "const s=require('./data-apps/vote-analysis/states.json');console.log(s.reduce((t,x)=>t+x.ev[0],0))"
+node -e "const s=require('./apps-data/vote-analysis/states.json');console.log(s.reduce((t,x)=>t+x.ev[0],0))"
 ```
 Expected: `538`
 
@@ -137,7 +137,7 @@ Replace: `US PRESIDENTIAL ELECTIONS &middot; 2000–2024`
 
 **Step 5: Manual verification**
 
-Open the app via local server (e.g. `python -m http.server 8000` from `data-apps/vote-analysis/`). Confirm:
+Open the app via local server (e.g. `python -m http.server 8000` from `apps-data/vote-analysis/`). Confirm:
 - Year buttons 2000 and 2004 appear
 - 2000 SWING button is disabled
 - Score bar EV total for 2000 = 538 (Bush 271 + Gore 266 + 1 faithless = 538; Bush should show 271)
@@ -146,7 +146,7 @@ Open the app via local server (e.g. `python -m http.server 8000` from `data-apps
 **Step 6: Commit**
 
 ```bash
-git add data-apps/vote-analysis/elections.json data-apps/vote-analysis/states.json data-apps/vote-analysis/index.html
+git add apps-data/vote-analysis/elections.json apps-data/vote-analysis/states.json apps-data/vote-analysis/index.html
 git commit -m "data: extend elections and states data to 2000, update getEV for 4 census cycles"
 ```
 
@@ -155,7 +155,7 @@ git commit -m "data: extend elections and states data to 2000, update getEV for 
 ## Task 2: Extend results.json with 2000 and 2004 state results
 
 **Files:**
-- Modify: `data-apps/vote-analysis/results.json`
+- Modify: `apps-data/vote-analysis/results.json`
 
 **Step 1: Download the MIT EDSL state-level dataset**
 
@@ -222,12 +222,12 @@ import json
 with open('state_2000_2020.json') as f:
     new_rows = [r for r in json.load(f) if r['year'] in (2000, 2004)]
 
-with open('data-apps/vote-analysis/results.json') as f:
+with open('apps-data/vote-analysis/results.json') as f:
     existing = json.load(f)
 
 combined = new_rows + existing
 
-with open('data-apps/vote-analysis/results.json', 'w') as f:
+with open('apps-data/vote-analysis/results.json', 'w') as f:
     json.dump(combined, f, separators=(',', ':'))
     f.write('\n')
 ```
@@ -235,7 +235,7 @@ with open('data-apps/vote-analysis/results.json', 'w') as f:
 **Step 4: Verify row count**
 
 ```bash
-node -e "const d=require('./data-apps/vote-analysis/results.json');console.log(d.length)"
+node -e "const d=require('./apps-data/vote-analysis/results.json');console.log(d.length)"
 ```
 Expected: `357` (51 states × 7 years)
 
@@ -249,7 +249,7 @@ Open the app via local server, select 2000:
 **Step 6: Commit**
 
 ```bash
-git add data-apps/vote-analysis/results.json
+git add apps-data/vote-analysis/results.json
 git commit -m "data: add 2000 and 2004 state-level presidential results"
 ```
 
@@ -258,7 +258,7 @@ git commit -m "data: add 2000 and 2004 state-level presidential results"
 ## Task 3: Create results-county.json
 
 **Files:**
-- Create: `data-apps/vote-analysis/results-county.json`
+- Create: `apps-data/vote-analysis/results-county.json`
 
 **Step 1: Download the MIT EDSL county-level dataset**
 
@@ -312,19 +312,19 @@ for year in sorted(results):
 print(json.dumps(output, separators=(',', ':')))
 ```
 
-Run: `python transform_county.py > data-apps/vote-analysis/results-county.json`
+Run: `python transform_county.py > apps-data/vote-analysis/results-county.json`
 
 **Step 3: Verify row count**
 
 ```bash
-node -e "const d=require('./data-apps/vote-analysis/results-county.json');console.log(d.length,'rows,',new Set(d.map(r=>r.year)).size,'years')"
+node -e "const d=require('./apps-data/vote-analysis/results-county.json');console.log(d.length,'rows,',new Set(d.map(r=>r.year)).size,'years')"
 ```
 Expected: approximately `21,000–22,000` rows, `5–6` years (2000–2020, possibly 2024).
 
 **Step 4: Commit**
 
 ```bash
-git add data-apps/vote-analysis/results-county.json
+git add apps-data/vote-analysis/results-county.json
 git commit -m "data: add county-level presidential results 2000-2020"
 ```
 
@@ -333,7 +333,7 @@ git commit -m "data: add county-level presidential results 2000-2020"
 ## Task 4: Add COUNTY map tab to index.html
 
 **Files:**
-- Modify: `data-apps/vote-analysis/index.html`
+- Modify: `apps-data/vote-analysis/index.html`
 
 This task: HTML structure, CSS, shared color helpers refactored, county data variables, county helpers, county map init/render, boot wiring, selectTab/selectYear dispatch. Does NOT add the district tab.
 
@@ -717,7 +717,7 @@ Open app via local server. Click COUNTY tab:
 **Step 11: Commit**
 
 ```bash
-git add data-apps/vote-analysis/index.html
+git add apps-data/vote-analysis/index.html
 git commit -m "feat: add county map tab with full national choropleth"
 ```
 
@@ -726,9 +726,9 @@ git commit -m "feat: add county map tab with full national choropleth"
 ## Task 5: Create congressional district boundary TopoJSON files
 
 **Files:**
-- Create: `data-apps/vote-analysis/districts-2000s.json` (2000 census, used for 2000–2008 elections)
-- Create: `data-apps/vote-analysis/districts-2010s.json` (2010 census, used for 2012–2020 elections)
-- Create: `data-apps/vote-analysis/districts-2020s.json` (2020 census, used for 2024 election)
+- Create: `apps-data/vote-analysis/districts-2000s.json` (2000 census, used for 2000–2008 elections)
+- Create: `apps-data/vote-analysis/districts-2010s.json` (2010 census, used for 2012–2020 elections)
+- Create: `apps-data/vote-analysis/districts-2020s.json` (2020 census, used for 2024 election)
 
 **Step 1: Install mapshaper**
 
@@ -814,13 +814,13 @@ Expected: ~435 features. Sample IDs like `["AL-01","AL-02","AL-03"]` or similar.
 **Step 6: Move files to the app directory**
 
 ```bash
-mv districts-2000s.json districts-2010s.json districts-2020s.json data-apps/vote-analysis/
+mv districts-2000s.json districts-2010s.json districts-2020s.json apps-data/vote-analysis/
 ```
 
 **Step 7: Commit**
 
 ```bash
-git add data-apps/vote-analysis/districts-2000s.json data-apps/vote-analysis/districts-2010s.json data-apps/vote-analysis/districts-2020s.json
+git add apps-data/vote-analysis/districts-2000s.json apps-data/vote-analysis/districts-2010s.json apps-data/vote-analysis/districts-2020s.json
 git commit -m "data: add congressional district boundary TopoJSON for 3 census cycles"
 ```
 
@@ -829,7 +829,7 @@ git commit -m "data: add congressional district boundary TopoJSON for 3 census c
 ## Task 6: Create results-district.json
 
 **Files:**
-- Create: `data-apps/vote-analysis/results-district.json`
+- Create: `apps-data/vote-analysis/results-district.json`
 
 **Step 1: Obtain the Daily Kos Elections presidential results by congressional district**
 
@@ -899,13 +899,13 @@ print(json.dumps(output, separators=(',', ':')))
 
 Adjust `YEAR_COLS` and `row['District']` to match the actual CSV column names.
 
-Run: `python transform_district.py > data-apps/vote-analysis/results-district.json`
+Run: `python transform_district.py > apps-data/vote-analysis/results-district.json`
 
 **Step 3: Verify row count and spot-check**
 
 ```bash
 node -e "
-const d = require('./data-apps/vote-analysis/results-district.json');
+const d = require('./apps-data/vote-analysis/results-district.json');
 console.log(d.length, 'rows');
 console.log(new Set(d.map(r=>r.year)).size, 'years');
 // Check a known result: TX-07 in 2020 should be D-leaning (Biden flipped it)
@@ -919,7 +919,7 @@ Expected: ~3,000 rows, 7 years. TX-07 2020 should show D > R (Biden won with ~53
 **Step 4: Commit**
 
 ```bash
-git add data-apps/vote-analysis/results-district.json
+git add apps-data/vote-analysis/results-district.json
 git commit -m "data: add presidential results by congressional district 2000-2024"
 ```
 
@@ -928,7 +928,7 @@ git commit -m "data: add presidential results by congressional district 2000-202
 ## Task 7: Add DISTRICT map tab to index.html
 
 **Files:**
-- Modify: `data-apps/vote-analysis/index.html`
+- Modify: `apps-data/vote-analysis/index.html`
 
 The `tab-district` HTML and CSS are already added in Task 4. This task adds the JS.
 
@@ -1160,7 +1160,7 @@ Open app via local server. Click DISTRICT tab:
 **Step 6: Commit**
 
 ```bash
-git add data-apps/vote-analysis/index.html
+git add apps-data/vote-analysis/index.html
 git commit -m "feat: add congressional district map tab with lazy-loaded cycle boundaries"
 ```
 
@@ -1169,7 +1169,7 @@ git commit -m "feat: add congressional district map tab with lazy-loaded cycle b
 ## Task 8: Update data-notes.md
 
 **Files:**
-- Modify: `data-apps/vote-analysis/data-notes.md`
+- Modify: `apps-data/vote-analysis/data-notes.md`
 
 **Step 1: Update the file**
 
@@ -1186,7 +1186,7 @@ Replace the full contents with the updated version documenting all files:
 **Step 2: Commit**
 
 ```bash
-git add data-apps/vote-analysis/data-notes.md
+git add apps-data/vote-analysis/data-notes.md
 git commit -m "docs: update data-notes for 2000 extension and county/district data files"
 ```
 
@@ -1194,7 +1194,7 @@ git commit -m "docs: update data-notes for 2000 extension and county/district da
 
 ## Final: verification pass
 
-Open the app via `python -m http.server 8000` from `data-apps/vote-analysis/`. Check:
+Open the app via `python -m http.server 8000` from `apps-data/vote-analysis/`. Check:
 
 1. Year buttons: 2000, 2004, 2008, 2012, 2016, 2020, 2024 all present
 2. MAP tab: state choropleth works for all years
