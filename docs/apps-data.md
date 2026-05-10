@@ -212,24 +212,30 @@ body::before {
 - Fetch all data files on boot using `Promise.all`, alongside any CDN data (e.g. TopoJSON). Build in-memory lookup objects from the raw arrays after loading.
 - Use lookup helpers (`getResult(abbr, year)`, `getEV(abbr, year)`) so rendering functions stay concise.
 - Keep raw numbers as numbers (not strings); format only at render time with `.toFixed(1)`.
-- Include a **`data-notes.md`** file in the app directory documenting: each file's fields, its authoritative source URL, and a procedure for updating or extending the data.
 - Data files must be sourced from authoritative references (official government sources, academic datasets, etc.). Never invent or estimate figures.
 
 ### Raw data processing
 
-Large source files (CSVs, shapefiles) are not committed to the repo. They live in `apps-data/raw-data/`, which is gitignored except for `.md` files.
+The repo has a shared `data/` layer for all derived datasets. Raw downloads are never committed.
+
+```
+data/
+  raw/{category}/      ← gitignored large downloads; *.md files committed (see README.md in each folder)
+  derived/{category}/  ← committed processed JSON files; apps copy what they need into their own directory
+  scripts/{category}/  ← committed transform scripts
+  {category}.md        ← source citations, schemas, and update procedures for the category
+```
 
 **Conventions:**
 
-- **Transform scripts** live in `raw-data/` alongside their source files and are committed (`.js` files are tracked; raw data files are not). Write them in Node.js (not Python) since Node is always available in this repo. Output goes directly to the target app directory (e.g. `apps-data/vote-analysis/results-county.json`).
-- **Intermediate files** (e.g. a full transform output where only a subset of years is used downstream) also live in `raw-data/` and are gitignored.
-- **`raw-data/citations.md`** is committed and documents every source file in the folder. Each entry includes:
-  - The raw filename and its source (URL, dataset name, publisher)
-  - Download date
-  - The transform script used, with a one-line description of what it does
-  - Any intermediate file produced
-  - The output file path and a brief description of what was written (row count, years covered, etc.)
-- Keep one entry per source file, not per output. If the same source feeds multiple outputs, list each output under the same entry.
+- **Transform scripts** live in `data/scripts/{category}/` and are committed. Use `__dirname`-based paths so scripts run correctly regardless of working directory. Output goes to `data/derived/{category}/`; copy derived files into the app directory after running.
+- **Intermediate files** (e.g. a full transform output where only a subset is used downstream) live in `data/raw/{category}/` and are gitignored.
+- **`data/{category}.md`** is the authoritative doc for each data category. It covers:
+  - Each derived file: fields, schema, and authoritative source URL
+  - Each raw source file: download URL and the transform script / column mapping used
+  - Update procedure for adding new data
+- **`data/raw/{category}/README.md`** (committed) lists the raw files that must be downloaded locally and the commands to run the transforms.
+- Keep one section per derived file, not per source. If multiple raw sources feed one derived file, list each source within that section.
 
 ---
 
@@ -242,7 +248,8 @@ Checklist for starting a new data-app:
 - [ ] Copy the full `:root` CSS variable block; rename semantic vars to match your data domain
 - [ ] Load only the CDN libs you need (D3 + TopoJSON for maps, Chart.js for charts)
 - [ ] Create semantic JSON data files (one flat array per file); fetch them all in `Promise.all` on boot
-- [ ] Write `data-notes.md` documenting each file's fields, source URL, and update procedure
+- [ ] Add (or extend) `data/{category}.md` documenting each file's fields, source URL, and update procedure
+- [ ] Add `data/raw/{category}/README.md` listing raw files to download and transform commands
 - [ ] Implement lookup helpers so rendering functions are concise
 - [ ] Year/period selector: build dynamically from the loaded periods array
 - [ ] If including a map: fetch TopoJSON, handle errors gracefully, never re-initialise the SVG on data change
