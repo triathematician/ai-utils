@@ -49,6 +49,9 @@ dist/
 data-apps/raw-data/*
 !data-apps/raw-data/*.md
 !data-apps/raw-data/*.js
+data/raw/**/*
+!data/raw/**/
+!data/raw/**/*.md
 
 # ── General ───────────────────────────────────────────────────────────────────
 .DS_Store

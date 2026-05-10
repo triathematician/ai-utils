@@ -35,7 +35,13 @@ ai-utils/
   common/                       ← shared assets (if any)
     yahoo-finance-proxy/          ← Java proxy service for Yahoo Finance data
   data-apps/
-    vote-analysis/                ← VOTE ANALYSIS: US presidential election trends 2008–2024
+    vote-analysis/                ← VOTE ANALYSIS: US presidential election trends 2000–2024
+  data/
+    elections.md                  ← source docs + schemas for elections data
+    demographics.md               ← source docs + schemas for demographics data
+    raw/                          ← gitignored large source downloads (see README.md in each subfolder)
+    derived/                      ← committed processed JSON files consumed by apps
+    scripts/                      ← transform scripts that produce derived/ from raw/
 ```
 
 Most of these apps can be run directly from the file system. Exceptions:

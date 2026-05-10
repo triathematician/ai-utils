@@ -186,9 +186,20 @@ body::before {
   position: absolute; bottom: 14px; left: 175px;
   font-size: 9px; color: var(--muted); letter-spacing: 0.06em; pointer-events: none;
 }
+.state-outline { fill: none; stroke: rgba(255,255,255,0.7); stroke-width: 1px; pointer-events: none; }
+#state-lines-wrap { display: none; margin-left: 6px; padding-left: 6px; border-left: 1px solid var(--border); }
 #district-loading {
   position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
   color: var(--muted); font-size: 11px;
+}
+#district-no-data {
+  position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+  text-align: center; color: var(--muted); font-size: 11px; pointer-events: none;
+}
+#district-no-data-sub { font-size: 9px; margin-top: 6px; color: var(--dim); letter-spacing: 0.06em; }
+#district-data-note {
+  position: absolute; bottom: 14px; left: 175px;
+  font-size: 9px; color: var(--muted); letter-spacing: 0.06em; pointer-events: none;
 }
 
 /* ── BY STATE TAB ── */
@@ -270,6 +281,20 @@ body::before {
   transition: all 0.1s; white-space: nowrap;
 }
 .ctrl-btn:hover { color: var(--text); border-color: var(--border2); }
+.ctrl-btn.active { color: var(--text); border-color: var(--d-text); background: rgba(30,88,204,0.13); }
+
+/* ── DISTRIBUTION BAR ── */
+#dist-bar { display: flex; height: 14px; flex-shrink: 0; }
+#dist-bar-left  { min-width: 110px; flex-shrink: 0; background: rgba(30,88,204,0.16);  border-right: 1px solid var(--border); }
+#dist-bar-right { min-width: 110px; flex-shrink: 0; background: rgba(192,30,40,0.16); border-left:  1px solid var(--border); }
+#dist-bar-inner { flex: 1; display: flex; overflow: hidden; position: relative; }
+.dist-threshold { position: absolute; top: 0; bottom: 0; width: 1px; background: rgba(255,255,255,0.55); pointer-events: none; }
+.dist-threshold-label {
+  position: absolute; top: 1px; left: 3px;
+  font-family: var(--mono); font-size: 7px; color: rgba(255,255,255,0.8);
+  letter-spacing: 0.04em; white-space: nowrap; line-height: 1;
+}
+.dist-seg { height: 100%; transition: width 0.4s ease; min-width: 0; }
 
 #trends-chart-wrap {
   flex: 1; padding: 16px 20px; overflow: hidden;
@@ -384,6 +409,9 @@ body::before {
     <button class="mode-btn" data-mode="margin">MARGIN</button>
     <button class="mode-btn" data-mode="swing" id="btn-swing-mode">SWING</button>
   </div>
+  <div id="state-lines-wrap">
+    <button id="btn-state-lines" class="mode-btn active">STATES</button>
+  </div>
 </header>
 
 <!-- ══ SCORE BAR ══ -->
@@ -404,12 +432,19 @@ body::before {
   </div>
 </div>
 
+<!-- ══ DISTRIBUTION BAR ══ -->
+<div id="dist-bar">
+  <div id="dist-bar-left"></div>
+  <div id="dist-bar-inner"></div>
+  <div id="dist-bar-right"></div>
+</div>
+
 <!-- ══ TABS ══ -->
 <nav id="tabs">
-  <button class="tab active" data-tab="map">MAP</button>
+  <button class="tab active" data-tab="map">STATES</button>
   <button class="tab" data-tab="county">COUNTY</button>
   <button class="tab" data-tab="district">DISTRICT</button>
-  <button class="tab" data-tab="states">BY STATE</button>
+  <button class="tab" data-tab="states">TABLE</button>
   <button class="tab" data-tab="trends">TRENDS</button>
   <button class="tab" data-tab="summary">SUMMARY</button>
   <button class="tab" data-tab="demo">DEMOGRAPHICS</button>
@@ -452,19 +487,36 @@ body::before {
       <div id="district-loading" style="display:none">
         <span>Loading district boundaries…</span>
       </div>
+      <div id="district-no-data" style="display:none">
+        <div>District-level data unavailable for this year.</div>
+        <div id="district-no-data-sub">Congressional district results are available for 2000–2024.</div>
+      </div>
+      <div id="district-data-note" style="display:none"></div>
     </div>
   </div>
 
-  <!-- BY STATE TAB -->
+  <!-- TABLE TAB -->
   <div id="tab-states" class="tab-panel">
     <div id="states-controls">
-      <input type="text" id="state-search" placeholder="Search state or abbr…">
+      <div id="table-geo-toggle" style="display:flex;gap:3px;flex-shrink:0;padding-right:8px;border-right:1px solid var(--border)">
+        <button class="ctrl-btn active" data-geo="states">STATES</button>
+        <button class="ctrl-btn" data-geo="county">COUNTY</button>
+        <button class="ctrl-btn" data-geo="district">DISTRICT</button>
+      </div>
+      <div id="table-region-btns" style="display:flex;gap:3px;flex-shrink:0;padding-right:8px;border-right:1px solid var(--border)">
+        <button class="ctrl-btn active" data-region="">ALL</button>
+        <button class="ctrl-btn" data-region="northeast">NE</button>
+        <button class="ctrl-btn" data-region="midwest">MW</button>
+        <button class="ctrl-btn" data-region="south">SO</button>
+        <button class="ctrl-btn" data-region="west">WE</button>
+      </div>
+      <input type="text" id="state-search" placeholder="Search…">
       <select id="winner-filter">
-        <option value="">All states</option>
+        <option value="">All results</option>
         <option value="D">Democratic win</option>
         <option value="R">Republican win</option>
       </select>
-      <span id="state-count" aria-label="Filtered state count"></span>
+      <span id="state-count" aria-label="Filtered row count"></span>
     </div>
     <div id="states-table-wrap">
       <table id="states-table">
@@ -491,9 +543,16 @@ body::before {
       <span class="trends-label">STATES</span>
       <div id="trends-select-wrap"><!-- chips --></div>
       <div id="trends-btn-row">
+        <button class="ctrl-btn" id="btn-all-states">ALL</button>
+        <button class="ctrl-btn" id="btn-region-ne">NE</button>
+        <button class="ctrl-btn" id="btn-region-mw">MW</button>
+        <button class="ctrl-btn" id="btn-region-so">SO</button>
+        <button class="ctrl-btn" id="btn-region-we">WE</button>
         <button class="ctrl-btn" id="btn-swing">SWING</button>
         <button class="ctrl-btn" id="btn-sunbelt">SUN BELT</button>
         <button class="ctrl-btn" id="btn-rust">RUST BELT</button>
+        <button class="ctrl-btn" id="btn-avg-county">AVG COUNTY</button>
+        <button class="ctrl-btn" id="btn-avg-district">AVG DISTRICT</button>
         <button class="ctrl-btn" id="btn-clear">CLEAR</button>
       </div>
     </div>
@@ -526,6 +585,18 @@ body::before {
         <div class="s-card-title">STATE FLIPS VS PRIOR ELECTION</div>
         <ul class="flip-list" id="flips-content"></ul>
       </div>
+      <div class="s-card" id="closest-county-card">
+        <div class="s-card-title">CLOSEST COUNTIES</div>
+        <ul class="closest-list" id="closest-county-content"></ul>
+      </div>
+      <div class="s-card" id="closest-district-card">
+        <div class="s-card-title">CLOSEST DISTRICTS</div>
+        <ul class="closest-list" id="closest-district-content"></ul>
+      </div>
+      <div class="s-card" id="district-flips-card">
+        <div class="s-card-title">DISTRICT FLIPS VS PRIOR ELECTION</div>
+        <ul class="flip-list" id="district-flips-content"></ul>
+      </div>
     </div>
   </div>
 
@@ -554,13 +625,20 @@ body::before {
 // ═══════════════════════════════════════════════════════════════════
 //  DATA  (loaded from external JSON files on boot)
 // ═══════════════════════════════════════════════════════════════════
-let STATE_META, ELECTIONS, CANDIDATES, NATIONAL_PV, RESULTS, DEMOGRAPHICS, RESULTS_COUNTY, RESULTS_DISTRICT;
+let STATE_META, ELECTIONS, CANDIDATES, NATIONAL_PV, RESULTS, DEMOGRAPHICS, RESULTS_COUNTY, RESULTS_DISTRICT, REDISTRICTING_META = {};
 
 // UI config — not a data file
 const PRESET_GROUPS = {
   swing:   ['PA','MI','WI','AZ','GA','NV','NC','MN','NH'],
   sunbelt: ['TX','FL','GA','AZ','NV','NC','VA'],
   rust:    ['PA','MI','WI','OH','IN','IA','MO'],
+};
+
+const REGIONS = {
+  northeast: ['CT','ME','MA','NH','NJ','NY','PA','RI','VT'],
+  midwest:   ['IL','IN','IA','KS','MI','MN','MO','NE','ND','OH','SD','WI'],
+  south:     ['AL','AR','DC','DE','FL','GA','KY','LA','MD','MS','NC','OK','SC','TN','TX','VA','WV'],
+  west:      ['AK','AZ','CA','CO','HI','ID','MT','NV','NM','OR','UT','WA','WY'],
 };
 
 // ═══════════════════════════════════════════════════════════════════
@@ -571,16 +649,24 @@ let currentTab  = 'map';
 let mapMode     = 'winner';
 let stateSort   = { col: 'name', dir: 'asc' };
 let stateFilter = { search: '', winner: '' };
+let tableGeo    = 'states';
+let tableRegion = '';
 let selectedTrendStates = new Set(PRESET_GROUPS.swing);
+let showAvgCounty    = false;
+let showAvgDistrict  = false;
 let topoData = null;
 let mapSvgG  = null;
 let trendsChart = null;
 let countyTopoData = null;
-let countyMapSvgG  = null;
-const COUNTY_INFO  = {};
-let districtTopoData  = {};
-let districtMapSvgG   = null;
+let countyMapSvgG    = null;
+let countyStateG     = null;
+const COUNTY_INFO    = {};
+const COUNTY_NAMES   = {};
+let districtTopoData    = {};
+let districtMapSvgG     = null;
+let districtStateG      = null;
 let currentDistrictCycle = null;
+let showStateLines = true;
 
 // ═══════════════════════════════════════════════════════════════════
 //  HELPERS
@@ -615,6 +701,76 @@ function computeEVs(year) {
     if (getWinner(m.abbr, year) === 'D') dEV += ev; else rEV += ev;
   });
   return { dEV, rEV };
+}
+
+// ═══════════════════════════════════════════════════════════════════
+//  DISTRIBUTION BAR
+// ═══════════════════════════════════════════════════════════════════
+function updateDistributionBar() {
+  const bar = document.getElementById('dist-bar-inner');
+  if (!bar) return;
+
+  // Collect (value, label) pairs for the current geo type
+  const vals = [];
+  const tab = currentTab;
+  if (tab === 'county' && RESULTS_COUNTY?.[currentYear]) {
+    Object.entries(RESULTS_COUNTY[currentYear]).forEach(([fips, [d, r]]) => {
+      if (d === 0 && r === 0) return;
+      const v = mapMode === 'swing' ? getCountySwing(fips, currentYear) : d - r;
+      if (v !== null) vals.push(v);
+    });
+  } else if (tab === 'district' && RESULTS_DISTRICT?.[currentYear]) {
+    Object.entries(RESULTS_DISTRICT[currentYear]).forEach(([dist, [d, r]]) => {
+      if (d === 0 && r === 0) return;
+      const v = mapMode === 'swing' ? getDistrictSwing(dist, currentYear) : d - r;
+      if (v !== null) vals.push(v);
+    });
+  } else if (STATE_META) {
+    STATE_META.forEach(m => {
+      const v = mapMode === 'swing' ? getSwing(m.abbr, currentYear) : getMargin(m.abbr, currentYear);
+      if (v !== null) vals.push(v);
+    });
+  }
+
+  if (vals.length === 0) { bar.innerHTML = ''; return; }
+  vals.sort((a, b) => b - a); // most D first
+
+  if (mapMode === 'margin') {
+    // One segment per entity, equal width, continuous gradient color
+    const w = (100 / vals.length).toFixed(4);
+    const segs = vals.map(v =>
+      `<div class="dist-seg" style="width:${w}%;background:${marginColor(v, 'margin')}"></div>`
+    ).join('');
+    const lines = [20, 10, 0, -10, -20].map(threshold => {
+      let idx = vals.findIndex(v => v <= threshold);
+      if (idx === -1) idx = vals.length;
+      const pct = (idx / vals.length * 100).toFixed(3);
+      const lbl = threshold > 0 ? `D+${threshold}` : threshold === 0 ? 'EVEN' : `R+${Math.abs(threshold)}`;
+      return `<div class="dist-threshold" style="left:${pct}%"><span class="dist-threshold-label">${lbl}</span></div>`;
+    }).join('');
+    bar.innerHTML = segs + lines;
+  } else {
+    // 6 discrete buckets (winner / swing)
+    const CATS = [
+      { color: '#0e3b9e' }, { color: '#1e58cc' }, { color: '#5a8de8' },
+      { color: '#e07080' }, { color: '#c03040' }, { color: '#8e0f1a' },
+    ];
+    const bucketize = v => {
+      if (v >  15) return 0;
+      if (v >   5) return 1;
+      if (v >   0) return 2;
+      if (v >  -5) return 3;
+      if (v > -15) return 4;
+      return 5;
+    };
+    const counts = [0, 0, 0, 0, 0, 0];
+    vals.forEach(v => counts[bucketize(v)]++);
+    const total = vals.length;
+    bar.innerHTML = CATS.map((c, i) => {
+      const pct = (counts[i] / total * 100).toFixed(3);
+      return `<div class="dist-seg" style="width:${pct}%;background:${c.color}" title="${counts[i]}"></div>`;
+    }).join('');
+  }
 }
 
 // ═══════════════════════════════════════════════════════════════════
@@ -663,6 +819,7 @@ function updateScoreBar() {
   const linePct = 270 / 538 * 100;
   document.getElementById('score-270-line').style.left  = linePct + '%';
   document.getElementById('score-270-label').style.left = linePct + '%';
+  updateDistributionBar();
 }
 
 // ═══════════════════════════════════════════════════════════════════
@@ -674,6 +831,8 @@ function selectTab(tab) {
     t.classList.toggle('active', t.dataset.tab === tab));
   document.querySelectorAll('.tab-panel').forEach(p =>
     p.classList.toggle('active', p.id === 'tab-' + tab));
+  document.getElementById('state-lines-wrap').style.display =
+    (tab === 'county' || tab === 'district') ? 'flex' : 'none';
   if (tab === 'map'     && topoData) initOrRenderMap();
   if (tab === 'county') initOrRenderCountyMap();
   if (tab === 'district') initOrRenderDistrictMap();
@@ -681,6 +840,7 @@ function selectTab(tab) {
   if (tab === 'trends')  renderTrends();
   if (tab === 'summary') renderSummary();
   if (tab === 'demo')    renderDemographics();
+  if (tab === 'map' || tab === 'states') updateDistributionBar();
 }
 document.querySelectorAll('.tab').forEach(t =>
   t.addEventListener('click', () => selectTab(t.dataset.tab)));
@@ -693,17 +853,17 @@ function updateSwingBtn() {
   btn.disabled = (currentYear === ELECTIONS[0]);
   if (btn.disabled && mapMode === 'swing') {
     mapMode = 'winner';
-    document.querySelectorAll('.mode-btn').forEach(x =>
+    document.querySelectorAll('.mode-btn[data-mode]').forEach(x =>
       x.classList.toggle('active', x.dataset.mode === 'winner'));
     updateLegend();
     if (mapSvgG) renderMap();
   }
 }
 
-document.querySelectorAll('.mode-btn').forEach(b => {
+document.querySelectorAll('.mode-btn[data-mode]').forEach(b => {
   b.addEventListener('click', () => {
     mapMode = b.dataset.mode;
-    document.querySelectorAll('.mode-btn').forEach(x =>
+    document.querySelectorAll('.mode-btn[data-mode]').forEach(x =>
       x.classList.toggle('active', x.dataset.mode === mapMode));
     updateLegend();
     if (mapSvgG) renderMap();
@@ -711,7 +871,19 @@ document.querySelectorAll('.mode-btn').forEach(b => {
     if (countyMapSvgG) renderCountyMap();
     updateDistrictLegend();
     if (districtMapSvgG) renderDistrictMap();
+    updateDistributionBar();
   });
+});
+
+function renderStateLines() {
+  if (countyStateG)   countyStateG.style('display',   showStateLines ? '' : 'none');
+  if (districtStateG) districtStateG.style('display', showStateLines ? '' : 'none');
+}
+
+document.getElementById('btn-state-lines').addEventListener('click', () => {
+  showStateLines = !showStateLines;
+  document.getElementById('btn-state-lines').classList.toggle('active', showStateLines);
+  renderStateLines();
 });
 
 // ═══════════════════════════════════════════════════════════════════
@@ -775,8 +947,9 @@ function getCountySwing(fips, year) {
 }
 
 function getDistrictCycle(year) {
-  if (year <= 2020) return '2010s';
-  return '2020s';
+  const bf = REDISTRICTING_META[year]?.boundary_file;
+  if (!bf) return null;
+  return bf.replace('districts-', '').replace('.json', '');
 }
 function getDistrictResult(district, year) {
   return (RESULTS_DISTRICT?.[year]?.[district]) ?? [0, 0];
@@ -954,6 +1127,13 @@ function initCountyMap() {
         tip.style.top     = (event.pageY - 10) + 'px';
       })
       .on('mouseleave', () => { document.getElementById('map-tooltip').style.display = 'none'; });
+  countyStateG = svg.append('g').attr('class', 'state-outline-layer');
+  countyStateG.append('path')
+    .datum(topojson.mesh(countyTopoData, countyTopoData.objects.states, (a, b) => a !== b))
+    .attr('class', 'state-outline')
+    .attr('d', path);
+  countyStateG.style('display', showStateLines ? '' : 'none');
+
   updateCountyLegend();
   renderCountyMap();
 }
@@ -968,6 +1148,7 @@ function renderCountyMap() {
       ? swingColor(getCountySwing(fips, currentYear))
       : marginColor(dp - rp, mapMode);
   });
+  updateDistributionBar();
 }
 
 function updateCountyLegend() {
@@ -1029,12 +1210,33 @@ function updateDistrictLegend() {
 }
 
 function initOrRenderDistrictMap() {
+  const noData     = document.getElementById('district-no-data');
+  const noDataSub  = document.getElementById('district-no-data-sub');
+  const dataNoteEl = document.getElementById('district-data-note');
+  const meta       = REDISTRICTING_META[currentYear];
+
+  if (!meta) {
+    noData.style.display = 'block';
+    noDataSub.textContent = 'Congressional district results are available for 2000–2024.';
+    dataNoteEl.style.display = 'none';
+    document.getElementById('district-loading').style.display = 'none';
+    return;
+  }
+  noData.style.display = 'none';
+  if (meta.imputed && meta.imputed_note) {
+    dataNoteEl.textContent = meta.imputed_note;
+    dataNoteEl.style.display = 'block';
+  } else {
+    dataNoteEl.style.display = 'none';
+  }
+
   const cycle = getDistrictCycle(currentYear);
   const loading = document.getElementById('district-loading');
 
   if (districtTopoData[cycle]) {
     if (currentDistrictCycle !== cycle) {
       districtMapSvgG = null;
+      districtStateG  = null;
       document.getElementById('district-map-svg').innerHTML = '';
       currentDistrictCycle = cycle;
     }
@@ -1054,6 +1256,7 @@ function initOrRenderDistrictMap() {
       if (getDistrictCycle(currentYear) === cycle) loading.style.display = 'none';
       if (currentTab === 'district' && getDistrictCycle(currentYear) === cycle) {
         districtMapSvgG = null;
+        districtStateG  = null;
         document.getElementById('district-map-svg').innerHTML = '';
         currentDistrictCycle = cycle;
         initDistrictMap(topo);
@@ -1113,6 +1316,15 @@ function initDistrictMap(topo) {
         tip.style.top     = (event.pageY - 10) + 'px';
       })
       .on('mouseleave', () => { document.getElementById('map-tooltip').style.display = 'none'; });
+  districtStateG = svg.append('g').attr('class', 'state-outline-layer');
+  if (topoData) {
+    districtStateG.append('path')
+      .datum(topojson.mesh(topoData, topoData.objects.states, (a, b) => a !== b))
+      .attr('class', 'state-outline')
+      .attr('d', path);
+  }
+  districtStateG.style('display', showStateLines ? '' : 'none');
+
   updateDistrictLegend();
   renderDistrictMap();
 }
@@ -1129,119 +1341,229 @@ function renderDistrictMap() {
     }
     return marginColor(dp - rp, mapMode);
   });
+  updateDistributionBar();
 }
 
 // ═══════════════════════════════════════════════════════════════════
-//  STATE TABLE
+//  STATE / COUNTY / DISTRICT TABLE
 // ═══════════════════════════════════════════════════════════════════
-function renderStatesTable() {
-  const cands = CANDIDATES[currentYear];
-  let rows = STATE_META.map(m => {
-    const [d, r] = getResult(m.abbr, currentYear);
-    const margin = d - r;
-    const winner = d > r ? 'D' : 'R';
-    const swing = getSwing(m.abbr, currentYear);
-    return { name: m.name, abbr: m.abbr, ev: getEV(m.abbr, currentYear), d, r, margin, swing, winner };
-  });
+function marginBarHtml(margin) {
+  const absM = Math.min(Math.abs(margin), 40);
+  const barW = (absM / 40 * 50).toFixed(1);
+  const side = margin >= 0 ? 'd' : 'r';
+  const mCol = margin >= 0 ? 'var(--d-text)' : 'var(--r-text)';
+  const sign = margin >= 0 ? '+' : '';
+  return `<div class="margin-cell">
+    <div class="margin-bar-outer"><div class="margin-bar-fill ${side}" style="width:${barW}%"></div></div>
+    <span class="margin-val" style="color:${mCol}">${sign}${margin.toFixed(1)}%</span>
+  </div>`;
+}
+function swingHtml(swing) {
+  if (swing === null) return '<span style="color:var(--muted)">—</span>';
+  return `<span style="color:${swing >= 0 ? 'var(--d-text)' : 'var(--r-text)'}">` +
+    `${swing >= 0 ? 'D +' : 'R +'}${Math.abs(swing).toFixed(1)}</span>`;
+}
 
+function renderStatesTable() {
   const search  = stateFilter.search.toLowerCase();
   const winnerF = stateFilter.winner;
-  if (search)  rows = rows.filter(r2 =>
-    r2.name.toLowerCase().includes(search) || r2.abbr.toLowerCase().includes(search));
-  if (winnerF) rows = rows.filter(r2 => r2.winner === winnerF);
+  const thead   = document.querySelector('#states-table thead tr');
+  const tbody   = document.getElementById('states-tbody');
+  const TABLE_CAP = 200;
 
+  if (tableGeo === 'county') {
+    thead.innerHTML = `
+      <th data-col="name">COUNTY</th>
+      <th data-col="state">ST</th>
+      <th data-col="d">DEM %</th>
+      <th data-col="r">REP %</th>
+      <th data-col="margin">MARGIN</th>
+      <th data-col="swing">SWING</th>`;
+
+    const regionSet = tableRegion ? new Set(REGIONS[tableRegion]) : null;
+    let rows = [];
+    if (RESULTS_COUNTY?.[currentYear]) {
+      Object.entries(RESULTS_COUNTY[currentYear]).forEach(([fips, [d, r]]) => {
+        const stateAbbr = FIPS_TO_ABBR[fips.substring(0, 2)] || '';
+        if (regionSet && !regionSet.has(stateAbbr)) return;
+        const name = COUNTY_NAMES[fips] || fips;
+        if (search && !name.toLowerCase().includes(search) && !stateAbbr.toLowerCase().includes(search)) return;
+        const margin = +(d - r).toFixed(1);
+        const winner = d >= r ? 'D' : 'R';
+        if (winnerF && winner !== winnerF) return;
+        const swing = getCountySwing(fips, currentYear);
+        rows.push({ name, state: stateAbbr, d, r, margin, swing, winner });
+      });
+    }
+    rows.sort((a, b) => {
+      let va = a[stateSort.col], vb = b[stateSort.col];
+      if (typeof va === 'string') { va = va.toLowerCase(); vb = vb.toLowerCase(); }
+      if (va === null && vb === null) return 0;
+      if (va === null) return 1; if (vb === null) return -1;
+      const cmp = va < vb ? -1 : va > vb ? 1 : 0;
+      return stateSort.dir === 'asc' ? cmp : -cmp;
+    });
+    const total = rows.length;
+    rows = rows.slice(0, TABLE_CAP);
+    tbody.innerHTML = rows.map(row => `<tr>
+      <td>${row.name}</td>
+      <td class="state-abbr-cell">${row.state}</td>
+      <td class="pct-d">${row.d.toFixed(1)}%</td>
+      <td class="pct-r">${row.r.toFixed(1)}%</td>
+      <td>${marginBarHtml(row.margin)}</td>
+      <td>${swingHtml(row.swing)}</td>
+    </tr>`).join('');
+    document.getElementById('state-count').textContent =
+      total > TABLE_CAP ? `${TABLE_CAP} of ${total}` : `${total} counties`;
+    return;
+  }
+
+  if (tableGeo === 'district') {
+    thead.innerHTML = `
+      <th data-col="district">DISTRICT</th>
+      <th data-col="d">DEM %</th>
+      <th data-col="r">REP %</th>
+      <th data-col="margin">MARGIN</th>
+      <th data-col="swing">SWING</th>`;
+
+    const regionSet = tableRegion ? new Set(REGIONS[tableRegion]) : null;
+    let rows = [];
+    if (RESULTS_DISTRICT?.[currentYear]) {
+      Object.entries(RESULTS_DISTRICT[currentYear]).forEach(([dist, [d, r]]) => {
+        const stateAbbr = dist.split('-')[0];
+        if (regionSet && !regionSet.has(stateAbbr)) return;
+        if (search && !dist.toLowerCase().includes(search)) return;
+        const margin = +(d - r).toFixed(1);
+        const winner = d >= r ? 'D' : 'R';
+        if (winnerF && winner !== winnerF) return;
+        const swing = getDistrictSwing(dist, currentYear);
+        rows.push({ district: dist, d, r, margin, swing, winner });
+      });
+    }
+    rows.sort((a, b) => {
+      let va = a[stateSort.col], vb = b[stateSort.col];
+      if (typeof va === 'string') { va = va.toLowerCase(); vb = vb.toLowerCase(); }
+      if (va === null && vb === null) return 0;
+      if (va === null) return 1; if (vb === null) return -1;
+      const cmp = va < vb ? -1 : va > vb ? 1 : 0;
+      return stateSort.dir === 'asc' ? cmp : -cmp;
+    });
+    const total = rows.length;
+    rows = rows.slice(0, TABLE_CAP);
+    tbody.innerHTML = rows.map(row => `<tr>
+      <td class="state-abbr-cell">${row.district}</td>
+      <td class="pct-d">${row.d > 0 ? row.d.toFixed(1)+'%' : '—'}</td>
+      <td class="pct-r">${row.r > 0 ? row.r.toFixed(1)+'%' : '—'}</td>
+      <td>${row.d > 0 || row.r > 0 ? marginBarHtml(row.margin) : '—'}</td>
+      <td>${swingHtml(row.swing)}</td>
+    </tr>`).join('');
+    document.getElementById('state-count').textContent =
+      total > TABLE_CAP ? `${TABLE_CAP} of ${total}` : `${total} districts`;
+    return;
+  }
+
+  // tableGeo === 'states'
+  thead.innerHTML = `
+    <th data-col="name">STATE</th>
+    <th data-col="abbr">ST</th>
+    <th data-col="ev">EV</th>
+    <th data-col="d">DEM %</th>
+    <th data-col="r">REP %</th>
+    <th data-col="margin">MARGIN</th>
+    <th data-col="swing">SWING</th>
+    <th data-col="winner">RESULT</th>`;
+
+  const cands = CANDIDATES[currentYear];
+  const regionSet = tableRegion ? new Set(REGIONS[tableRegion]) : null;
+  let rows = STATE_META.map(m => {
+    const [d, r] = getResult(m.abbr, currentYear);
+    const margin = +(d - r).toFixed(1);
+    const winner = d > r ? 'D' : 'R';
+    return { name: m.name, abbr: m.abbr, ev: getEV(m.abbr, currentYear), d, r, margin, swing: getSwing(m.abbr, currentYear), winner };
+  });
+  if (regionSet) rows = rows.filter(r2 => regionSet.has(r2.abbr));
+  if (search)    rows = rows.filter(r2 => r2.name.toLowerCase().includes(search) || r2.abbr.toLowerCase().includes(search));
+  if (winnerF)   rows = rows.filter(r2 => r2.winner === winnerF);
   rows.sort((a, b) => {
     let va = a[stateSort.col], vb = b[stateSort.col];
     if (typeof va === 'string') { va = va.toLowerCase(); vb = vb.toLowerCase(); }
     if (va === null && vb === null) return 0;
-    if (va === null) return 1;
-    if (vb === null) return -1;
+    if (va === null) return 1; if (vb === null) return -1;
     const cmp = va < vb ? -1 : va > vb ? 1 : 0;
     return stateSort.dir === 'asc' ? cmp : -cmp;
   });
 
-  const [natD, natR]  = NATIONAL_PV[currentYear];
-  const natMargin     = natD - natR;
-  const { dEV, rEV }  = computeEVs(currentYear);
-  const natWinner     = dEV > rEV ? 'D' : 'R';
-  const natSide       = natWinner.toLowerCase();
-  const natMCol       = natWinner === 'D' ? 'var(--d-text)' : 'var(--r-text)';
-  const natMSign      = natMargin >= 0 ? '+' : '';
-  const natBarW       = (Math.min(Math.abs(natMargin), 40) / 40 * 50).toFixed(1);
-  const prevYear      = ELECTIONS[ELECTIONS.indexOf(currentYear) - 1];
-  const natSwing      = prevYear
-    ? +((natD - natR) - (NATIONAL_PV[prevYear][0] - NATIONAL_PV[prevYear][1])).toFixed(1)
-    : null;
-  const natSwingHtml  = natSwing === null
-    ? '<span style="color:var(--muted)">—</span>'
-    : `<span style="color:${natSwing >= 0 ? 'var(--d-text)' : 'var(--r-text)'}">${natSwing >= 0 ? 'D +' : 'R +'}${Math.abs(natSwing).toFixed(1)}</span>`;
-  const natRow = `<tr class="national-row">
+  const [natD, natR] = NATIONAL_PV[currentYear];
+  const { dEV, rEV } = computeEVs(currentYear);
+  const natWinner    = dEV > rEV ? 'D' : 'R';
+  const natSide      = natWinner.toLowerCase();
+  const prevYear     = ELECTIONS[ELECTIONS.indexOf(currentYear) - 1];
+  const natSwing     = prevYear ? +((natD - natR) - (NATIONAL_PV[prevYear][0] - NATIONAL_PV[prevYear][1])).toFixed(1) : null;
+  const natRow = !regionSet ? `<tr class="national-row">
     <td>United States</td>
     <td class="state-abbr-cell">US</td>
     <td><span style="color:var(--d-text)">${dEV}</span><span style="color:var(--muted)"> / </span><span style="color:var(--r-text)">${rEV}</span></td>
     <td class="pct-d">${natD.toFixed(1)}%</td>
     <td class="pct-r">${natR.toFixed(1)}%</td>
-    <td>
-      <div class="margin-cell">
-        <div class="margin-bar-outer">
-          <div class="margin-bar-fill ${natSide}" style="width:${natBarW}%"></div>
-        </div>
-        <span class="margin-val" style="color:${natMCol}">${natMSign}${natMargin.toFixed(1)}%</span>
-      </div>
-    </td>
-    <td>${natSwingHtml}</td>
+    <td>${marginBarHtml(natD - natR)}</td>
+    <td>${swingHtml(natSwing)}</td>
     <td><span class="winner-badge winner-${natSide}">${cands[natSide]}</span></td>
-  </tr>`;
+  </tr>` : '';
 
-  const tbody = document.getElementById('states-tbody');
   tbody.innerHTML = natRow + rows.map(row => {
-    const absM  = Math.min(Math.abs(row.margin), 40);
-    const barW  = (absM / 40 * 50).toFixed(1);
-    const side  = row.winner.toLowerCase();
-    const mSign = row.margin >= 0 ? '+' : '';
-    const mCol  = row.winner === 'D' ? 'var(--d-text)' : 'var(--r-text)';
+    const side = row.winner.toLowerCase();
     return `<tr>
       <td>${row.name}</td>
       <td class="state-abbr-cell">${row.abbr}</td>
       <td>${row.ev}</td>
       <td class="pct-d">${row.d.toFixed(1)}%</td>
       <td class="pct-r">${row.r.toFixed(1)}%</td>
-      <td>
-        <div class="margin-cell">
-          <div class="margin-bar-outer">
-            <div class="margin-bar-fill ${side}" style="width:${barW}%"></div>
-          </div>
-          <span class="margin-val" style="color:${mCol}">${mSign}${row.margin.toFixed(1)}%</span>
-        </div>
-      </td>
-      <td>
-        ${row.swing === null
-          ? '<span style="color:var(--muted)">—</span>'
-          : `<span style="color:${row.swing >= 0 ? 'var(--d-text)' : 'var(--r-text)'}">${row.swing >= 0 ? 'D +' : 'R +'}${Math.abs(row.swing).toFixed(1)}</span>`
-        }
-      </td>
+      <td>${marginBarHtml(row.margin)}</td>
+      <td>${swingHtml(row.swing)}</td>
       <td><span class="winner-badge winner-${side}">${row.winner === 'D' ? cands.d : cands.r}</span></td>
     </tr>`;
   }).join('');
   document.getElementById('state-count').textContent = rows.length + ' states';
 }
 
-document.querySelectorAll('#states-table thead th').forEach(th => {
-  th.addEventListener('click', () => {
-    const col = th.dataset.col;
-    stateSort.dir = (stateSort.col === col && stateSort.dir === 'asc') ? 'desc' : 'asc';
-    stateSort.col = col;
-    document.querySelectorAll('#states-table thead th')
-      .forEach(h => h.classList.remove('sort-asc', 'sort-desc'));
-    th.classList.add(stateSort.dir === 'asc' ? 'sort-asc' : 'sort-desc');
-    renderStatesTable();
-  });
+// Table header sort — event delegation handles dynamic header replacement
+document.getElementById('states-table').addEventListener('click', e => {
+  const th = e.target.closest('th');
+  if (!th?.dataset.col) return;
+  const col = th.dataset.col;
+  stateSort.dir = (stateSort.col === col && stateSort.dir === 'asc') ? 'desc' : 'asc';
+  stateSort.col = col;
+  renderStatesTable();
 });
 document.getElementById('state-search').addEventListener('input', e => {
   stateFilter.search = e.target.value; renderStatesTable();
 });
 document.getElementById('winner-filter').addEventListener('change', e => {
   stateFilter.winner = e.target.value; renderStatesTable();
+});
+
+// Table geo toggle
+document.querySelectorAll('#table-geo-toggle [data-geo]').forEach(btn => {
+  btn.addEventListener('click', () => {
+    tableGeo = btn.dataset.geo;
+    stateSort = { col: tableGeo === 'district' ? 'district' : 'name', dir: 'asc' };
+    document.querySelectorAll('#table-geo-toggle [data-geo]').forEach(b =>
+      b.classList.toggle('active', b.dataset.geo === tableGeo));
+    // hide winner-filter for county/district (no EV concept)
+    document.getElementById('winner-filter').style.display =
+      tableGeo === 'states' ? '' : '';
+    renderStatesTable();
+  });
+});
+
+// Table region filter
+document.querySelectorAll('#table-region-btns [data-region]').forEach(btn => {
+  btn.addEventListener('click', () => {
+    tableRegion = btn.dataset.region;
+    document.querySelectorAll('#table-region-btns [data-region]').forEach(b =>
+      b.classList.toggle('active', b.dataset.region === tableRegion));
+    renderStatesTable();
+  });
 });
 
 // ═══════════════════════════════════════════════════════════════════
@@ -1273,10 +1595,31 @@ function setTrendPreset(abbrs) {
   renderTrends();
 }
 
+document.getElementById('btn-all-states').addEventListener('click', () => setTrendPreset(STATE_META.map(m => m.abbr)));
+document.getElementById('btn-region-ne').addEventListener('click', () => setTrendPreset(REGIONS.northeast));
+document.getElementById('btn-region-mw').addEventListener('click', () => setTrendPreset(REGIONS.midwest));
+document.getElementById('btn-region-so').addEventListener('click', () => setTrendPreset(REGIONS.south));
+document.getElementById('btn-region-we').addEventListener('click', () => setTrendPreset(REGIONS.west));
 document.getElementById('btn-swing').addEventListener('click',   () => setTrendPreset(PRESET_GROUPS.swing));
 document.getElementById('btn-sunbelt').addEventListener('click', () => setTrendPreset(PRESET_GROUPS.sunbelt));
 document.getElementById('btn-rust').addEventListener('click',    () => setTrendPreset(PRESET_GROUPS.rust));
-document.getElementById('btn-clear').addEventListener('click',   () => setTrendPreset([]));
+document.getElementById('btn-avg-county').addEventListener('click', () => {
+  showAvgCounty = !showAvgCounty;
+  document.getElementById('btn-avg-county').classList.toggle('active', showAvgCounty);
+  renderTrends();
+});
+document.getElementById('btn-avg-district').addEventListener('click', () => {
+  showAvgDistrict = !showAvgDistrict;
+  document.getElementById('btn-avg-district').classList.toggle('active', showAvgDistrict);
+  renderTrends();
+});
+document.getElementById('btn-clear').addEventListener('click', () => {
+  showAvgCounty   = false;
+  showAvgDistrict = false;
+  document.getElementById('btn-avg-county').classList.remove('active');
+  document.getElementById('btn-avg-district').classList.remove('active');
+  setTrendPreset([]);
+});
 
 // Assign a line color based on 2024 partisan lean (intentionally fixed regardless of
 // currentYear so line colors remain stable while comparing trends across elections).
@@ -1294,7 +1637,7 @@ function renderTrends() {
   const zero   = document.getElementById('trends-zero-line');
   const labels = ELECTIONS.map(String);
 
-  if (selectedTrendStates.size === 0) {
+  if (selectedTrendStates.size === 0 && !showAvgCounty && !showAvgDistrict) {
     if (trendsChart) { trendsChart.destroy(); trendsChart = null; }
     canvas.style.display = 'none';
     zero.style.display   = 'block';
@@ -1312,7 +1655,40 @@ function renderTrends() {
     pointRadius:     4,
     pointHoverRadius:6,
     tension:         0.3,
+    order:           1,
   }));
+
+  if (showAvgCounty) {
+    datasets.push({
+      label: 'AVG COUNTY',
+      data: ELECTIONS.map(yr => {
+        const vals = Object.values(RESULTS_COUNTY?.[yr] ?? {}).map(([d, r]) => d - r);
+        if (!vals.length) return null;
+        return +(vals.reduce((a, v) => a + v, 0) / vals.length).toFixed(1);
+      }),
+      borderColor: 'rgba(220,220,60,1)',
+      backgroundColor: 'transparent',
+      borderWidth: 3, borderDash: [6, 3],
+      pointRadius: 5, pointHoverRadius: 7, tension: 0.3,
+      order: 0,
+    });
+  }
+  if (showAvgDistrict) {
+    datasets.push({
+      label: 'AVG DISTRICT',
+      data: ELECTIONS.map(yr => {
+        const vals = Object.values(RESULTS_DISTRICT?.[yr] ?? {})
+          .filter(([d, r]) => d > 0 || r > 0).map(([d, r]) => d - r);
+        if (!vals.length) return null;
+        return +(vals.reduce((a, v) => a + v, 0) / vals.length).toFixed(1);
+      }),
+      borderColor: 'rgba(60,220,220,1)',
+      backgroundColor: 'transparent',
+      borderWidth: 3, borderDash: [6, 3],
+      pointRadius: 5, pointHoverRadius: 7, tension: 0.3,
+      order: 0,
+    });
+  }
 
   const chartCfg = {
     type: 'line',
@@ -1492,17 +1868,85 @@ function renderSummary() {
     }
   }
   document.getElementById('flips-content').innerHTML = flipsHtml;
+
+  // ── Closest Counties
+  const countyEl = document.getElementById('closest-county-content');
+  if (RESULTS_COUNTY?.[yr]) {
+    const countyRows = Object.entries(RESULTS_COUNTY[yr])
+      .map(([fips, [d, r]]) => ({ fips, name: COUNTY_NAMES[fips] || fips, state: FIPS_TO_ABBR[fips.substring(0,2)] || '', margin: +(d - r).toFixed(1), winner: d >= r ? 'D' : 'R' }))
+      .sort((a, b) => Math.abs(a.margin) - Math.abs(b.margin))
+      .slice(0, 10);
+    countyEl.innerHTML = countyRows.map(s => {
+      const col  = s.winner === 'D' ? 'var(--d-text)' : 'var(--r-text)';
+      const sign = s.margin >= 0 ? '+' : '';
+      return `<li class="closest-item">
+        <span class="closest-state">${s.name} <span style="color:var(--muted);font-size:9px">${s.state}</span></span>
+        <span class="closest-margin" style="color:${col}">${sign}${s.margin.toFixed(1)}%</span>
+      </li>`;
+    }).join('');
+  } else {
+    countyEl.innerHTML = '<li class="closest-item"><span style="color:var(--muted);font-size:10px">County data unavailable.</span></li>';
+  }
+
+  // ── Closest Districts
+  const districtEl = document.getElementById('closest-district-content');
+  if (RESULTS_DISTRICT?.[yr]) {
+    const distRows = Object.entries(RESULTS_DISTRICT[yr])
+      .filter(([, [d, r]]) => d > 0 || r > 0)
+      .map(([dist, [d, r]]) => ({ dist, margin: +(d - r).toFixed(1), winner: d >= r ? 'D' : 'R' }))
+      .sort((a, b) => Math.abs(a.margin) - Math.abs(b.margin))
+      .slice(0, 10);
+    districtEl.innerHTML = distRows.map(s => {
+      const col  = s.winner === 'D' ? 'var(--d-text)' : 'var(--r-text)';
+      const sign = s.margin >= 0 ? '+' : '';
+      return `<li class="closest-item">
+        <span class="closest-state">${s.dist}</span>
+        <span class="closest-margin" style="color:${col}">${sign}${s.margin.toFixed(1)}%</span>
+      </li>`;
+    }).join('');
+  } else {
+    districtEl.innerHTML = '<li class="closest-item"><span style="color:var(--muted);font-size:10px">District data unavailable.</span></li>';
+  }
+
+  // ── District Flips
+  const dFlipsEl = document.getElementById('district-flips-content');
+  if (!prevYr || !RESULTS_DISTRICT?.[yr] || !RESULTS_DISTRICT?.[prevYr]) {
+    dFlipsEl.innerHTML = '<li class="flip-item"><span class="no-flips">No prior district data.</span></li>';
+  } else {
+    const dFlips = Object.entries(RESULTS_DISTRICT[yr])
+      .filter(([, [d, r]]) => d > 0 || r > 0)
+      .map(([dist, [d, r]]) => {
+        const currW = d >= r ? 'D' : 'R';
+        const prev  = RESULTS_DISTRICT[prevYr][dist];
+        if (!prev || (prev[0] === 0 && prev[1] === 0)) return null;
+        const prevW = prev[0] >= prev[1] ? 'D' : 'R';
+        return prevW !== currW ? { dist, from: prevW, to: currW } : null;
+      })
+      .filter(Boolean)
+      .sort((a, b) => a.dist.localeCompare(b.dist));
+    if (!dFlips.length) {
+      dFlipsEl.innerHTML = `<li class="flip-item"><span class="no-flips">No district flips from ${prevYr} → ${yr}.</span></li>`;
+    } else {
+      dFlipsEl.innerHTML = dFlips.map(f => `
+        <li class="flip-item">
+          <span class="flip-state">${f.dist}</span>
+          <span class="flip-${f.from.toLowerCase()}">${f.from}</span>
+          <span class="flip-arrow">→</span>
+          <span class="flip-${f.to.toLowerCase()}">${f.to}</span>
+        </li>`).join('');
+    }
+  }
 }
 
 // ═══════════════════════════════════════════════════════════════════
 //  DEMOGRAPHICS
 // ═══════════════════════════════════════════════════════════════════
 const DEMO_VARS = {
-  pct_bachelors:    { label: '% Bachelor\'s Degree or Higher', fmt: v => v.toFixed(1) + '%' },
-  median_hh_income: { label: 'Median Household Income',        fmt: v => '$' + v.toLocaleString() },
-  pct_urban:        { label: '% Urban Population',             fmt: v => v.toFixed(1) + '%' },
-  pct_white_nh:     { label: '% White Non-Hispanic',           fmt: v => v.toFixed(1) + '%' },
-  median_age:       { label: 'Median Age',                     fmt: v => v.toFixed(1) },
+  pct_bachelors:    { label: '% Bachelor\'s Degree or Higher', fmt: v => v.toFixed(1) + '%',   xMin: 15,    xMax: 65 },
+  median_hh_income: { label: 'Median Household Income',        fmt: v => '$' + v.toLocaleString(), xMin: 30000, xMax: 105000 },
+  pct_urban:        { label: '% Urban Population',             fmt: v => v.toFixed(1) + '%',   xMin: 25,    xMax: 100 },
+  pct_white_nh:     { label: '% White Non-Hispanic',           fmt: v => v.toFixed(1) + '%',   xMin: 15,    xMax: 98 },
+  median_age:       { label: 'Median Age',                     fmt: v => v.toFixed(1),          xMin: 28,    xMax: 50 },
 };
 
 let currentDemoVar = 'pct_bachelors';
@@ -1550,9 +1994,8 @@ function renderDemographics() {
     }));
 
   const { slope, intercept, r } = linearRegression(points);
-  const xs   = points.map(p => p.x);
-  const minX = Math.min(...xs);
-  const maxX = Math.max(...xs);
+  const minX = varMeta.xMin;
+  const maxX = varMeta.xMax;
 
   const rCol = r >= 0 ? 'var(--d-text)' : 'var(--r-text)';
   document.getElementById('demo-corr').innerHTML =
@@ -1587,6 +2030,7 @@ function renderDemographics() {
     options: {
       responsive: true,
       maintainAspectRatio: true,
+      aspectRatio: 1,
       animation: { duration: 200 },
       plugins: {
         legend: { display: false },
@@ -1611,6 +2055,8 @@ function renderDemographics() {
       },
       scales: {
         x: {
+          min: varMeta.xMin,
+          max: varMeta.xMax,
           grid: { color: 'rgba(30,45,66,0.6)' },
           ticks: {
             color: '#485a72',
@@ -1625,6 +2071,8 @@ function renderDemographics() {
           },
         },
         y: {
+          min: -100,
+          max: 100,
           grid: {
             color: ctx => ctx.tick.value === 0 ? 'rgba(255,255,255,0.18)' : 'rgba(30,45,66,0.6)',
             lineWidth: ctx => ctx.tick.value === 0 ? 2 : 1,
@@ -1647,8 +2095,12 @@ function renderDemographics() {
 
   if (demoChart) {
     demoChart.data.datasets = [scatterDataset, regressionDataset];
+    demoChart.options.scales.x.min = varMeta.xMin;
+    demoChart.options.scales.x.max = varMeta.xMax;
     demoChart.options.scales.x.title.text = varMeta.label.toUpperCase();
     demoChart.options.scales.x.ticks.callback = v => varMeta.fmt(v);
+    demoChart.options.scales.y.min = -100;
+    demoChart.options.scales.y.max = 100;
     demoChart.options.plugins.tooltip.callbacks.label = ctx => {
       if (!ctx.raw.abbr) return '';
       const margin = ctx.parsed.y;
@@ -1673,9 +2125,10 @@ Promise.all([
   fetch('demographics.json').then(r => r.json()),
   fetch('results-county.json').then(r => r.json()),
   fetch('results-district.json').then(r => r.json()),
+  fetch('redistricting.json').then(r => r.json()),
   fetch('https://cdn.jsdelivr.net/npm/us-atlas@3/states-10m.json').then(r => r.json()).catch(() => null),
   fetch('https://cdn.jsdelivr.net/npm/us-atlas@3/counties-10m.json').then(r => r.json()).catch(() => null),
-]).then(([statesData, electionsData, resultsData, demoData, countyData, districtData, topo, countyTopo]) => {
+]).then(([statesData, electionsData, resultsData, demoData, countyData, districtData, redistrictingData, topo, countyTopo]) => {
   STATE_META   = statesData;
   ELECTIONS    = electionsData.map(e => e.year);
   CANDIDATES   = Object.fromEntries(electionsData.map(e => [e.year, { d: e.d_candidate, r: e.r_candidate }]));
@@ -1692,13 +2145,19 @@ Promise.all([
     if (!RESULTS_COUNTY[row.year]) RESULTS_COUNTY[row.year] = {};
     RESULTS_COUNTY[row.year][row.fips] = [row.d, row.r];
   });
-  if (countyTopo) countyTopoData = countyTopo;
+  if (countyTopo) {
+    countyTopoData = countyTopo;
+    topojson.feature(countyTopo, countyTopo.objects.counties).features.forEach(f => {
+      COUNTY_NAMES[String(f.id).padStart(5, '0')] = f.properties.name;
+    });
+  }
 
   RESULTS_DISTRICT = {};
   districtData.forEach(row => {
     if (!RESULTS_DISTRICT[row.year]) RESULTS_DISTRICT[row.year] = {};
     RESULTS_DISTRICT[row.year][row.district] = [row.d, row.r];
   });
+  redistrictingData.forEach(row => { REDISTRICTING_META[row.year] = row; });
 
   if (topo) topoData = topo;
   else document.getElementById('map-container').innerHTML =
