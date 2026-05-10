@@ -29,7 +29,7 @@ node data/scripts/elections/merge_results.js
 Outputs are written to `data/derived/elections/`. After running, copy updated files to the app:
 
 ```bash
-cp data/derived/elections/results.json           data-apps/vote-analysis/
-cp data/derived/elections/results-county.json    data-apps/vote-analysis/
-cp data/derived/elections/results-district.json  data-apps/vote-analysis/
+cp data/derived/elections/results.json           apps-data/vote-analysis/
+cp data/derived/elections/results-county.json    apps-data/vote-analysis/
+cp data/derived/elections/results-district.json  apps-data/vote-analysis/
 ```
