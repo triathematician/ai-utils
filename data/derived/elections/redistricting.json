@@ -1,0 +1,63 @@
+[
+  {
+    "year": 2000,
+    "boundary_file": "districts-2000s.json",
+    "source_lines": "2006–2010",
+    "boundary_congress": "113th",
+    "imputed": true,
+    "imputed_note": "Retroactively mapped to 2006–2010 lines. Actual 2000 election used pre-2000-Census district lines.",
+    "detail": "2000 presidential results retroactively projected by Daily Kos onto 2006–2010 district lines. Actual 2000 election used 106th Congress (1990 Census redistricting) in most states. Boundaries shown are 113th Congress (2010 Census redistricting)."
+  },
+  {
+    "year": 2004,
+    "boundary_file": "districts-2000s.json",
+    "source_lines": "2006–2010",
+    "boundary_congress": "113th",
+    "imputed": true,
+    "imputed_note": "Retroactively mapped to 2006–2010 lines. TX redistricted mid-cycle in 2003.",
+    "detail": "2004 results retroactively projected onto 2006–2010 district lines. Texas was redistricted in 2003 (DeLay mid-cycle remap), so TX districts differ from actual 2004 lines. Boundaries shown are 113th Congress (approximate)."
+  },
+  {
+    "year": 2008,
+    "boundary_file": "districts-2000s.json",
+    "source_lines": "2006–2010",
+    "boundary_congress": "113th",
+    "imputed": true,
+    "imputed_note": "Data on correct 2006–2010 district lines. Boundaries shown are 113th Congress (close approximation).",
+    "detail": "2008 results are on the correct 2006–2010 district lines (Daily Kos). Boundaries shown are 113th Congress, which are the first post-2010-Census lines — a close approximation for the 2000-Census lines used in 2008."
+  },
+  {
+    "year": 2012,
+    "boundary_file": "districts-2000s.json",
+    "source_lines": "2012–2014",
+    "boundary_congress": "113th",
+    "imputed": false,
+    "detail": "2012 results and 113th Congress boundaries are an exact match — both reflect the first redistricting after the 2010 Census."
+  },
+  {
+    "year": 2016,
+    "boundary_file": "districts-2010s.json",
+    "source_lines": "116th Congress",
+    "boundary_congress": "116th",
+    "imputed": true,
+    "imputed_states": ["FL", "NC", "VA"],
+    "imputed_note": "FL, NC, VA redistricted by court order after 2012; results mapped to 2020 lines.",
+    "detail": "2016 results mapped to 116th Congress (2020 district lines) by Daily Kos. FL, NC, VA redistricted via court orders after 2014, so those states' boundaries differ from the actual 2016 election lines."
+  },
+  {
+    "year": 2020,
+    "boundary_file": "districts-2010s.json",
+    "source_lines": "116th Congress",
+    "boundary_congress": "116th",
+    "imputed": false,
+    "detail": "2020 results and 116th Congress boundaries are an exact match."
+  },
+  {
+    "year": 2024,
+    "boundary_file": "districts-2020s.json",
+    "source_lines": "118th Congress",
+    "boundary_congress": "118th",
+    "imputed": false,
+    "detail": "2024 results and 118th Congress boundaries are an exact match."
+  }
+]
