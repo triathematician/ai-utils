@@ -1,0 +1,9 @@
+[
+  { "year": 2000, "d_candidate": "Gore",   "r_candidate": "Bush",   "d_pv": 48.4, "r_pv": 47.9 },
+  { "year": 2004, "d_candidate": "Kerry",  "r_candidate": "Bush",   "d_pv": 48.3, "r_pv": 50.7 },
+  { "year": 2008, "d_candidate": "Obama",  "r_candidate": "McCain", "d_pv": 52.9, "r_pv": 45.7 },
+  { "year": 2012, "d_candidate": "Obama",  "r_candidate": "Romney", "d_pv": 51.1, "r_pv": 47.2 },
+  { "year": 2016, "d_candidate": "Clinton","r_candidate": "Trump",  "d_pv": 48.2, "r_pv": 46.1 },
+  { "year": 2020, "d_candidate": "Biden",  "r_candidate": "Trump",  "d_pv": 51.3, "r_pv": 46.8 },
+  { "year": 2024, "d_candidate": "Harris", "r_candidate": "Trump",  "d_pv": 48.4, "r_pv": 49.9 }
+]
