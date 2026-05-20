@@ -408,7 +408,8 @@ textarea.field-input { resize: vertical; min-height: 50px; }
 
 /* presentation mode */
 body.presentation-mode #app { grid-template-rows: 0 1fr auto; }
-body.presentation-mode #top-row { display: none; }
+body.presentation-mode #top-row { overflow: hidden; border-bottom: none; }
+body.presentation-mode .node-num { display: none; }
 body.presentation-mode #main-row { overflow-x: hidden; }
 body.presentation-mode .strategy-col {
   min-width: 0; max-width: none; width: 0;
@@ -419,6 +420,40 @@ body.presentation-mode #add-col-btn,
 body.presentation-mode .col-loe-tags,
 body.presentation-mode .exec-loe-tags {
   display: none !important;
+}
+
+/* spotlight: collapsed sidebar columns */
+body.presentation-mode.has-focus .strategy-col {
+  flex: 0 0 160px;
+  cursor: pointer;
+  opacity: 0.4;
+  transition: flex 0.5s ease, opacity 0.3s ease;
+}
+body.presentation-mode.has-focus .strategy-col:hover { opacity: 0.7; }
+body.presentation-mode .strategy-col.col-focused {
+  flex: 1 1 0 !important;
+  opacity: 1 !important;
+  cursor: default;
+  font-size: 2em;
+}
+body.presentation-mode .strategy-col.col-focused .col-header {
+  padding: 20px 8%; text-align: center; border-bottom: 1px solid var(--muted);
+}
+body.presentation-mode .strategy-col.col-focused .col-body {
+  padding: 12px 8%;
+}
+body.presentation-mode .strategy-col.col-collapsed .col-body,
+body.presentation-mode .strategy-col.col-collapsed .col-title,
+body.presentation-mode .strategy-col.col-collapsed .col-rag,
+body.presentation-mode .strategy-col.col-collapsed .assignee-line { display: none; }
+body.presentation-mode .strategy-col.col-collapsed .col-header {
+  height: 100%; padding: 10px 8px; border-bottom: none;
+  display: flex; flex-direction: column; align-items: flex-start; overflow: hidden;
+}
+.col-preview { display: none; }
+body.presentation-mode .strategy-col.col-collapsed .col-preview {
+  display: block; margin-top: 6px; font-size: 0.72em; line-height: 1.4;
+  word-break: break-word; opacity: 0.75;
 }
 </style>
 </head>
@@ -587,9 +622,23 @@ function loeById(loeId) {
 /* ─── LOE FILTER (UI state, not persisted) ────────────── */
 let activeLoeFilter = null;
 let presentationMode = false;
+let focusedColIndex = null;
 
 function applyPresentationMode() {
   document.body.classList.toggle('presentation-mode', presentationMode);
+}
+
+function applyFocusClasses() {
+  const cols = document.querySelectorAll('.strategy-col');
+  const hasFocus = presentationMode && focusedColIndex !== null;
+  document.body.classList.toggle('has-focus', hasFocus);
+  cols.forEach((col, i) => {
+    col.classList.toggle('col-focused', hasFocus && i === focusedColIndex);
+    col.classList.toggle('col-collapsed', hasFocus && i !== focusedColIndex);
+    col.onclick = (hasFocus && i !== focusedColIndex)
+      ? () => { focusedColIndex = i; applyFocusClasses(); }
+      : null;
+  });
 }
 
 /* ─── DISPLAY ORDER ───────────────────────────────────── */
@@ -637,6 +686,7 @@ function render() {
   applyPresentationMode();
   renderTopRow();
   renderColumns();
+  applyFocusClasses();
   updateStatus();
 }
 
@@ -774,7 +824,7 @@ function buildColumn(node, nodeNumMap) {
 
   const titleEl = document.createElement('div');
   titleEl.className = 'col-title';
-  titleEl.textContent = '[' + nodeNum + '] ' + node.title;
+  titleEl.innerHTML = '<span class="node-num">[' + nodeNum + ']</span> ' + node.title;
   titleEl.onclick = () => openEditModal(node.id);
 
   const tagRow = document.createElement('div');
@@ -815,6 +865,13 @@ function buildColumn(node, nodeNumMap) {
     hdr.appendChild(visionEl);
   }
   if (tagRow.children.length) hdr.appendChild(tagRow);
+
+  const previewEl = document.createElement('div');
+  previewEl.className = 'col-preview';
+  const previewText = node.title.length > 100 ? node.title.slice(0, 100) + '…' : node.title;
+  previewEl.textContent = previewText;
+  hdr.appendChild(previewEl);
+
   addDetailPanel(hdr, node);
   col.appendChild(hdr);
 
@@ -870,7 +927,7 @@ function buildExecItem(node, nodeNum) {
 
   const titleEl = document.createElement('span');
   titleEl.className = 'exec-title';
-  titleEl.textContent = '[' + nodeNum + '] ' + node.title;
+  titleEl.innerHTML = '<span class="node-num">[' + nodeNum + ']</span> ' + node.title;
   textBlock.appendChild(titleEl);
   if (node.assignee) {
     const assigneeEl = document.createElement('div');
@@ -1419,10 +1476,11 @@ function cmdAssignee(rest) {
 
 function cmdPresentation(enabled) {
   presentationMode = !!enabled;
+  if (!presentationMode) focusedColIndex = null;
   db.presentationMode = presentationMode;
   saveDB();
   render();
-  statusMsg(presentationMode ? 'Presentation view ON' : 'Work view ON');
+  statusMsg(presentationMode ? 'Presentation view ON — ← → to spotlight' : 'Work view ON');
 }
 
 function cmdTag(rest) {
@@ -1636,6 +1694,24 @@ document.addEventListener('keydown', e => {
   if (e.key === 'Escape') {
     document.getElementById('help-overlay').classList.remove('visible');
     closeEditModal();
+    if (presentationMode && focusedColIndex !== null) {
+      focusedColIndex = null;
+      applyFocusClasses();
+    } else if (presentationMode) {
+      cmdPresentation(false);
+    }
+  }
+  if (presentationMode && (e.key === 'ArrowRight' || e.key === 'ArrowLeft')) {
+    e.preventDefault();
+    const cols = document.querySelectorAll('.strategy-col');
+    if (!cols.length) return;
+    if (e.key === 'ArrowRight') {
+      focusedColIndex = focusedColIndex === null ? 0 : Math.min(focusedColIndex + 1, cols.length - 1);
+    } else {
+      focusedColIndex = focusedColIndex === null || focusedColIndex <= 0 ? null : focusedColIndex - 1;
+    }
+    applyFocusClasses();
+    return;
   }
   const helpVisible = document.getElementById('help-overlay').classList.contains('visible');
   const editVisible = document.getElementById('edit-overlay').classList.contains('visible');
