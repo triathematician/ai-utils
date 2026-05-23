@@ -460,7 +460,7 @@ html, body {
 #detail-panel {
   position: fixed;
   right: 0; top: 0; bottom: 10vh;
-  width: 280px;
+  width: 360px;
   background: var(--bg);
   border-left: 1px solid var(--border);
   z-index: 50;
@@ -490,6 +490,33 @@ html, body {
   margin-top: 12px; display: inline-block;
 }
 .detail-close:hover { color: var(--warn); }
+
+/* ── NOW LINE ──────────────────────────────────────────────────────── */
+.now-line {
+  position: absolute;
+  left: 0; right: 0;
+  height: 2px;
+  background: none;
+  border-top: 2px dotted var(--warn);
+  opacity: 0.75;
+  pointer-events: none;
+  z-index: 4;
+}
+.now-line::after {
+  content: '◆ NOW';
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  top: -12px;
+  font-size: 0.6em;
+  color: var(--warn);
+  letter-spacing: 2px;
+  background: var(--bg);
+  padding: 0 4px;
+}
+
+/* ── SEARCH DIM ─────────────────────────────────────────────────────── */
+.tl-node.search-dim { opacity: 0.12; }
 
 /* ── EDGE MARKER ───────────────────────────────────────────────────── */
 .edge-marker {
@@ -779,6 +806,7 @@ const MAX_CANVAS_H = 150000;    // max canvas height in px — at finest zoom (1
 const SIDE_PAD_FRAC = 0.05;     // 5% of canvas width reserved as blank boundary on each side
 
 let selectedUID = null;
+let searchQuery = null;
 
 function getZoom() { return ZOOM_LEVELS[db.zoomIdx] || ZOOM_LEVELS[3]; }
 
@@ -886,7 +914,8 @@ function renderSwimlaneHeader() {
     const color = catColor(cat);
     cell.style.color = color;
     cell.style.borderBottomColor = color;
-    cell.textContent = cat.toUpperCase();
+    const count = db.events.filter(ev => (ev.cats||[]).includes(cat)).length;
+    cell.textContent = `${cat.toUpperCase()} (${count})`;
     cell.addEventListener('click', () => toggleCat(cat));
     cell.addEventListener('mouseenter', e => {
       const evts = db.events.filter(ev => (ev.cats||[]).includes(cat));
@@ -915,7 +944,7 @@ function renderTimeline() {
   const cats   = allCategories();
 
   // Clear old nodes and grid lines (keep axis-col and svg)
-  Array.from(canvas.querySelectorAll('.tl-node,.tl-indicator,.grid-line,.edge-marker')).forEach(el => el.remove());
+  Array.from(canvas.querySelectorAll('.tl-node,.tl-indicator,.grid-line,.edge-marker,.now-line')).forEach(el => el.remove());
   svg.innerHTML = '';
 
   const { topMs, bottomMs, totalH } = getCanvasBounds();
@@ -923,17 +952,25 @@ function renderTimeline() {
   svg.setAttribute('viewBox', `0 0 ${canvas.offsetWidth} ${totalH}`);
   svg.style.height = totalH + 'px';
 
-  // Grid lines — canvas height is already capped by MAX_CANVAS_H so element count is bounded
+  // Grid lines
   const zoom = getZoom();
   const gridMs = gridInterval(zoom);
-  const firstGrid = Math.floor(bottomMs / gridMs) * gridMs;
-  for (let ms = firstGrid; ms <= topMs + gridMs; ms += gridMs) {
+  for (let ms = firstCalendarTick(bottomMs, gridMs); ms <= topMs; ms = nextCalendarTick(ms, gridMs)) {
     const y = msToY(ms);
     if (y < 0 || y > totalH) continue;
     const line = document.createElement('div');
-    line.className = 'grid-line' + (isGridMajor(ms, zoom) ? ' major' : '');
+    line.className = 'grid-line' + (isGridMajor(ms, gridMs) ? ' major' : '');
     line.style.top = y + 'px';
     canvas.appendChild(line);
+  }
+
+  // Now marker
+  const nowY = msToY(Date.now());
+  if (nowY >= 0 && nowY <= totalH) {
+    const nowLine = document.createElement('div');
+    nowLine.className = 'now-line';
+    nowLine.style.top = nowY + 'px';
+    canvas.appendChild(nowLine);
   }
 
   if (cats.length === 0) return;
@@ -954,7 +991,8 @@ function renderTimeline() {
 
     if (!db.hiddenCats.includes(primaryCat)) {
       const node = document.createElement('div');
-      node.className = 'tl-node' + (selectedUID === evt.uid ? ' selected' : '');
+      const searchDim = searchQuery && !evt.label.toLowerCase().includes(searchQuery.toLowerCase());
+      node.className = 'tl-node' + (selectedUID === evt.uid ? ' selected' : '') + (searchDim ? ' search-dim' : '');
       node.dataset.uid = evt.uid;
       node.style.top = y + 'px';
 
@@ -1114,13 +1152,12 @@ function renderAxis() {
 
   const zoom = getZoom();
   const gridMs = gridInterval(zoom);
-  const firstGrid = Math.floor(bottomMs / gridMs) * gridMs;
   const W = 5; // ASCII chars per side
 
-  for (let ms = firstGrid; ms <= topMs + gridMs; ms += gridMs) {
+  for (let ms = firstCalendarTick(bottomMs, gridMs); ms <= topMs; ms = nextCalendarTick(ms, gridMs)) {
     const y = msToY(ms);
     if (y < 0 || y > totalH) continue;
-    const major = isGridMajor(ms, zoom);
+    const major = isGridMajor(ms, gridMs);
 
     const tick = document.createElement('div');
     tick.className = 'axis-tick' + (major ? ' major' : '');
@@ -1128,7 +1165,7 @@ function renderAxis() {
 
     const label = document.createElement('span');
     label.className = 'axis-label';
-    label.textContent = rulerLabel(ms, zoom);
+    label.textContent = rulerLabel(ms, gridMs);
     tick.appendChild(label);
 
     const line = document.createElement('span');
@@ -1138,16 +1175,6 @@ function renderAxis() {
     tick.appendChild(line);
 
     axisCol.appendChild(tick);
-  }
-
-  // TODAY marker
-  const nowY = msToY(Date.now());
-  if (nowY >= 0 && nowY <= totalH) {
-    const nowMarker = document.createElement('div');
-    nowMarker.className = 'axis-now';
-    nowMarker.style.top = nowY + 'px';
-    nowMarker.textContent = '◆ NOW';
-    axisCol.appendChild(nowMarker);
   }
 
   // Update zoom label in axis header
@@ -1171,42 +1198,113 @@ function gridInterval(zoom) {
   return candidates[candidates.length-1];
 }
 
-function isGridMajor(ms, zoom) {
-  const d = new Date(ms);
-  const mspp = zoom.mspp;
-  // Thresholds below match ZOOM_LEVELS mspp values.
-  // Major ticks mark the next-larger natural boundary above the grid interval.
-  if (mspp >= 1000*60*60*24*365*25/60) return d.getFullYear() % 10 === 0;  // ≥25YEAR: decade
-  if (mspp >= 1000*60*60*24*365/60) return d.getMonth() === 0 && d.getDate() === 1; // ≥1YEAR: Jan 1
-  if (mspp >= 1000*60*60*24*30/60)  return d.getDate() === 1;                        // ≥1MONTH: 1st
-  if (mspp >= 1000*60*60*24*7/60)   return d.getDay() === 0;                         // ≥1WEEK: Sunday
-  if (mspp >= 1000*60*60*24/60)     return d.getHours() === 0;                       // ≥1DAY: midnight
-  if (mspp >= 1000*60*60/60)        return d.getMinutes() === 0 && d.getSeconds() === 0; // ≥1HR: hour
-  if (mspp >= 1000*60*5/60)         return d.getSeconds() === 0;                     // ≥5MIN: minute
-  return d.getSeconds() % 30 === 0;                                                  // 1MIN: 30s
+function firstCalendarTick(fromMs, gridMs) {
+  const d = new Date(fromMs);
+  if (gridMs >= 3153600000000) { // 100yr
+    let y = Math.ceil(d.getFullYear() / 100) * 100;
+    return new Date(y, 0, 1).getTime();
+  }
+  if (gridMs >= 1576800000000) { // 50yr
+    let y = Math.ceil(d.getFullYear() / 50) * 50;
+    return new Date(y, 0, 1).getTime();
+  }
+  if (gridMs >= 788400000000) { // 25yr
+    let y = Math.ceil(d.getFullYear() / 25) * 25;
+    return new Date(y, 0, 1).getTime();
+  }
+  if (gridMs >= 315360000000) { // 10yr
+    let y = Math.ceil(d.getFullYear() / 10) * 10;
+    return new Date(y, 0, 1).getTime();
+  }
+  if (gridMs >= 157680000000) { // 5yr
+    let y = Math.ceil(d.getFullYear() / 5) * 5;
+    return new Date(y, 0, 1).getTime();
+  }
+  if (gridMs >= 31536000000) { // 1yr
+    let y = d.getFullYear();
+    let t = new Date(y, 0, 1).getTime();
+    while (t < fromMs) t = new Date(++y, 0, 1).getTime();
+    return t;
+  }
+  if (gridMs >= 7776000000) { // quarter
+    let y = d.getFullYear(), m = Math.floor(d.getMonth() / 3) * 3;
+    let t = new Date(y, m, 1).getTime();
+    while (t < fromMs) { m += 3; if (m >= 12) { m = 0; y++; } t = new Date(y, m, 1).getTime(); }
+    return t;
+  }
+  if (gridMs >= 2592000000) { // month
+    let y = d.getFullYear(), m = d.getMonth();
+    let t = new Date(y, m, 1).getTime();
+    while (t < fromMs) { m++; if (m >= 12) { m = 0; y++; } t = new Date(y, m, 1).getTime(); }
+    return t;
+  }
+  if (gridMs >= 604800000) { // week (Sunday)
+    const dow = d.getDay();
+    const startOfDay = new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
+    const sun = startOfDay - dow * 86400000;
+    return sun >= fromMs ? sun : sun + 604800000;
+  }
+  if (gridMs >= 86400000) { // day (local midnight)
+    const t = new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
+    return t >= fromMs ? t : new Date(d.getFullYear(), d.getMonth(), d.getDate() + 1).getTime();
+  }
+  // sub-day: snap to local-aligned boundary
+  const tzMs = d.getTimezoneOffset() * 60000;
+  return Math.ceil((fromMs + tzMs) / gridMs) * gridMs - tzMs;
 }
 
-function rulerLabel(ms, zoom) {
+function nextCalendarTick(ms, gridMs) {
+  if (gridMs >= 3153600000000) return new Date(new Date(ms).getFullYear() + 100, 0, 1).getTime();
+  if (gridMs >= 1576800000000) return new Date(new Date(ms).getFullYear() + 50,  0, 1).getTime();
+  if (gridMs >= 788400000000)  return new Date(new Date(ms).getFullYear() + 25,  0, 1).getTime();
+  if (gridMs >= 315360000000)  return new Date(new Date(ms).getFullYear() + 10,  0, 1).getTime();
+  if (gridMs >= 157680000000)  return new Date(new Date(ms).getFullYear() + 5,   0, 1).getTime();
+  if (gridMs >= 31536000000)   return new Date(new Date(ms).getFullYear() + 1,   0, 1).getTime();
+  if (gridMs >= 7776000000) {
+    const d = new Date(ms); let m = d.getMonth() + 3, y = d.getFullYear();
+    if (m >= 12) { m = 0; y++; } return new Date(y, m, 1).getTime();
+  }
+  if (gridMs >= 2592000000) {
+    const d = new Date(ms); let m = d.getMonth() + 1, y = d.getFullYear();
+    if (m >= 12) { m = 0; y++; } return new Date(y, m, 1).getTime();
+  }
+  if (gridMs >= 604800000) {
+    const d = new Date(ms);
+    return new Date(d.getFullYear(), d.getMonth(), d.getDate() + 7).getTime();
+  }
+  if (gridMs >= 86400000) {
+    const d = new Date(ms);
+    return new Date(d.getFullYear(), d.getMonth(), d.getDate() + 1).getTime();
+  }
+  return ms + gridMs;
+}
+
+function isGridMajor(ms, gridMs) {
   const d = new Date(ms);
-  const mspp = zoom.mspp;
-  if (mspp >= 525600000) return d.getFullYear().toString();                // ≥1YEAR: year
-  if (mspp >= 43200000) {                                                  // ≥1MONTH: YYYY-MM
-    return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
-  }
-  if (mspp >= 1440000) {                                                   // ≥1DAY: MM-DD
-    const mo = String(d.getMonth()+1).padStart(2,'0');
-    const dy = String(d.getDate()).padStart(2,'0');
-    return `${mo}-${dy}`;
-  }
-  if (mspp >= 15000) {                                                     // ≥15MIN: HH:MM
-    const hh = String(d.getHours()).padStart(2,'0');
-    const mm = String(d.getMinutes()).padStart(2,'0');
-    return `${hh}:${mm}`;
-  }
-  const hh = String(d.getHours()).padStart(2,'0');                        // <15MIN: HH:MM:SS
-  const mm = String(d.getMinutes()).padStart(2,'0');
-  const ss = String(d.getSeconds()).padStart(2,'0');
-  return `${hh}:${mm}:${ss}`;
+  if (gridMs >= 157680000000) return d.getFullYear() % 100 === 0;   // 5yr+: century
+  if (gridMs >= 31536000000)  return d.getFullYear() % 10 === 0;    // 1yr: decade
+  if (gridMs >= 7776000000)   return d.getMonth() === 0;             // quarter: Jan
+  if (gridMs >= 2592000000)   return d.getMonth() === 0;             // month: Jan
+  if (gridMs >= 604800000)    return d.getDate() <= 7;               // week: first of month
+  if (gridMs >= 86400000)     return d.getDate() === 1;              // day: 1st of month
+  if (gridMs >= 3600000)      return d.getHours() === 0;             // hour: midnight
+  if (gridMs >= 60000)        return d.getMinutes() === 0;           // minute: top of hour
+  return d.getSeconds() === 0;
+}
+
+function rulerLabel(ms, gridMs) {
+  const d = new Date(ms);
+  const Y = d.getFullYear();
+  const M = String(d.getMonth()+1).padStart(2,'0');
+  const D = String(d.getDate()).padStart(2,'0');
+  const h = String(d.getHours()).padStart(2,'0');
+  const m = String(d.getMinutes()).padStart(2,'0');
+  const s = String(d.getSeconds()).padStart(2,'0');
+  if (gridMs >= 31536000000) return `${Y}`;
+  if (gridMs >= 2592000000)  return `${Y}-${M}`;
+  if (gridMs >= 86400000)    return `${M}-${D}`;
+  if (gridMs >= 60000)       return `${h}:${m}`;
+  return `${h}:${m}:${s}`;
 }
 
 // ── SCROLL & ZOOM ─────────────────────────────────────────────────────
@@ -1375,7 +1473,7 @@ function openDetail(evtUID) {
     html += `<div class="detail-field"><div class="detail-label">DEPENDENCIES</div>`;
     evt.deps.forEach(d => {
       const dep = db.events.find(e => e.uid === d);
-      html += `<div class="detail-value" style="font-size:0.9em">← ${dep ? dep.label : '?'} <span style="color:var(--dim)">[${d}]</span></div>`;
+      html += `<div class="detail-value" style="font-size:0.9em;display:flex;align-items:center;gap:6px">← ${dep ? escHtml(dep.label) : '?'} <span style="color:var(--dim)">[${d}]</span><span onclick="removeDep('${escHtml(evt.uid)}','${d}')" style="cursor:pointer;color:var(--warn)">[×]</span></div>`;
     });
     html += `</div>`;
   }
@@ -1414,6 +1512,15 @@ function openDetail(evtUID) {
 
   content.innerHTML = html;
   panel.classList.add('open');
+}
+
+function removeDep(evtUID, depUID) {
+  const evt = db.events.find(e => e.uid === evtUID);
+  if (!evt) return;
+  evt.deps = (evt.deps || []).filter(d => d !== depUID);
+  saveDB();
+  render();
+  openDetail(evtUID);
 }
 
 function addDepFromDetail(tgtUID) {
@@ -1457,14 +1564,17 @@ const HELP_TEXT = `
 /link <src_id> <tgt_id>
                Add dependency: src must predate tgt.
 
+/edit <id>    Edit an event by UID.
 /delete <id>  Delete an event by UID.
 /clear        Clear ALL events (type /clear confirm to proceed).
 /list         List all events — click UID to copy, [EDIT] to edit.
 
 ── VIEW & NAVIGATION ─────────────────────────────────
+/find <text>  Highlight events matching text. /find alone clears.
 /show <cat>   Show a hidden swimlane category.
 /hide <cat>   Hide a swimlane category.
 
+/now          Jump to the current moment.
 /goto <id>    Scroll to event by UID.
 /goto <time>  Scroll to a timestamp.
 
@@ -1572,6 +1682,8 @@ function handleConsoleCmd(raw) {
     return;
   }
 
+  if (cmd === '/now') { scrollToMs(Date.now()); statusMsg('JUMPED TO NOW'); return; }
+
   if (cmd === '/fit') { autoFit(); return; }
 
   if (cmd === '/export') {
@@ -1625,6 +1737,35 @@ function handleConsoleCmd(raw) {
     db.theme = name;
     document.documentElement.setAttribute('data-theme', name);
     saveDB(); render(); statusMsg('THEME: ' + name);
+    return;
+  }
+
+  if (cmd === '/edit') {
+    const id = parts[1]?.toUpperCase();
+    if (!id) { statusMsg('USAGE: /edit <id>'); return; }
+    const evt = db.events.find(e => e.uid === id);
+    if (!evt) { statusMsg('NOT FOUND: ' + id); return; }
+    openEdit(id);
+    return;
+  }
+
+  if (cmd === '/find') {
+    const q = parts.slice(1).join(' ').trim();
+    if (!q) {
+      searchQuery = null;
+      render();
+      statusMsg('SEARCH CLEARED');
+    } else {
+      searchQuery = q;
+      const matches = db.events.filter(e => e.label.toLowerCase().includes(q.toLowerCase()));
+      render();
+      if (matches.length === 0) {
+        statusMsg('NO MATCHES: ' + q);
+      } else {
+        statusMsg(`FOUND ${matches.length} match${matches.length === 1 ? '' : 'es'}: ${q}`);
+        scrollToMs(matches.sort((a,b) => Math.abs(a.ts - Date.now()) - Math.abs(b.ts - Date.now()))[0].ts);
+      }
+    }
     return;
   }
 
