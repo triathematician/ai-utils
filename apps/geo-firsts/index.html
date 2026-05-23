@@ -116,6 +116,7 @@ tbody tr { border-bottom: 1px solid var(--parchment); cursor: pointer; }
 tbody tr:hover { background: var(--parchment); }
 tbody td { padding: 8px 12px; vertical-align: middle; }
 .visited-dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: var(--terracotta); margin-right: 6px; }
+.photo-dot { display: inline-block; width: 8px; height: 8px; border-radius: 2px; background: var(--forest); margin-right: 4px; opacity: 0.8; vertical-align: middle; cursor: default; }
 .stat-card { background: var(--drawer-bg); border: 1px solid var(--border); border-radius: 8px; padding: 20px 24px; min-width: 180px; }
 .stat-card .stat-number { font-family: var(--font-serif); font-size: 36px; font-weight: 700; color: var(--terracotta); }
 .stat-card .stat-label { font-size: 13px; color: var(--ink-light); margin-bottom: 8px; }
@@ -298,7 +299,7 @@ tbody td { padding: 8px 12px; vertical-align: middle; }
   <div class="tab-table-pane">
   <div id="add-country-form" class="hidden" style="padding:12px 16px;background:var(--parchment);border-bottom:1px solid var(--border);flex-shrink:0;">
     <form id="country-form" style="display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap;">
-      <div><label style="display:block;font-size:12px;margin-bottom:4px;">Country Name *</label><input type="text" id="country-name" required style="padding:6px 8px;border:1px solid var(--border);border-radius:4px;font-family:var(--font-sans);font-size:13px;"></div>
+      <div><label style="display:block;font-size:12px;margin-bottom:4px;">Country Name *</label><input type="text" id="country-name" required list="country-name-list" autocomplete="off" style="padding:6px 8px;border:1px solid var(--border);border-radius:4px;font-family:var(--font-sans);font-size:13px;"><datalist id="country-name-list"></datalist></div>
       <div><label style="display:block;font-size:12px;margin-bottom:4px;">Notes</label><input type="text" id="country-notes" style="padding:6px 8px;border:1px solid var(--border);border-radius:4px;font-family:var(--font-sans);font-size:13px;"></div>
       <button type="submit" style="background:var(--terracotta);color:#fff;border:none;padding:6px 14px;border-radius:4px;cursor:pointer;font-family:var(--font-sans);font-size:13px;">Save</button>
       <button type="button" id="cancel-country-btn" style="background:none;border:1px solid var(--border);padding:6px 14px;border-radius:4px;cursor:pointer;font-family:var(--font-sans);font-size:13px;">Cancel</button>
@@ -392,32 +393,49 @@ const DATA_BASE = (() => {
 })();
 
 const COUNTRY_ISO = {
-  "004":"Afghanistan","008":"Albania","012":"Algeria","024":"Angola","032":"Argentina",
-  "036":"Australia","040":"Austria","050":"Bangladesh","056":"Belgium","064":"Bhutan",
-  "068":"Bolivia","070":"Bosnia and Herzegovina","072":"Botswana","076":"Brazil",
-  "100":"Bulgaria","104":"Myanmar","116":"Cambodia","120":"Cameroon","124":"Canada",
-  "144":"Sri Lanka","152":"Chile","156":"China","170":"Colombia","188":"Costa Rica",
-  "191":"Croatia","192":"Cuba","196":"Cyprus","203":"Czech Republic","208":"Denmark",
-  "214":"Dominican Republic","218":"Ecuador","818":"Egypt","222":"El Salvador",
-  "231":"Ethiopia","246":"Finland","250":"France","266":"Gabon","276":"Germany",
-  "288":"Ghana","300":"Greece","320":"Guatemala","332":"Haiti","340":"Honduras",
-  "348":"Hungary","356":"India","360":"Indonesia","364":"Iran","368":"Iraq",
-  "372":"Ireland","376":"Israel","380":"Italy","388":"Jamaica","392":"Japan",
-  "400":"Jordan","398":"Kazakhstan","404":"Kenya","408":"North Korea","410":"South Korea",
-  "414":"Kuwait","418":"Laos","422":"Lebanon","430":"Liberia","434":"Libya",
-  "450":"Madagascar","454":"Malawi","458":"Malaysia","484":"Mexico","496":"Mongolia",
-  "504":"Morocco","508":"Mozambique","516":"Namibia","524":"Nepal","528":"Netherlands",
-  "554":"New Zealand","558":"Nicaragua","566":"Nigeria","578":"Norway","512":"Oman",
-  "586":"Pakistan","591":"Panama","604":"Peru","608":"Philippines","616":"Poland",
-  "620":"Portugal","634":"Qatar","642":"Romania","643":"Russia","646":"Rwanda",
-  "682":"Saudi Arabia","686":"Senegal","694":"Sierra Leone","703":"Slovakia",
-  "705":"Slovenia","706":"Somalia","710":"South Africa","728":"South Sudan",
-  "724":"Spain","729":"Sudan","752":"Sweden","756":"Switzerland","760":"Syria",
-  "158":"Taiwan","834":"Tanzania","764":"Thailand","780":"Trinidad and Tobago",
-  "788":"Tunisia","792":"Turkey","800":"Uganda","804":"Ukraine",
-  "784":"United Arab Emirates","826":"United Kingdom","840":"United States",
-  "858":"Uruguay","860":"Uzbekistan","862":"Venezuela","704":"Vietnam",
-  "887":"Yemen","894":"Zambia","716":"Zimbabwe"
+  "004":"Afghanistan","008":"Albania","012":"Algeria","020":"Andorra","024":"Angola",
+  "028":"Antigua and Barbuda","031":"Azerbaijan","032":"Argentina","036":"Australia",
+  "040":"Austria","044":"Bahamas","048":"Bahrain","050":"Bangladesh","051":"Armenia",
+  "052":"Barbados","056":"Belgium","084":"Belize","064":"Bhutan","068":"Bolivia",
+  "070":"Bosnia and Herzegovina","072":"Botswana","076":"Brazil","096":"Brunei",
+  "100":"Bulgaria","104":"Myanmar","108":"Burundi","112":"Belarus","116":"Cambodia",
+  "120":"Cameroon","124":"Canada","132":"Cape Verde","140":"Central African Republic",
+  "144":"Sri Lanka","148":"Chad","152":"Chile","156":"China","158":"Taiwan",
+  "170":"Colombia","174":"Comoros","178":"Republic of the Congo",
+  "180":"Democratic Republic of the Congo","188":"Costa Rica","191":"Croatia",
+  "192":"Cuba","196":"Cyprus","203":"Czech Republic","204":"Benin","208":"Denmark",
+  "212":"Dominica","214":"Dominican Republic","218":"Ecuador","222":"El Salvador",
+  "226":"Equatorial Guinea","231":"Ethiopia","232":"Eritrea","233":"Estonia",
+  "242":"Fiji","246":"Finland","250":"France","262":"Djibouti","266":"Gabon",
+  "270":"Gambia","275":"Palestine","276":"Germany","288":"Ghana","300":"Greece",
+  "308":"Grenada","320":"Guatemala","324":"Guinea","624":"Guinea-Bissau",
+  "328":"Guyana","332":"Haiti","340":"Honduras","348":"Hungary","356":"India",
+  "360":"Indonesia","364":"Iran","368":"Iraq","372":"Ireland","376":"Israel",
+  "380":"Italy","384":"Ivory Coast","388":"Jamaica","392":"Japan","398":"Kazakhstan",
+  "400":"Jordan","404":"Kenya","296":"Kiribati","408":"North Korea","410":"South Korea",
+  "414":"Kuwait","417":"Kyrgyzstan","418":"Laos","422":"Lebanon","426":"Lesotho",
+  "428":"Latvia","430":"Liberia","434":"Libya","438":"Liechtenstein","440":"Lithuania",
+  "442":"Luxembourg","450":"Madagascar","454":"Malawi","458":"Malaysia","462":"Maldives",
+  "466":"Mali","470":"Malta","584":"Marshall Islands","478":"Mauritania","480":"Mauritius",
+  "484":"Mexico","583":"Micronesia","496":"Mongolia","498":"Moldova","492":"Monaco",
+  "504":"Morocco","508":"Mozambique","516":"Namibia","520":"Nauru","524":"Nepal",
+  "528":"Netherlands","554":"New Zealand","558":"Nicaragua","562":"Niger","566":"Nigeria",
+  "578":"Norway","512":"Oman","586":"Pakistan","585":"Palau","591":"Panama",
+  "598":"Papua New Guinea","600":"Paraguay","604":"Peru","608":"Philippines",
+  "616":"Poland","620":"Portugal","626":"Timor-Leste","634":"Qatar","642":"Romania",
+  "643":"Russia","646":"Rwanda","659":"Saint Kitts and Nevis","662":"Saint Lucia",
+  "670":"Saint Vincent and the Grenadines","882":"Samoa","674":"San Marino",
+  "678":"Sao Tome and Principe","682":"Saudi Arabia","686":"Senegal","690":"Seychelles",
+  "694":"Sierra Leone","090":"Solomon Islands","706":"Somalia","710":"South Africa",
+  "728":"South Sudan","724":"Spain","729":"Sudan","740":"Suriname","748":"Eswatini",
+  "752":"Sweden","756":"Switzerland","760":"Syria","762":"Tajikistan","834":"Tanzania",
+  "764":"Thailand","768":"Togo","776":"Tonga","780":"Trinidad and Tobago",
+  "788":"Tunisia","792":"Turkey","795":"Turkmenistan","798":"Tuvalu","800":"Uganda",
+  "804":"Ukraine","784":"United Arab Emirates","826":"United Kingdom",
+  "840":"United States","858":"Uruguay","860":"Uzbekistan","548":"Vanuatu",
+  "862":"Venezuela","704":"Vietnam","887":"Yemen","894":"Zambia","716":"Zimbabwe",
+  "703":"Slovakia","705":"Slovenia","807":"North Macedonia","818":"Egypt",
+  "732":"Western Sahara","383":"Kosovo"
 };
 
 // FIPS code → state abbrev mapping (standard US FIPS state codes)
@@ -525,6 +543,15 @@ function savePhoto(placeId, dataUrl) {
     const tx = _photoDB.transaction('photos', 'readwrite');
     const req = tx.objectStore('photos').put(dataUrl, placeId);
     req.onsuccess = () => resolve();
+    req.onerror = () => reject(req.error);
+  });
+}
+
+function getPhotoIds() {
+  return new Promise((resolve, reject) => {
+    const tx = _photoDB.transaction('photos', 'readonly');
+    const req = tx.objectStore('photos').getAllKeys();
+    req.onsuccess = () => resolve(new Set(req.result));
     req.onerror = () => reject(req.error);
   });
 }
@@ -832,12 +859,13 @@ document.getElementById('visit-form').addEventListener('submit', function(e) {
 // ── States Tab ────────────────────────────────────────────────────────
 let statesSort = { col: 'name', dir: 'asc' };
 
-function renderStatesTable() {
+async function renderStatesTable() {
   const search = document.getElementById('states-search').value.toLowerCase();
   const region = document.getElementById('states-region-filter').value;
   const visitedFilter = document.getElementById('states-visited-filter').value;
   const allVisits = getVisits();
   const visitedIds = new Set(allVisits.map(v => v.placeId));
+  const photoIds = await getPhotoIds();
 
   // Build a map of placeId → sorted visits (newest first)
   const visitsByPlace = new Map();
@@ -879,7 +907,7 @@ function renderStatesTable() {
   tbody.innerHTML = rows.map(r => `
     <tr data-id="${escapeHtml(r.id)}" data-type="state">
       <td>${escapeHtml(r.abbrev)}</td>
-      <td>${visitedIds.has(r.id) ? '<span class="visited-dot"></span>' : ''}${escapeHtml(r.name)}</td>
+      <td>${visitedIds.has(r.id) ? '<span class="visited-dot"></span>' : ''}${photoIds.has(r.id) ? '<span class="photo-dot" title="Has photo"></span>' : ''}${escapeHtml(r.name)}</td>
       <td>${escapeHtml(r.region)}</td>
       <td>${escapeHtml(r.firstVisit || '—')}</td>
       <td>${r.visits || '—'}</td>
@@ -968,13 +996,14 @@ function populateParksFilters() {
   parksFiltersPopulated = true;
 }
 
-function renderParksTable() {
+async function renderParksTable() {
   const search = document.getElementById('parks-search').value.toLowerCase();
   const typeFilter = document.getElementById('parks-type-filter').value;
   const stateFilter = document.getElementById('parks-state-filter').value;
   const visitedFilter = document.getElementById('parks-visited-filter').value;
   const allVisits = getVisits();
   const visitedIds = new Set(allVisits.map(v => v.placeId));
+  const photoIds = await getPhotoIds();
 
   // Build a map of placeId → sorted visits (newest first)
   const visitsByPlace = new Map();
@@ -1021,7 +1050,7 @@ function renderParksTable() {
   const tbody = document.getElementById('parks-tbody');
   tbody.innerHTML = rows.map(r => `
     <tr data-id="${escapeHtml(r.id)}" data-type="park">
-      <td>${visitedIds.has(r.id) ? '<span class="visited-dot"></span>' : ''}${escapeHtml(r.name)}${r.isCustom ? ' <span style="font-size:10px;background:var(--border);padding:1px 5px;border-radius:3px;">custom</span>' : ''}</td>
+      <td>${visitedIds.has(r.id) ? '<span class="visited-dot"></span>' : ''}${photoIds.has(r.id) ? '<span class="photo-dot" title="Has photo"></span>' : ''}${escapeHtml(r.name)}${r.isCustom ? ' <span style="font-size:10px;background:var(--border);padding:1px 5px;border-radius:3px;">custom</span>' : ''}</td>
       <td>${escapeHtml(r.type || '—')}</td>
       <td>${escapeHtml(r.state || '—')}</td>
       <td>${escapeHtml(r.established || '—')}</td>
@@ -1152,11 +1181,12 @@ document.querySelector('[data-tab="parks"]').addEventListener('click', () => {
 // ── Countries Tab ─────────────────────────────────────────────────────
 let countriesSort = { col: 'name', dir: 'asc' };
 
-function renderCountriesTable() {
+async function renderCountriesTable() {
   const search = document.getElementById('countries-search').value.toLowerCase();
   const visitedFilter = document.getElementById('countries-visited-filter').value;
   const allVisits = getVisits();
   const visitedIds = new Set(allVisits.map(v => v.placeId));
+  const photoIds = await getPhotoIds();
 
   // Build a map of placeId → sorted visits (newest first)
   const visitsByPlace = new Map();
@@ -1198,7 +1228,7 @@ function renderCountriesTable() {
   const tbody = document.getElementById('countries-tbody');
   tbody.innerHTML = rows.length ? rows.map(r => `
     <tr data-id="${escapeHtml(r.id)}" data-type="country">
-      <td>${visitedIds.has(r.id) ? '<span class="visited-dot"></span>' : ''}${escapeHtml(r.name)}</td>
+      <td>${visitedIds.has(r.id) ? '<span class="visited-dot"></span>' : ''}${photoIds.has(r.id) ? '<span class="photo-dot" title="Has photo"></span>' : ''}${escapeHtml(r.name)}</td>
       <td>${escapeHtml(r.firstVisit || '—')}</td>
       <td>${r.visits || '—'}</td>
       <td>${r.tags.map(t => `<span class="tag-pill">${escapeHtml(t)}</span>`).join(' ')}</td>
@@ -1241,11 +1271,32 @@ document.getElementById('add-country-btn').addEventListener('click', () => {
 document.getElementById('cancel-country-btn').addEventListener('click', () => {
   document.getElementById('add-country-form').classList.add('hidden');
 });
+// Populate country name autocomplete from ISO map (sorted A-Z)
+(function() {
+  const dl = document.getElementById('country-name-list');
+  Object.values(COUNTRY_ISO).sort().forEach(name => {
+    const opt = document.createElement('option');
+    opt.value = name;
+    dl.appendChild(opt);
+  });
+})();
+
 document.getElementById('country-form').addEventListener('submit', function(e) {
   e.preventDefault();
+  const name = document.getElementById('country-name').value.trim();
+  // If a country with this name already exists, just open its drawer
+  const existing = getCustomPlaces().find(p =>
+    p.type === 'country' && p.name.toLowerCase() === name.toLowerCase()
+  );
+  if (existing) {
+    document.getElementById('add-country-form').classList.add('hidden');
+    this.reset();
+    selectPlace(existing.id, 'country');
+    return;
+  }
   const place = {
     id: generateId(),
-    name: document.getElementById('country-name').value.trim(),
+    name,
     type: 'country',
     notes: document.getElementById('country-notes').value.trim()
   };
@@ -1255,6 +1306,8 @@ document.getElementById('country-form').addEventListener('submit', function(e) {
   document.getElementById('add-country-form').classList.add('hidden');
   this.reset();
   renderCountriesTable();
+  colorCountriesTabMap();
+  selectPlace(place.id, 'country');
 });
 
 // ── Countries Tab Map ─────────────────────────────────────────────────
@@ -1290,7 +1343,16 @@ async function initCountriesTabMap() {
             p.type === 'country' &&
             p.name.toLowerCase() === isoName.toLowerCase()
           );
-          if (match) selectPlace(match.id, 'country');
+          if (match) {
+            selectPlace(match.id, 'country');
+          } else {
+            // Country not tracked yet — add it automatically and open the drawer
+            const newPlace = { id: generateId(), name: isoName, type: 'country' };
+            saveCustomPlaces([...getCustomPlaces(), newPlace]);
+            renderCountriesTable();
+            colorCountriesTabMap();
+            selectPlace(newPlace.id, 'country');
+          }
         });
     countriesTabMapInited = true;
   }
@@ -1425,6 +1487,10 @@ function handlePhotoFile(file) {
   reader.onload = async ev => {
     await savePhoto(currentPlaceId, ev.target.result);
     renderDrawerPhoto(currentPlaceId);
+    // Refresh the active table so the photo indicator appears immediately
+    if (currentPlaceType === 'state') renderStatesTable();
+    else if (currentPlaceType === 'park') renderParksTable();
+    else if (currentPlaceType === 'country') renderCountriesTable();
   };
   reader.readAsDataURL(file);
 }
