@@ -80,6 +80,8 @@ body { background: var(--cream); color: var(--ink); font-family: var(--font-sans
 .plan-visit-prompt { color: var(--ink-light); font-size: 13px; text-align: center; padding: 20px 0; font-style: italic; }
 .delete-visit-btn { background: none; border: none; color: var(--ink-light); cursor: pointer; font-size: 16px; padding: 0 2px; line-height: 1; opacity: 0.5; }
 .delete-visit-btn:hover { color: var(--terracotta); opacity: 1; }
+.edit-visit-btn { background: none; border: none; color: var(--ink-light); cursor: pointer; font-size: 13px; padding: 0 4px; line-height: 1; opacity: 0.5; }
+.edit-visit-btn:hover { color: var(--teal); opacity: 1; }
 .delete-place-btn { background: none; border: none; color: var(--ink-light); cursor: pointer; font-size: 16px; padding: 0 4px; line-height: 1; opacity: 0.4; }
 .delete-place-btn:hover { color: var(--terracotta); opacity: 1; }
 #add-visit-form { background: var(--parchment); border-radius: 6px; padding: 14px; margin-bottom: 14px; }
@@ -372,7 +374,7 @@ tbody td { padding: 8px 12px; vertical-align: middle; }
       <textarea id="visit-notes" rows="3" placeholder="Optional notes…"></textarea>
     </div>
     <div class="form-actions">
-      <button type="submit">Save Visit</button>
+      <button type="submit" id="save-visit-btn">Add Visit</button>
       <button type="button" id="cancel-visit-btn">Cancel</button>
     </div>
   </form>
@@ -384,6 +386,10 @@ tbody td { padding: 8px 12px; vertical-align: middle; }
 </div>
 <script>
 const STORAGE = { VISITS: 'atlas_visits', PLACES: 'atlas_places', PHOTOS: 'atlas_photos' };
+const DATA_BASE = (() => {
+  const loc = document.location.href;
+  return (loc.endsWith('/') || /\.html?(\?|#|$)/.test(loc)) ? new URL('./', loc).href : loc + '/';
+})();
 
 const COUNTRY_ISO = {
   "004":"Afghanistan","008":"Albania","012":"Algeria","024":"Angola","032":"Argentina",
@@ -454,8 +460,8 @@ let parksData = [];
 
 async function loadData() {
   [statesData, parksData] = await Promise.all([
-    fetch('./states.json').then(r => r.json()),
-    fetch('./parks.json').then(r => r.json())
+    fetch(DATA_BASE + 'states.json').then(r => r.json()),
+    fetch(DATA_BASE + 'parks.json').then(r => r.json())
   ]);
   statesData = statesData.map(s => ({ ...s, placeType: 'state' }));
   parksData = parksData.map(p => ({ ...p, placeType: 'park' }));
@@ -477,13 +483,50 @@ function deleteCustomPlace(id) {
   saveCustomPlaces(getCustomPlaces().filter(p => p.id !== id));
   saveVisits(getVisits().filter(v => v.placeId !== id));
 }
-function getPhotos() {
-  return JSON.parse(localStorage.getItem(STORAGE.PHOTOS) || '{}');
+// ── Photo storage (IndexedDB) ──────────────────────────────────────────
+let _photoDB = null;
+
+function _openPhotoDB() {
+  return new Promise((resolve, reject) => {
+    const req = indexedDB.open('atlas', 1);
+    req.onupgradeneeded = e => e.target.result.createObjectStore('photos');
+    req.onsuccess = e => resolve(e.target.result);
+    req.onerror = () => reject(req.error);
+  });
 }
+
+async function initPhotoDB() {
+  _photoDB = await _openPhotoDB();
+  // One-time migration: move any existing localStorage photos into IndexedDB
+  const legacy = localStorage.getItem(STORAGE.PHOTOS);
+  if (legacy) {
+    try {
+      const photos = JSON.parse(legacy);
+      const tx = _photoDB.transaction('photos', 'readwrite');
+      const store = tx.objectStore('photos');
+      for (const [id, url] of Object.entries(photos)) store.put(url, id);
+      await new Promise((res, rej) => { tx.oncomplete = res; tx.onerror = rej; });
+    } catch (e) { /* ignore corrupt legacy data */ }
+    localStorage.removeItem(STORAGE.PHOTOS);
+  }
+}
+
+function getPhoto(placeId) {
+  return new Promise((resolve, reject) => {
+    const tx = _photoDB.transaction('photos', 'readonly');
+    const req = tx.objectStore('photos').get(placeId);
+    req.onsuccess = () => resolve(req.result ?? null);
+    req.onerror = () => reject(req.error);
+  });
+}
+
 function savePhoto(placeId, dataUrl) {
-  const photos = getPhotos();
-  photos[placeId] = dataUrl;
-  localStorage.setItem(STORAGE.PHOTOS, JSON.stringify(photos));
+  return new Promise((resolve, reject) => {
+    const tx = _photoDB.transaction('photos', 'readwrite');
+    const req = tx.objectStore('photos').put(dataUrl, placeId);
+    req.onsuccess = () => resolve();
+    req.onerror = () => reject(req.error);
+  });
 }
 
 // Returns all visits for a given placeId, sorted newest first
@@ -558,12 +601,12 @@ function renderDrawerFacts(place) {
   ).join('');
 }
 
-function renderDrawerPhoto(placeId) {
-  const photos = getPhotos();
+async function renderDrawerPhoto(placeId) {
+  const dataUrl = await getPhoto(placeId);
   const img = document.getElementById('drawer-photo');
   const placeholder = document.getElementById('photo-placeholder');
-  if (photos[placeId]) {
-    img.src = photos[placeId];
+  if (dataUrl) {
+    img.src = dataUrl;
     img.style.display = 'block';
     placeholder.style.display = 'none';
   } else {
@@ -586,22 +629,24 @@ function renderVisitsList(placeId) {
           <span class="visit-date">${escapeHtml(v.date)}</span>
           ${v.estimated ? '<span class="visit-estimated">(estimated)</span>' : ''}
         </div>
-        <button class="delete-visit-btn" data-place="${escapeHtml(placeId)}" data-date="${escapeHtml(v.date)}" data-notes="${escapeHtml(v.notes || '')}" data-est="${v.estimated ? '1' : '0'}" title="Delete visit">×</button>
+        <div style="display:flex;gap:2px;align-items:center;">
+          <button class="edit-visit-btn" data-id="${escapeHtml(v.id)}" title="Edit visit">✎</button>
+          <button class="delete-visit-btn" data-id="${escapeHtml(v.id)}" title="Delete visit">×</button>
+        </div>
       </div>
       <div class="visit-tags">${(v.tags || []).map(t => `<span class="tag-pill">${escapeHtml(t)}</span>`).join('')}</div>
       ${v.notes ? `<p class="visit-notes">${escapeHtml(v.notes)}</p>` : ''}
     </div>
   `).join('');
 
+  container.querySelectorAll('.edit-visit-btn').forEach(btn => {
+    btn.addEventListener('click', () => openEditVisitForm(btn.dataset.id));
+  });
+
   container.querySelectorAll('.delete-visit-btn').forEach(btn => {
     btn.addEventListener('click', () => {
       const all = getVisits();
-      const idx = all.findIndex(v =>
-        v.placeId === btn.dataset.place &&
-        v.date === btn.dataset.date &&
-        (v.notes || '') === btn.dataset.notes &&
-        !!v.estimated === (btn.dataset.est === '1')
-      );
+      const idx = all.findIndex(v => v.id === btn.dataset.id);
       if (idx !== -1) {
         all.splice(idx, 1);
         saveVisits(all);
@@ -614,6 +659,9 @@ function renderVisitsList(placeId) {
       if (place) renderDrawerFacts(place);
       colorStates();
       colorParks();
+      renderStatesTable();
+      renderParksTable();
+      renderCountriesTable();
     });
   });
 }
@@ -652,8 +700,10 @@ function selectPlace(placeId, placeType) {
 
 // ── Add Visit Form ────────────────────────────────────────────────────
 let currentVisitTags = [];
+let editingVisitId = null;
 
 function openAddVisitForm() {
+  editingVisitId = null;
   currentVisitTags = [];
   document.getElementById('visit-date').value = new Date().toISOString().slice(0, 10);
   document.getElementById('visit-estimated').checked = false;
@@ -661,6 +711,33 @@ function openAddVisitForm() {
   document.getElementById('tag-chips').innerHTML = '';
   document.getElementById('tag-input').value = '';
   document.getElementById('tag-suggestions').classList.add('hidden');
+  document.getElementById('save-visit-btn').textContent = 'Add Visit';
+  document.getElementById('add-visit-form').classList.remove('hidden');
+}
+
+function openEditVisitForm(visitId) {
+  const visit = getVisits().find(v => v.id === visitId);
+  if (!visit) return;
+  editingVisitId = visitId;
+  currentVisitTags = [...(visit.tags || [])];
+  document.getElementById('visit-date').value = visit.date;
+  document.getElementById('visit-estimated').checked = !!visit.estimated;
+  document.getElementById('visit-notes').value = visit.notes || '';
+  const chips = document.getElementById('tag-chips');
+  chips.innerHTML = '';
+  currentVisitTags.forEach(tag => {
+    const chip = document.createElement('span');
+    chip.className = 'chip';
+    chip.innerHTML = escapeHtml(tag) + ' <span class="chip-remove" data-tag="' + escapeHtml(tag) + '">×</span>';
+    chip.querySelector('.chip-remove').addEventListener('click', () => {
+      currentVisitTags = currentVisitTags.filter(t => t !== tag);
+      chip.remove();
+    });
+    chips.appendChild(chip);
+  });
+  document.getElementById('tag-input').value = '';
+  document.getElementById('tag-suggestions').classList.add('hidden');
+  document.getElementById('save-visit-btn').textContent = 'Update Visit';
   document.getElementById('add-visit-form').classList.remove('hidden');
 }
 
@@ -704,6 +781,7 @@ document.getElementById('tag-input').addEventListener('keydown', function(e) {
 document.getElementById('add-visit-btn').addEventListener('click', openAddVisitForm);
 
 document.getElementById('cancel-visit-btn').addEventListener('click', () => {
+  editingVisitId = null;
   document.getElementById('add-visit-form').classList.add('hidden');
 });
 
@@ -713,16 +791,29 @@ document.getElementById('visit-form').addEventListener('submit', function(e) {
     toast('Please add at least one tag.');
     return;
   }
-  const visit = {
-    id: generateId(),
-    placeId: currentPlaceId,
-    date: document.getElementById('visit-date').value,
-    estimated: document.getElementById('visit-estimated').checked,
-    tags: [...currentVisitTags],
-    notes: document.getElementById('visit-notes').value.trim()
-  };
   const visits = getVisits();
-  visits.push(visit);
+  if (editingVisitId) {
+    const idx = visits.findIndex(v => v.id === editingVisitId);
+    if (idx !== -1) {
+      visits[idx] = {
+        ...visits[idx],
+        date: document.getElementById('visit-date').value,
+        estimated: document.getElementById('visit-estimated').checked,
+        tags: [...currentVisitTags],
+        notes: document.getElementById('visit-notes').value.trim()
+      };
+    }
+    editingVisitId = null;
+  } else {
+    visits.push({
+      id: generateId(),
+      placeId: currentPlaceId,
+      date: document.getElementById('visit-date').value,
+      estimated: document.getElementById('visit-estimated').checked,
+      tags: [...currentVisitTags],
+      notes: document.getElementById('visit-notes').value.trim()
+    });
+  }
   saveVisits(visits);
   if (statesTabMapInited) colorStatesTabMap();
   if (parksTabMapInited) colorParksTabMap();
@@ -733,6 +824,9 @@ document.getElementById('visit-form').addEventListener('submit', function(e) {
   if (place) renderDrawerFacts(place);
   colorStates();
   colorParks();
+  renderStatesTable();
+  renderParksTable();
+  renderCountriesTable();
 });
 
 // ── States Tab ────────────────────────────────────────────────────────
@@ -1164,7 +1258,7 @@ document.getElementById('country-form').addEventListener('submit', function(e) {
 });
 
 // ── Countries Tab Map ─────────────────────────────────────────────────
-const WORLD_ATLAS = 'https://cdn.jsdelivr.net/npm/world-atlas@2/countries-110m.json';
+const WORLD_ATLAS = DATA_BASE + 'countries-110m.json';
 let worldTopoData = null;
 let countriesTabMapInited = false;
 
@@ -1323,13 +1417,13 @@ const photoZone = document.getElementById('drawer-photo-zone');
 
 function handlePhotoFile(file) {
   if (!file || !file.type.startsWith('image/')) return;
-  if (file.size > 500 * 1024) {
-    toast(`Image is ${(file.size / 1024).toFixed(0)}KB — please use an image under 500KB to avoid filling localStorage.`);
+  if (file.size > 5 * 1024 * 1024) {
+    toast(`Image is ${(file.size / 1024 / 1024).toFixed(1)}MB — please use an image under 5MB.`);
     return;
   }
   const reader = new FileReader();
-  reader.onload = ev => {
-    savePhoto(currentPlaceId, ev.target.result);
+  reader.onload = async ev => {
+    await savePhoto(currentPlaceId, ev.target.result);
     renderDrawerPhoto(currentPlaceId);
   };
   reader.readAsDataURL(file);
@@ -1405,7 +1499,7 @@ function updateMapFilterDatalist() {
 document.getElementById('map-filter-input').addEventListener('input', applyMapTagFilter);
 
 // ── Map ──────────────────────────────────────────────────────────────
-const US_ATLAS = 'https://cdn.jsdelivr.net/npm/us-atlas@3/states-10m.json';
+const US_ATLAS = DATA_BASE + 'states-10m.json';
 
 let topoData = null;
 
@@ -1610,6 +1704,7 @@ document.querySelectorAll('.pane-drag-handle').forEach(handle => {
 });
 
 async function init() {
+  await initPhotoDB();
   await loadData();
   await loadMap();
   updateMapFilterDatalist();
