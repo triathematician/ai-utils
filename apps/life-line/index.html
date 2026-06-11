@@ -1,0 +1,1114 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LIFE LINE</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@300;400;500;600;700&family=Source+Code+Pro:wght@300;400;600;700&family=VT323&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #121212; --fg: #ffb000; --accent: #ff0000;
+  --dim: #7a5500; --muted: #3a2800; --border: #ffb000;
+  --success: #00ff41; --warn: #ff6600;
+  --font: 'VT323', 'Courier New', monospace;
+  --font-size: 20px; --line-h: 1.4;
+  --cat-1:#ffb000; --cat-2:#ff4444; --cat-3:#ff8800; --cat-4:#00ff41;
+  --cat-5:#00bbff; --cat-6:#aa44ff; --cat-7:#ff44aa; --cat-8:#ffff44;
+  --cat-9:#00ffaa; --cat-10:#ffffff;
+}
+[data-theme="solar"] {
+  --bg:#002b36; --fg:#839496; --accent:#b58900;
+  --dim:#4a5456; --muted:#073642; --border:#839496;
+  --success:#859900; --warn:#cb4b16; --font:'Fira Code',monospace;
+  --cat-1:#b58900; --cat-2:#cb4b16; --cat-3:#dc322f; --cat-4:#d33682;
+  --cat-5:#6c71c4; --cat-6:#268bd2; --cat-7:#2aa198; --cat-8:#859900;
+  --cat-9:#657b83; --cat-10:#93a1a1;
+}
+[data-theme="monk"] {
+  --bg:#f5f5f5; --fg:#2a2a2a; --accent:#000000;
+  --dim:#888; --muted:#e0e0e0; --border:#2a2a2a;
+  --success:#1a6600; --warn:#aa4400; --font:'Source Code Pro',monospace;
+  --cat-1:#2a2a2a; --cat-2:#aa2200; --cat-3:#005588; --cat-4:#336600;
+  --cat-5:#884400; --cat-6:#550055; --cat-7:#006666; --cat-8:#7a5000;
+  --cat-9:#555500; --cat-10:#003344;
+}
+[data-theme="space"] {
+  --bg:#0a0a1a; --fg:#a0c0ff; --accent:#00ffff;
+  --dim:#304060; --muted:#0f0f2a; --border:#304080;
+  --success:#00ffaa; --warn:#ff6060; --font:'Fira Code',monospace;
+  --cat-1:#00ffff; --cat-2:#ff00aa; --cat-3:#00ff88; --cat-4:#ffff00;
+  --cat-5:#ff6060; --cat-6:#7788ff; --cat-7:#aa66ff; --cat-8:#ffffff;
+  --cat-9:#00ccff; --cat-10:#ff8800;
+}
+[data-theme="synth"] {
+  --bg:#1a0033; --fg:#ff00ff; --accent:#00ffff;
+  --dim:#660066; --muted:#2a0044; --border:#ff00ff;
+  --success:#00ff88; --warn:#ffaa00; --font:'Fira Code',monospace;
+  --cat-1:#ff00ff; --cat-2:#00ffff; --cat-3:#00ff88; --cat-4:#ffaa00;
+  --cat-5:#ff0066; --cat-6:#6600ff; --cat-7:#ff6600; --cat-8:#00aaff;
+  --cat-9:#ffff00; --cat-10:#ff44aa;
+}
+[data-theme="dos"] {
+  --bg:#0000aa; --fg:#aaaaaa; --accent:#ffffff;
+  --dim:#5555ff; --muted:#0000cc; --border:#aaaaaa;
+  --success:#55ff55; --warn:#ffff55; --font:'VT323',monospace;
+  --cat-1:#ffffff; --cat-2:#55ffff; --cat-3:#55ff55; --cat-4:#ff5555;
+  --cat-5:#ffff55; --cat-6:#ff55ff; --cat-7:#5555ff; --cat-8:#aaaaaa;
+  --cat-9:#ffaa55; --cat-10:#55aaaa;
+}
+[data-theme="notebook"] {
+  --bg:#fafaf2; --fg:#1a1a2e; --accent:#c0392b;
+  --dim:#8a8a9a; --muted:#eeeede; --border:#90a8d4;
+  --success:#2e7d32; --warn:#e65100; --font:'Source Code Pro',monospace;
+  --cat-1:#c0392b; --cat-2:#d84315; --cat-3:#f57c00; --cat-4:#2e7d32;
+  --cat-5:#1565c0; --cat-6:#6a1b9a; --cat-7:#00838f; --cat-8:#4e342e;
+  --cat-9:#37474f; --cat-10:#880e4f;
+}
+[data-theme="engineering"] {
+  --bg:#e8f5e8; --fg:#0d2b0d; --accent:#2e7d32;
+  --dim:#5a7a5a; --muted:#d0e8d0; --border:#7ab87a;
+  --success:#1b5e20; --warn:#cc6600; --font:'Source Code Pro',monospace;
+  --cat-1:#2e7d32; --cat-2:#b71c1c; --cat-3:#e65100; --cat-4:#1b5e20;
+  --cat-5:#1565c0; --cat-6:#4a148c; --cat-7:#00695c; --cat-8:#4e342e;
+  --cat-9:#37474f; --cat-10:#880e4f;
+}
+[data-theme="winter"] {
+  --bg:#0d1b2a; --fg:#d8eaf4; --accent:#7ec8e3;
+  --dim:#5a7f94; --muted:#1a2f40; --border:#3d6b8c;
+  --success:#4ecdc4; --warn:#f4a261; --font:'Fira Code',monospace;
+  --cat-1:#7ec8e3; --cat-2:#a8d8ea; --cat-3:#cde8f5; --cat-4:#9bb7d4;
+  --cat-5:#b8a8d0; --cat-6:#4ecdc4; --cat-7:#8fcfb8; --cat-8:#f4a261;
+  --cat-9:#d4c5a9; --cat-10:#a8c0d0;
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html, body {
+  height: 100%; background: var(--bg); color: var(--fg);
+  font-family: var(--font); font-size: var(--font-size);
+  line-height: var(--line-h); overflow: hidden;
+}
+::selection { background: var(--fg); color: var(--bg); }
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: var(--muted); }
+::-webkit-scrollbar-thumb { background: var(--dim); }
+#app { display: grid; grid-template-rows: 30vh 60vh 10vh; height: 100vh; width: 100vw; }
+#top-row { border-bottom: 1px solid var(--border); padding: 10px 12px; overflow-y: auto; }
+#main-row { display: grid; grid-template-columns: 1.1fr 0.9fr; overflow: hidden; }
+#main-panel { border-right: 1px solid var(--border); padding: 10px 12px; overflow-y: auto; }
+#side-panel { padding: 10px 12px; overflow-y: auto; }
+#console-row {
+  background: var(--muted); border-top: 1px solid var(--border);
+  display: flex; align-items: center; padding: 0 12px; gap: 8px;
+}
+.row-header {
+  color: var(--accent); font-size: 0.8em; letter-spacing: 2px;
+  margin-bottom: 4px; border-bottom: 1px solid var(--muted); padding-bottom: 4px;
+}
+#console-prompt { color: var(--accent); white-space: nowrap; }
+#console-input {
+  flex: 1; background: transparent; border: none; outline: none;
+  color: var(--fg); font-family: var(--font); font-size: var(--font-size);
+  caret-color: var(--accent);
+}
+#console-status { color: var(--dim); font-size: 0.8em; min-width: 180px; text-align: right; white-space: nowrap; }
+.summary-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; margin-bottom: 8px; }
+.metric { border: 1px solid var(--muted); padding: 6px 8px; min-height: 54px; }
+.metric-label { color: var(--dim); font-size: 0.72em; letter-spacing: 1px; }
+.metric-value { color: var(--accent); font-size: 1.2em; }
+.top-panels { display: grid; grid-template-columns: 1.2fr 0.8fr; gap: 10px; min-height: 0; }
+.mini-panel { border: 1px solid var(--muted); padding: 8px; min-height: 120px; }
+.section-title { color: var(--accent); margin-bottom: 4px; letter-spacing: 1px; font-size: 0.8em; }
+.focus-name { color: var(--accent); font-size: 1.1em; }
+.focus-meta, .dim { color: var(--dim); font-size: 0.84em; }
+.chip-row, .attr-row { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; }
+.chip {
+  border: 1px solid var(--dim); color: var(--fg);
+  padding: 1px 6px; font-size: 0.78em;
+}
+.chip-accent { color: var(--accent); border-color: var(--accent); }
+.chip-good { color: var(--success); border-color: var(--success); }
+.line { padding: 4px 0; border-bottom: 1px solid var(--muted); }
+.line:last-child { border-bottom: none; }
+.person-card { border: 1px solid var(--muted); padding: 8px; margin-bottom: 8px; }
+.person-head { display: flex; flex-wrap: wrap; gap: 8px; align-items: baseline; }
+.person-name { color: var(--accent); }
+.person-life { color: var(--dim); }
+.person-notes { margin-top: 4px; }
+.action-link {
+  color: var(--success); padding: 0 4px; cursor: pointer;
+  white-space: nowrap; font-size: 0.82em;
+}
+.action-link:hover { background: var(--success); color: var(--bg); }
+.split-section { margin-top: 10px; }
+#help-overlay {
+  display: none; position: fixed; inset: 0;
+  background: rgba(0,0,0,0.7); z-index: 150;
+  align-items: center; justify-content: center;
+}
+#help-overlay.visible { display: flex; }
+.overlay-box {
+  background: var(--bg); border: 1px solid var(--border);
+  padding: 16px 20px; min-width: 640px; max-width: min(90vw, 960px);
+  font-family: var(--font); color: var(--fg);
+}
+#help-title { color: var(--accent); letter-spacing: 2px; margin-bottom: 8px; }
+#help-body { white-space: pre; line-height: 1.8; max-height: 60vh; overflow-y: auto; }
+#help-close { color: var(--dim); font-size: 0.82em; cursor: pointer; display: block; margin-top: 8px; }
+</style>
+</head>
+<body>
+<div id="splash" style="position:fixed;inset:0;background:var(--bg);display:flex;align-items:center;justify-content:center;z-index:100;flex-direction:column;gap:8px;">
+  <div style="color:var(--accent);font-size:2em;letter-spacing:4px;">LIFE LINE</div>
+  <div style="color:var(--dim);font-size:0.8em;">LOADING FAMILY TREE...</div>
+</div>
+
+<div id="app">
+  <div id="top-row">
+    <div class="row-header">◈ FAMILY SNAPSHOT</div>
+    <div class="summary-grid">
+      <div class="metric"><div class="metric-label">PEOPLE</div><div class="metric-value" id="metric-people">0</div></div>
+      <div class="metric"><div class="metric-label">RELATIONSHIPS</div><div class="metric-value" id="metric-relationships">0</div></div>
+      <div class="metric"><div class="metric-label">EVENTS</div><div class="metric-value" id="metric-events">0</div></div>
+      <div class="metric"><div class="metric-label">KNOWN DATES</div><div class="metric-value" id="metric-dates">0</div></div>
+    </div>
+    <div class="top-panels">
+      <div class="mini-panel">
+        <div class="section-title">FOCUS PERSON</div>
+        <div id="focus-card" class="dim">No people yet. Use /person add to start the tree.</div>
+      </div>
+      <div class="mini-panel">
+        <div class="section-title">DATE LEDGER</div>
+        <div id="date-ledger" class="dim">No dated records yet.</div>
+      </div>
+    </div>
+  </div>
+  <div id="main-row">
+    <div id="main-panel">
+      <div class="row-header">◈ PEOPLE DIRECTORY</div>
+      <div id="people-list" class="dim">No people yet. Add one with /person add Name | birth | death | branch | gender | notes</div>
+    </div>
+    <div id="side-panel">
+      <div class="row-header">◈ LINKS + EVENTS</div>
+      <div class="section-title">COMMON RELATIONSHIPS</div>
+      <div id="relationship-mix" class="dim">No relationships logged yet. Use /rel add.</div>
+      <div class="split-section">
+        <div class="section-title">RELATIONSHIP LEDGER</div>
+        <div id="relationship-list" class="dim">No family links recorded yet.</div>
+      </div>
+      <div class="split-section">
+        <div class="section-title">EVENT LOG</div>
+        <div id="event-list" class="dim">No events logged yet. Use /event add.</div>
+      </div>
+    </div>
+  </div>
+  <div id="console-row">
+    <span id="console-prompt">LIFELINE&gt;</span>
+    <input type="text" id="console-input" autocomplete="off" spellcheck="false">
+    <span id="console-status">READY</span>
+  </div>
+</div>
+
+<div id="help-overlay">
+  <div class="overlay-box">
+    <div id="help-title"></div>
+    <div id="help-body"></div>
+    <span id="help-close">[ESC] CLOSE</span>
+  </div>
+</div>
+
+<script>
+const STORAGE_KEY = 'life_line_db';
+const EXPORT_SLUG = 'life-line';
+const THEMES = ['legacy','solar','monk','space','synth','dos','notebook','engineering','winter'];
+const RELATIONSHIP_TYPES = ['parent', 'child', 'spouse', 'partner', 'sibling'];
+let db = { people: [], relationships: [], events: [], backlog: [], backlogArchive: [], theme: 'legacy', focusPersonId: '' };
+
+function normalizeDate(value) {
+  const raw = String(value || '').trim();
+  if (!raw) return '';
+  const match = raw.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (!match) return '';
+  const iso = new Date(raw + 'T00:00:00Z');
+  return Number.isNaN(iso.getTime()) || iso.toISOString().slice(0, 10) !== raw ? '' : raw;
+}
+
+function cleanText(value) {
+  return String(value == null ? '' : value).trim();
+}
+
+function sanitizeAttributes(value) {
+  const source = value && typeof value === 'object' && !Array.isArray(value) ? value : {};
+  return Object.fromEntries(
+    Object.entries(source)
+      .map(([key, val]) => [cleanText(key), cleanText(val)])
+      .filter(([key, val]) => key && val)
+  );
+}
+
+function normalizeRelationshipType(value) {
+  const type = cleanText(value).toLowerCase();
+  if (['parent', 'mother', 'father', 'guardian'].includes(type)) return 'parent';
+  if (type === 'child') return 'child';
+  if (['spouse', 'partner', 'married'].includes(type)) return 'spouse';
+  if (['sibling', 'brother', 'sister'].includes(type)) return 'sibling';
+  return '';
+}
+
+function canonicalizeRelationship(fromId, type, toId) {
+  let relType = normalizeRelationshipType(type);
+  let sourceId = cleanText(fromId);
+  let targetId = cleanText(toId);
+  if (!sourceId || !targetId || !relType || sourceId === targetId) return null;
+  if (relType === 'child') {
+    relType = 'parent';
+    [sourceId, targetId] = [targetId, sourceId];
+  }
+  if (relType === 'spouse' || relType === 'sibling') {
+    [sourceId, targetId] = [sourceId, targetId].sort();
+  }
+  return { fromId: sourceId, toId: targetId, type: relType };
+}
+
+function nextId(prefix, items) {
+  const max = (items || []).reduce((best, item) => {
+    const match = cleanText(item && item.id).match(new RegExp('^' + prefix + '(\\d+)$', 'i'));
+    return match ? Math.max(best, parseInt(match[1], 10)) : best;
+  }, 0);
+  return prefix + (max + 1);
+}
+
+function sanitizePerson(raw) {
+  const source = raw && typeof raw === 'object' ? raw : {};
+  return {
+    id: cleanText(source.id) || nextId('P', db.people || []),
+    name: cleanText(source.name) || 'UNNAMED PERSON',
+    birthDate: normalizeDate(source.birthDate),
+    deathDate: normalizeDate(source.deathDate),
+    branch: cleanText(source.branch),
+    gender: cleanText(source.gender),
+    notes: cleanText(source.notes),
+    attributes: sanitizeAttributes(source.attributes),
+    createdAt: cleanText(source.createdAt) || new Date().toISOString()
+  };
+}
+
+function sanitizeRelationship(raw) {
+  const source = raw && typeof raw === 'object' ? raw : {};
+  const canonical = canonicalizeRelationship(source.fromId, source.type, source.toId);
+  if (!canonical) return null;
+  return {
+    id: cleanText(source.id) || nextId('R', db.relationships || []),
+    fromId: canonical.fromId,
+    toId: canonical.toId,
+    type: canonical.type,
+    date: normalizeDate(source.date),
+    note: cleanText(source.note),
+    createdAt: cleanText(source.createdAt) || new Date().toISOString()
+  };
+}
+
+function sanitizeEvent(raw) {
+  const source = raw && typeof raw === 'object' ? raw : {};
+  const personIds = Array.isArray(source.personIds)
+    ? source.personIds.map(cleanText).filter(Boolean)
+    : [];
+  return {
+    id: cleanText(source.id) || nextId('E', db.events || []),
+    type: cleanText(source.type) || 'milestone',
+    date: normalizeDate(source.date),
+    title: cleanText(source.title) || 'Untitled event',
+    personIds,
+    note: cleanText(source.note),
+    createdAt: cleanText(source.createdAt) || new Date().toISOString()
+  };
+}
+
+function loadDB() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    const parsed = raw ? JSON.parse(raw) : {};
+    const base = {
+      people: Array.isArray(parsed.people) ? parsed.people : [],
+      relationships: Array.isArray(parsed.relationships) ? parsed.relationships : [],
+      events: Array.isArray(parsed.events) ? parsed.events : [],
+      backlog: Array.isArray(parsed.backlog) ? parsed.backlog : [],
+      backlogArchive: Array.isArray(parsed.backlogArchive) ? parsed.backlogArchive : [],
+      theme: cleanText(parsed.theme) || 'legacy',
+      focusPersonId: cleanText(parsed.focusPersonId)
+    };
+    db = { people: [], relationships: [], events: [] };
+    base.people = base.people.map(sanitizePerson);
+    db.people = base.people;
+    base.relationships = base.relationships.map(sanitizeRelationship).filter(Boolean);
+    db.relationships = base.relationships;
+    base.events = base.events.map(sanitizeEvent);
+    db.events = base.events;
+    if (!base.people.some(person => person.id === base.focusPersonId)) base.focusPersonId = base.people[0] ? base.people[0].id : '';
+    return base;
+  } catch {
+    return { people: [], relationships: [], events: [], backlog: [], backlogArchive: [], theme: 'legacy', focusPersonId: '' };
+  }
+}
+
+function saveDB() {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(db));
+}
+
+function escHtml(str) {
+  return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
+
+function splitPipe(raw) {
+  return String(raw || '').split('|').map(part => part.trim());
+}
+
+function todayStr() {
+  return new Date().toISOString().slice(0, 10);
+}
+
+function downloadBlob(content, filename, type) {
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([content], { type }));
+  a.download = filename;
+  a.click();
+  URL.revokeObjectURL(a.href);
+}
+
+function statusMsg(msg) {
+  document.getElementById('console-status').textContent = msg;
+  setTimeout(updateStatus, 3000);
+}
+
+function updateStatus() {
+  const focus = getFocusPerson();
+  const suffix = focus ? ' · FOCUS ' + focus.id : '';
+  document.getElementById('console-status').textContent = `${db.people.length} PEOPLE · ${db.relationships.length} LINKS${suffix}`;
+}
+
+function peopleMap() {
+  return new Map(db.people.map(person => [person.id, person]));
+}
+
+function findPerson(token) {
+  const query = cleanText(token);
+  if (!query) return { error: 'Person required.' };
+  const byId = db.people.find(person => person.id.toLowerCase() === query.toLowerCase());
+  if (byId) return { person: byId };
+  const exactName = db.people.find(person => person.name.toLowerCase() === query.toLowerCase());
+  if (exactName) return { person: exactName };
+  const partial = db.people.filter(person => person.name.toLowerCase().includes(query.toLowerCase()));
+  if (partial.length === 1) return { person: partial[0] };
+  if (partial.length > 1) return { error: 'Ambiguous person: ' + query };
+  return { error: 'Person not found: ' + query };
+}
+
+function resolvePeopleCsv(raw) {
+  const tokens = cleanText(raw)
+    ? raw.split(',').map(token => token.trim()).filter(Boolean)
+    : [];
+  const resolved = [];
+  for (const token of tokens) {
+    const match = findPerson(token);
+    if (match.error) return match;
+    resolved.push(match.person.id);
+  }
+  return { personIds: Array.from(new Set(resolved)) };
+}
+
+function getFocusPerson() {
+  return db.people.find(person => person.id === db.focusPersonId) || db.people[0] || null;
+}
+
+function relationSummary(personId) {
+  const parents = [];
+  const children = [];
+  const spouses = [];
+  const siblings = [];
+  const map = peopleMap();
+  db.relationships.forEach(rel => {
+    if (rel.type === 'parent') {
+      if (rel.toId === personId && map.has(rel.fromId)) parents.push(map.get(rel.fromId));
+      if (rel.fromId === personId && map.has(rel.toId)) children.push(map.get(rel.toId));
+    }
+    if (rel.type === 'spouse' && (rel.fromId === personId || rel.toId === personId)) {
+      const otherId = rel.fromId === personId ? rel.toId : rel.fromId;
+      if (map.has(otherId)) spouses.push(map.get(otherId));
+    }
+    if (rel.type === 'sibling' && (rel.fromId === personId || rel.toId === personId)) {
+      const otherId = rel.fromId === personId ? rel.toId : rel.fromId;
+      if (map.has(otherId)) siblings.push(map.get(otherId));
+    }
+  });
+  return { parents, children, spouses, siblings };
+}
+
+function formatLife(person) {
+  const birth = person.birthDate || '????-??-??';
+  const death = person.deathDate || '...';
+  return `${birth} → ${death}`;
+}
+
+function relationshipLabel(rel, map) {
+  const from = map.get(rel.fromId);
+  const to = map.get(rel.toId);
+  if (!from || !to) return '';
+  const date = rel.date ? ` · ${rel.date}` : '';
+  const note = rel.note ? ` · ${escHtml(rel.note)}` : '';
+  if (rel.type === 'parent') return `${escHtml(from.name)} → parent of → ${escHtml(to.name)}${date}${note}`;
+  if (rel.type === 'spouse') return `${escHtml(from.name)} ↔ spouse ↔ ${escHtml(to.name)}${date}${note}`;
+  return `${escHtml(from.name)} ↔ sibling ↔ ${escHtml(to.name)}${date}${note}`;
+}
+
+function buildDateLedger() {
+  const entries = [];
+  db.people.forEach(person => {
+    if (person.birthDate) entries.push({ date: person.birthDate, label: 'BIRTH', text: person.name });
+    if (person.deathDate) entries.push({ date: person.deathDate, label: 'DEATH', text: person.name });
+  });
+  db.events.forEach(event => {
+    if (event.date) entries.push({ date: event.date, label: event.type.toUpperCase(), text: event.title });
+  });
+  return entries.sort((a, b) => a.date.localeCompare(b.date)).slice(-8);
+}
+
+function renderMetrics() {
+  const knownDates = db.people.reduce((count, person) => count + (person.birthDate ? 1 : 0) + (person.deathDate ? 1 : 0), 0) + db.events.filter(event => event.date).length;
+  document.getElementById('metric-people').textContent = String(db.people.length);
+  document.getElementById('metric-relationships').textContent = String(db.relationships.length);
+  document.getElementById('metric-events').textContent = String(db.events.length);
+  document.getElementById('metric-dates').textContent = String(knownDates);
+}
+
+function renderFocus() {
+  const focus = getFocusPerson();
+  const el = document.getElementById('focus-card');
+  if (!focus) {
+    el.className = 'dim';
+    el.innerHTML = 'No people yet. Use /person add to start the tree.';
+    return;
+  }
+  const summary = relationSummary(focus.id);
+  const attrs = Object.entries(focus.attributes);
+  const chips = [
+    focus.branch && `<span class="chip chip-accent">${escHtml(focus.branch)}</span>`,
+    focus.gender && `<span class="chip">${escHtml(focus.gender)}</span>`,
+    `<span class="chip chip-good">${summary.parents.length} parent${summary.parents.length === 1 ? '' : 's'}</span>`,
+    `<span class="chip chip-good">${summary.children.length} child${summary.children.length === 1 ? '' : 'ren'}</span>`,
+    `<span class="chip">${summary.spouses.length} spouse${summary.spouses.length === 1 ? '' : 's'}</span>`,
+    `<span class="chip">${summary.siblings.length} sibling${summary.siblings.length === 1 ? '' : 's'}</span>`
+  ].filter(Boolean).join('');
+  const attrHtml = attrs.length
+    ? attrs.map(([key, value]) => `<span class="chip">${escHtml(key)}: ${escHtml(value)}</span>`).join('')
+    : '<span class="dim">No custom attributes yet. Use /attr set.</span>';
+  el.className = '';
+  el.innerHTML = `
+    <div class="focus-name">${escHtml(focus.name)} <span class="focus-meta">(${escHtml(focus.id)})</span></div>
+    <div class="focus-meta">${escHtml(formatLife(focus))}</div>
+    <div class="chip-row">${chips}</div>
+    <div class="attr-row">${attrHtml}</div>
+    <div class="person-notes dim">${focus.notes ? escHtml(focus.notes) : 'No notes yet.'}</div>
+  `;
+}
+
+function renderDateLedger() {
+  const entries = buildDateLedger();
+  const el = document.getElementById('date-ledger');
+  if (!entries.length) {
+    el.className = 'dim';
+    el.textContent = 'No dated records yet.';
+    return;
+  }
+  el.className = '';
+  el.innerHTML = entries.map(entry => `<div class="line"><span class="focus-meta">${escHtml(entry.date)}</span> · <span class="person-name">${escHtml(entry.label)}</span> · ${escHtml(entry.text)}</div>`).join('');
+}
+
+function renderPeople() {
+  const el = document.getElementById('people-list');
+  if (!db.people.length) {
+    el.className = 'dim';
+    el.textContent = 'No people yet. Add one with /person add Name | birth | death | branch | gender | notes';
+    return;
+  }
+  const people = db.people.slice().sort((a, b) => (a.birthDate || '9999-99-99').localeCompare(b.birthDate || '9999-99-99') || a.name.localeCompare(b.name));
+  el.className = '';
+  el.innerHTML = people.map(person => {
+    const summary = relationSummary(person.id);
+    const attrs = Object.entries(person.attributes).slice(0, 4).map(([key, value]) => `${escHtml(key)}=${escHtml(value)}`).join(' · ');
+    const secondary = [
+      person.branch && `branch: ${escHtml(person.branch)}`,
+      person.gender && `gender: ${escHtml(person.gender)}`,
+      attrs,
+      `parents:${summary.parents.length} children:${summary.children.length} spouses:${summary.spouses.length} siblings:${summary.siblings.length}`
+    ].filter(Boolean).join(' · ');
+    return `
+      <div class="person-card">
+        <div class="person-head">
+          <span class="action-link" data-person-focus="${escHtml(person.id)}">[FOCUS]</span>
+          <span class="person-name">${escHtml(person.name)}</span>
+          <span class="person-life">${escHtml(person.id)} · ${escHtml(formatLife(person))}</span>
+        </div>
+        <div class="dim">${secondary}</div>
+        <div class="person-notes dim">${person.notes ? escHtml(person.notes) : 'No notes.'}</div>
+      </div>
+    `;
+  }).join('');
+  el.querySelectorAll('[data-person-focus]').forEach(node => {
+    node.addEventListener('click', () => setFocus(node.dataset.personFocus, true));
+  });
+}
+
+function renderRelationships() {
+  const map = peopleMap();
+  const relList = document.getElementById('relationship-list');
+  const relMix = document.getElementById('relationship-mix');
+  if (!db.relationships.length) {
+    relList.className = 'dim';
+    relList.textContent = 'No family links recorded yet.';
+    relMix.className = 'dim';
+    relMix.textContent = 'No relationships logged yet. Use /rel add.';
+    return;
+  }
+  const counts = db.relationships.reduce((acc, rel) => {
+    acc[rel.type] = (acc[rel.type] || 0) + 1;
+    return acc;
+  }, {});
+  relMix.className = '';
+  relMix.innerHTML = [
+    `<span class="chip chip-good">parent ${counts.parent || 0}</span>`,
+    `<span class="chip">spouse ${counts.spouse || 0}</span>`,
+    `<span class="chip">sibling ${counts.sibling || 0}</span>`
+  ].join(' ');
+  relList.className = '';
+  relList.innerHTML = db.relationships
+    .slice()
+    .sort((a, b) => (a.date || '9999-99-99').localeCompare(b.date || '9999-99-99') || a.id.localeCompare(b.id))
+    .map(rel => `<div class="line"><span class="focus-meta">${escHtml(rel.id)}</span> · ${relationshipLabel(rel, map)}</div>`)
+    .join('');
+}
+
+function renderEvents() {
+  const map = peopleMap();
+  const el = document.getElementById('event-list');
+  if (!db.events.length) {
+    el.className = 'dim';
+    el.textContent = 'No events logged yet. Use /event add.';
+    return;
+  }
+  el.className = '';
+  el.innerHTML = db.events
+    .slice()
+    .sort((a, b) => (a.date || '9999-99-99').localeCompare(b.date || '9999-99-99') || a.id.localeCompare(b.id))
+    .map(event => {
+      const people = event.personIds.map(id => map.get(id)).filter(Boolean).map(person => person.name).join(', ');
+      return `<div class="line"><span class="focus-meta">${escHtml(event.id)}</span> · <span class="person-name">${escHtml(event.type.toUpperCase())}</span> · ${event.date ? escHtml(event.date) + ' · ' : ''}${escHtml(event.title)}${people ? ' · ' + escHtml(people) : ''}${event.note ? ' · ' + escHtml(event.note) : ''}</div>`;
+    })
+    .join('');
+}
+
+function render() {
+  renderMetrics();
+  renderFocus();
+  renderDateLedger();
+  renderPeople();
+  renderRelationships();
+  renderEvents();
+  updateStatus();
+}
+
+function openOverlay(title, body, useHtml) {
+  document.getElementById('help-title').textContent = title;
+  const helpBody = document.getElementById('help-body');
+  helpBody.style.whiteSpace = useHtml ? 'normal' : 'pre';
+  if (useHtml) helpBody.innerHTML = body;
+  else helpBody.textContent = body;
+  const overlay = document.getElementById('help-overlay');
+  overlay.classList.add('visible');
+  overlay.onclick = e => { if (e.target === overlay) overlay.classList.remove('visible'); };
+}
+
+function showHelp() {
+  openOverlay('◈ LIFE LINE — COMMANDS', [
+    '── PEOPLE ─────────────────────────────────────────────',
+    '/person add Name | birth | death | branch | gender | notes',
+    '/person update person | field | value',
+    '/person remove person',
+    '/person list [query]',
+    '/person focus [person]',
+    '',
+    '── ATTRIBUTES ─────────────────────────────────────────',
+    '/attr set person | key | value',
+    '/attr clear person | key',
+    '/attr list person',
+    '',
+    '── RELATIONSHIPS ──────────────────────────────────────',
+    '/rel add from | parent|child|spouse|partner|sibling | to | date | note',
+    '/rel remove relationship-id',
+    '/rel list',
+    '',
+    '── EVENTS ─────────────────────────────────────────────',
+    '/event add type | date | title | person1, person2 | note',
+    '/event remove event-id',
+    '/event list',
+    '',
+    '── STANDARD ───────────────────────────────────────────',
+    '/theme [name]            switch theme',
+    '/backlog [text]          add item to backlog',
+    '/backlog list            show all backlog items',
+    '/backlog done [n]        toggle item #n as done/open',
+    '/backlog delete [n]      remove item #n from backlog',
+    '/backlog archive         move done items to archive',
+    '/backlog archive list    show archived batches',
+    '/backlog export          download backlog as .txt',
+    '/export [txt|json]       export app data',
+    '/import                  import app data from .json',
+    '/help                    show this help'
+  ].join('\n'), false);
+}
+
+document.getElementById('help-close').onclick = () => document.getElementById('help-overlay').classList.remove('visible');
+
+function showBacklogList() {
+  const body = db.backlog.map((item, index) => {
+    const mark = item.done ? '[x]' : '[ ]';
+    return `<div style="padding:2px 0"><span data-backlog-idx="${index}" style="cursor:pointer;user-select:none;color:var(--accent)">${mark}</span> ${index + 1}. ${escHtml(item.text)}</div>`;
+  }).join('') + '<div style="margin-top:8px;border-top:1px solid var(--muted);padding-top:6px"><span class="backlog-copy-btn action-link">[COPY]</span></div>';
+  openOverlay('BACKLOG', body, true);
+  document.querySelectorAll('[data-backlog-idx]').forEach(node => {
+    node.addEventListener('click', () => {
+      const item = db.backlog[parseInt(node.dataset.backlogIdx, 10)];
+      item.done = !item.done;
+      saveDB();
+      showBacklogList();
+    });
+  });
+  const copyBtn = document.querySelector('.backlog-copy-btn');
+  if (copyBtn) {
+    copyBtn.addEventListener('click', () => {
+      const text = '# BACKLOG — ' + todayStr() + '\n\n' + db.backlog.map(item => `- ${item.done ? '[x]' : '[ ]'} ${item.text}`).join('\n') + '\n';
+      navigator.clipboard.writeText(text).then(() => statusMsg('Backlog copied.'));
+    });
+  }
+}
+
+function handleBacklog(arg) {
+  if (!arg || arg === 'list') {
+    if (!db.backlog.length) return statusMsg('Backlog is empty.');
+    return showBacklogList();
+  }
+  if (arg === 'archive list') {
+    if (!db.backlogArchive.length) return statusMsg('No archived backlog batches.');
+    const lines = db.backlogArchive.flatMap(batch => [
+      `── ${batch.date} (${batch.items.length} item${batch.items.length === 1 ? '' : 's'}) ──`,
+      ...batch.items.map(item => `  [x] ${item.text}`)
+    ]);
+    return openOverlay('BACKLOG ARCHIVE', lines.join('\n'), false);
+  }
+  if (arg === 'archive') {
+    const done = db.backlog.filter(item => item.done);
+    if (!done.length) return statusMsg('No done items to archive.');
+    db.backlog = db.backlog.filter(item => !item.done);
+    db.backlogArchive.push({ date: todayStr(), items: done });
+    saveDB();
+    return statusMsg(`Archived ${done.length} item${done.length === 1 ? '' : 's'}.`);
+  }
+  if (arg === 'export') return exportBacklog();
+  if (arg.startsWith('delete ') || arg.startsWith('del ')) {
+    const n = parseInt(arg.split(' ')[1], 10);
+    const item = db.backlog[n - 1];
+    if (!item) return statusMsg(`No backlog item #${n}.`);
+    db.backlog.splice(n - 1, 1);
+    saveDB();
+    return statusMsg(`Backlog #${n} deleted.`);
+  }
+  if (arg.startsWith('done ')) {
+    const n = parseInt(arg.split(' ')[1], 10);
+    const item = db.backlog[n - 1];
+    if (!item) return statusMsg(`No backlog item #${n}.`);
+    item.done = !item.done;
+    saveDB();
+    return statusMsg(`Backlog #${n} marked ${item.done ? 'done' : 'open'}.`);
+  }
+  db.backlog.push({ id: Date.now() + '_' + Math.random().toString(36).slice(2, 6), text: arg, done: false, createdAt: new Date().toISOString() });
+  saveDB();
+  statusMsg(`Backlog: added "${arg}"`);
+}
+
+function exportBacklog() {
+  if (!db.backlog.length) return statusMsg('Backlog is empty.');
+  const text = '# BACKLOG — ' + todayStr() + '\n\n' + db.backlog.map(item => `- ${item.done ? '[x]' : '[ ]'} ${item.text}`).join('\n') + '\n';
+  downloadBlob(text, `backlog-${todayStr()}.txt`, 'text/plain');
+  statusMsg(`Exported ${db.backlog.length} backlog item${db.backlog.length === 1 ? '' : 's'}.`);
+}
+
+function setFocus(personId, silent) {
+  const match = db.people.find(person => person.id === personId);
+  if (!match) return statusMsg('Focus person not found.');
+  db.focusPersonId = match.id;
+  saveDB();
+  render();
+  if (!silent) statusMsg('Focus: ' + match.name);
+}
+
+function personListText(query) {
+  const filtered = cleanText(query)
+    ? db.people.filter(person => person.name.toLowerCase().includes(query.toLowerCase()) || person.id.toLowerCase() === query.toLowerCase())
+    : db.people.slice();
+  if (!filtered.length) return 'No matching people.';
+  return filtered
+    .slice()
+    .sort((a, b) => a.name.localeCompare(b.name))
+    .map(person => `${person.id}  ${person.name}  ${formatLife(person)}${person.branch ? '  [' + person.branch + ']' : ''}`)
+    .join('\n');
+}
+
+function cmdPersonAdd(raw) {
+  const [name, birthDate, deathDate, branch, gender, notes] = splitPipe(raw);
+  if (!name) return statusMsg('Usage: /person add Name | birth | death | branch | gender | notes');
+  const normalizedBirth = birthDate ? normalizeDate(birthDate) : '';
+  const normalizedDeath = deathDate ? normalizeDate(deathDate) : '';
+  if (birthDate && !normalizedBirth) return statusMsg('Birth date must be YYYY-MM-DD.');
+  if (deathDate && !normalizedDeath) return statusMsg('Death date must be YYYY-MM-DD.');
+  const person = sanitizePerson({
+    id: nextId('P', db.people),
+    name,
+    birthDate: normalizedBirth,
+    deathDate: normalizedDeath,
+    branch,
+    gender,
+    notes
+  });
+  db.people.push(person);
+  if (!db.focusPersonId) db.focusPersonId = person.id;
+  saveDB();
+  render();
+  statusMsg(`Added ${person.name} (${person.id}).`);
+}
+
+function cmdPersonUpdate(raw) {
+  const [token, fieldRaw, value] = splitPipe(raw);
+  const match = findPerson(token);
+  if (match.error) return statusMsg(match.error);
+  const field = cleanText(fieldRaw).toLowerCase();
+  const updates = {
+    name: 'name',
+    birth: 'birthDate',
+    birthdate: 'birthDate',
+    death: 'deathDate',
+    deathdate: 'deathDate',
+    branch: 'branch',
+    gender: 'gender',
+    notes: 'notes'
+  };
+  const key = updates[field];
+  if (!key) return statusMsg('Field must be name, birthDate, deathDate, branch, gender, or notes.');
+  if ((key === 'birthDate' || key === 'deathDate') && value && !normalizeDate(value)) return statusMsg('Dates must be YYYY-MM-DD.');
+  match.person[key] = key === 'birthDate' || key === 'deathDate' ? normalizeDate(value) : cleanText(value);
+  saveDB();
+  render();
+  statusMsg(`Updated ${match.person.name}: ${key}.`);
+}
+
+function cmdPersonRemove(raw) {
+  const match = findPerson(raw);
+  if (match.error) return statusMsg(match.error);
+  const removedId = match.person.id;
+  const removedLinks = db.relationships.filter(rel => rel.fromId === removedId || rel.toId === removedId).length;
+  db.people = db.people.filter(person => person.id !== removedId);
+  db.relationships = db.relationships.filter(rel => rel.fromId !== removedId && rel.toId !== removedId);
+  db.events = db.events.map(event => ({ ...event, personIds: event.personIds.filter(id => id !== removedId) }));
+  if (db.focusPersonId === removedId) db.focusPersonId = db.people[0] ? db.people[0].id : '';
+  saveDB();
+  render();
+  statusMsg(`Removed ${match.person.name} and ${removedLinks} linked relationship${removedLinks === 1 ? '' : 's'}.`);
+}
+
+function cmdPersonFocus(raw) {
+  if (!cleanText(raw)) {
+    const focus = getFocusPerson();
+    return statusMsg(focus ? `Focus: ${focus.name}` : 'No focus person set.');
+  }
+  const match = findPerson(raw);
+  if (match.error) return statusMsg(match.error);
+  setFocus(match.person.id);
+}
+
+function handlePersonCommand(arg) {
+  const trimmed = cleanText(arg);
+  if (!trimmed || trimmed === 'list') return openOverlay('PEOPLE DIRECTORY', personListText(''), false);
+  if (trimmed.startsWith('list ')) return openOverlay('PEOPLE DIRECTORY', personListText(trimmed.slice(5)), false);
+  if (trimmed.startsWith('add ')) return cmdPersonAdd(trimmed.slice(4));
+  if (trimmed.startsWith('update ')) return cmdPersonUpdate(trimmed.slice(7));
+  if (trimmed.startsWith('remove ')) return cmdPersonRemove(trimmed.slice(7));
+  if (trimmed.startsWith('focus ')) return cmdPersonFocus(trimmed.slice(6));
+  statusMsg('Usage: /person add|update|remove|list|focus');
+}
+
+function handleAttrCommand(arg) {
+  const trimmed = cleanText(arg);
+  if (trimmed.startsWith('set ')) {
+    const [token, key, value] = splitPipe(trimmed.slice(4));
+    const match = findPerson(token);
+    if (match.error) return statusMsg(match.error);
+    if (!key || !value) return statusMsg('Usage: /attr set person | key | value');
+    match.person.attributes[cleanText(key)] = cleanText(value);
+    saveDB();
+    render();
+    return statusMsg(`Attribute set on ${match.person.name}.`);
+  }
+  if (trimmed.startsWith('clear ')) {
+    const [token, key] = splitPipe(trimmed.slice(6));
+    const match = findPerson(token);
+    if (match.error) return statusMsg(match.error);
+    if (!key) return statusMsg('Usage: /attr clear person | key');
+    delete match.person.attributes[cleanText(key)];
+    saveDB();
+    render();
+    return statusMsg(`Attribute cleared on ${match.person.name}.`);
+  }
+  if (trimmed.startsWith('list ')) {
+    const match = findPerson(trimmed.slice(5));
+    if (match.error) return statusMsg(match.error);
+    const attrs = Object.entries(match.person.attributes);
+    const lines = attrs.length ? attrs.map(([key, value]) => `${key}: ${value}`).join('\n') : 'No custom attributes.';
+    return openOverlay(`${match.person.name} — ATTRIBUTES`, lines, false);
+  }
+  statusMsg('Usage: /attr set|clear|list');
+}
+
+function cmdRelationshipAdd(raw) {
+  const [fromToken, type, toToken, date, note] = splitPipe(raw);
+  const fromMatch = findPerson(fromToken);
+  if (fromMatch.error) return statusMsg(fromMatch.error);
+  const toMatch = findPerson(toToken);
+  if (toMatch.error) return statusMsg(toMatch.error);
+  if (!normalizeRelationshipType(type) || !RELATIONSHIP_TYPES.includes(cleanText(type).toLowerCase())) {
+    return statusMsg('Relationship type must be parent, child, spouse, partner, or sibling.');
+  }
+  const canonical = canonicalizeRelationship(fromMatch.person.id, type, toMatch.person.id);
+  if (!canonical) return statusMsg('Relationship must connect two different people.');
+  const normalizedDate = date ? normalizeDate(date) : '';
+  if (date && !normalizedDate) return statusMsg('Relationship date must be YYYY-MM-DD.');
+  const duplicate = db.relationships.find(rel => rel.type === canonical.type && rel.fromId === canonical.fromId && rel.toId === canonical.toId);
+  if (duplicate) return statusMsg(`Duplicate relationship already exists (${duplicate.id}).`);
+  db.relationships.push(sanitizeRelationship({
+    id: nextId('R', db.relationships),
+    fromId: canonical.fromId,
+    toId: canonical.toId,
+    type: canonical.type,
+    date: normalizedDate,
+    note
+  }));
+  saveDB();
+  render();
+  statusMsg('Relationship added.');
+}
+
+function handleRelationshipCommand(arg) {
+  const trimmed = cleanText(arg);
+  if (!trimmed || trimmed === 'list') {
+    const map = peopleMap();
+    const text = db.relationships.length
+      ? db.relationships.map(rel => `${rel.id}  ${relationshipLabel(rel, map).replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>')}`).join('\n')
+      : 'No relationships recorded.';
+    return openOverlay('RELATIONSHIPS', text, false);
+  }
+  if (trimmed.startsWith('add ')) return cmdRelationshipAdd(trimmed.slice(4));
+  if (trimmed.startsWith('remove ')) {
+    const id = cleanText(trimmed.slice(7));
+    const before = db.relationships.length;
+    db.relationships = db.relationships.filter(rel => rel.id.toLowerCase() !== id.toLowerCase());
+    if (db.relationships.length === before) return statusMsg('Relationship not found: ' + id);
+    saveDB();
+    render();
+    return statusMsg('Relationship removed: ' + id);
+  }
+  statusMsg('Usage: /rel add|remove|list');
+}
+
+function cmdEventAdd(raw) {
+  const [type, date, title, peopleCsv, note] = splitPipe(raw);
+  if (!type || !title) return statusMsg('Usage: /event add type | date | title | person1, person2 | note');
+  const normalizedDate = normalizeDate(date);
+  if (!normalizedDate) return statusMsg('Event date must be YYYY-MM-DD.');
+  const resolved = resolvePeopleCsv(peopleCsv);
+  if (resolved.error) return statusMsg(resolved.error);
+  db.events.push(sanitizeEvent({
+    id: nextId('E', db.events),
+    type,
+    date: normalizedDate,
+    title,
+    personIds: resolved.personIds || [],
+    note
+  }));
+  saveDB();
+  render();
+  statusMsg('Event added.');
+}
+
+function handleEventCommand(arg) {
+  const trimmed = cleanText(arg);
+  if (!trimmed || trimmed === 'list') {
+    const map = peopleMap();
+    const text = db.events.length
+      ? db.events.map(event => {
+          const people = event.personIds.map(id => map.get(id)).filter(Boolean).map(person => person.name).join(', ');
+          return `${event.id}  ${event.type.toUpperCase()}  ${event.date}  ${event.title}${people ? '  [' + people + ']' : ''}${event.note ? '  ' + event.note : ''}`;
+        }).join('\n')
+      : 'No events recorded.';
+    return openOverlay('EVENTS', text, false);
+  }
+  if (trimmed.startsWith('add ')) return cmdEventAdd(trimmed.slice(4));
+  if (trimmed.startsWith('remove ')) {
+    const id = cleanText(trimmed.slice(7));
+    const before = db.events.length;
+    db.events = db.events.filter(event => event.id.toLowerCase() !== id.toLowerCase());
+    if (db.events.length === before) return statusMsg('Event not found: ' + id);
+    saveDB();
+    render();
+    return statusMsg('Event removed: ' + id);
+  }
+  statusMsg('Usage: /event add|remove|list');
+}
+
+function exportDataTxt() {
+  const map = peopleMap();
+  return [
+    '# LIFE LINE — ' + todayStr(),
+    '',
+    'PEOPLE',
+    ...db.people.map(person => `- ${person.id} | ${person.name} | ${formatLife(person)} | ${person.branch || '-'} | ${person.gender || '-'} | ${person.notes || '-'}`),
+    '',
+    'RELATIONSHIPS',
+    ...db.relationships.map(rel => `- ${rel.id} | ${relationshipLabel(rel, map).replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>')}`),
+    '',
+    'EVENTS',
+    ...db.events.map(event => `- ${event.id} | ${event.type} | ${event.date} | ${event.title}`)
+  ].join('\n');
+}
+
+function exportDataJson() {
+  return {
+    schemaVersion: 1,
+    exportedAt: new Date().toISOString(),
+    people: db.people,
+    relationships: db.relationships,
+    events: db.events,
+    focusPersonId: db.focusPersonId
+  };
+}
+
+function isValidImport(obj) {
+  return obj
+    && obj.schemaVersion === 1
+    && Array.isArray(obj.people)
+    && Array.isArray(obj.relationships)
+    && Array.isArray(obj.events);
+}
+
+function importData(obj) {
+  const base = {
+    people: obj.people.map(sanitizePerson),
+    relationships: obj.relationships.map(sanitizeRelationship).filter(Boolean),
+    events: obj.events.map(sanitizeEvent),
+    backlog: db.backlog,
+    backlogArchive: db.backlogArchive,
+    theme: db.theme,
+    focusPersonId: cleanText(obj.focusPersonId)
+  };
+  db = base;
+  if (!db.people.some(person => person.id === db.focusPersonId)) db.focusPersonId = db.people[0] ? db.people[0].id : '';
+}
+
+function cmdExport(format) {
+  const now = todayStr();
+  const doTxt = !format || format === 'txt';
+  const doJson = !format || format === 'json';
+  if (!doTxt && !doJson) return statusMsg('Usage: /export [txt|json]');
+  if (doTxt) downloadBlob(exportDataTxt(), `${EXPORT_SLUG}-${now}.txt`, 'text/plain');
+  if (doJson) downloadBlob(JSON.stringify(exportDataJson(), null, 2), `${EXPORT_SLUG}-${now}.json`, 'application/json');
+  statusMsg('Exported' + (format ? ' as .' + format : ' txt + json'));
+}
+
+function cmdImport() {
+  const fileInput = document.createElement('input');
+  fileInput.type = 'file';
+  fileInput.accept = '.json';
+  fileInput.onchange = event => {
+    const file = event.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = loadEvent => {
+      try {
+        const obj = JSON.parse(loadEvent.target.result);
+        if (!isValidImport(obj)) return statusMsg('Invalid import file.');
+        importData(obj);
+        saveDB();
+        render();
+        statusMsg('Imported: ' + file.name);
+      } catch {
+        statusMsg('Failed to parse import file.');
+      }
+    };
+    reader.readAsText(file);
+  };
+  fileInput.click();
+}
+
+function applyTheme(name) {
+  if (!name) {
+    const current = db.theme || 'legacy';
+    const others = THEMES.filter(theme => theme !== current);
+    name = others[Math.floor(Math.random() * others.length)];
+  }
+  if (!THEMES.includes(name)) return statusMsg('Unknown theme: ' + name);
+  document.documentElement.dataset.theme = name === 'legacy' ? '' : name;
+  db.theme = name;
+  saveDB();
+  statusMsg('Theme: ' + name.toUpperCase());
+}
+
+const input = document.getElementById('console-input');
+input.addEventListener('keydown', event => {
+  if (event.key === 'Enter') {
+    const cmd = input.value.trim();
+    input.value = '';
+    if (cmd) handleConsoleCmd(cmd);
+  }
+});
+
+function handleConsoleCmd(raw) {
+  const parts = raw.split(/\s+/);
+  const cmd = parts[0].toLowerCase();
+  const rest = raw.slice(cmd.length).trim();
+  if (cmd === '/help') return showHelp();
+  if (cmd === '/theme') return applyTheme(parts[1] || '');
+  if (cmd === '/backlog') return handleBacklog(rest);
+  if (cmd === '/export') return cmdExport(parts[1] || '');
+  if (cmd === '/import') return cmdImport();
+  if (cmd === '/person') return handlePersonCommand(rest);
+  if (cmd === '/attr') return handleAttrCommand(rest);
+  if (cmd === '/rel') return handleRelationshipCommand(rest);
+  if (cmd === '/event') return handleEventCommand(rest);
+  if (cmd === '/focus') return cmdPersonFocus(rest);
+  statusMsg('Unknown command: ' + cmd);
+}
+
+document.addEventListener('keydown', event => {
+  if (event.key === 'Escape') document.getElementById('help-overlay').classList.remove('visible');
+  if (document.getElementById('help-overlay').classList.contains('visible')) return;
+  if (document.activeElement !== input) input.focus();
+});
+
+function init() {
+  db = loadDB();
+  applyTheme(db.theme || 'legacy');
+  render();
+  document.getElementById('splash').style.display = 'none';
+  input.focus();
+}
+
+window.addEventListener('DOMContentLoaded', init);
+</script>
+</body>
+</html>
