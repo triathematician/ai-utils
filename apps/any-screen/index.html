@@ -1,0 +1,712 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ANY SCREEN</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&family=Syne:wght@700;800&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #0a0b0e;
+      --surface: #0f1116;
+      --surface2: #161a22;
+      --border: #1e2330;
+      --border-bright: #2e3650;
+      --accent: #4af0c8;
+      --accent2: #8bc8ff;
+      --accent3: #f05c7b;
+      --text: #e8ecf5;
+      --text-dim: #5a6380;
+      --text-dimmer: #2e3450;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { width: 100%; height: 100%; overflow: hidden; }
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'JetBrains Mono', monospace;
+      display: flex;
+      flex-direction: column;
+    }
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      z-index: 0;
+      background-image:
+        linear-gradient(rgba(74,240,200,0.012) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(74,240,200,0.012) 1px, transparent 1px);
+      background-size: 32px 32px;
+    }
+
+    #topbar {
+      position: relative;
+      z-index: 2;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      border-bottom: 1px solid var(--border);
+      background: var(--surface);
+      padding: 8px 12px;
+      flex-wrap: wrap;
+    }
+    .logo { font-family: 'Syne', sans-serif; font-size: 14px; letter-spacing: 0.12em; color: var(--accent); }
+    .meta { color: var(--text-dim); font-size: 10px; letter-spacing: 0.08em; }
+    .btn, select, input {
+      background: var(--surface2);
+      border: 1px solid var(--border-bright);
+      color: var(--text);
+      font-family: inherit;
+      font-size: 10px;
+      border-radius: 4px;
+      padding: 4px 7px;
+    }
+    .btn { text-transform: uppercase; letter-spacing: 0.08em; cursor: pointer; }
+    .btn:hover { border-color: var(--accent); color: var(--accent); }
+    .btn.danger:hover { border-color: var(--accent3); color: var(--accent3); }
+    .field { display: flex; align-items: center; gap: 4px; font-size: 9px; color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.08em; }
+    .field input { width: 66px; }
+    .divider { width: 1px; height: 24px; background: var(--border); }
+
+    #layout {
+      position: relative;
+      z-index: 1;
+      flex: 1;
+      min-height: 0;
+      display: grid;
+      grid-template-columns: 280px 1fr 320px;
+    }
+    .panel {
+      background: var(--surface);
+      border-right: 1px solid var(--border);
+      overflow: auto;
+      padding: 10px;
+    }
+    .panel.right {
+      border-right: none;
+      border-left: 1px solid var(--border);
+    }
+    .sec { margin-bottom: 14px; }
+    .sec h3 {
+      color: var(--accent2);
+      font-size: 10px;
+      margin-bottom: 8px;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+    }
+    .row { display: flex; gap: 6px; margin-bottom: 6px; }
+    .row > * { flex: 1; }
+    textarea {
+      width: 100%;
+      min-height: 180px;
+      resize: vertical;
+      background: var(--surface2);
+      border: 1px solid var(--border-bright);
+      color: var(--text);
+      font-family: inherit;
+      font-size: 10px;
+      padding: 8px;
+      border-radius: 4px;
+    }
+
+    #canvas-wrap {
+      position: relative;
+      overflow: auto;
+      background: #090b10;
+    }
+    #canvas-shell {
+      position: relative;
+      margin: 14px;
+      background: #0f131c;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      min-width: 420px;
+      min-height: 280px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 12px;
+    }
+    #design {
+      width: 100%;
+      height: 100%;
+      border: 1px solid var(--border-bright);
+      background: #0a1117;
+      display: block;
+    }
+    .screen-outline { fill: none; stroke: rgba(139,200,255,0.25); stroke-width: 1; }
+    .region-box { fill: rgba(139,200,255,0.05); stroke: rgba(139,200,255,0.85); stroke-dasharray: 8 6; stroke-width: 2; }
+    .region-label { fill: rgba(139,200,255,0.95); font-size: 36px; font-family: 'JetBrains Mono', monospace; }
+    .primitive { pointer-events: auto; cursor: pointer; }
+    .placeholder { fill: rgba(74,240,200,0.09); stroke: var(--accent); stroke-width: 2; stroke-dasharray: 12 8; }
+    .placeholder-text { fill: var(--accent); font-size: 32px; font-family: 'JetBrains Mono', monospace; }
+    .selected { filter: drop-shadow(0 0 8px rgba(74,240,200,0.65)); }
+    #status { color: var(--text-dim); font-size: 10px; letter-spacing: 0.06em; margin-top: 8px; }
+
+    @media (max-width: 1200px) {
+      #layout { grid-template-columns: 260px 1fr; }
+      .panel.right { grid-column: 1 / -1; border-left: none; border-top: 1px solid var(--border); }
+    }
+  </style>
+</head>
+<body>
+  <div id="topbar">
+    <span class="logo">ANY SCREEN</span>
+    <span class="meta">wall + template designer</span>
+    <div class="divider"></div>
+    <label class="field">Rows <input id="wall-rows" type="number" min="1" value="2"></label>
+    <label class="field">Cols <input id="wall-cols" type="number" min="1" value="4"></label>
+    <button class="btn" id="apply-wall">Apply Wall</button>
+    <span class="meta" id="wall-meta"></span>
+  </div>
+
+  <div id="layout">
+    <aside class="panel">
+      <div class="sec">
+        <h3>Regions (screen coords)</h3>
+        <div class="row"><input id="region-name" placeholder="Name (e.g. LEFT)"></div>
+        <div class="row">
+          <input id="region-row" type="number" min="1" value="1" placeholder="Row">
+          <input id="region-col" type="number" min="1" value="1" placeholder="Col">
+        </div>
+        <div class="row">
+          <input id="region-rows" type="number" min="1" value="1" placeholder="Rows">
+          <input id="region-cols" type="number" min="1" value="1" placeholder="Cols">
+        </div>
+        <button class="btn" id="add-region">Add Region</button>
+      </div>
+
+      <div class="sec">
+        <h3>Add Primitive</h3>
+        <div class="row"><select id="primitive-type">
+          <option value="rectangle">Rectangle</option>
+          <option value="round-rectangle">Round Rectangle</option>
+          <option value="line">Line</option>
+          <option value="ellipse">Ellipse</option>
+          <option value="textbox">Textbox</option>
+        </select></div>
+        <div class="row">
+          <input id="item-x" type="number" value="120" placeholder="X">
+          <input id="item-y" type="number" value="120" placeholder="Y">
+        </div>
+        <div class="row">
+          <input id="item-w" type="number" value="960" placeholder="W">
+          <input id="item-h" type="number" value="540" placeholder="H">
+        </div>
+        <div class="row"><input id="item-text" placeholder="Text / label"></div>
+        <button class="btn" id="add-primitive">Add Primitive</button>
+      </div>
+
+      <div class="sec">
+        <h3>Media + Placeholders</h3>
+        <div class="row"><input id="asset-file" type="file" accept="image/*,.svg"></div>
+        <div class="row">
+          <button class="btn" id="add-placeholder">Add Placeholder</button>
+          <button class="btn" id="assign-share">Assign Share</button>
+        </div>
+        <div class="row"><input id="share-name" placeholder="Share source name"></div>
+      </div>
+
+      <div class="sec">
+        <h3>Selection</h3>
+        <button class="btn danger" id="delete-selected">Delete Selected</button>
+        <div id="status">No selection</div>
+      </div>
+    </aside>
+
+    <main id="canvas-wrap">
+      <div id="canvas-shell">
+        <svg id="design" viewBox="0 0 7680 2160" preserveAspectRatio="xMidYMid meet"></svg>
+      </div>
+    </main>
+
+    <aside class="panel right">
+      <div class="sec">
+        <h3>Templates</h3>
+        <div class="row"><input id="template-name" placeholder="Template name"></div>
+        <div class="row">
+          <button class="btn" id="save-template">Save</button>
+          <button class="btn" id="apply-template">Apply</button>
+          <button class="btn danger" id="delete-template">Delete</button>
+        </div>
+        <div class="row"><select id="template-list"></select></div>
+      </div>
+
+      <div class="sec">
+        <h3>Generators</h3>
+        <div class="row"><select id="generator">
+          <option value="border-grid">Border + Grid</option>
+          <option value="focus-detail">Focus + Detail</option>
+          <option value="staggered">Staggered</option>
+        </select></div>
+        <button class="btn" id="run-generator">Generate Layout</button>
+      </div>
+
+      <div class="sec">
+        <h3>Export Commands</h3>
+        <button class="btn" id="export-cmds">Refresh Export</button>
+        <textarea id="export-output" spellcheck="false"></textarea>
+      </div>
+    </aside>
+  </div>
+
+  <script>
+    const SCREEN_W = 1920;
+    const SCREEN_H = 1080;
+    const STORAGE_KEY = 'any_screen_templates_v1';
+
+    const state = {
+      wall: { rows: 2, cols: 4 },
+      regions: [],
+      items: [],
+      selectedId: null,
+      templates: {}
+    };
+
+    const $ = (id) => document.getElementById(id);
+    const svg = $('design');
+
+    function nextId(prefix) {
+      return `${prefix}_${Math.random().toString(36).slice(2, 9)}`;
+    }
+
+    function wallWidth() { return state.wall.cols * SCREEN_W; }
+    function wallHeight() { return state.wall.rows * SCREEN_H; }
+
+    function updateWallMeta() {
+      $('wall-meta').textContent = `${state.wall.rows}x${state.wall.cols} screens · ${wallWidth()}x${wallHeight()} px`;
+      svg.setAttribute('viewBox', `0 0 ${wallWidth()} ${wallHeight()}`);
+    }
+
+    function clampNum(value, fallback = 0) {
+      const num = Number(value);
+      return Number.isFinite(num) ? num : fallback;
+    }
+
+    function parseFormNum(id, fallback = 0) {
+      return clampNum($(id).value, fallback);
+    }
+
+    function clearSvg() {
+      while (svg.firstChild) svg.removeChild(svg.firstChild);
+    }
+
+    function renderGrid() {
+      for (let r = 0; r < state.wall.rows; r++) {
+        for (let c = 0; c < state.wall.cols; c++) {
+          const rect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+          rect.setAttribute('x', c * SCREEN_W);
+          rect.setAttribute('y', r * SCREEN_H);
+          rect.setAttribute('width', SCREEN_W);
+          rect.setAttribute('height', SCREEN_H);
+          rect.setAttribute('class', 'screen-outline');
+          svg.appendChild(rect);
+
+          const label = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+          label.setAttribute('x', c * SCREEN_W + 24);
+          label.setAttribute('y', r * SCREEN_H + 42);
+          label.setAttribute('fill', 'rgba(232,236,245,0.30)');
+          label.setAttribute('font-size', '32');
+          label.textContent = `(${r + 1},${c + 1})`;
+          svg.appendChild(label);
+        }
+      }
+    }
+
+    function withinWall(x, y, w = 0, h = 0) {
+      return x >= 0 && y >= 0 && x + w <= wallWidth() && y + h <= wallHeight();
+    }
+
+    function addRegion() {
+      const name = $('region-name').value.trim() || `REGION_${state.regions.length + 1}`;
+      const row = Math.max(1, parseFormNum('region-row', 1));
+      const col = Math.max(1, parseFormNum('region-col', 1));
+      const rows = Math.max(1, parseFormNum('region-rows', 1));
+      const cols = Math.max(1, parseFormNum('region-cols', 1));
+      if (row + rows - 1 > state.wall.rows || col + cols - 1 > state.wall.cols) {
+        setStatus('Region exceeds wall bounds');
+        return;
+      }
+      state.regions.push({ name, row, col, rows, cols });
+      setStatus(`Region ${name} added`);
+      render();
+    }
+
+    function addPrimitive() {
+      const type = $('primitive-type').value;
+      const x = parseFormNum('item-x', 0);
+      const y = parseFormNum('item-y', 0);
+      const w = parseFormNum('item-w', 300);
+      const h = parseFormNum('item-h', 180);
+      const text = $('item-text').value.trim();
+      if (!withinWall(x, y, Math.max(0, w), Math.max(0, h))) {
+        setStatus('Primitive exceeds wall bounds');
+        return;
+      }
+      state.items.push({ id: nextId('it'), type, x, y, w, h, text, stroke: '#8bc8ff', fill: 'none' });
+      setStatus(`${type} added`);
+      render();
+    }
+
+    function addPlaceholder() {
+      const x = parseFormNum('item-x', 0);
+      const y = parseFormNum('item-y', 0);
+      const w = parseFormNum('item-w', SCREEN_W);
+      const h = parseFormNum('item-h', SCREEN_H);
+      if (!withinWall(x, y, w, h)) {
+        setStatus('Placeholder exceeds wall bounds');
+        return;
+      }
+      state.items.push({ id: nextId('ph'), type: 'placeholder', x, y, w, h, text: `SHARE_${state.items.filter(i => i.type === 'placeholder').length + 1}`, share: '' });
+      setStatus('Placeholder added');
+      render();
+    }
+
+    function assignShareToSelection() {
+      const item = state.items.find(i => i.id === state.selectedId && i.type === 'placeholder');
+      if (!item) {
+        setStatus('Select a placeholder first');
+        return;
+      }
+      const name = $('share-name').value.trim();
+      if (!name) {
+        setStatus('Enter a share source name');
+        return;
+      }
+      item.share = name;
+      setStatus(`Share assigned: ${name}`);
+      render();
+    }
+
+    function readAsset(file) {
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = () => {
+        const url = reader.result;
+        const isSvg = file.type === 'image/svg+xml' || file.name.toLowerCase().endsWith('.svg');
+        state.items.push({
+          id: nextId('asset'),
+          type: isSvg ? 'svg' : 'image',
+          x: parseFormNum('item-x', 0),
+          y: parseFormNum('item-y', 0),
+          w: parseFormNum('item-w', SCREEN_W),
+          h: parseFormNum('item-h', SCREEN_H),
+          src: url,
+          label: file.name
+        });
+        setStatus(`${isSvg ? 'SVG' : 'Image'} added`);
+        render();
+      };
+      reader.readAsDataURL(file);
+    }
+
+    function drawRegion(region) {
+      const x = (region.col - 1) * SCREEN_W;
+      const y = (region.row - 1) * SCREEN_H;
+      const w = region.cols * SCREEN_W;
+      const h = region.rows * SCREEN_H;
+      const box = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+      box.setAttribute('x', x);
+      box.setAttribute('y', y);
+      box.setAttribute('width', w);
+      box.setAttribute('height', h);
+      box.setAttribute('class', 'region-box');
+      svg.appendChild(box);
+      const label = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+      label.setAttribute('x', x + 24);
+      label.setAttribute('y', y + 46);
+      label.setAttribute('class', 'region-label');
+      label.textContent = region.name;
+      svg.appendChild(label);
+    }
+
+    function selectable(el, item) {
+      el.classList.add('primitive');
+      if (state.selectedId === item.id) el.classList.add('selected');
+      el.dataset.id = item.id;
+      el.addEventListener('click', (e) => {
+        e.stopPropagation();
+        state.selectedId = item.id;
+        render();
+      });
+      return el;
+    }
+
+    function drawItem(item) {
+      const ns = 'http://www.w3.org/2000/svg';
+      let el;
+      if (item.type === 'rectangle') {
+        el = document.createElementNS(ns, 'rect');
+        el.setAttribute('x', item.x); el.setAttribute('y', item.y);
+        el.setAttribute('width', item.w); el.setAttribute('height', item.h);
+        el.setAttribute('fill', item.fill || 'none'); el.setAttribute('stroke', item.stroke || '#8bc8ff'); el.setAttribute('stroke-width', '8');
+        svg.appendChild(selectable(el, item));
+      } else if (item.type === 'round-rectangle') {
+        el = document.createElementNS(ns, 'rect');
+        el.setAttribute('x', item.x); el.setAttribute('y', item.y);
+        el.setAttribute('width', item.w); el.setAttribute('height', item.h);
+        el.setAttribute('rx', Math.min(item.w, item.h) * 0.12); el.setAttribute('ry', Math.min(item.w, item.h) * 0.12);
+        el.setAttribute('fill', item.fill || 'none'); el.setAttribute('stroke', item.stroke || '#8bc8ff'); el.setAttribute('stroke-width', '8');
+        svg.appendChild(selectable(el, item));
+      } else if (item.type === 'line') {
+        el = document.createElementNS(ns, 'line');
+        el.setAttribute('x1', item.x); el.setAttribute('y1', item.y);
+        el.setAttribute('x2', item.x + item.w); el.setAttribute('y2', item.y + item.h);
+        el.setAttribute('stroke', item.stroke || '#8bc8ff'); el.setAttribute('stroke-width', '10');
+        svg.appendChild(selectable(el, item));
+      } else if (item.type === 'ellipse') {
+        el = document.createElementNS(ns, 'ellipse');
+        el.setAttribute('cx', item.x + item.w / 2); el.setAttribute('cy', item.y + item.h / 2);
+        el.setAttribute('rx', Math.abs(item.w) / 2); el.setAttribute('ry', Math.abs(item.h) / 2);
+        el.setAttribute('fill', item.fill || 'none'); el.setAttribute('stroke', item.stroke || '#8bc8ff'); el.setAttribute('stroke-width', '8');
+        svg.appendChild(selectable(el, item));
+      } else if (item.type === 'textbox') {
+        const box = document.createElementNS(ns, 'rect');
+        box.setAttribute('x', item.x); box.setAttribute('y', item.y);
+        box.setAttribute('width', item.w); box.setAttribute('height', item.h);
+        box.setAttribute('fill', 'rgba(11,20,30,0.5)'); box.setAttribute('stroke', item.stroke || '#8bc8ff'); box.setAttribute('stroke-width', '6');
+        svg.appendChild(selectable(box, item));
+        const text = document.createElementNS(ns, 'text');
+        text.setAttribute('x', item.x + 20); text.setAttribute('y', item.y + Math.max(40, item.h / 2));
+        text.setAttribute('fill', '#d3e9ff'); text.setAttribute('font-size', Math.max(26, Math.min(58, item.h * 0.38)));
+        text.textContent = item.text || 'TEXT';
+        svg.appendChild(selectable(text, item));
+      } else if (item.type === 'image' || item.type === 'svg') {
+        el = document.createElementNS(ns, 'image');
+        el.setAttribute('href', item.src);
+        el.setAttribute('x', item.x); el.setAttribute('y', item.y);
+        el.setAttribute('width', item.w); el.setAttribute('height', item.h);
+        svg.appendChild(selectable(el, item));
+      } else if (item.type === 'placeholder') {
+        el = document.createElementNS(ns, 'rect');
+        el.setAttribute('x', item.x); el.setAttribute('y', item.y);
+        el.setAttribute('width', item.w); el.setAttribute('height', item.h);
+        el.setAttribute('class', 'placeholder');
+        svg.appendChild(selectable(el, item));
+        const label = document.createElementNS(ns, 'text');
+        label.setAttribute('x', item.x + 16); label.setAttribute('y', item.y + 46);
+        label.setAttribute('class', 'placeholder-text');
+        label.textContent = item.share ? `${item.text} ← ${item.share}` : `${item.text} (drop share)`;
+        svg.appendChild(selectable(label, item));
+      }
+    }
+
+    function setStatus(text) {
+      const selected = state.items.find(i => i.id === state.selectedId);
+      const suffix = selected ? ` · Selected: ${selected.type}` : '';
+      $('status').textContent = `${text}${suffix}`;
+    }
+
+    function exportCommands() {
+      const lines = [`add wall rows=${state.wall.rows} cols=${state.wall.cols} screen=1920x1080`];
+      state.regions.forEach(r => lines.push(`add region name="${r.name}" row=${r.row} col=${r.col} rows=${r.rows} cols=${r.cols}`));
+      state.items.forEach(i => {
+        if (i.type === 'rectangle') lines.push(`add rectangle (${i.x},${i.y},${i.w},${i.h}) stroke=${i.stroke || 'none'} fill=${i.fill || 'none'}`);
+        if (i.type === 'round-rectangle') lines.push(`add roundRectangle (${i.x},${i.y},${i.w},${i.h}) stroke=${i.stroke || 'none'} fill=${i.fill || 'none'}`);
+        if (i.type === 'line') lines.push(`add line (${i.x},${i.y},${i.x + i.w},${i.y + i.h}) stroke=${i.stroke || 'none'}`);
+        if (i.type === 'ellipse') lines.push(`add ellipse (${i.x + i.w / 2},${i.y + i.h / 2},${Math.abs(i.w / 2)},${Math.abs(i.h / 2)}) stroke=${i.stroke || 'none'} fill=${i.fill || 'none'}`);
+        if (i.type === 'textbox') lines.push(`add textbox (${i.x},${i.y},${i.w},${i.h}) text="${(i.text || '').replace(/"/g, '\\"')}"`);
+        if (i.type === 'image') lines.push(`add image (${i.x},${i.y},${i.w},${i.h}) source="${i.label || 'image'}"`);
+        if (i.type === 'svg') lines.push(`add svg (${i.x},${i.y},${i.w},${i.h}) source="${i.label || 'vector.svg'}"`);
+        if (i.type === 'placeholder') lines.push(`add placeholder (${i.x},${i.y},${i.w},${i.h}) name="${i.text}" share="${i.share || ''}"`);
+      });
+      $('export-output').value = lines.join('\n');
+    }
+
+    function saveTemplatesToStorage() {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(state.templates));
+      updateTemplateSelect();
+    }
+
+    function loadTemplatesFromStorage() {
+      try {
+        state.templates = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}') || {};
+      } catch {
+        state.templates = {};
+      }
+      updateTemplateSelect();
+    }
+
+    function updateTemplateSelect() {
+      const sel = $('template-list');
+      sel.innerHTML = '';
+      const names = Object.keys(state.templates).sort();
+      if (!names.length) {
+        const option = document.createElement('option');
+        option.textContent = 'No templates saved';
+        option.value = '';
+        sel.appendChild(option);
+        return;
+      }
+      names.forEach(name => {
+        const option = document.createElement('option');
+        option.value = name;
+        option.textContent = name;
+        sel.appendChild(option);
+      });
+    }
+
+    function saveTemplate() {
+      const name = $('template-name').value.trim();
+      if (!name) {
+        setStatus('Enter a template name');
+        return;
+      }
+      state.templates[name] = {
+        wall: { ...state.wall },
+        regions: structuredClone(state.regions),
+        items: structuredClone(state.items)
+      };
+      saveTemplatesToStorage();
+      $('template-list').value = name;
+      setStatus(`Template saved: ${name}`);
+    }
+
+    function applyTemplate() {
+      const name = $('template-list').value;
+      const template = state.templates[name];
+      if (!template) {
+        setStatus('Choose a template');
+        return;
+      }
+      state.wall = { ...template.wall };
+      state.regions = structuredClone(template.regions || []);
+      state.items = structuredClone(template.items || []);
+      state.selectedId = null;
+      $('wall-rows').value = state.wall.rows;
+      $('wall-cols').value = state.wall.cols;
+      setStatus(`Template applied: ${name}`);
+      render();
+    }
+
+    function deleteTemplate() {
+      const name = $('template-list').value;
+      if (!name || !state.templates[name]) {
+        setStatus('Choose a template to delete');
+        return;
+      }
+      delete state.templates[name];
+      saveTemplatesToStorage();
+      setStatus(`Template deleted: ${name}`);
+    }
+
+    function generatorBorderGrid() {
+      state.regions = [
+        { name: 'FRAME_TOP', row: 1, col: 1, rows: 1, cols: state.wall.cols },
+        { name: 'CONTENT', row: Math.min(2, state.wall.rows), col: 1, rows: Math.max(1, state.wall.rows - 1), cols: state.wall.cols }
+      ];
+      state.items = [
+        { id: nextId('g'), type: 'rectangle', x: 60, y: 60, w: wallWidth() - 120, h: wallHeight() - 120, stroke: '#4af0c8', fill: 'none', text: '' }
+      ];
+      const cols = Math.max(1, Math.min(4, state.wall.cols));
+      const rows = Math.max(1, Math.min(3, state.wall.rows));
+      const gap = 40;
+      const w = (wallWidth() - gap * (cols + 1)) / cols;
+      const h = (wallHeight() - gap * (rows + 1)) / rows;
+      for (let r = 0; r < rows; r++) {
+        for (let c = 0; c < cols; c++) {
+          state.items.push({ id: nextId('ph'), type: 'placeholder', x: gap + c * (w + gap), y: gap + r * (h + gap), w, h, text: `GRID_${r + 1}_${c + 1}`, share: '' });
+        }
+      }
+    }
+
+    function generatorFocusDetail() {
+      state.regions = [
+        { name: 'FOCUS', row: 1, col: 1, rows: Math.max(1, state.wall.rows), cols: Math.max(1, state.wall.cols - 1) },
+        { name: 'DETAIL', row: 1, col: Math.max(1, state.wall.cols), rows: Math.max(1, state.wall.rows), cols: 1 }
+      ];
+      state.items = [
+        { id: nextId('ph'), type: 'placeholder', x: 40, y: 40, w: Math.max(200, wallWidth() * 0.74), h: wallHeight() - 80, text: 'FOCUS_MAIN', share: '' },
+        { id: nextId('ph'), type: 'placeholder', x: wallWidth() * 0.77, y: 40, w: wallWidth() * 0.21, h: wallHeight() * 0.28 - 55, text: 'DETAIL_1', share: '' },
+        { id: nextId('ph'), type: 'placeholder', x: wallWidth() * 0.77, y: wallHeight() * 0.36, w: wallWidth() * 0.21, h: wallHeight() * 0.28 - 55, text: 'DETAIL_2', share: '' },
+        { id: nextId('ph'), type: 'placeholder', x: wallWidth() * 0.77, y: wallHeight() * 0.68, w: wallWidth() * 0.21, h: wallHeight() * 0.28 - 55, text: 'DETAIL_3', share: '' }
+      ];
+    }
+
+    function generatorStaggered() {
+      state.regions = [{ name: 'STAGGERED', row: 1, col: 1, rows: state.wall.rows, cols: state.wall.cols }];
+      state.items = [];
+      const count = Math.max(4, state.wall.rows * state.wall.cols);
+      const w = wallWidth() * 0.28;
+      const h = wallHeight() * 0.35;
+      for (let i = 0; i < count; i++) {
+        const x = (i % 4) * (w * 0.8) + 40;
+        const y = Math.floor(i / 4) * (h * 0.55) + (i % 2 ? 80 : 20);
+        if (withinWall(x, y, w, h)) {
+          state.items.push({ id: nextId('ph'), type: 'placeholder', x, y, w, h, text: `STAG_${i + 1}`, share: '' });
+        }
+      }
+    }
+
+    function runGenerator() {
+      const type = $('generator').value;
+      if (type === 'border-grid') generatorBorderGrid();
+      if (type === 'focus-detail') generatorFocusDetail();
+      if (type === 'staggered') generatorStaggered();
+      state.selectedId = null;
+      setStatus(`Generator applied: ${type}`);
+      render();
+    }
+
+    function removeSelected() {
+      if (!state.selectedId) {
+        setStatus('Nothing selected');
+        return;
+      }
+      state.items = state.items.filter(i => i.id !== state.selectedId);
+      state.selectedId = null;
+      setStatus('Selected item deleted');
+      render();
+    }
+
+    function applyWall() {
+      state.wall.rows = Math.max(1, parseFormNum('wall-rows', 1));
+      state.wall.cols = Math.max(1, parseFormNum('wall-cols', 1));
+      state.regions = state.regions.filter(r => r.row + r.rows - 1 <= state.wall.rows && r.col + r.cols - 1 <= state.wall.cols);
+      state.items = state.items.filter(i => withinWall(i.x, i.y, Math.max(0, i.w || 0), Math.max(0, i.h || 0)));
+      state.selectedId = null;
+      setStatus('Wall updated');
+      render();
+    }
+
+    function render() {
+      updateWallMeta();
+      clearSvg();
+      renderGrid();
+      state.regions.forEach(drawRegion);
+      state.items.forEach(drawItem);
+      exportCommands();
+    }
+
+    function wire() {
+      $('apply-wall').addEventListener('click', applyWall);
+      $('add-region').addEventListener('click', addRegion);
+      $('add-primitive').addEventListener('click', addPrimitive);
+      $('add-placeholder').addEventListener('click', addPlaceholder);
+      $('assign-share').addEventListener('click', assignShareToSelection);
+      $('delete-selected').addEventListener('click', removeSelected);
+      $('asset-file').addEventListener('change', (e) => readAsset(e.target.files[0]));
+
+      $('save-template').addEventListener('click', saveTemplate);
+      $('apply-template').addEventListener('click', applyTemplate);
+      $('delete-template').addEventListener('click', deleteTemplate);
+
+      $('run-generator').addEventListener('click', runGenerator);
+      $('export-cmds').addEventListener('click', exportCommands);
+
+      svg.addEventListener('click', () => {
+        state.selectedId = null;
+        render();
+      });
+    }
+
+    wire();
+    loadTemplatesFromStorage();
+    render();
+    setStatus('Ready');
+  </script>
+</body>
+</html>
