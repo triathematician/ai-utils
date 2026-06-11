@@ -20,6 +20,7 @@ ai-utils/
     apps-data.md                ← apps-data design category guidelines
   apps/
     life-tracker/                 ← LIFE TRACKER: appointments and life events
+    life-line/                    ← LIFE LINE: family tree and relationship tracker
     chrono-zoom/                  ← CHRONO ZOOM: timeline and event tracking
     display-wall/                 ← DISPLAY WALL DESIGNER: video wall layout tool
     focus-terminal/               ← FOCUS TERMINAL: productivity + task management
@@ -61,6 +62,7 @@ Monospace, dark-first, single-file apps with a command-line interaction model. L
 - `vault-terminal/index.html` — VAULT TERMINAL
 - `gear-terminal/index.html` — GEAR TERMINAL
 - `ski-tracker/index.html` — SKI TRACKER
+- `life-line/index.html` — LIFE LINE
 
 **To start a new terminal-web app:** copy `docs/terminal-web-template.html` to a new subdirectory, rename the `STORAGE_KEY`, and build on top of the stubs.
 
