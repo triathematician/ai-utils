@@ -19,6 +19,7 @@ ai-utils/
     design-canvas.md            ← design-canvas design category guidelines
     apps-data.md                ← apps-data design category guidelines
   apps/
+    any-screen/                   ← ANY SCREEN: wall and template layout designer
     life-tracker/                 ← LIFE TRACKER: appointments and life events
     life-line/                    ← LIFE LINE: family tree and relationship tracker
     chrono-zoom/                  ← CHRONO ZOOM: timeline and event tracking
@@ -94,6 +95,7 @@ Dashboard-style apps for monitoring, signals, and data grids. No style guideline
 Precise, single-file visual layout and design tools with direct canvas interaction. Minimal chrome to maximise design space; the canvas is the primary interface. No build step — CDN libs only when genuinely needed. No persistence required unless the app truly needs it. Start from `display-wall/display-wall.html` and cherry-pick what you need; all guidelines are inspiration, adapt freely.
 
 **Apps in this category:**
+- `any-screen/index.html` — ANY SCREEN
 - `display-wall/display-wall.html` — DISPLAY WALL DESIGNER
 - `skill-port/index.html` — SKILL-PORT
 
