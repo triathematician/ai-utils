@@ -97,8 +97,65 @@
       letter-spacing: 0.12em;
       text-transform: uppercase;
     }
+    .region-list {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      max-height: 160px;
+      overflow: auto;
+      background: var(--surface2);
+      border: 1px solid var(--border-bright);
+      border-radius: 4px;
+      padding: 6px;
+      margin-bottom: 8px;
+    }
+    .region-item {
+      display: grid;
+      grid-template-columns: 1fr auto auto;
+      gap: 6px;
+      align-items: center;
+      min-width: 0;
+    }
+    .region-item-name {
+      font-size: 10px;
+      color: var(--text);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .region-empty {
+      color: var(--text-dim);
+      font-size: 10px;
+      letter-spacing: 0.06em;
+    }
+    .region-color {
+      width: 28px;
+      height: 20px;
+      padding: 0;
+      border: 1px solid var(--border-bright);
+      border-radius: 3px;
+      background: transparent;
+      cursor: pointer;
+    }
+    .region-delete {
+      border: 1px solid transparent;
+      background: transparent;
+      color: var(--accent3);
+      font-family: inherit;
+      font-size: 10px;
+      cursor: pointer;
+      padding: 0 2px;
+    }
+    .region-delete:hover {
+      border-color: var(--accent3);
+      border-radius: 3px;
+    }
     .row { display: flex; gap: 6px; margin-bottom: 6px; }
     .row > * { flex: 1; }
+    .panel:not(.right) .row input[type="number"] {
+      width: calc(100% - 30px);
+      min-width: 0;
+    }
     textarea {
       width: 100%;
       min-height: 180px;
@@ -111,11 +168,21 @@
       padding: 8px;
       border-radius: 4px;
     }
+    #generator-hint {
+      min-height: 0;
+      height: auto;
+      resize: vertical;
+      white-space: pre-wrap;
+      overflow-wrap: anywhere;
+    }
 
     #canvas-wrap {
       position: relative;
       overflow: auto;
       background: #090b10;
+      display: flex;
+      align-items: center;
+      justify-content: center;
     }
     #canvas-shell {
       position: relative;
@@ -123,8 +190,8 @@
       background: #0f131c;
       border: 1px solid var(--border);
       border-radius: 8px;
-      min-width: 420px;
-      min-height: 280px;
+      min-width: 0;
+      min-height: 0;
       display: flex;
       align-items: center;
       justify-content: center;
@@ -145,6 +212,28 @@
     .placeholder-text { fill: var(--accent); font-size: 32px; font-family: 'JetBrains Mono', monospace; }
     .selected { filter: drop-shadow(0 0 8px rgba(74,240,200,0.65)); }
     #status { color: var(--text-dim); font-size: 10px; letter-spacing: 0.06em; margin-top: 8px; }
+    .export-options {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 4px;
+    }
+    .export-option {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 9px;
+      color: var(--text-dim);
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      white-space: nowrap;
+    }
+    .export-option input[type="checkbox"] {
+      width: auto;
+      margin: 0;
+      padding: 0;
+      flex: 0 0 auto;
+    }
 
     @media (max-width: 1200px) {
       #layout { grid-template-columns: 260px 1fr; }
@@ -160,6 +249,16 @@
     <label class="field">Rows <input id="wall-rows" type="number" min="1" value="2"></label>
     <label class="field">Cols <input id="wall-cols" type="number" min="1" value="4"></label>
     <button class="btn" id="apply-wall">Apply Wall</button>
+    <button class="btn danger" id="clear-wall">Clear Wall</button>
+    <div class="divider"></div>
+    <label class="field">Preset
+      <select id="wall-preset-list">
+        <option value="">No presets saved</option>
+      </select>
+    </label>
+    <button class="btn" id="save-wall-preset">Save Preset</button>
+    <button class="btn" id="load-wall-preset">Load Preset</button>
+    <button class="btn danger" id="delete-wall-preset">Delete Preset</button>
     <span class="meta" id="wall-meta"></span>
   </div>
 
@@ -167,6 +266,7 @@
     <aside class="panel">
       <div class="sec">
         <h3>Regions (screen coords)</h3>
+        <div id="region-list" class="region-list"></div>
         <div class="row"><input id="region-name" placeholder="Name (e.g. LEFT)"></div>
         <div class="row">
           <input id="region-row" type="number" min="1" value="1" placeholder="Row">
@@ -176,6 +276,7 @@
           <input id="region-rows" type="number" min="1" value="1" placeholder="Rows">
           <input id="region-cols" type="number" min="1" value="1" placeholder="Cols">
         </div>
+        <div class="row"><input id="region-color" type="color" value="#8bc8ff" title="Region color"></div>
         <button class="btn" id="add-region">Add Region</button>
       </div>
 
@@ -242,11 +343,17 @@
           <option value="focus-detail">Focus + Detail</option>
           <option value="staggered">Staggered</option>
         </select></div>
+        <div class="row"><textarea id="generator-hint" rows="3" placeholder="title=TITLE, inset=20, gap=F"></textarea></div>
         <button class="btn" id="run-generator">Generate Layout</button>
       </div>
 
       <div class="sec">
         <h3>Export Commands</h3>
+        <div class="row export-options">
+          <label class="export-option"><input id="include-wall-config" type="checkbox"> Include wall config</label>
+          <label class="export-option"><input id="include-placeholders" type="checkbox" checked> Include placeholders</label>
+        </div>
+        <div class="row"><textarea id="export-prefix" rows="3" placeholder="Optional instructions to prepend to export output"></textarea></div>
         <button class="btn" id="export-cmds">Refresh Export</button>
         <textarea id="export-output" spellcheck="false"></textarea>
       </div>
@@ -257,13 +364,18 @@
     const SCREEN_W = 1920;
     const SCREEN_H = 1080;
     const STORAGE_KEY = 'any_screen_templates_v1';
+    const WALL_PRESETS_KEY = 'any_screen_wall_presets_v1';
+    const EXPORT_PREFIX_KEY = 'any_screen_export_prefix_v1';
+    const DEFAULT_WALL_PRESET_NAME = 'Split-4x3';
 
     const state = {
       wall: { rows: 2, cols: 4 },
+      wallName: 'Wall',
       regions: [],
       items: [],
       selectedId: null,
-      templates: {}
+      templates: {},
+      wallPresets: {}
     };
 
     const $ = (id) => document.getElementById(id);
@@ -273,12 +385,120 @@
       return `${prefix}_${Math.random().toString(36).slice(2, 9)}`;
     }
 
+    function clampZ(value) {
+      const n = Math.round(clampNum(value, 1));
+      return Math.max(1, Math.min(20, n));
+    }
+
+    function nextZ(base = 0) {
+      if (!state.items.length) return base || 1;
+      const maxZ = state.items.reduce((max, item) => Math.max(max, clampZ(item.z)), 0);
+      return clampZ(Math.max(base || 1, maxZ + 1));
+    }
+
     function wallWidth() { return state.wall.cols * SCREEN_W; }
     function wallHeight() { return state.wall.rows * SCREEN_H; }
 
     function updateWallMeta() {
       $('wall-meta').textContent = `${state.wall.rows}x${state.wall.cols} screens · ${wallWidth()}x${wallHeight()} px`;
-      svg.setAttribute('viewBox', `0 0 ${wallWidth()} ${wallHeight()}`);
+    }
+
+    function fitCanvasShell() {
+      const wrap = $('canvas-wrap');
+      const shell = $('canvas-shell');
+      const availableW = Math.max(220, wrap.clientWidth - 28);
+      const availableH = Math.max(180, wrap.clientHeight - 28);
+      const aspect = wallWidth() / wallHeight();
+
+      let targetW = availableW;
+      let targetH = targetW / aspect;
+      if (targetH > availableH) {
+        targetH = availableH;
+        targetW = targetH * aspect;
+      }
+
+      shell.style.width = `${Math.max(220, Math.floor(targetW))}px`;
+      shell.style.height = `${Math.max(180, Math.floor(targetH))}px`;
+    }
+
+    function parseGeneratorHint(text) {
+      const result = {};
+      (text || '').split(',').forEach((entry) => {
+        const part = entry.trim();
+        if (!part) return;
+        const eq = part.indexOf('=');
+        if (eq < 0) return;
+        const key = part.slice(0, eq).trim();
+        const raw = part.slice(eq + 1).trim();
+        if (!key) return;
+        if (/^-?\d+$/.test(raw)) {
+          result[key] = parseInt(raw, 10);
+          return;
+        }
+        if (/^(T|F)$/i.test(raw)) {
+          result[key] = raw.toUpperCase() === 'T';
+          return;
+        }
+        result[key] = raw;
+      });
+      return result;
+    }
+
+    function getGeneratorDefaultHint(type) {
+      if (type === 'border-grid') return 'title=TITLE, color=#4af0c8, titleSize=42, inset=30, width=15, gap=F';
+      if (type === 'focus-detail') return 'title=FOCUS, focusCells=1, detailCount=3, inset=40';
+      if (type === 'staggered') return 'title=STACK, count=12, cols=4, inset=40, offset=80';
+      return '';
+    }
+
+    function updateGeneratorHint() {
+      const type = $('generator').value;
+      $('generator-hint').value = getGeneratorDefaultHint(type);
+    }
+
+    function itemBounds(item) {
+      if (item.type === 'line') {
+        const x1 = item.x;
+        const y1 = item.y;
+        const x2 = item.x + item.w;
+        const y2 = item.y + item.h;
+        return { minX: Math.min(x1, x2), minY: Math.min(y1, y2), maxX: Math.max(x1, x2), maxY: Math.max(y1, y2) };
+      }
+      if (item.type === 'ellipse') {
+        const rx = Math.abs(item.w) / 2;
+        const ry = Math.abs(item.h) / 2;
+        const cx = item.x + item.w / 2;
+        const cy = item.y + item.h / 2;
+        return { minX: cx - rx, minY: cy - ry, maxX: cx + rx, maxY: cy + ry };
+      }
+      return {
+        minX: Math.min(item.x, item.x + (item.w || 0)),
+        minY: Math.min(item.y, item.y + (item.h || 0)),
+        maxX: Math.max(item.x, item.x + (item.w || 0)),
+        maxY: Math.max(item.y, item.y + (item.h || 0))
+      };
+    }
+
+    function applySceneViewBox() {
+      let minX = 0;
+      let minY = 0;
+      let maxX = wallWidth();
+      let maxY = wallHeight();
+
+      state.items.forEach((item) => {
+        const b = itemBounds(item);
+        minX = Math.min(minX, b.minX);
+        minY = Math.min(minY, b.minY);
+        maxX = Math.max(maxX, b.maxX);
+        maxY = Math.max(maxY, b.maxY);
+      });
+
+      const pad = 16;
+      const x = Math.floor(minX - pad);
+      const y = Math.floor(minY - pad);
+      const w = Math.max(100, Math.ceil(maxX - minX + pad * 2));
+      const h = Math.max(100, Math.ceil(maxY - minY + pad * 2));
+      svg.setAttribute('viewBox', `${x} ${y} ${w} ${h}`);
     }
 
     function clampNum(value, fallback = 0) {
@@ -288,6 +508,22 @@
 
     function parseFormNum(id, fallback = 0) {
       return clampNum($(id).value, fallback);
+    }
+
+    function hexToRgba(hex, alpha = 1) {
+      const raw = (hex || '').toString().trim();
+      const cleaned = raw.startsWith('#') ? raw.slice(1) : raw;
+      let full = cleaned;
+      if (/^[0-9a-fA-F]{3}$/.test(cleaned)) {
+        full = cleaned.split('').map((ch) => ch + ch).join('');
+      }
+      if (!/^[0-9a-fA-F]{6}$/.test(full)) {
+        return `rgba(139,200,255,${alpha})`;
+      }
+      const r = parseInt(full.slice(0, 2), 16);
+      const g = parseInt(full.slice(2, 4), 16);
+      const b = parseInt(full.slice(4, 6), 16);
+      return `rgba(${r},${g},${b},${alpha})`;
     }
 
     function clearSvg() {
@@ -326,11 +562,12 @@
       const col = Math.max(1, parseFormNum('region-col', 1));
       const rows = Math.max(1, parseFormNum('region-rows', 1));
       const cols = Math.max(1, parseFormNum('region-cols', 1));
+      const color = $('region-color').value || '#8bc8ff';
       if (row + rows - 1 > state.wall.rows || col + cols - 1 > state.wall.cols) {
         setStatus('Region exceeds wall bounds');
         return;
       }
-      state.regions.push({ name, row, col, rows, cols });
+      state.regions.push({ name, row, col, rows, cols, color });
       setStatus(`Region ${name} added`);
       render();
     }
@@ -346,7 +583,7 @@
         setStatus('Primitive exceeds wall bounds');
         return;
       }
-      state.items.push({ id: nextId('it'), type, x, y, w, h, text, stroke: '#8bc8ff', fill: 'none' });
+      state.items.push({ id: nextId('it'), type, x, y, w, h, text, stroke: '#8bc8ff', fill: 'none', z: nextZ() });
       setStatus(`${type} added`);
       render();
     }
@@ -360,7 +597,7 @@
         setStatus('Placeholder exceeds wall bounds');
         return;
       }
-      state.items.push({ id: nextId('ph'), type: 'placeholder', x, y, w, h, text: `SHARE_${state.items.filter(i => i.type === 'placeholder').length + 1}`, share: '' });
+      state.items.push({ id: nextId('ph'), type: 'placeholder', x, y, w, h, text: `SHARE_${state.items.filter(i => i.type === 'placeholder').length + 1}`, share: '', z: nextZ() });
       setStatus('Placeholder added');
       render();
     }
@@ -395,7 +632,8 @@
           w: parseFormNum('item-w', SCREEN_W),
           h: parseFormNum('item-h', SCREEN_H),
           src: url,
-          label: file.name
+          label: file.name,
+          z: nextZ()
         });
         setStatus(`${isSvg ? 'SVG' : 'Image'} added`);
         render();
@@ -408,19 +646,73 @@
       const y = (region.row - 1) * SCREEN_H;
       const w = region.cols * SCREEN_W;
       const h = region.rows * SCREEN_H;
+      const color = region.color || '#8bc8ff';
       const box = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
       box.setAttribute('x', x);
       box.setAttribute('y', y);
       box.setAttribute('width', w);
       box.setAttribute('height', h);
-      box.setAttribute('class', 'region-box');
+      box.setAttribute('fill', hexToRgba(color, 0.07));
+      box.setAttribute('stroke', hexToRgba(color, 0.92));
+      box.setAttribute('stroke-dasharray', '8 6');
+      box.setAttribute('stroke-width', '2');
       svg.appendChild(box);
       const label = document.createElementNS('http://www.w3.org/2000/svg', 'text');
       label.setAttribute('x', x + 24);
       label.setAttribute('y', y + 46);
-      label.setAttribute('class', 'region-label');
+      label.setAttribute('fill', hexToRgba(color, 0.98));
+      label.setAttribute('font-size', '36');
+      label.setAttribute('font-family', 'JetBrains Mono, monospace');
       label.textContent = region.name;
       svg.appendChild(label);
+    }
+
+    function renderRegionList() {
+      const list = $('region-list');
+      list.innerHTML = '';
+      if (!state.regions.length) {
+        const empty = document.createElement('div');
+        empty.className = 'region-empty';
+        empty.textContent = 'No regions yet';
+        list.appendChild(empty);
+        return;
+      }
+      state.regions.forEach((region, index) => {
+        const row = document.createElement('div');
+        row.className = 'region-item';
+
+        const name = document.createElement('div');
+        name.className = 'region-item-name';
+        name.textContent = `${region.name} (${region.row},${region.col}) ${region.rows}x${region.cols}`;
+
+        const color = document.createElement('input');
+        color.type = 'color';
+        color.className = 'region-color';
+        color.value = region.color || '#8bc8ff';
+        color.title = `Set color for ${region.name}`;
+        color.addEventListener('input', () => {
+          state.regions[index].color = color.value;
+          setStatus(`Region color updated: ${region.name}`);
+          render();
+        });
+
+        const remove = document.createElement('button');
+        remove.type = 'button';
+        remove.className = 'region-delete';
+        remove.textContent = '[x]';
+        remove.title = `Delete ${region.name}`;
+        remove.addEventListener('click', () => {
+          const removedName = state.regions[index].name;
+          state.regions.splice(index, 1);
+          setStatus(`Region deleted: ${removedName}`);
+          render();
+        });
+
+        row.appendChild(name);
+        row.appendChild(color);
+        row.appendChild(remove);
+        list.appendChild(row);
+      });
     }
 
     function selectable(el, item) {
@@ -442,36 +734,38 @@
         el = document.createElementNS(ns, 'rect');
         el.setAttribute('x', item.x); el.setAttribute('y', item.y);
         el.setAttribute('width', item.w); el.setAttribute('height', item.h);
-        el.setAttribute('fill', item.fill || 'none'); el.setAttribute('stroke', item.stroke || '#8bc8ff'); el.setAttribute('stroke-width', '8');
+        el.setAttribute('fill', item.fill || 'none'); el.setAttribute('stroke', item.stroke || '#8bc8ff'); el.setAttribute('stroke-width', item.strokeWidth || '8');
         svg.appendChild(selectable(el, item));
       } else if (item.type === 'round-rectangle') {
         el = document.createElementNS(ns, 'rect');
         el.setAttribute('x', item.x); el.setAttribute('y', item.y);
         el.setAttribute('width', item.w); el.setAttribute('height', item.h);
         el.setAttribute('rx', Math.min(item.w, item.h) * 0.12); el.setAttribute('ry', Math.min(item.w, item.h) * 0.12);
-        el.setAttribute('fill', item.fill || 'none'); el.setAttribute('stroke', item.stroke || '#8bc8ff'); el.setAttribute('stroke-width', '8');
+        el.setAttribute('fill', item.fill || 'none'); el.setAttribute('stroke', item.stroke || '#8bc8ff'); el.setAttribute('stroke-width', item.strokeWidth || '8');
         svg.appendChild(selectable(el, item));
       } else if (item.type === 'line') {
         el = document.createElementNS(ns, 'line');
         el.setAttribute('x1', item.x); el.setAttribute('y1', item.y);
         el.setAttribute('x2', item.x + item.w); el.setAttribute('y2', item.y + item.h);
-        el.setAttribute('stroke', item.stroke || '#8bc8ff'); el.setAttribute('stroke-width', '10');
+        el.setAttribute('stroke', item.stroke || '#8bc8ff'); el.setAttribute('stroke-width', item.strokeWidth || '10');
         svg.appendChild(selectable(el, item));
       } else if (item.type === 'ellipse') {
         el = document.createElementNS(ns, 'ellipse');
         el.setAttribute('cx', item.x + item.w / 2); el.setAttribute('cy', item.y + item.h / 2);
         el.setAttribute('rx', Math.abs(item.w) / 2); el.setAttribute('ry', Math.abs(item.h) / 2);
-        el.setAttribute('fill', item.fill || 'none'); el.setAttribute('stroke', item.stroke || '#8bc8ff'); el.setAttribute('stroke-width', '8');
+        el.setAttribute('fill', item.fill || 'none'); el.setAttribute('stroke', item.stroke || '#8bc8ff'); el.setAttribute('stroke-width', item.strokeWidth || '8');
         svg.appendChild(selectable(el, item));
       } else if (item.type === 'textbox') {
         const box = document.createElementNS(ns, 'rect');
         box.setAttribute('x', item.x); box.setAttribute('y', item.y);
         box.setAttribute('width', item.w); box.setAttribute('height', item.h);
-        box.setAttribute('fill', 'rgba(11,20,30,0.5)'); box.setAttribute('stroke', item.stroke || '#8bc8ff'); box.setAttribute('stroke-width', '6');
+        box.setAttribute('fill', item.fill || 'rgba(11,20,30,0.5)'); box.setAttribute('stroke', item.stroke || '#8bc8ff'); box.setAttribute('stroke-width', item.strokeWidth || '6');
         svg.appendChild(selectable(box, item));
         const text = document.createElementNS(ns, 'text');
-        text.setAttribute('x', item.x + 20); text.setAttribute('y', item.y + Math.max(40, item.h / 2));
-        text.setAttribute('fill', '#d3e9ff'); text.setAttribute('font-size', Math.max(26, Math.min(58, item.h * 0.38)));
+        text.setAttribute('x', item.x + item.w / 2); text.setAttribute('y', item.y + item.h / 2);
+        text.setAttribute('text-anchor', 'middle');
+        text.setAttribute('dominant-baseline', 'middle');
+        text.setAttribute('fill', item.textColor || '#d3e9ff'); text.setAttribute('font-size', item.fontSize || Math.max(26, Math.min(58, item.h * 0.38)));
         text.textContent = item.text || 'TEXT';
         svg.appendChild(selectable(text, item));
       } else if (item.type === 'image' || item.type === 'svg') {
@@ -501,19 +795,158 @@
     }
 
     function exportCommands() {
-      const lines = [`add wall rows=${state.wall.rows} cols=${state.wall.cols} screen=1920x1080`];
-      state.regions.forEach(r => lines.push(`add region name="${r.name}" row=${r.row} col=${r.col} rows=${r.rows} cols=${r.cols}`));
+      const lines = [];
+      const includeWallConfig = $('include-wall-config')?.checked;
+      const includePlaceholders = $('include-placeholders')?.checked ?? true;
+      if (includeWallConfig) {
+        lines.push(`add wall rows=${state.wall.rows} cols=${state.wall.cols} screen=1920x1080`);
+        state.regions.forEach(r => lines.push(`add region name="${r.name}" row=${r.row} col=${r.col} rows=${r.rows} cols=${r.cols} color="${r.color || '#8bc8ff'}"`));
+      }
       state.items.forEach(i => {
-        if (i.type === 'rectangle') lines.push(`add rectangle (${i.x},${i.y},${i.w},${i.h}) stroke=${i.stroke || 'none'} fill=${i.fill || 'none'}`);
-        if (i.type === 'round-rectangle') lines.push(`add roundRectangle (${i.x},${i.y},${i.w},${i.h}) stroke=${i.stroke || 'none'} fill=${i.fill || 'none'}`);
-        if (i.type === 'line') lines.push(`add line (${i.x},${i.y},${i.x + i.w},${i.y + i.h}) stroke=${i.stroke || 'none'}`);
-        if (i.type === 'ellipse') lines.push(`add ellipse (${i.x + i.w / 2},${i.y + i.h / 2},${Math.abs(i.w / 2)},${Math.abs(i.h / 2)}) stroke=${i.stroke || 'none'} fill=${i.fill || 'none'}`);
-        if (i.type === 'textbox') lines.push(`add textbox (${i.x},${i.y},${i.w},${i.h}) text="${(i.text || '').replace(/"/g, '\\"')}"`);
-        if (i.type === 'image') lines.push(`add image (${i.x},${i.y},${i.w},${i.h}) source="${i.label || 'image'}"`);
-        if (i.type === 'svg') lines.push(`add svg (${i.x},${i.y},${i.w},${i.h}) source="${i.label || 'vector.svg'}"`);
-        if (i.type === 'placeholder') lines.push(`add placeholder (${i.x},${i.y},${i.w},${i.h}) name="${i.text}" share="${i.share || ''}"`);
+        const zPart = ` z=${clampZ(i.z)}`;
+        if (i.type === 'rectangle') {
+          lines.push(`add rectangle (${i.x},${i.y},${i.w},${i.h}) fillColor=${i.stroke || 'none'} strokeWidth=${i.strokeWidth || 8}${zPart}`);
+        }
+        if (i.type === 'round-rectangle') {
+          lines.push(`add roundRectangle (${i.x},${i.y},${i.w},${i.h}) fillColor=${i.stroke || 'none'} width=${i.strokeWidth || 8}${zPart}`);
+        }
+        if (i.type === 'line') lines.push(`add line (${i.x},${i.y},${i.x + i.w},${i.y + i.h}) stroke=${i.stroke || 'none'} width=${i.strokeWidth || 10}${zPart}`);
+        if (i.type === 'ellipse') lines.push(`add ellipse (${i.x + i.w / 2},${i.y + i.h / 2},${Math.abs(i.w / 2)},${Math.abs(i.h / 2)}) stroke=${i.stroke || 'none'} fill=${i.fill || 'none'} width=${i.strokeWidth || 8}${zPart}`);
+        if (i.type === 'textbox') lines.push(`add textbox (${i.x},${i.y},${i.w},${i.h}) text="${(i.text || '').replace(/"/g, '\\"')}" fillColor=${i.fill || '#000000'} size=${i.fontSize || Math.max(26, Math.min(58, i.h * 0.38))} fontColor=${i.textColor || '#d3e9ff'}${zPart}`);
+        if (i.type === 'image') lines.push(`add image (${i.x},${i.y},${i.w},${i.h}) source="${i.label || 'image'}"${zPart}`);
+        if (i.type === 'svg') lines.push(`add svg (${i.x},${i.y},${i.w},${i.h}) source="${i.label || 'vector.svg'}"${zPart}`);
+        if (i.type === 'placeholder' && includePlaceholders) {
+          const sharePart = i.share ? ` share="${i.share}"` : '';
+          lines.push(`reserve placeholder area (${i.x},${i.y},${i.w},${i.h}) name="${i.text}"${sharePart}${zPart}`);
+        }
       });
-      $('export-output').value = lines.join('\n');
+      const prefix = ($('export-prefix')?.value || '').trim();
+      $('export-output').value = prefix ? `${prefix}\n\n${lines.join('\n')}` : lines.join('\n');
+    }
+
+    function loadExportPrefix() {
+      $('export-prefix').value = localStorage.getItem(EXPORT_PREFIX_KEY) || '';
+    }
+
+    function saveExportPrefix() {
+      localStorage.setItem(EXPORT_PREFIX_KEY, $('export-prefix').value || '');
+    }
+
+    function getDefaultWallPresets() {
+      return {
+        'Split-4x3': {
+          wall: { rows: 3, cols: 4, name: 'Split-4x3' },
+          regions: [
+            { name: 'Left', row: 1, col: 1, rows: 3, cols: 2, color: '#00ffff' },
+            { name: 'Right', row: 1, col: 3, rows: 3, cols: 2, color: '#003366' }
+          ]
+        },
+        Purple: {
+          wall: { rows: 3, cols: 1, name: 'Purple' },
+          regions: [
+            { name: 'All', row: 1, col: 1, rows: 3, cols: 1, color: '#800080' }
+          ]
+        },
+        Marquee: {
+          wall: { rows: 1, cols: 9, name: 'Marquee' },
+          regions: [
+            { name: 'Left', row: 1, col: 1, rows: 1, cols: 4, color: '#00ffff' },
+            { name: 'Right', row: 1, col: 5, rows: 1, cols: 5, color: '#003366' },
+            { name: 'Right-Alt', row: 1, col: 5, rows: 1, cols: 4, color: '#003366' },
+            { name: 'All', row: 1, col: 1, rows: 1, cols: 9, color: '#00ffff' }
+          ]
+        },
+        MegaWall: {
+          wall: { rows: 3, cols: 16, name: 'MegaWall' },
+          regions: [
+            { name: 'Orange', row: 1, col: 1, rows: 3, cols: 3, color: '#ff8c00' },
+            { name: 'Yellow', row: 1, col: 4, rows: 3, cols: 3, color: '#ffd200' },
+            { name: 'Red', row: 1, col: 7, rows: 3, cols: 4, color: '#d7263d' },
+            { name: 'Blue', row: 1, col: 11, rows: 3, cols: 3, color: '#1976d2' },
+            { name: 'Green', row: 1, col: 14, rows: 3, cols: 3, color: '#2e7d32' }
+          ]
+        }
+      };
+    }
+
+    function updateWallPresetSelect() {
+      const sel = $('wall-preset-list');
+      sel.innerHTML = '';
+      const names = Object.keys(state.wallPresets).sort();
+      if (!names.length) {
+        const option = document.createElement('option');
+        option.textContent = 'No presets saved';
+        option.value = '';
+        sel.appendChild(option);
+        return;
+      }
+      names.forEach((name) => {
+        const option = document.createElement('option');
+        option.value = name;
+        option.textContent = name;
+        sel.appendChild(option);
+      });
+    }
+
+    function saveWallPresetsToStorage() {
+      localStorage.setItem(WALL_PRESETS_KEY, JSON.stringify(state.wallPresets));
+      updateWallPresetSelect();
+    }
+
+    function loadWallPresetsFromStorage() {
+      const defaults = getDefaultWallPresets();
+      try {
+        const saved = JSON.parse(localStorage.getItem(WALL_PRESETS_KEY) || '{}') || {};
+        state.wallPresets = { ...defaults, ...saved };
+      } catch {
+        state.wallPresets = { ...defaults };
+      }
+      localStorage.setItem(WALL_PRESETS_KEY, JSON.stringify(state.wallPresets));
+      updateWallPresetSelect();
+    }
+
+    function saveWallPreset() {
+      const name = (window.prompt('Wall preset name:') || '').trim();
+      if (!name) {
+        setStatus('Preset name is required');
+        return;
+      }
+      state.wallPresets[name] = {
+        wall: { ...state.wall, name: state.wallName || name },
+        regions: structuredClone(state.regions)
+      };
+      saveWallPresetsToStorage();
+      $('wall-preset-list').value = name;
+      setStatus(`Wall preset saved: ${name}`);
+    }
+
+    function loadWallPreset() {
+      const name = $('wall-preset-list').value;
+      const preset = state.wallPresets[name];
+      if (!preset) {
+        setStatus('Choose a wall preset');
+        return;
+      }
+      state.wall = { ...preset.wall };
+      state.wallName = preset.wall?.name || name || 'Wall';
+      state.regions = structuredClone(preset.regions || []);
+      state.items = [];
+      state.selectedId = null;
+      $('wall-rows').value = state.wall.rows;
+      $('wall-cols').value = state.wall.cols;
+      setStatus(`Wall preset loaded: ${name}`);
+      render();
+    }
+
+    function deleteWallPreset() {
+      const name = $('wall-preset-list').value;
+      if (!name || !state.wallPresets[name]) {
+        setStatus('Choose a wall preset to delete');
+        return;
+      }
+      delete state.wallPresets[name];
+      saveWallPresetsToStorage();
+      setStatus(`Wall preset deleted: ${name}`);
     }
 
     function saveTemplatesToStorage() {
@@ -593,61 +1026,340 @@
       setStatus(`Template deleted: ${name}`);
     }
 
-    function generatorBorderGrid() {
-      state.regions = [
-        { name: 'FRAME_TOP', row: 1, col: 1, rows: 1, cols: state.wall.cols },
-        { name: 'CONTENT', row: Math.min(2, state.wall.rows), col: 1, rows: Math.max(1, state.wall.rows - 1), cols: state.wall.cols }
-      ];
-      state.items = [
-        { id: nextId('g'), type: 'rectangle', x: 60, y: 60, w: wallWidth() - 120, h: wallHeight() - 120, stroke: '#4af0c8', fill: 'none', text: '' }
-      ];
-      const cols = Math.max(1, Math.min(4, state.wall.cols));
-      const rows = Math.max(1, Math.min(3, state.wall.rows));
-      const gap = 40;
-      const w = (wallWidth() - gap * (cols + 1)) / cols;
-      const h = (wallHeight() - gap * (rows + 1)) / rows;
+    function generatorBorderGrid(options) {
+      const inset = Math.max(1, Number.isFinite(options.inset) ? options.inset : 30);
+      const borderWidth = Math.max(1, Number.isFinite(options.width) ? options.width : 15);
+      const titleSize = Math.max(12, Number.isFinite(options.titleSize) ? options.titleSize : 42);
+      const gap = options.gap === true;
+      const titleOption = typeof options.title === 'string' ? options.title.trim() : '';
+      const wildcardTitle = titleOption === '*';
+      const colorOption = typeof options.color === 'string' ? options.color.trim() : '';
+      const defaultBorderColor = '#ffffff';
+      const rows = Math.max(1, state.wall.rows);
+      const cols = Math.max(1, state.wall.cols);
+      const firstRegionColor = state.regions[0]?.color ? state.regions[0].color.trim() : '';
+
+      function splitPipe(value) {
+        return (value || '').split('|').map((part) => part.trim());
+      }
+
+      function getRegionBounds(region) {
+        return {
+          x: (region.col - 1) * SCREEN_W,
+          y: (region.row - 1) * SCREEN_H,
+          w: region.cols * SCREEN_W,
+          h: region.rows * SCREEN_H
+        };
+      }
+
+      function overlaps(a, b) {
+        return a.x < b.x + b.w && a.x + a.w > b.x && a.y < b.y + b.h && a.y + a.h > b.y;
+      }
+
+      function drawBorderBlock(bounds, blockTitle, borderColor) {
+        const borderX = bounds.x + inset;
+        const borderY = bounds.y + inset;
+        const borderW = Math.max(1, bounds.w - inset * 2);
+        const borderH = Math.max(1, bounds.h - inset * 2);
+
+        state.items.push({
+          id: nextId('g'),
+          type: 'rectangle',
+          x: Math.round(borderX),
+          y: Math.round(borderY),
+          w: Math.round(borderW),
+          h: Math.round(borderH),
+          stroke: borderColor,
+          fill: 'none',
+          strokeWidth: borderWidth,
+          z: 2
+        });
+
+        if (!blockTitle) return;
+
+        const titleH = Math.max(56, Math.round(titleSize * 1.8));
+        const titleW = Math.max(220, Math.min(Math.round(bounds.w * 0.72), blockTitle.length * 28 + 80));
+        state.items.push({
+          id: nextId('ttl'),
+          type: 'textbox',
+          x: Math.round(bounds.x + (bounds.w - titleW) / 2),
+          y: Math.round(borderY - titleH / 2),
+          w: Math.round(titleW),
+          h: Math.round(titleH),
+          text: blockTitle,
+          fill: '#000000',
+          stroke: '#000000',
+          strokeWidth: 2,
+          textColor: borderColor,
+          fontSize: Math.round(titleSize),
+          z: 3
+        });
+      }
+
+      state.items = [];
+
+      const explicitTitleParts = splitPipe(titleOption).filter((part) => part.length > 0);
+      const titleParts = wildcardTitle ? [] : explicitTitleParts;
+      const colorParts = splitPipe(colorOption);
+      const multiTitle = titleParts.length > 1;
+      const placeholderBlocks = [];
+
+      if ((multiTitle || wildcardTitle) && state.regions.length) {
+        const candidates = state.regions
+          .map((region) => ({ region, bounds: getRegionBounds(region) }))
+          .sort((a, b) => a.bounds.x - b.bounds.x || a.bounds.y - b.bounds.y);
+
+        const accepted = [];
+        candidates.forEach((candidate) => {
+          if (accepted.some((prev) => overlaps(prev.bounds, candidate.bounds))) return;
+          accepted.push(candidate);
+        });
+
+        const resolvedTitles = wildcardTitle
+          ? accepted.map((entry, idx) => entry.region?.name || `REGION_${idx + 1}`)
+          : titleParts;
+        const usable = Math.min(resolvedTitles.length, accepted.length);
+        for (let i = 0; i < usable; i++) {
+          const blockTitle = resolvedTitles[i];
+          const regionColor = accepted[i].region?.color ? accepted[i].region.color.trim() : '';
+          const blockColor = colorParts[i] || regionColor || defaultBorderColor;
+          drawBorderBlock(accepted[i].bounds, blockTitle, blockColor);
+          placeholderBlocks.push({
+            bounds: accepted[i].bounds,
+            rows: accepted[i].region.rows,
+            cols: accepted[i].region.cols,
+            rowStart: accepted[i].region.row,
+            colStart: accepted[i].region.col
+          });
+        }
+      }
+
+      if (!state.items.length) {
+        const fallbackTitle = wildcardTitle ? (state.wallName || 'Wall') : (titleParts[0] || titleOption);
+        const fallbackColor = colorParts[0] || firstRegionColor || defaultBorderColor;
+        drawBorderBlock({ x: 0, y: 0, w: wallWidth(), h: wallHeight() }, fallbackTitle, fallbackColor);
+        placeholderBlocks.push({
+          bounds: { x: 0, y: 0, w: wallWidth(), h: wallHeight() },
+          rows,
+          cols,
+          rowStart: 1,
+          colStart: 1
+        });
+      }
+
+      if (gap) {
+        const perScreenInset = inset * 2;
+        const cellW = Math.max(20, SCREEN_W - perScreenInset * 2);
+        const cellH = Math.max(20, SCREEN_H - perScreenInset * 2);
+        placeholderBlocks.forEach((block) => {
+          for (let r = 0; r < block.rows; r++) {
+            for (let c = 0; c < block.cols; c++) {
+              const sx = block.bounds.x + c * SCREEN_W;
+              const sy = block.bounds.y + r * SCREEN_H;
+              state.items.push({
+                id: nextId('ph'),
+                type: 'placeholder',
+                x: Math.round(sx + perScreenInset),
+                y: Math.round(sy + perScreenInset),
+                w: Math.round(cellW),
+                h: Math.round(cellH),
+                text: `GRID_${block.rowStart + r}_${block.colStart + c}`,
+                share: '',
+                z: 1
+              });
+            }
+          }
+        });
+        return;
+      }
+
+      placeholderBlocks.forEach((block) => {
+        const blockBorderX = block.bounds.x + inset;
+        const blockBorderY = block.bounds.y + inset;
+        const blockBorderW = Math.max(1, block.bounds.w - inset * 2);
+        const blockBorderH = Math.max(1, block.bounds.h - inset * 2);
+        const x0 = blockBorderX + inset;
+        const y0 = blockBorderY + inset;
+        const innerW = Math.max(1, blockBorderW - inset * 2);
+        const innerH = Math.max(1, blockBorderH - inset * 2);
+        const xStep = innerW / block.cols;
+        const yStep = innerH / block.rows;
+        for (let r = 0; r < block.rows; r++) {
+          for (let c = 0; c < block.cols; c++) {
+            const left = Math.round(x0 + c * xStep);
+            const top = Math.round(y0 + r * yStep);
+            const right = Math.round(x0 + (c + 1) * xStep);
+            const bottom = Math.round(y0 + (r + 1) * yStep);
+            state.items.push({
+              id: nextId('ph'),
+              type: 'placeholder',
+              x: left,
+              y: top,
+              w: Math.max(1, right - left),
+              h: Math.max(1, bottom - top),
+              text: `GRID_${block.rowStart + r}_${block.colStart + c}`,
+              share: '',
+              z: 1
+            });
+          }
+        }
+      });
+    }
+
+    function getFocusBlock(rows, cols, focusCells, horizontal) {
+      let best = { blockRows: 1, blockCols: 1, area: Number.MAX_SAFE_INTEGER, score: Number.MAX_SAFE_INTEGER };
+      for (let blockRows = 1; blockRows <= rows; blockRows++) {
+        for (let blockCols = 1; blockCols <= cols; blockCols++) {
+          const area = blockRows * blockCols;
+          if (area < focusCells) continue;
+          const aspect = blockCols / blockRows;
+          const orientationPenalty = horizontal ? Math.max(0, 1 - aspect) : Math.max(0, aspect - 1);
+          const waste = area - focusCells;
+          const score = waste * 100 + orientationPenalty * 10 + Math.abs(Math.log(aspect || 1));
+          if (score < best.score || (score === best.score && area < best.area)) {
+            best = { blockRows, blockCols, area, score };
+          }
+        }
+      }
+      return best;
+    }
+
+    function generatorFocusDetail(options) {
+      const inset = Math.max(0, Number.isFinite(options.inset) ? options.inset : 40);
+      const rows = Math.max(1, state.wall.rows);
+      const cols = Math.max(1, state.wall.cols);
+      const totalCells = rows * cols;
+      const focusCells = Math.max(1, Math.min(totalCells, Number.isFinite(options.focusCells) ? options.focusCells : 1));
+      const detailCount = Math.max(1, Number.isFinite(options.detailCount) ? options.detailCount : 3);
+      const title = typeof options.title === 'string' ? options.title.trim() : '';
+      const horizontal = cols >= rows;
+      const block = getFocusBlock(rows, cols, focusCells, horizontal);
+
+      const focusRow0 = 0;
+      const focusCol0 = 0;
+      const focusRow1 = focusRow0 + block.blockRows - 1;
+      const focusCol1 = focusCol0 + block.blockCols - 1;
+
+      const details = [];
       for (let r = 0; r < rows; r++) {
         for (let c = 0; c < cols; c++) {
-          state.items.push({ id: nextId('ph'), type: 'placeholder', x: gap + c * (w + gap), y: gap + r * (h + gap), w, h, text: `GRID_${r + 1}_${c + 1}`, share: '' });
+          const inFocus = r >= focusRow0 && r <= focusRow1 && c >= focusCol0 && c <= focusCol1;
+          if (!inFocus) details.push({ r, c });
         }
+      }
+
+      const focusX = focusCol0 * SCREEN_W + inset;
+      const focusY = focusRow0 * SCREEN_H + inset;
+      const focusW = block.blockCols * SCREEN_W - inset * 2;
+      const focusH = block.blockRows * SCREEN_H - inset * 2;
+
+      state.items = [
+        { id: nextId('ph'), type: 'placeholder', x: Math.round(focusX), y: Math.round(focusY), w: Math.round(focusW), h: Math.round(focusH), text: 'FOCUS_MAIN', share: '', z: 1 }
+      ];
+
+      const useDetails = Math.min(detailCount, details.length);
+      for (let i = 0; i < useDetails; i++) {
+        const cell = details[i];
+        const x = cell.c * SCREEN_W + inset;
+        const y = cell.r * SCREEN_H + inset;
+        const w = SCREEN_W - inset * 2;
+        const h = SCREEN_H - inset * 2;
+        state.items.push({
+          id: nextId('ph'),
+          type: 'placeholder',
+          x: Math.round(x),
+          y: Math.round(y),
+          w: Math.round(w),
+          h: Math.round(h),
+          text: `DETAIL_${i + 1}`,
+          share: '',
+          z: 1
+        });
+      }
+
+      if (title) {
+        state.items.push({
+          id: nextId('ttl'),
+          type: 'textbox',
+          x: Math.round(inset),
+          y: Math.round(inset),
+          w: Math.round(Math.min(Math.max(300, title.length * 24), wallWidth() * 0.5)),
+          h: 74,
+          text: title,
+          fill: '#000000',
+          stroke: '#8bc8ff',
+          strokeWidth: 2,
+          textColor: '#d3e9ff',
+          fontSize: 30,
+          z: 20
+        });
       }
     }
 
-    function generatorFocusDetail() {
-      state.regions = [
-        { name: 'FOCUS', row: 1, col: 1, rows: Math.max(1, state.wall.rows), cols: Math.max(1, state.wall.cols - 1) },
-        { name: 'DETAIL', row: 1, col: Math.max(1, state.wall.cols), rows: Math.max(1, state.wall.rows), cols: 1 }
-      ];
-      state.items = [
-        { id: nextId('ph'), type: 'placeholder', x: 40, y: 40, w: Math.max(200, wallWidth() * 0.74), h: wallHeight() - 80, text: 'FOCUS_MAIN', share: '' },
-        { id: nextId('ph'), type: 'placeholder', x: wallWidth() * 0.77, y: 40, w: wallWidth() * 0.21, h: wallHeight() * 0.28 - 55, text: 'DETAIL_1', share: '' },
-        { id: nextId('ph'), type: 'placeholder', x: wallWidth() * 0.77, y: wallHeight() * 0.36, w: wallWidth() * 0.21, h: wallHeight() * 0.28 - 55, text: 'DETAIL_2', share: '' },
-        { id: nextId('ph'), type: 'placeholder', x: wallWidth() * 0.77, y: wallHeight() * 0.68, w: wallWidth() * 0.21, h: wallHeight() * 0.28 - 55, text: 'DETAIL_3', share: '' }
-      ];
-    }
+    function generatorStaggered(options) {
+      const count = Math.max(1, Number.isFinite(options.count) ? options.count : state.wall.rows * state.wall.cols);
+      const cols = Math.max(1, Math.min(state.wall.cols, Number.isFinite(options.cols) ? options.cols : 4));
+      const inset = Math.max(0, Number.isFinite(options.inset) ? options.inset : 40);
+      const offset = Math.max(0, Number.isFinite(options.offset) ? options.offset : 80);
+      const title = typeof options.title === 'string' ? options.title.trim() : '';
 
-    function generatorStaggered() {
-      state.regions = [{ name: 'STAGGERED', row: 1, col: 1, rows: state.wall.rows, cols: state.wall.cols }];
       state.items = [];
-      const count = Math.max(4, state.wall.rows * state.wall.cols);
-      const w = wallWidth() * 0.28;
-      const h = wallHeight() * 0.35;
+      const rowsNeeded = Math.max(1, Math.ceil(count / cols));
+      const titleBand = title ? Math.max(60, Math.round(inset * 1.6)) : 0;
+      const col0Offset = title ? Math.round(titleBand * 0.5) : 0;
+      const availableW = Math.max(1, wallWidth() - inset * (cols + 1));
+      const w = Math.max(60, availableW / cols);
+      const rowGap = inset;
+      const availableH = Math.max(1, wallHeight() - inset * 2 - titleBand - col0Offset - rowGap * (rowsNeeded - 1));
+      const h = Math.max(40, availableH / rowsNeeded);
+      const baseY = inset + titleBand;
       for (let i = 0; i < count; i++) {
-        const x = (i % 4) * (w * 0.8) + 40;
-        const y = Math.floor(i / 4) * (h * 0.55) + (i % 2 ? 80 : 20);
-        if (withinWall(x, y, w, h)) {
-          state.items.push({ id: nextId('ph'), type: 'placeholder', x, y, w, h, text: `STAG_${i + 1}`, share: '' });
+        const col = i % cols;
+        const row = Math.floor(i / cols);
+        const x = Math.round(inset + col * (w + inset));
+        const y = Math.round(baseY + row * (h + rowGap) + (col === 0 ? col0Offset : 0));
+        const rw = Math.round(w);
+        const rh = Math.round(h);
+        if (withinWall(x, y, rw, rh)) {
+          state.items.push({ id: nextId('ph'), type: 'placeholder', x, y, w: rw, h: rh, text: `STAG_${i + 1}`, share: '', z: 1 });
         }
+      }
+
+      if (title) {
+        state.items.push({
+          id: nextId('ttl'),
+          type: 'textbox',
+          x: Math.round(inset),
+          y: Math.round(Math.max(0, inset * 0.3)),
+          w: Math.round(Math.min(Math.max(260, title.length * 24), wallWidth() * 0.45)),
+          h: 70,
+          text: title,
+          fill: '#000000',
+          stroke: '#8bc8ff',
+          strokeWidth: 2,
+          textColor: '#d3e9ff',
+          fontSize: 28,
+          z: 20
+        });
       }
     }
 
     function runGenerator() {
       const type = $('generator').value;
-      if (type === 'border-grid') generatorBorderGrid();
-      if (type === 'focus-detail') generatorFocusDetail();
-      if (type === 'staggered') generatorStaggered();
+      const options = parseGeneratorHint($('generator-hint').value);
+      if (type === 'border-grid') generatorBorderGrid(options);
+      if (type === 'focus-detail') generatorFocusDetail(options);
+      if (type === 'staggered') generatorStaggered(options);
       state.selectedId = null;
       setStatus(`Generator applied: ${type}`);
+      render();
+    }
+
+    function clearWall() {
+      state.regions = [];
+      state.items = [];
+      state.selectedId = null;
+      setStatus('Wall cleared');
       render();
     }
 
@@ -665,24 +1377,36 @@
     function applyWall() {
       state.wall.rows = Math.max(1, parseFormNum('wall-rows', 1));
       state.wall.cols = Math.max(1, parseFormNum('wall-cols', 1));
-      state.regions = state.regions.filter(r => r.row + r.rows - 1 <= state.wall.rows && r.col + r.cols - 1 <= state.wall.cols);
-      state.items = state.items.filter(i => withinWall(i.x, i.y, Math.max(0, i.w || 0), Math.max(0, i.h || 0)));
+      state.wallName = `${state.wall.rows}x${state.wall.cols}`;
+      state.regions = [];
+      state.items = [];
       state.selectedId = null;
-      setStatus('Wall updated');
+      setStatus('Wall updated and cleared');
       render();
     }
 
     function render() {
       updateWallMeta();
+      fitCanvasShell();
+      renderRegionList();
+      applySceneViewBox();
       clearSvg();
       renderGrid();
       state.regions.forEach(drawRegion);
-      state.items.forEach(drawItem);
+      state.items
+        .slice()
+        .sort((a, b) => clampZ(a.z) - clampZ(b.z))
+        .forEach(drawItem);
       exportCommands();
     }
 
     function wire() {
       $('apply-wall').addEventListener('click', applyWall);
+      $('clear-wall').addEventListener('click', clearWall);
+      $('save-wall-preset').addEventListener('click', saveWallPreset);
+      $('load-wall-preset').addEventListener('click', loadWallPreset);
+      $('delete-wall-preset').addEventListener('click', deleteWallPreset);
+      $('wall-preset-list').addEventListener('change', loadWallPreset);
       $('add-region').addEventListener('click', addRegion);
       $('add-primitive').addEventListener('click', addPrimitive);
       $('add-placeholder').addEventListener('click', addPlaceholder);
@@ -696,15 +1420,33 @@
 
       $('run-generator').addEventListener('click', runGenerator);
       $('export-cmds').addEventListener('click', exportCommands);
+      $('include-wall-config').addEventListener('change', exportCommands);
+      $('include-placeholders').addEventListener('change', exportCommands);
+      $('export-prefix').addEventListener('input', () => {
+        saveExportPrefix();
+        exportCommands();
+      });
+      $('generator').addEventListener('change', updateGeneratorHint);
 
       svg.addEventListener('click', () => {
         state.selectedId = null;
         render();
       });
+
+      window.addEventListener('resize', () => {
+        fitCanvasShell();
+      });
     }
 
     wire();
+    updateGeneratorHint();
+    loadWallPresetsFromStorage();
+    if (state.wallPresets[DEFAULT_WALL_PRESET_NAME]) {
+      $('wall-preset-list').value = DEFAULT_WALL_PRESET_NAME;
+      loadWallPreset();
+    }
     loadTemplatesFromStorage();
+    loadExportPrefix();
     render();
     setStatus('Ready');
   </script>
