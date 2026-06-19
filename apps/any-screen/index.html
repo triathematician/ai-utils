@@ -65,10 +65,11 @@
       padding: 4px 7px;
     }
     .btn { text-transform: uppercase; letter-spacing: 0.08em; cursor: pointer; }
-    .btn:hover { border-color: var(--accent); color: var(--accent); }
-    .btn.danger:hover { border-color: var(--accent3); color: var(--accent3); }
+    .btn:hover:not(:disabled) { border-color: var(--accent); color: var(--accent); }
+    .btn.danger:hover:not(:disabled) { border-color: var(--accent3); color: var(--accent3); }
     .field { display: flex; align-items: center; gap: 4px; font-size: 9px; color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.08em; }
     .field input { width: 66px; }
+    .field input[type="checkbox"] { width: auto; padding: 0; margin: 0; flex: 0 0 auto; }
     .divider { width: 1px; height: 24px; background: var(--border); }
 
     #layout {
@@ -78,6 +79,16 @@
       min-height: 0;
       display: grid;
       grid-template-columns: 280px 1fr 320px;
+      transition: grid-template-columns 0.15s ease;
+    }
+    #layout.left-collapsed {
+      grid-template-columns: 0px 1fr 320px;
+    }
+    #layout.left-collapsed .panel:not(.right) {
+      overflow: hidden;
+      padding: 0;
+      border: none;
+      min-width: 0;
     }
     .panel {
       background: var(--surface);
@@ -156,6 +167,11 @@
       width: calc(100% - 30px);
       min-width: 0;
     }
+    .panel input[type="number"]::-webkit-inner-spin-button,
+    .panel input[type="number"]::-webkit-outer-spin-button {
+      -webkit-appearance: none;
+      margin: 0;
+    }
     textarea {
       width: 100%;
       min-height: 180px;
@@ -192,10 +208,7 @@
       border-radius: 8px;
       min-width: 0;
       min-height: 0;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      padding: 12px;
+      overflow: hidden;
     }
     #design {
       width: 100%;
@@ -243,8 +256,13 @@
 </head>
 <body>
   <div id="topbar">
+    <button class="btn" id="toggle-left" title="Toggle panel">&#9776;</button>
     <span class="logo">ANY SCREEN</span>
     <span class="meta">wall + template designer</span>
+    <div class="divider"></div>
+    <button class="btn" id="toggle-preview" title="Toggle preview mode">Preview</button>
+    <div class="divider"></div>
+    <label class="field"><input type="checkbox" id="show-regions" checked> Regions</label>
     <div class="divider"></div>
     <label class="field">Rows <input id="wall-rows" type="number" min="1" value="2"></label>
     <label class="field">Cols <input id="wall-cols" type="number" min="1" value="4"></label>
@@ -262,22 +280,23 @@
     <span class="meta" id="wall-meta"></span>
   </div>
 
-  <div id="layout">
+  <div id="layout" class="left-collapsed">
     <aside class="panel">
       <div class="sec">
-        <h3>Regions (screen coords)</h3>
-        <div id="region-list" class="region-list"></div>
-        <div class="row"><input id="region-name" placeholder="Name (e.g. LEFT)"></div>
-        <div class="row">
-          <input id="region-row" type="number" min="1" value="1" placeholder="Row">
-          <input id="region-col" type="number" min="1" value="1" placeholder="Col">
+        <h3>Add Region</h3>
+        <div class="row" style="gap:6px;align-items:center">
+          <input id="region-name" placeholder="Name (e.g. LEFT)" style="flex:1">
+          <input id="region-color" type="color" value="#8bc8ff" title="Region color" style="width:28px;height:28px;padding:2px;border-radius:4px;cursor:pointer;flex-shrink:0">
         </div>
-        <div class="row">
-          <input id="region-rows" type="number" min="1" value="1" placeholder="Rows">
-          <input id="region-cols" type="number" min="1" value="1" placeholder="Cols">
+        <div class="row" style="gap:4px">
+          <label style="display:flex;flex-direction:column;flex:1;font-size:10px;gap:2px">Row<input id="region-row" type="number" min="1" value="1" style="-moz-appearance:textfield;appearance:textfield;width:100%"></label>
+          <label style="display:flex;flex-direction:column;flex:1;font-size:10px;gap:2px">Col<input id="region-col" type="number" min="1" value="1" style="-moz-appearance:textfield;appearance:textfield;width:100%"></label>
+          <label style="display:flex;flex-direction:column;flex:1;font-size:10px;gap:2px">Rows<input id="region-rows" type="number" min="1" value="1" style="-moz-appearance:textfield;appearance:textfield;width:100%"></label>
+          <label style="display:flex;flex-direction:column;flex:1;font-size:10px;gap:2px">Cols<input id="region-cols" type="number" min="1" value="1" style="-moz-appearance:textfield;appearance:textfield;width:100%"></label>
         </div>
-        <div class="row"><input id="region-color" type="color" value="#8bc8ff" title="Region color"></div>
         <button class="btn" id="add-region">Add Region</button>
+        <h3 style="margin-top:10px">Regions</h3>
+        <div id="region-list" class="region-list"></div>
       </div>
 
       <div class="sec">
@@ -298,17 +317,20 @@
           <input id="item-h" type="number" value="540" placeholder="H">
         </div>
         <div class="row"><input id="item-text" placeholder="Text / label"></div>
-        <button class="btn" id="add-primitive">Add Primitive</button>
+        <div class="row">
+          <button class="btn" id="add-primitive">Add Primitive</button>
+          <button class="btn" id="add-placeholder" title="Add a placeholder box at the X/Y/W/H position set above">Add Placeholder</button>
+        </div>
       </div>
 
       <div class="sec">
-        <h3>Media + Placeholders</h3>
-        <div class="row"><input id="asset-file" type="file" accept="image/*,.svg"></div>
-        <div class="row">
-          <button class="btn" id="add-placeholder">Add Placeholder</button>
-          <button class="btn" id="assign-share">Assign Share</button>
+        <h3>Media + Sources</h3>
+        <div class="row"><input id="asset-file" type="file" accept="image/*,.svg" title="Load image/SVG into selected placeholder" disabled></div>
+        <div class="row"><input id="asset-folder" type="file" webkitdirectory accept="image/*,.svg" title="Auto-assign images from a folder to placeholders in order" style="display:none"><button class="btn" id="asset-folder-btn" onclick="document.getElementById('asset-folder').click()">Assign folder to placeholders</button></div>
+        <div class="row" style="gap:4px;align-items:center">
+          <input id="share-name" placeholder="Share source name" style="flex:1" title="Name of the screen-share source to assign to the selected placeholder" disabled>
+          <button class="btn" id="assign-share" title="Tag the selected placeholder with this share source name (used in export)" disabled>Assign</button>
         </div>
-        <div class="row"><input id="share-name" placeholder="Share source name"></div>
       </div>
 
       <div class="sec">
@@ -341,6 +363,10 @@
         <div class="row"><select id="generator">
           <option value="border-grid">Border + Grid</option>
           <option value="focus-detail">Focus + Detail</option>
+          <option value="mosaic">Mosaic</option>
+          <option value="random">Random</option>
+          <option value="pip">Picture-in-Picture</option>
+          <option value="spotlight">Spotlight</option>
           <option value="staggered">Staggered</option>
         </select></div>
         <div class="row"><textarea id="generator-hint" rows="3" placeholder="title=TITLE, inset=20, gap=F"></textarea></div>
@@ -363,6 +389,7 @@
   <script>
     const SCREEN_W = 1920;
     const SCREEN_H = 1080;
+    const IMAGE_FIT = 'zoom'; // 'zoom' = center-crop (xMidYMid slice), 'fit' = scale to fit (xMidYMid meet)
     const STORAGE_KEY = 'any_screen_templates_v1';
     const WALL_PRESETS_KEY = 'any_screen_wall_presets_v1';
     const EXPORT_PREFIX_KEY = 'any_screen_export_prefix_v1';
@@ -374,6 +401,7 @@
       regions: [],
       items: [],
       selectedId: null,
+      previewMode: false,
       templates: {},
       wallPresets: {}
     };
@@ -446,8 +474,22 @@
 
     function getGeneratorDefaultHint(type) {
       if (type === 'border-grid') return 'title=TITLE, color=#4af0c8, titleSize=42, inset=30, width=15, gap=F';
-      if (type === 'focus-detail') return 'title=FOCUS, focusCells=1, detailCount=3, inset=40';
-      if (type === 'staggered') return 'title=STACK, count=12, cols=4, inset=40, offset=80';
+      if (type === 'focus-detail') {
+        const d = Math.min(state.wall.rows || 1, state.wall.cols || 1);
+        return `title=FOCUS, focusRows=${d}, focusCols=${d}, detailCount=3, inset=40, split=V`;
+      }
+      if (type === 'mosaic') return 'inset=60';
+      if (type === 'pip') return `focalCount=1, pipCount=3, inset=40, pipSize=0.25, corner=bot-right`;
+      if (type === 'spotlight') return 'detailCount=4, inset=40, split=V';
+      if (type === 'random') {
+        const wallCount = (state.wall.rows || 2) * (state.wall.cols || 4);
+        return `count=${Math.ceil(wallCount / 3)}, inset=40, subdivide=F, fill=F`;
+      }
+      if (type === 'staggered') {
+        const wallCols = state.wall.cols || 4;
+        const wallCount = (state.wall.rows || 2) * wallCols;
+        return `title=STACK, count=${wallCount}, cols=${wallCols}, inset=100, offset=130`;
+      }
       return '';
     }
 
@@ -618,8 +660,40 @@
       render();
     }
 
+    function assignFolderToPlaceholders(files) {
+      const images = Array.from(files)
+        .filter(f => f.type.startsWith('image/') || f.name.toLowerCase().endsWith('.svg'))
+        .sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true }));
+      const placeholders = state.items
+        .filter(i => i.type === 'placeholder')
+        .sort((a, b) => a.y - b.y || a.x - b.x);
+      if (!placeholders.length) { setStatus('No placeholders on canvas'); return; }
+      if (!images.length) { setStatus('No images found in folder'); return; }
+      let count = 0;
+      const load = (idx) => {
+        if (idx >= images.length || idx >= placeholders.length) {
+          setStatus(`${count} image${count !== 1 ? 's' : ''} assigned to placeholders`);
+          render();
+          return;
+        }
+        const ph = placeholders[idx];
+        const file = images[idx];
+        const reader = new FileReader();
+        reader.onload = () => {
+          const isSvg = file.type === 'image/svg+xml' || file.name.toLowerCase().endsWith('.svg');
+          state.items.push({ id: nextId('asset'), type: isSvg ? 'svg' : 'image', x: ph.x, y: ph.y, w: ph.w, h: ph.h, src: reader.result, label: file.name, z: ph.z + 1 });
+          count++;
+          load(idx + 1);
+        };
+        reader.readAsDataURL(file);
+      };
+      load(0);
+    }
+
     function readAsset(file) {
       if (!file) return;
+      const placeholder = state.items.find(i => i.id === state.selectedId && i.type === 'placeholder');
+      if (!placeholder) { setStatus('Select a placeholder first'); return; }
       const reader = new FileReader();
       reader.onload = () => {
         const url = reader.result;
@@ -627,13 +701,13 @@
         state.items.push({
           id: nextId('asset'),
           type: isSvg ? 'svg' : 'image',
-          x: parseFormNum('item-x', 0),
-          y: parseFormNum('item-y', 0),
-          w: parseFormNum('item-w', SCREEN_W),
-          h: parseFormNum('item-h', SCREEN_H),
+          x: placeholder.x,
+          y: placeholder.y,
+          w: placeholder.w,
+          h: placeholder.h,
           src: url,
           label: file.name,
-          z: nextZ()
+          z: placeholder.z + 1
         });
         setStatus(`${isSvg ? 'SVG' : 'Image'} added`);
         render();
@@ -722,6 +796,7 @@
       el.addEventListener('click', (e) => {
         e.stopPropagation();
         state.selectedId = item.id;
+        setStatus('Selected');
         render();
       });
       return el;
@@ -773,6 +848,7 @@
         el.setAttribute('href', item.src);
         el.setAttribute('x', item.x); el.setAttribute('y', item.y);
         el.setAttribute('width', item.w); el.setAttribute('height', item.h);
+        el.setAttribute('preserveAspectRatio', IMAGE_FIT === 'zoom' ? 'xMidYMid slice' : 'xMidYMid meet');
         svg.appendChild(selectable(el, item));
       } else if (item.type === 'placeholder') {
         el = document.createElementNS(ns, 'rect');
@@ -792,6 +868,10 @@
       const selected = state.items.find(i => i.id === state.selectedId);
       const suffix = selected ? ` · Selected: ${selected.type}` : '';
       $('status').textContent = `${text}${suffix}`;
+      const isPlaceholder = selected?.type === 'placeholder';
+      $('share-name').disabled = !isPlaceholder;
+      $('assign-share').disabled = !isPlaceholder;
+      $('asset-file').disabled = !isPlaceholder;
     }
 
     function exportCommands() {
@@ -865,6 +945,18 @@
             { name: 'Blue', row: 1, col: 11, rows: 3, cols: 3, color: '#1976d2' },
             { name: 'Green', row: 1, col: 14, rows: 3, cols: 3, color: '#2e7d32' }
           ]
+        },
+        'Massive-5x5': {
+          wall: { rows: 5, cols: 5, name: 'Massive-5x5' },
+          regions: [
+            { name: 'All', row: 1, col: 1, rows: 5, cols: 5, color: '#8bc8ff' }
+          ]
+        },
+        'Uber-8x8': {
+          wall: { rows: 8, cols: 8, name: 'Uber-8x8' },
+          regions: [
+            { name: 'All', row: 1, col: 1, rows: 8, cols: 8, color: '#8bc8ff' }
+          ]
         }
       };
     }
@@ -935,6 +1027,7 @@
       $('wall-rows').value = state.wall.rows;
       $('wall-cols').value = state.wall.cols;
       setStatus(`Wall preset loaded: ${name}`);
+      updateGeneratorHint();
       render();
     }
 
@@ -1224,57 +1317,335 @@
       return best;
     }
 
+    function generatorRandom(options) {
+      const subdivide = options.subdivide === true;
+      const fill = options.fill === true;
+      const rows = Math.max(1, state.wall.rows) * (subdivide ? 2 : 1);
+      const cols = Math.max(1, state.wall.cols) * (subdivide ? 2 : 1);
+      const cellW = subdivide ? SCREEN_W / 2 : SCREEN_W;
+      const cellH = subdivide ? SCREEN_H / 2 : SCREEN_H;
+      const N = Math.min(rows, cols);
+      const inset = Math.max(0, Number.isFinite(options.inset) ? options.inset : 40);
+
+      // count may be a pipe-delimited string like "2|4|20" specifying per-size targets
+      // sizes go from N×N down to 1×1; extra pipe values are ignored, missing ones default to 0
+      const rawCount = options.count;
+      const targets = [];
+      let count;
+      let enforceFeasibility = true;
+      if (typeof rawCount === 'string' && rawCount.includes('|')) {
+        enforceFeasibility = false;
+        const parts = rawCount.split('|').map(s => Math.max(0, parseInt(s, 10) || 0));
+        for (let i = 0; i < N; i++) {
+          targets.push({ k: N - i, target: parts[i] ?? 0 });
+        }
+        count = parts.reduce((a, b) => a + b, 0);
+      } else {
+        count = Math.max(1, Number.isFinite(rawCount) ? rawCount : Math.ceil(rows * cols / 3));
+        let usedCount = 0;
+        for (let k = N; k >= 2; k--) {
+          const t = Math.max(0, Math.round(count / (N * k)));
+          targets.push({ k, target: t });
+          usedCount += t;
+        }
+        targets.push({ k: 1, target: Math.max(0, count - usedCount) });
+      }
+
+      const occupied = new Set();
+      const key = (r, c) => r * 10000 + c;
+
+      function canPlace(r, c, k) {
+        if (r + k > rows || c + k > cols) return false;
+        for (let dr = 0; dr < k; dr++)
+          for (let dc = 0; dc < k; dc++)
+            if (occupied.has(key(r + dr, c + dc))) return false;
+        return true;
+      }
+
+      function mark(r, c, k) {
+        for (let dr = 0; dr < k; dr++)
+          for (let dc = 0; dc < k; dc++)
+            occupied.add(key(r + dr, c + dc));
+      }
+
+      state.items = [];
+      let n = 0;
+
+      const totalCells = rows * cols;
+
+      for (const { k, target } of targets) {
+        for (let t = 0; t < target; t++) {
+          // Skip if placing k×k would leave fewer free cells than remaining items needed
+          if (enforceFeasibility) {
+            const remainingNeeded = count - n - 1;
+            if (totalCells - occupied.size - k * k < remainingNeeded) break;
+          }
+          const positions = [];
+          for (let r = 0; r <= rows - k; r++)
+            for (let c = 0; c <= cols - k; c++)
+              if (canPlace(r, c, k)) positions.push([r, c]);
+          if (!positions.length) break;
+          const [r, c] = positions[Math.floor(Math.random() * positions.length)];
+          mark(r, c, k);
+          state.items.push({
+            id: nextId('ph'), type: 'placeholder',
+            x: Math.round(c * cellW + inset),
+            y: Math.round(r * cellH + inset),
+            w: Math.round(k * cellW - inset * 2),
+            h: Math.round(k * cellH - inset * 2),
+            text: `RAND_${++n}`, share: '', z: 1
+          });
+        }
+      }
+
+      // Fill any remaining slots (missed when large blocks were skipped, or fill=T) with 1×1s
+      while (n < count || fill) {
+        const positions = [];
+        for (let r = 0; r < rows; r++)
+          for (let c = 0; c < cols; c++)
+            if (canPlace(r, c, 1)) positions.push([r, c]);
+        if (!positions.length) break;
+        const [r, c] = positions[Math.floor(Math.random() * positions.length)];
+        mark(r, c, 1);
+        state.items.push({
+          id: nextId('ph'), type: 'placeholder',
+          x: Math.round(c * cellW + inset),
+          y: Math.round(r * cellH + inset),
+          w: Math.round(cellW - inset * 2),
+          h: Math.round(cellH - inset * 2),
+          text: `RAND_${++n}`, share: '', z: 1
+        });
+      }
+    }
+
+    function generatorPip(options) {
+      const inset = Math.max(0, Number.isFinite(options.inset) ? options.inset : 40);
+      const pipCount = Math.max(1, Number.isFinite(options.pipCount) ? options.pipCount : 3);
+      const pipSize = Math.min(0.5, Math.max(0.1, Number.isFinite(options.pipSize) ? options.pipSize : 0.25));
+      const corner = typeof options.corner === 'string' ? options.corner.trim() : 'bot-right';
+      const aspect = SCREEN_W / SCREEN_H;
+
+      state.items = [];
+
+      const focalCount = Math.max(1, Number.isFinite(options.focalCount) ? options.focalCount : 1);
+      const wW = wallWidth(), wH = wallHeight();
+
+      // Evenly space focal views; auto-orient along the longer wall axis
+      const horizontal = wW >= wH;
+      const focalBoxW = horizontal ? Math.round(wW / focalCount) : wW;
+      const focalBoxH = horizontal ? wH : Math.round(wH / focalCount);
+
+      // Each focal is 16:9, centered in its box with inset margin
+      let fW = focalBoxW - 2 * inset, fH = Math.round(fW / aspect);
+      if (fH > focalBoxH - 2 * inset) { fH = focalBoxH - 2 * inset; fW = Math.round(fH * aspect); }
+
+      for (let fi = 0; fi < focalCount; fi++) {
+        const boxX = horizontal ? fi * focalBoxW : 0;
+        const boxY = horizontal ? 0 : fi * focalBoxH;
+        const fx = boxX + Math.round((focalBoxW - fW) / 2);
+        const fy = boxY + Math.round((focalBoxH - fH) / 2);
+        state.items.push({ id: nextId('ph'), type: 'placeholder', x: fx, y: fy, w: fW, h: fH, text: focalCount > 1 ? `FOCAL_${fi + 1}` : 'FOCAL', share: '', z: 1 });
+      }
+
+      // PiP anchor: single focal → relative to that focal's bounds; multiple → relative to full wall
+      const pipAnchorX = focalCount === 1 ? Math.round((wW - fW) / 2) : 0;
+      const pipAnchorY = focalCount === 1 ? Math.round((wH - fH) / 2) : 0;
+      const pipAnchorW = focalCount === 1 ? fW : wW;
+      const pipAnchorH = focalCount === 1 ? fH : wH;
+
+      // PiP size: pipSize fraction of anchor height, maintaining aspect ratio
+      const pipH = Math.round(pipAnchorH * pipSize);
+      const pipW = Math.round(pipH * aspect);
+
+      const useBottom = /bot|bottom/i.test(corner);
+      const useTop    = /top/i.test(corner);
+      const useRight  = /right/i.test(corner);
+      const useLeft   = /left/i.test(corner);
+      const stackH = useBottom || useTop;
+
+      if (stackH) {
+        const totalW = pipCount * pipW + (pipCount - 1) * inset;
+        let startX;
+        if (useLeft) startX = pipAnchorX + inset;
+        else if (useRight) startX = pipAnchorX + pipAnchorW - totalW - inset;
+        else startX = pipAnchorX + Math.round((pipAnchorW - totalW) / 2);
+        const py = useTop ? pipAnchorY + inset : pipAnchorY + pipAnchorH - pipH - inset;
+        for (let i = 0; i < pipCount; i++) {
+          const px = startX + i * (pipW + inset);
+          if (withinWall(px, py, pipW, pipH)) {
+            state.items.push({ id: nextId('ph'), type: 'placeholder', x: px, y: py, w: pipW, h: pipH, text: `PIP_${i + 1}`, share: '', z: 2 });
+          }
+        }
+      } else {
+        const totalH = pipCount * pipH + (pipCount - 1) * inset;
+        let startY;
+        if (useTop) startY = pipAnchorY + inset;
+        else if (useBottom) startY = pipAnchorY + pipAnchorH - totalH - inset;
+        else startY = pipAnchorY + Math.round((pipAnchorH - totalH) / 2);
+        const px = useLeft ? pipAnchorX + inset : pipAnchorX + pipAnchorW - pipW - inset;
+        for (let i = 0; i < pipCount; i++) {
+          const py = startY + i * (pipH + inset);
+          if (withinWall(px, py, pipW, pipH)) {
+            state.items.push({ id: nextId('ph'), type: 'placeholder', x: px, y: py, w: pipW, h: pipH, text: `PIP_${i + 1}`, share: '', z: 2 });
+          }
+        }
+      }
+    }
+
+    function generatorSpotlight(options) {
+      const inset = Math.max(0, Number.isFinite(options.inset) ? options.inset : 40);
+      const detailCount = Math.max(1, Number.isFinite(options.detailCount) ? options.detailCount : 4);
+      const splitOpt = typeof options.split === 'string' && options.split.trim() ? options.split.trim().toUpperCase() : 'V';
+      const aspect = SCREEN_W / SCREEN_H;
+
+      state.items = [];
+
+      if (splitOpt === 'V') {
+        const dHfromHeight = (wallHeight() - inset * (detailCount + 1)) / detailCount;
+        let dW = dHfromHeight * aspect;
+        let fW = wallWidth() - 3 * inset - dW;
+        if (dW > fW / 2) {
+          dW = (wallWidth() - 3 * inset) / 3;
+          fW = wallWidth() - 3 * inset - dW;
+        }
+        let fH = fW / aspect;
+        if (fH > wallHeight() - 2 * inset) {
+          fH = wallHeight() - 2 * inset;
+          fW = fH * aspect;
+          dW = Math.min(dW, fW / 2);
+        }
+        const dH = Math.round(dW / aspect);
+        // Center the focus+gap+details block horizontally
+        const totalW = Math.round(fW) + inset + Math.round(dW);
+        const startX = Math.round((wallWidth() - totalW) / 2);
+        const fy = Math.round((wallHeight() - fH) / 2);
+        const fx = startX;
+        const dx = startX + Math.round(fW) + inset;
+        // Center the thumbnail column vertically
+        const totalThumbH = detailCount * dH + (detailCount - 1) * inset;
+        const thumbStartY = Math.round((wallHeight() - totalThumbH) / 2);
+        if (withinWall(fx, fy, Math.round(fW), Math.round(fH))) {
+          state.items.push({ id: nextId('ph'), type: 'placeholder', x: fx, y: fy, w: Math.round(fW), h: Math.round(fH), text: 'SPOTLIGHT', share: '', z: 1 });
+        }
+        for (let i = 0; i < detailCount; i++) {
+          const dy = thumbStartY + i * (dH + inset);
+          if (withinWall(dx, dy, Math.round(dW), dH)) {
+            state.items.push({ id: nextId('ph'), type: 'placeholder', x: dx, y: dy, w: Math.round(dW), h: dH, text: `THUMB_${i + 1}`, share: '', z: 1 });
+          }
+        }
+      } else if (splitOpt === 'H') {
+        const dWfromWidth = (wallWidth() - inset * (detailCount + 1)) / detailCount;
+        let dH = dWfromWidth / aspect;
+        let fH = wallHeight() - 3 * inset - dH;
+        if (dH > fH / 2) {
+          dH = (wallHeight() - 3 * inset) / 3;
+          fH = wallHeight() - 3 * inset - dH;
+        }
+        let fW = fH * aspect;
+        if (fW > wallWidth() - 2 * inset) {
+          fW = wallWidth() - 2 * inset;
+          fH = fW / aspect;
+          dH = Math.min(dH, fH / 2);
+        }
+        const dW = Math.round(dH * aspect);
+        // Center the focus+gap+details block vertically
+        const totalH = Math.round(fH) + inset + Math.round(dH);
+        const startY = Math.round((wallHeight() - totalH) / 2);
+        const fx = Math.round((wallWidth() - fW) / 2);
+        const fy = startY;
+        const dy = startY + Math.round(fH) + inset;
+        // Center the thumbnail row horizontally
+        const totalThumbW = detailCount * dW + (detailCount - 1) * inset;
+        const thumbStartX = Math.round((wallWidth() - totalThumbW) / 2);
+        if (withinWall(fx, fy, Math.round(fW), Math.round(fH))) {
+          state.items.push({ id: nextId('ph'), type: 'placeholder', x: fx, y: fy, w: Math.round(fW), h: Math.round(fH), text: 'SPOTLIGHT', share: '', z: 1 });
+        }
+        for (let i = 0; i < detailCount; i++) {
+          const dx = thumbStartX + i * (dW + inset);
+          if (withinWall(dx, dy, dW, Math.round(dH))) {
+            state.items.push({ id: nextId('ph'), type: 'placeholder', x: dx, y: dy, w: dW, h: Math.round(dH), text: `THUMB_${i + 1}`, share: '', z: 1 });
+          }
+        }
+      }
+    }
+
+    function generatorMosaic(options) {
+      const inset = Math.max(0, Number.isFinite(options.inset) ? options.inset : 60);
+      const rows = Math.max(1, state.wall.rows);
+      const cols = Math.max(1, state.wall.cols);
+      state.items = [];
+      let n = 1;
+      for (let r = 0; r < rows; r++) {
+        for (let c = 0; c < cols; c++) {
+          state.items.push({
+            id: nextId('ph'),
+            type: 'placeholder',
+            x: Math.round(c * SCREEN_W + inset),
+            y: Math.round(r * SCREEN_H + inset),
+            w: Math.round(SCREEN_W - inset * 2),
+            h: Math.round(SCREEN_H - inset * 2),
+            text: `FEED_${n++}`,
+            share: '',
+            z: 1
+          });
+        }
+      }
+    }
+
     function generatorFocusDetail(options) {
       const inset = Math.max(0, Number.isFinite(options.inset) ? options.inset : 40);
       const rows = Math.max(1, state.wall.rows);
       const cols = Math.max(1, state.wall.cols);
-      const totalCells = rows * cols;
-      const focusCells = Math.max(1, Math.min(totalCells, Number.isFinite(options.focusCells) ? options.focusCells : 1));
-      const detailCount = Math.max(1, Number.isFinite(options.detailCount) ? options.detailCount : 3);
+      const detailCount = Math.max(0, Number.isFinite(options.detailCount) ? options.detailCount : 3);
       const title = typeof options.title === 'string' ? options.title.trim() : '';
-      const horizontal = cols >= rows;
-      const block = getFocusBlock(rows, cols, focusCells, horizontal);
+      const splitOpt = typeof options.split === 'string' && options.split.trim() ? options.split.trim().toUpperCase() : 'V';
+      const aspect = SCREEN_W / SCREEN_H;
+      const defaultFocusDim = Math.min(rows, cols);
+      const focusRows = Math.max(1, Math.min(rows, Number.isFinite(options.focusRows) ? options.focusRows : defaultFocusDim));
+      const focusCols = Math.max(1, Math.min(cols, Number.isFinite(options.focusCols) ? options.focusCols : defaultFocusDim));
 
-      const focusRow0 = 0;
-      const focusCol0 = 0;
-      const focusRow1 = focusRow0 + block.blockRows - 1;
-      const focusCol1 = focusCol0 + block.blockCols - 1;
+      state.items = [];
 
-      const details = [];
-      for (let r = 0; r < rows; r++) {
-        for (let c = 0; c < cols; c++) {
-          const inFocus = r >= focusRow0 && r <= focusRow1 && c >= focusCol0 && c <= focusCol1;
-          if (!inFocus) details.push({ r, c });
+      if (splitOpt === 'V') {
+        // Focus: vertically centered, at col 0
+        const focusRowOffset = Math.floor((rows - focusRows) / 2);
+        const fx = inset, fy = Math.round(focusRowOffset * SCREEN_H + inset);
+        const fw = Math.round(focusCols * SCREEN_W - inset * 2);
+        const fh = Math.round(focusRows * SCREEN_H - inset * 2);
+        if (withinWall(fx, fy, fw, fh)) {
+          state.items.push({ id: nextId('ph'), type: 'placeholder', x: fx, y: fy, w: fw, h: fh, text: 'FOCUS_MAIN', share: '', z: 1 });
         }
-      }
-
-      const focusX = focusCol0 * SCREEN_W + inset;
-      const focusY = focusRow0 * SCREEN_H + inset;
-      const focusW = block.blockCols * SCREEN_W - inset * 2;
-      const focusH = block.blockRows * SCREEN_H - inset * 2;
-
-      state.items = [
-        { id: nextId('ph'), type: 'placeholder', x: Math.round(focusX), y: Math.round(focusY), w: Math.round(focusW), h: Math.round(focusH), text: 'FOCUS_MAIN', share: '', z: 1 }
-      ];
-
-      const useDetails = Math.min(detailCount, details.length);
-      for (let i = 0; i < useDetails; i++) {
-        const cell = details[i];
-        const x = cell.c * SCREEN_W + inset;
-        const y = cell.r * SCREEN_H + inset;
-        const w = SCREEN_W - inset * 2;
-        const h = SCREEN_H - inset * 2;
-        state.items.push({
-          id: nextId('ph'),
-          type: 'placeholder',
-          x: Math.round(x),
-          y: Math.round(y),
-          w: Math.round(w),
-          h: Math.round(h),
-          text: `DETAIL_${i + 1}`,
-          share: '',
-          z: 1
-        });
+        // Details: wrap top-to-bottom in columns to the right, each natural screen size
+        const dw = Math.round(SCREEN_W - inset * 2);
+        const dh = Math.round(SCREEN_H - inset * 2);
+        for (let i = 0; i < detailCount; i++) {
+          const dcol = Math.floor(i / focusRows);
+          const drow = i % focusRows;
+          const x = Math.round((focusCols + dcol) * SCREEN_W + inset);
+          const y = Math.round((focusRowOffset + drow) * SCREEN_H + inset);
+          if (!withinWall(x, y, dw, dh)) break;
+          state.items.push({ id: nextId('ph'), type: 'placeholder', x, y, w: dw, h: dh, text: `DETAIL_${i + 1}`, share: '', z: 1 });
+        }
+      } else if (splitOpt === 'H') {
+        // Focus: horizontally centered
+        const colOffset = Math.floor((cols - focusCols) / 2);
+        const fx = Math.round(colOffset * SCREEN_W + inset);
+        const fw = Math.round(focusCols * SCREEN_W - inset * 2);
+        const fh = Math.round(focusRows * SCREEN_H - inset * 2);
+        if (withinWall(fx, inset, fw, fh)) {
+          state.items.push({ id: nextId('ph'), type: 'placeholder', x: fx, y: inset, w: fw, h: fh, text: 'FOCUS_MAIN', share: '', z: 1 });
+        }
+        // Details: wrap left-to-right in rows below focus, each natural screen size
+        const dw = Math.round(SCREEN_W - inset * 2);
+        const dh = Math.round(SCREEN_H - inset * 2);
+        for (let i = 0; i < detailCount; i++) {
+          const drow = Math.floor(i / focusCols);
+          const dcol = i % focusCols;
+          const x = Math.round((colOffset + dcol) * SCREEN_W + inset);
+          const y = Math.round((focusRows + drow) * SCREEN_H + inset);
+          if (!withinWall(x, y, dw, dh)) break;
+          state.items.push({ id: nextId('ph'), type: 'placeholder', x, y, w: dw, h: dh, text: `DETAIL_${i + 1}`, share: '', z: 1 });
+        }
       }
 
       if (title) {
@@ -1299,29 +1670,30 @@
     function generatorStaggered(options) {
       const count = Math.max(1, Number.isFinite(options.count) ? options.count : state.wall.rows * state.wall.cols);
       const cols = Math.max(1, Math.min(state.wall.cols, Number.isFinite(options.cols) ? options.cols : 4));
-      const inset = Math.max(0, Number.isFinite(options.inset) ? options.inset : 40);
-      const offset = Math.max(0, Number.isFinite(options.offset) ? options.offset : 80);
+      const inset = Math.max(0, Number.isFinite(options.inset) ? options.inset : 100);
+      const offset = Math.max(0, Number.isFinite(options.offset) ? options.offset : 130);
       const title = typeof options.title === 'string' ? options.title.trim() : '';
 
       state.items = [];
+      const slotW = wallWidth() / cols;
+      const aspect = SCREEN_W / SCREEN_H;
+      const maxW = slotW - inset * 2;
+      const maxH = wallHeight() - offset;
+      const itemH = Math.max(40, Math.round(Math.min(maxW / aspect, maxH)));
+      const itemW = Math.max(60, Math.round(Math.min(maxW, itemH * aspect)));
       const rowsNeeded = Math.max(1, Math.ceil(count / cols));
-      const titleBand = title ? Math.max(60, Math.round(inset * 1.6)) : 0;
-      const col0Offset = title ? Math.round(titleBand * 0.5) : 0;
-      const availableW = Math.max(1, wallWidth() - inset * (cols + 1));
-      const w = Math.max(60, availableW / cols);
-      const rowGap = inset;
-      const availableH = Math.max(1, wallHeight() - inset * 2 - titleBand - col0Offset - rowGap * (rowsNeeded - 1));
-      const h = Math.max(40, availableH / rowsNeeded);
-      const baseY = inset + titleBand;
-      for (let i = 0; i < count; i++) {
-        const col = i % cols;
-        const row = Math.floor(i / cols);
-        const x = Math.round(inset + col * (w + inset));
-        const y = Math.round(baseY + row * (h + rowGap) + (col === 0 ? col0Offset : 0));
-        const rw = Math.round(w);
-        const rh = Math.round(h);
-        if (withinWall(x, y, rw, rh)) {
-          state.items.push({ id: nextId('ph'), type: 'placeholder', x, y, w: rw, h: rh, text: `STAG_${i + 1}`, share: '', z: 1 });
+      let placed = 0;
+      for (let col = 0; col < cols && placed < count; col++) {
+        const colStartY = (col % 2 === 0) ? offset : 0;
+        for (let row = 0; row < rowsNeeded && placed < count; row++) {
+          const x = Math.round(col * slotW + (slotW - itemW) / 2);
+          const y = Math.round(colStartY + row * (itemH + inset));
+          const rw = Math.round(itemW);
+          const rh = Math.round(itemH);
+          if (withinWall(x, y, rw, rh)) {
+            placed++;
+            state.items.push({ id: nextId('ph'), type: 'placeholder', x, y, w: rw, h: rh, text: `STAG_${placed}`, share: '', z: 1 });
+          }
         }
       }
 
@@ -1349,6 +1721,10 @@
       const options = parseGeneratorHint($('generator-hint').value);
       if (type === 'border-grid') generatorBorderGrid(options);
       if (type === 'focus-detail') generatorFocusDetail(options);
+      if (type === 'mosaic') generatorMosaic(options);
+      if (type === 'random') generatorRandom(options);
+      if (type === 'pip') generatorPip(options);
+      if (type === 'spotlight') generatorSpotlight(options);
       if (type === 'staggered') generatorStaggered(options);
       state.selectedId = null;
       setStatus(`Generator applied: ${type}`);
@@ -1382,7 +1758,48 @@
       state.items = [];
       state.selectedId = null;
       setStatus('Wall updated and cleared');
+      updateGeneratorHint();
       render();
+    }
+
+    function renderPreview() {
+      const ns = 'http://www.w3.org/2000/svg';
+      const wW = wallWidth(), wH = wallHeight();
+
+      // Wall outline
+      const outline = document.createElementNS(ns, 'rect');
+      outline.setAttribute('x', 0); outline.setAttribute('y', 0);
+      outline.setAttribute('width', wW); outline.setAttribute('height', wH);
+      outline.setAttribute('fill', 'none');
+      outline.setAttribute('stroke', 'rgba(200,210,220,0.35)');
+      outline.setAttribute('stroke-width', '8');
+      svg.appendChild(outline);
+
+      // Non-overlapping regions (greedy first-fit)
+      const placed = [];
+      state.regions.forEach(region => {
+        const rx = (region.col - 1) * SCREEN_W, ry = (region.row - 1) * SCREEN_H;
+        const rw = region.cols * SCREEN_W, rh = region.rows * SCREEN_H;
+        const overlaps = placed.some(p => rx < p.x + p.w && rx + rw > p.x && ry < p.y + p.h && ry + rh > p.y);
+        if (!overlaps) {
+          placed.push({ x: rx, y: ry, w: rw, h: rh });
+          const el = document.createElementNS(ns, 'rect');
+          el.setAttribute('x', rx); el.setAttribute('y', ry);
+          el.setAttribute('width', rw); el.setAttribute('height', rh);
+          el.setAttribute('fill', 'none');
+          el.setAttribute('stroke', 'rgba(200,210,220,0.4)');
+          el.setAttribute('stroke-dasharray', '24 16');
+          el.setAttribute('stroke-width', '5');
+          svg.appendChild(el);
+        }
+      });
+
+      const previewTypes = new Set(['image', 'svg', 'rectangle', 'round-rectangle', 'line', 'ellipse', 'textbox']);
+      state.items
+        .slice()
+        .sort((a, b) => clampZ(a.z) - clampZ(b.z))
+        .filter(i => previewTypes.has(i.type))
+        .forEach(drawItem);
     }
 
     function render() {
@@ -1391,8 +1808,12 @@
       renderRegionList();
       applySceneViewBox();
       clearSvg();
+      if (state.previewMode) {
+        renderPreview();
+        return;
+      }
       renderGrid();
-      state.regions.forEach(drawRegion);
+      if ($('show-regions').checked) state.regions.forEach(drawRegion);
       state.items
         .slice()
         .sort((a, b) => clampZ(a.z) - clampZ(b.z))
@@ -1413,6 +1834,7 @@
       $('assign-share').addEventListener('click', assignShareToSelection);
       $('delete-selected').addEventListener('click', removeSelected);
       $('asset-file').addEventListener('change', (e) => readAsset(e.target.files[0]));
+      $('asset-folder').addEventListener('change', (e) => { assignFolderToPlaceholders(e.target.files); e.target.value = ''; });
 
       $('save-template').addEventListener('click', saveTemplate);
       $('apply-template').addEventListener('click', applyTemplate);
@@ -1428,8 +1850,22 @@
       });
       $('generator').addEventListener('change', updateGeneratorHint);
 
+      $('toggle-left').addEventListener('click', () => {
+        $('layout').classList.toggle('left-collapsed');
+      });
+
+      $('toggle-preview').addEventListener('click', () => {
+        state.previewMode = !state.previewMode;
+        $('toggle-preview').style.color = state.previewMode ? 'var(--accent)' : '';
+        $('toggle-preview').style.borderColor = state.previewMode ? 'var(--accent)' : '';
+        render();
+      });
+
+      $('show-regions').addEventListener('change', () => render());
+
       svg.addEventListener('click', () => {
         state.selectedId = null;
+        setStatus('Ready');
         render();
       });
 
