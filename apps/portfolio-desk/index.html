@@ -632,6 +632,8 @@ input[type=range]::-webkit-slider-thumb {
   <button class="tab active" onclick="switchTab('dashboard')">Dashboard</button>
   <button class="tab" onclick="switchTab('deepdive')">Deep Dive</button>
   <button class="tab" onclick="switchTab('sales')">GAINS</button>
+  <button class="tab" onclick="switchTab('monthly')">Monthly</button>
+  <button class="tab" onclick="switchTab('transactions')">Transactions</button>
   <button class="tab" onclick="switchTab('summary')">Summary</button>
   <button class="tab" onclick="switchTab('research')">Research</button>
   <button class="tab" onclick="switchTab('powder')">Dry Powder</button>
@@ -652,6 +654,7 @@ input[type=range]::-webkit-slider-thumb {
         <tr>
           <th onclick="sortBy('ticker')">Ticker</th>
           <th onclick="sortBy('price')">Price</th>
+          <th onclick="sortBy('shares')">#</th>
           <th onclick="sortBy('cost')">Avg Cost</th>
           <th onclick="sortBy('cb')">Cost Basis</th>
           <th onclick="sortBy('pnl')">P&L %</th>
@@ -717,6 +720,62 @@ input[type=range]::-webkit-slider-thumb {
     </table>
     <div class="no-data" id="salesHistoryEmpty" style="display:none">
       No sales recorded yet.
+    </div>
+  </div>
+</div>
+
+<!-- ============ MONTHLY SUMMARY VIEW ============ -->
+<div class="view" id="view-monthly">
+  <div class="table-wrap">
+    <table id="monthlyTable">
+      <thead>
+        <tr>
+          <th onclick="sortMonthlyBy('month')">Month</th>
+          <th onclick="sortMonthlyBy('txCount')"># Sales</th>
+          <th onclick="sortMonthlyBy('winRate')">W / L</th>
+          <th onclick="sortMonthlyBy('shares')"># Shares Sold</th>
+          <th onclick="sortMonthlyBy('sellTotal')">Total $ Sell</th>
+          <th onclick="sortMonthlyBy('hold')">Avg Hold</th>
+          <th onclick="sortMonthlyBy('pnl')">Gain / Loss</th>
+          <th onclick="sortMonthlyBy('pnlPct')">Return %</th>
+          <th onclick="sortMonthlyBy('annualized')">Annualized</th>
+          <th onclick="sortMonthlyBy('spy')">SPY Equiv.</th>
+          <th onclick="sortMonthlyBy('buyCount')"># Buys</th>
+          <th onclick="sortMonthlyBy('buyShares')"># Shares Bought</th>
+          <th onclick="sortMonthlyBy('buyTotal')">Total $ Buy</th>
+        </tr>
+      </thead>
+      <tbody id="monthlyBody"></tbody>
+    </table>
+    <div class="no-data" id="monthlyEmpty" style="display:none">
+      No dated sales recorded yet.
+    </div>
+  </div>
+</div>
+
+<!-- ============ TRANSACTIONS VIEW ============ -->
+<div class="view" id="view-transactions">
+  <div style="margin-bottom:10px">
+    <button class="btn btn-green" onclick="openAddTxModal(null)">+ Transaction</button>
+  </div>
+  <div class="table-wrap">
+    <table id="txTable">
+      <thead>
+        <tr>
+          <th onclick="sortTxBy('date')">Date</th>
+          <th onclick="sortTxBy('ticker')">Ticker</th>
+          <th onclick="sortTxBy('type')">Type</th>
+          <th onclick="sortTxBy('shares')">Shares</th>
+          <th onclick="sortTxBy('price')">Price</th>
+          <th onclick="sortTxBy('value')">Value</th>
+          <th onclick="sortTxBy('current')">Current</th>
+          <th onclick="sortTxBy('pct')">Since Tx</th>
+        </tr>
+      </thead>
+      <tbody id="txBody"></tbody>
+    </table>
+    <div class="no-data" id="txEmpty" style="display:none">
+      No transactions yet. Add positions with entry or exit points.
     </div>
   </div>
 </div>
@@ -899,6 +958,42 @@ input[type=range]::-webkit-slider-thumb {
   <div id="detailContent"></div>
 </div>
 
+<!-- ============ ADD TRANSACTION MODAL ============ -->
+<div class="modal-overlay" id="txModalOverlay">
+  <div class="modal" style="width:340px">
+    <div class="modal-title">Add Transaction</div>
+    <div id="txModalTickerLabel" style="font-size:15px;color:var(--cyan);font-weight:600;letter-spacing:0.05em;margin-bottom:14px"></div>
+    <div id="txModalTickerRow" style="display:none;margin-bottom:14px">
+      <div class="form-group">
+        <label>Ticker</label>
+        <select id="txFTicker" style="width:100%"></select>
+      </div>
+    </div>
+    <div style="display:flex;gap:8px;margin-bottom:14px">
+      <button id="txTypeBuy" class="btn" style="flex:1" onclick="setTxType('BUY')">BUY</button>
+      <button id="txTypeSell" class="btn" style="flex:1" onclick="setTxType('SELL')">SELL</button>
+    </div>
+    <div class="form-grid" style="grid-template-columns:1fr 1fr 1fr;gap:8px">
+      <div class="form-group">
+        <label>Date</label>
+        <input type="text" id="txFDate" placeholder="YYYY-MM-DD">
+      </div>
+      <div class="form-group">
+        <label>Shares</label>
+        <input type="number" id="txFShares" placeholder="1" min="1" step="1">
+      </div>
+      <div class="form-group">
+        <label>Price</label>
+        <input type="number" id="txFPrice" placeholder="0.00" step="0.01">
+      </div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-dim" onclick="closeTxModal()">Cancel</button>
+      <button class="btn btn-green" onclick="saveTx()">Add</button>
+    </div>
+  </div>
+</div>
+
 <!-- ============ ADD/EDIT MODAL ============ -->
 <div class="modal-overlay" id="modalOverlay">
   <div class="modal">
@@ -982,6 +1077,10 @@ let state = {
   sortDir: 1,
   salesSortCol: 'date',
   salesSortDir: -1,
+  txSortCol: 'date',
+  txSortDir: -1,
+  monthlySortCol: 'month',
+  monthlySortDir: -1,
   hypScale: 'log',
   hypStrategies: null
 };
@@ -1562,9 +1661,9 @@ const PINNED_INFO = [
 async function fetchQuote(ticker) {
   // Uses Yahoo Finance v8 API (unofficial but widely used)
   const url = `http://localhost:8081/quote/${ticker}?range=5y`
-  
+
   try {
-    const r = await fetch(url, { headers: { 'Accept': 'application/json' } });
+    const r = await fetch(url, { headers: { 'Accept': 'application/json' }, signal: AbortSignal.timeout(5000) });
     if (!r.ok) throw new Error('HTTP ' + r.status);
     const d = await r.json();
     const result = d.chart?.result?.[0];
@@ -1735,6 +1834,16 @@ async function refreshPrices() {
     };
   }
 
+  const okCount = results.filter(r => r.status === 'fulfilled' && r.value.ok).length;
+
+  if (okCount === 0) {
+    setRefreshStatus('offline');
+    showAlert('Price service offline — start the proxy on :8081 and refresh', 'error');
+    renderAll();
+    renderHeaderTicker();
+    return;
+  }
+
   state.lastRefresh = new Date().toISOString();
   save();
   setRefreshStatus('ok');
@@ -1750,6 +1859,8 @@ function setRefreshStatus(s) {
   } else if (s === 'ok') {
     const t = state.lastRefresh ? new Date(state.lastRefresh).toLocaleTimeString() : '—';
     el.innerHTML = `<span class="refresh-dot dot-live"></span>${t}`;
+  } else if (s === 'offline') {
+    el.innerHTML = '<span class="refresh-dot dot-error"></span>proxy offline';
   } else {
     el.innerHTML = '<span class="refresh-dot dot-error"></span>error';
   }
@@ -2014,6 +2125,7 @@ function renderDashboard() {
     return `<tr onclick="selectPosition('${pos.id}')" id="row-${pos.id}" ${exited ? 'style="opacity:0.55"' : ''}>
       <td><span class="ticker" ${exited ? 'style="color:var(--muted)"' : ''}>${pos.ticker}</span></td>
       <td class="price">${price ? '$'+fmt2(price) : '<span style="color:var(--muted)">—</span>'}</td>
+      <td>${(() => { const s = totalShares(entries) - totalShares(exits); return s > 0 ? `<span style="color:var(--muted)">${s}</span>` : '<span style="color:var(--dim)">—</span>'; })()}</td>
       <td>${avg ? '<span style="color:var(--muted)">$'+fmt2(avg)+'</span>' : '<span style="color:var(--dim)">—</span>'}</td>
       <td>${cb > 0 ? '<span style="color:var(--muted)">$'+fmt0(cb)+'</span>' : '<span style="color:var(--dim)">—</span>'}</td>
       <td>${pnlPct !== null ? `<span style="color:${gradeColor(pnlPct)};font-weight:500">${pnlPct >= 0 ? '+' : ''}${fmt1(pnlPct)}%</span>` : '<span style="color:var(--dim)">—</span>'}</td>
@@ -2038,6 +2150,7 @@ function getSortVal(pos) {
   switch(state.sortCol) {
     case 'ticker': return pos.ticker;
     case 'price': return price || 0;
+    case 'shares': { const en = parseEntries(pos.entries); return totalShares(en) - totalShares(parseEntries(pos.exits)); }
     case 'cost': return avg || 0;
     case 'cb': return fifoCalc(parseEntries(pos.entries), parseEntries(pos.exits)).activeCostBasis || 0;
     case 'pnl': return (price && avg) ? ((price - avg) / avg) * 100 : -999;
@@ -2364,6 +2477,7 @@ function renderDeepDive(ticker) {
 
     <div style="margin-top:16px;display:flex;gap:8px">
       <button class="btn btn-amber" onclick="openEditModal('${pos.id}')">Edit Position</button>
+      <button class="btn btn-green" onclick="openAddTxModal('${pos.id}')">+ Transaction</button>
     </div>
   `;
 }
@@ -3440,6 +3554,77 @@ function closeModal() {
   document.getElementById('modalOverlay').classList.remove('open');
 }
 
+// ── Add Transaction mini-modal ──
+let _txPosId = null;
+let _txType = 'BUY';
+
+function openAddTxModal(posId) {
+  _txPosId = posId;
+  const pos = posId ? state.positions.find(p => p.id === posId) : null;
+
+  document.getElementById('txFDate').value = new Date().toISOString().split('T')[0];
+  document.getElementById('txFShares').value = '';
+  document.getElementById('txFPrice').value = pos && state.prices[pos.ticker]?.price
+    ? fmt2(state.prices[pos.ticker].price) : '';
+
+  const label = document.getElementById('txModalTickerLabel');
+  const row = document.getElementById('txModalTickerRow');
+  if (pos) {
+    label.textContent = pos.ticker;
+    label.style.display = 'block';
+    row.style.display = 'none';
+  } else {
+    label.style.display = 'none';
+    row.style.display = 'block';
+    const sel = document.getElementById('txFTicker');
+    sel.innerHTML = [...state.positions]
+      .sort((a, b) => a.ticker.localeCompare(b.ticker))
+      .map(p => `<option value="${p.id}">${p.ticker}</option>`).join('');
+  }
+
+  setTxType('BUY');
+  document.getElementById('txModalOverlay').classList.add('open');
+  setTimeout(() => document.getElementById('txFShares').focus(), 50);
+}
+
+function closeTxModal() {
+  document.getElementById('txModalOverlay').classList.remove('open');
+}
+
+function setTxType(type) {
+  _txType = type;
+  const buy = document.getElementById('txTypeBuy');
+  const sell = document.getElementById('txTypeSell');
+  buy.className  = 'btn ' + (type === 'BUY'  ? 'btn-green' : 'btn-dim');
+  sell.className = 'btn ' + (type === 'SELL' ? 'btn-red'   : 'btn-dim');
+}
+
+function saveTx() {
+  const posId = _txPosId || document.getElementById('txFTicker')?.value;
+  const pos = state.positions.find(p => p.id === posId);
+  if (!pos) { showAlert('No position selected', 'error'); return; }
+
+  const price = parseFloat(document.getElementById('txFPrice').value);
+  if (!price || price <= 0) { showAlert('Price is required', 'error'); return; }
+  const shares = parseInt(document.getElementById('txFShares').value) || 1;
+  const date = document.getElementById('txFDate').value.trim();
+
+  const entryStr = date ? `${date}:${price}x${shares}` : `${price}x${shares}`;
+
+  if (_txType === 'BUY') {
+    pos.entries = pos.entries ? pos.entries + ',' + entryStr : entryStr;
+  } else {
+    pos.exits = pos.exits ? pos.exits + ',' + entryStr : entryStr;
+  }
+  pos.updatedAt = new Date().toISOString();
+
+  save();
+  closeTxModal();
+  renderAll();
+  if (document.getElementById('view-deepdive')?.classList.contains('active')) renderDeepDive();
+  showAlert(`${_txType} recorded for ${pos.ticker}`, 'success');
+}
+
 function savePosition() {
   const ticker = document.getElementById('fTicker').value.trim().toUpperCase();
   if (!ticker) { showAlert('Ticker is required', 'error'); return; }
@@ -3665,6 +3850,8 @@ function switchTab(name) {
   if (name === 'research') renderResearch();
   if (name === 'deepdive') populateDeepDiveSelect();
   if (name === 'sales') renderSalesHistory();
+  if (name === 'monthly') renderMonthlySummary();
+  if (name === 'transactions') renderTransactions();
 }
 
 function populateDeepDiveSelect(preferredId) {
@@ -3848,6 +4035,256 @@ function sortSalesBy(col) {
   renderSalesHistory();
 }
 
+function nearestSPYPrice(date) {
+  const h = state.prices['__SPY__']?.history || {};
+  if (h[date]) return h[date];
+  const d = new Date(date + 'T12:00:00');
+  for (let i = 1; i <= 7; i++) {
+    const fwd = new Date(d); fwd.setDate(fwd.getDate() + i);
+    const bck = new Date(d); bck.setDate(bck.getDate() - i);
+    const fk = fwd.toISOString().split('T')[0];
+    const bk = bck.toISOString().split('T')[0];
+    if (h[fk]) return h[fk];
+    if (h[bk]) return h[bk];
+  }
+  return null;
+}
+
+function renderMonthlySummary() {
+  const tbody = document.getElementById('monthlyBody');
+  const empty = document.getElementById('monthlyEmpty');
+  if (!tbody || !empty) return;
+
+  const chronoAsc = (a, b) => (a.date || '9999-99-99').localeCompare(b.date || '9999-99-99');
+  const byMonth = {};
+  const ensureMonth = month => {
+    if (!byMonth[month]) byMonth[month] = {
+      month,
+      txCount: 0, wins: 0, losses: 0, sharesCount: 0, totalProceeds: 0, totalCost: 0,
+      weightedHoldDays: 0, holdShares: 0,
+      spyPnlDollar: 0, spyCostBasis: 0,
+      buyTxCount: 0, buySharesCount: 0, buyTotalDollar: 0
+    };
+    return byMonth[month];
+  };
+
+  state.positions.forEach(pos => {
+    const entries = parseEntries(pos.entries);
+    const exits   = parseEntries(pos.exits);
+
+    // ── buy activity ──
+    entries.forEach(buy => {
+      if (!buy.date) return;
+      const m = ensureMonth(buy.date.slice(0, 7));
+      m.buyTxCount++;
+      m.buySharesCount += buy.shares;
+      m.buyTotalDollar += buy.price * buy.shares;
+    });
+
+    // ── sell activity + FIFO matching ──
+    if (!entries.length || !exits.length) return;
+    const buys  = [...entries].sort(chronoAsc).map(e => ({ ...e, remaining: e.shares }));
+    const sells = [...exits].sort(chronoAsc);
+
+    sells.forEach(sell => {
+      if (!sell.date) return;
+      const m = ensureMonth(sell.date.slice(0, 7));
+      m.txCount++;
+      m.sharesCount  += sell.shares;
+      const txProceeds = sell.price * sell.shares;
+      m.totalProceeds += txProceeds;
+
+      let toSell = sell.shares;
+      let txCost = 0;
+      const sellMs = new Date(sell.date).getTime();
+
+      for (const buy of buys) {
+        if (buy.remaining <= 0 || toSell <= 0) continue;
+        const matched   = Math.min(buy.remaining, toSell);
+        const costBasis = matched * buy.price;
+        m.totalCost += costBasis;
+        txCost += costBasis;
+
+        if (buy.date) {
+          const days = (sellMs - new Date(buy.date).getTime()) / 86400000;
+          if (days >= 0) { m.weightedHoldDays += matched * days; m.holdShares += matched; }
+
+          const spyBuy  = nearestSPYPrice(buy.date);
+          const spySell = nearestSPYPrice(sell.date);
+          if (spyBuy && spySell && spyBuy > 0) {
+            m.spyPnlDollar += costBasis * (spySell - spyBuy) / spyBuy;
+            m.spyCostBasis += costBasis;
+          }
+        }
+        buy.remaining -= matched;
+        toSell -= matched;
+      }
+      if (txCost > 0) { txProceeds >= txCost ? m.wins++ : m.losses++; }
+    });
+  });
+
+  const rows = Object.values(byMonth).map(m => {
+    const pnl          = m.totalProceeds - m.totalCost;
+    const pnlPct       = m.totalCost > 0 ? pnl / m.totalCost * 100 : null;
+    const avgHoldDays  = m.holdShares > 0 ? m.weightedHoldDays / m.holdShares : null;
+    const annualized   = (pnlPct !== null && avgHoldDays > 0)
+      ? (Math.pow(1 + pnlPct / 100, 365 / avgHoldDays) - 1) * 100 : null;
+    const spyPct       = m.spyCostBasis > 0 ? m.spyPnlDollar / m.spyCostBasis * 100 : null;
+    const spyAnnualized = (spyPct !== null && avgHoldDays > 0)
+      ? (Math.pow(1 + spyPct / 100, 365 / avgHoldDays) - 1) * 100 : null;
+    return { ...m, pnl, pnlPct, avgHoldDays, annualized, spyPct, spyAnnualized };
+  });
+
+  const getVal = r => {
+    switch (state.monthlySortCol) {
+      case 'month':      return r.month;
+      case 'txCount':    return r.txCount;
+      case 'winRate':    return r.txCount > 0 ? r.wins / r.txCount : -Infinity;
+      case 'shares':     return r.sharesCount;
+      case 'sellTotal':  return r.totalProceeds;
+      case 'hold':       return r.avgHoldDays ?? -Infinity;
+      case 'pnl':        return r.pnl;
+      case 'pnlPct':     return r.pnlPct ?? -Infinity;
+      case 'annualized': return r.annualized ?? -Infinity;
+      case 'spy':        return r.spyAnnualized ?? -Infinity;
+      case 'buyCount':   return r.buyTxCount;
+      case 'buyShares':  return r.buySharesCount;
+      case 'buyTotal':   return r.buyTotalDollar;
+      default:           return 0;
+    }
+  };
+  rows.sort((a, b) => {
+    const av = getVal(a), bv = getVal(b);
+    return (av < bv ? -1 : av > bv ? 1 : 0) * state.monthlySortDir;
+  });
+
+  document.querySelectorAll('#monthlyTable thead th').forEach(th => th.classList.remove('sort-asc', 'sort-desc'));
+  const thMap = { month: 0, txCount: 1, winRate: 2, shares: 3, sellTotal: 4, hold: 5, pnl: 6, pnlPct: 7, annualized: 8, spy: 9, buyCount: 10, buyShares: 11, buyTotal: 12 };
+  const activeTh = document.querySelectorAll('#monthlyTable thead th')[thMap[state.monthlySortCol]];
+  if (activeTh) activeTh.classList.add(state.monthlySortDir === 1 ? 'sort-asc' : 'sort-desc');
+
+  if (!rows.length) { tbody.innerHTML = ''; empty.style.display = 'block'; return; }
+  empty.style.display = 'none';
+
+  tbody.innerHTML = rows.map(r => {
+    const holdStr  = r.avgHoldDays !== null ? `${Math.round(r.avgHoldDays)}d` : '—';
+    const annLabel = r.avgHoldDays !== null
+      ? (r.avgHoldDays >= 365 ? 'CAGR' : r.avgHoldDays < 14 ? '~annlzd' : 'annualized') : '';
+    const annHtml = r.annualized !== null
+      ? `<span style="color:${gradeColor(r.annualized)};font-weight:500">${r.annualized >= 0 ? '+' : ''}${fmt1(r.annualized)}%</span>`
+        + `<span style="color:var(--dim);font-size:9px;margin-left:4px">${annLabel} · ${holdStr}</span>`
+      : '<span style="color:var(--muted)">—</span>';
+    const spyHtml = r.spyAnnualized !== null
+      ? `<span style="color:${gradeColor(r.spyAnnualized)}">${r.spyAnnualized >= 0 ? '+' : ''}${fmt1(r.spyAnnualized)}%</span>`
+        + `<span style="color:var(--dim);font-size:9px;margin-left:4px">${annLabel}</span>`
+      : '<span style="color:var(--muted)">—</span>';
+    const sellTotalHtml = r.totalProceeds > 0
+      ? `<span style="color:var(--muted)">$${fmt0(r.totalProceeds)}</span>` : '<span style="color:var(--dim)">—</span>';
+    const buyTotalHtml  = r.buyTotalDollar > 0
+      ? `<span style="color:var(--muted)">$${fmt0(r.buyTotalDollar)}</span>` : '<span style="color:var(--dim)">—</span>';
+    return `<tr>
+      <td style="font-weight:500;color:var(--text)">${r.month}</td>
+      <td style="color:var(--muted)">${r.txCount || '<span style="color:var(--dim)">—</span>'}</td>
+      <td>${r.txCount ? `<span style="color:var(--green)">${r.wins}</span><span style="color:var(--dim)"> / </span><span style="color:${r.losses > 0 ? 'var(--red)' : 'var(--dim)'}">${r.losses}</span>` : '<span style="color:var(--dim)">—</span>'}</td>
+      <td style="color:var(--muted)">${r.sharesCount || '<span style="color:var(--dim)">—</span>'}</td>
+      <td>${sellTotalHtml}</td>
+      <td style="color:var(--muted)">${holdStr}</td>
+      <td>${r.totalCost > 0 ? `<span style="color:${gradeColor(r.pnl)};font-weight:500">${r.pnl >= 0 ? '+' : '-'}$${fmt2(Math.abs(r.pnl))}</span>` : '<span style="color:var(--dim)">—</span>'}</td>
+      <td>${r.pnlPct !== null ? `<span style="color:${gradeColor(r.pnlPct)};font-weight:500">${r.pnlPct >= 0 ? '+' : ''}${fmt1(r.pnlPct)}%</span>` : '<span style="color:var(--muted)">—</span>'}</td>
+      <td>${annHtml}</td>
+      <td>${spyHtml}</td>
+      <td style="color:var(--muted)">${r.buyTxCount || '<span style="color:var(--dim)">—</span>'}</td>
+      <td style="color:var(--muted)">${r.buySharesCount || '<span style="color:var(--dim)">—</span>'}</td>
+      <td>${buyTotalHtml}</td>
+    </tr>`;
+  }).join('');
+}
+
+function sortMonthlyBy(col) {
+  if (state.monthlySortCol === col) state.monthlySortDir *= -1;
+  else { state.monthlySortCol = col; state.monthlySortDir = col === 'month' ? -1 : 1; }
+  renderMonthlySummary();
+}
+
+function renderTransactions() {
+  const tbody = document.getElementById('txBody');
+  const empty = document.getElementById('txEmpty');
+  if (!tbody || !empty) return;
+
+  const rows = [];
+  state.positions.forEach(pos => {
+    const currentPrice = pos.manualPrice || state.prices[pos.ticker]?.price || null;
+    parseEntries(pos.entries).forEach(e => {
+      rows.push({
+        date: e.date, ticker: pos.ticker, type: 'BUY',
+        shares: e.shares, price: e.price, value: e.price * e.shares,
+        currentPrice,
+        pctSince: currentPrice ? (currentPrice - e.price) / e.price * 100 : null
+      });
+    });
+    parseEntries(pos.exits).forEach(e => {
+      rows.push({
+        date: e.date, ticker: pos.ticker, type: 'SELL',
+        shares: e.shares, price: e.price, value: e.price * e.shares,
+        currentPrice,
+        pctSince: currentPrice ? (currentPrice - e.price) / e.price * 100 : null
+      });
+    });
+  });
+
+  const getTxVal = r => {
+    switch (state.txSortCol) {
+      case 'date':    return r.date || '9999-99-99';
+      case 'ticker':  return r.ticker;
+      case 'type':    return r.type;
+      case 'shares':  return r.shares;
+      case 'price':   return r.price;
+      case 'value':   return r.value;
+      case 'current': return r.currentPrice ?? -Infinity;
+      case 'pct':     return r.pctSince ?? -Infinity;
+      default:        return 0;
+    }
+  };
+  rows.sort((a, b) => {
+    const av = getTxVal(a), bv = getTxVal(b);
+    return (av < bv ? -1 : av > bv ? 1 : 0) * state.txSortDir;
+  });
+
+  document.querySelectorAll('#txTable thead th').forEach(th => th.classList.remove('sort-asc', 'sort-desc'));
+  const thMap = { date: 0, ticker: 1, type: 2, shares: 3, price: 4, value: 5, current: 6, pct: 7 };
+  const activeTh = document.querySelectorAll('#txTable thead th')[thMap[state.txSortCol]];
+  if (activeTh) activeTh.classList.add(state.txSortDir === 1 ? 'sort-asc' : 'sort-desc');
+
+  if (!rows.length) { tbody.innerHTML = ''; empty.style.display = 'block'; return; }
+  empty.style.display = 'none';
+
+  tbody.innerHTML = rows.map(r => {
+    const isBuy = r.type === 'BUY';
+    const typeHtml = isBuy
+      ? `<span style="color:var(--green);font-weight:600;font-size:10px;padding:2px 6px;border:1px solid var(--green2);border-radius:2px;background:rgba(0,229,160,0.08)">BUY</span>`
+      : `<span style="color:var(--red);font-weight:600;font-size:10px;padding:2px 6px;border:1px solid var(--red2);border-radius:2px;background:rgba(255,68,85,0.08)">SELL</span>`;
+    const pctHtml = r.pctSince !== null
+      ? `<span style="color:${gradeColor(r.pctSince)}">${r.pctSince >= 0 ? '+' : ''}${fmt1(r.pctSince)}%</span>`
+      : '<span style="color:var(--muted)">—</span>';
+    return `<tr>
+      <td>${r.date || '<span style="color:var(--muted)">—</span>'}</td>
+      <td><span class="ticker">${r.ticker}</span></td>
+      <td>${typeHtml}</td>
+      <td>${r.shares}</td>
+      <td>$${fmt2(r.price)}</td>
+      <td style="color:var(--muted)">$${fmt2(r.value)}</td>
+      <td>${r.currentPrice ? '$' + fmt2(r.currentPrice) : '<span style="color:var(--muted)">—</span>'}</td>
+      <td>${pctHtml}</td>
+    </tr>`;
+  }).join('');
+}
+
+function sortTxBy(col) {
+  if (state.txSortCol === col) state.txSortDir *= -1;
+  else { state.txSortCol = col; state.txSortDir = col === 'date' ? -1 : 1; }
+  renderTransactions();
+}
+
 function showAlert(msg, type) {
   const el = document.getElementById('alertBar');
   el.textContent = msg;
@@ -3923,6 +4360,8 @@ function renderAll() {
   renderDashboard();
   populateDeepDiveSelect();
   renderSalesHistory();
+  renderMonthlySummary();
+  renderTransactions();
   if (document.getElementById('view-hypothesis')?.classList.contains('active')) renderHypothesis();
 }
 
@@ -3933,6 +4372,7 @@ function renderAll() {
 document.addEventListener('keydown', e => {
   if (e.key === 'Escape') {
     closeModal();
+    closeTxModal();
     document.getElementById('detailPanel').classList.remove('open');
   }
   if ((e.metaKey || e.ctrlKey) && e.key === 'r') { e.preventDefault(); refreshPrices(); }
