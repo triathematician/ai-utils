@@ -728,6 +728,14 @@ function relationSummary(personId) {
   return { parents, children, spouses, siblings };
 }
 
+function sortedSpouses(personId, spouses) {
+  return spouses.slice().sort((a, b) => {
+    const ra = db.relationships.find(r => r.type === 'spouse' && ((r.fromId === personId && r.toId === a.id) || (r.toId === personId && r.fromId === a.id)));
+    const rb = db.relationships.find(r => r.type === 'spouse' && ((r.fromId === personId && r.toId === b.id) || (r.toId === personId && r.fromId === b.id)));
+    return ((ra && ra.date) || '9999').localeCompare((rb && rb.date) || '9999');
+  });
+}
+
 function isDirectlyRelated(idA, idB) {
   if (idA === idB) return true;
   return db.relationships.some(r =>
@@ -878,11 +886,7 @@ function renderNuclearFamily() {
   let html = '';
 
   // Sort spouses by marriage date
-  const spousesSorted = summary.spouses.slice().sort((a, b) => {
-    const ra = db.relationships.find(r => r.type === 'spouse' && ((r.fromId === focus.id && r.toId === a.id) || (r.toId === focus.id && r.fromId === a.id)));
-    const rb = db.relationships.find(r => r.type === 'spouse' && ((r.fromId === focus.id && r.toId === b.id) || (r.toId === focus.id && r.fromId === b.id)));
-    return ((ra && ra.date) || '9999').localeCompare((rb && rb.date) || '9999');
-  });
+  const spousesSorted = sortedSpouses(focus.id, summary.spouses);
 
   for (const s of spousesSorted) {
     const rel = db.relationships.find(r => r.type === 'spouse' && ((r.fromId === focus.id && r.toId === s.id) || (r.toId === focus.id && r.fromId === s.id)));
@@ -1140,6 +1144,11 @@ function showHelp() {
     '/add brother|sister|father|mother|son|daughter|spouse Name',
     '                         add person + link to focus person',
     '',
+    '── NAVIGATION ─────────────────────────────────────────',
+    '/focus [person]          jump focus to person (or show current focus)',
+    '/f  /m  /s  /c           jump focus to father / mother / spouse / child',
+    '/s2  /c3  ...            jump to the Nth spouse / child (1 = default)',
+    '',
     '── SET FOCUS FIELDS ───────────────────────────────────',
     '/set name|birth|death|branch|gender|notes <value>',
     '                         update field on focus person',
@@ -1392,6 +1401,29 @@ function cmdPersonFocus(raw) {
   const match = findPerson(raw);
   if (match.error) return statusMsg(match.error);
   setFocus(match.person.id);
+}
+
+const FOCUS_SHORTCUT_LABELS = {
+  father: { singular: 'father', plural: 'fathers' },
+  mother: { singular: 'mother', plural: 'mothers' },
+  spouse: { singular: 'spouse', plural: 'spouses' },
+  child: { singular: 'child', plural: 'children' }
+};
+
+function cmdFocusRelative(kind, index) {
+  const focus = getFocusPerson();
+  if (!focus) return statusMsg('No focus person set.');
+  const summary = relationSummary(focus.id);
+  let list;
+  if (kind === 'father') list = summary.parents.filter(p => ['male', 'm'].includes((p.gender || '').toLowerCase()));
+  else if (kind === 'mother') list = summary.parents.filter(p => ['female', 'f'].includes((p.gender || '').toLowerCase()));
+  else if (kind === 'spouse') list = sortedSpouses(focus.id, summary.spouses);
+  else if (kind === 'child') list = summary.children.slice().sort((a, b) => (a.birthDate || '9999').localeCompare(b.birthDate || '9999'));
+  const label = FOCUS_SHORTCUT_LABELS[kind];
+  if (!list.length) return statusMsg(`No ${label.singular} recorded for ${focus.name}.`);
+  const target = list[index - 1];
+  if (!target) return statusMsg(`${focus.name} has only ${list.length} ${list.length === 1 ? label.singular : label.plural} recorded.`);
+  setFocus(target.id);
 }
 
 function handlePersonCommand(arg) {
@@ -1957,6 +1989,12 @@ function handleConsoleCmd(raw) {
   if (cmd === '/rel') return handleRelationshipCommand(rest);
   if (cmd === '/event') return handleEventCommand(rest);
   if (cmd === '/focus') return cmdPersonFocus(rest);
+  const shortcut = cmd.match(/^\/(f|m|s|c)(\d*)$/);
+  if (shortcut) {
+    const kindMap = { f: 'father', m: 'mother', s: 'spouse', c: 'child' };
+    const index = shortcut[2] ? parseInt(shortcut[2], 10) : 1;
+    return cmdFocusRelative(kindMap[shortcut[1]], index);
+  }
   statusMsg('Unknown command: ' + cmd);
 }
 
