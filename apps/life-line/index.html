@@ -465,19 +465,31 @@ const WIZARD_STEPS = [
   { key: 'notes',  label: 'NOTES',  hint: '(or Enter to skip)' },
 ];
 
+const REL_KEYWORD_GENDER = {
+  father: 'male', son: 'male', brother: 'male', husband: 'male',
+  mother: 'female', daughter: 'female', sister: 'female', wife: 'female'
+};
+
 function startWizard(relKeyword, relTargetId, prefillName) {
-  wizard = { step: prefillName ? 1 : 0, data: prefillName ? { name: prefillName } : {}, relKeyword, relTargetId };
+  const inferredGender = relKeyword ? REL_KEYWORD_GENDER[relKeyword.toLowerCase()] : undefined;
+  const steps = relKeyword ? WIZARD_STEPS.filter(s => s.key !== 'gender') : WIZARD_STEPS;
+  wizard = {
+    step: prefillName ? 1 : 0,
+    data: prefillName ? { name: prefillName } : {},
+    relKeyword, relTargetId, steps,
+    inferredGender
+  };
   wizardPrompt();
 }
 
 function wizardPrompt() {
-  const step = WIZARD_STEPS[wizard.step];
+  const step = wizard.steps[wizard.step];
   document.getElementById('console-prompt').textContent = step.label + '>';
   statusMsg(step.label + ' ' + step.hint);
 }
 
 function wizardHandleInput(value) {
-  const step = WIZARD_STEPS[wizard.step];
+  const step = wizard.steps[wizard.step];
   const trimmed = value.trim();
   if (step.key === 'name' && !trimmed) { statusMsg('Name is required. Enter a name:'); return; }
   if ((step.key === 'birth' || step.key === 'death') && trimmed && !normalizeDate(trimmed)) {
@@ -485,19 +497,19 @@ function wizardHandleInput(value) {
   }
   if (trimmed) wizard.data[step.key] = trimmed;
   wizard.step++;
-  if (wizard.step >= WIZARD_STEPS.length) wizardFinish();
+  if (wizard.step >= wizard.steps.length) wizardFinish();
   else wizardPrompt();
 }
 
 function wizardFinish() {
-  const { data, relKeyword, relTargetId } = wizard;
+  const { data, relKeyword, relTargetId, inferredGender } = wizard;
   wizard = null;
   document.getElementById('console-prompt').textContent = 'LIFELINE>';
   if (!data.name) { statusMsg('Add cancelled.'); return; }
   const person = sanitizePerson({
     id: nextId('P', db.people), name: data.name,
     birthDate: normalizeDate(data.birth || ''), deathDate: normalizeDate(data.death || ''),
-    branch: data.branch || '', gender: data.gender || '', notes: data.notes || ''
+    branch: data.branch || '', gender: data.gender || inferredGender || '', notes: data.notes || ''
   });
   db.people.push(person);
   if (!db.focusPersonId) db.focusPersonId = person.id;
