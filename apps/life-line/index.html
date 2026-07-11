@@ -443,8 +443,8 @@ function getFocusPerson() {
 // ── Wizard ──────────────────────────────────────────────────────────────────
 const WIZARD_STEPS = [
   { key: 'name',   label: 'NAME',   hint: '(required)' },
-  { key: 'birth',  label: 'BIRTH',  hint: '(YYYY-MM-DD or Enter to skip)' },
-  { key: 'death',  label: 'DEATH',  hint: '(YYYY-MM-DD or Enter to skip)' },
+  { key: 'birth',  label: 'BIRTH',  hint: '(YYYY or YYYY-MM-DD, or Enter to skip)' },
+  { key: 'death',  label: 'DEATH',  hint: '(YYYY or YYYY-MM-DD, or Enter to skip)' },
   { key: 'branch', label: 'BRANCH', hint: '(family branch or Enter to skip)' },
   { key: 'gender', label: 'GENDER', hint: '(or Enter to skip)' },
   { key: 'notes',  label: 'NOTES',  hint: '(or Enter to skip)' },
@@ -466,7 +466,7 @@ function wizardHandleInput(value) {
   const trimmed = value.trim();
   if (step.key === 'name' && !trimmed) { statusMsg('Name is required. Enter a name:'); return; }
   if ((step.key === 'birth' || step.key === 'death') && trimmed && !normalizeDate(trimmed)) {
-    statusMsg('Date must be YYYY-MM-DD. Try again:'); return;
+    statusMsg('Date must be YYYY or YYYY-MM-DD. Try again:'); return;
   }
   if (trimmed) wizard.data[step.key] = trimmed;
   wizard.step++;
@@ -547,7 +547,7 @@ function handleSetCommand(arg) {
   const key = SET_FIELD_MAP[field.toLowerCase()];
   if (!key) return statusMsg('Field must be: name, birth, death, branch, gender, notes, marriage, divorce.');
   if (!value) return statusMsg('Usage: /set ' + field + ' <value>');
-  if ((key === 'birthDate' || key === 'deathDate') && !normalizeDate(value)) return statusMsg('Date must be YYYY-MM-DD.');
+  if ((key === 'birthDate' || key === 'deathDate') && !normalizeDate(value)) return statusMsg('Date must be YYYY or YYYY-MM-DD.');
   focus[key] = (key === 'birthDate' || key === 'deathDate') ? normalizeDate(value) : value;
   saveDB(); render();
   statusMsg(focus.name + ': ' + field.toLowerCase() + ' → ' + value);
@@ -1145,8 +1145,8 @@ function cmdPersonAdd(raw) {
   if (!name) return statusMsg('Usage: /person add Name | birth | death | branch | gender | notes');
   const normalizedBirth = birthDate ? normalizeDate(birthDate) : '';
   const normalizedDeath = deathDate ? normalizeDate(deathDate) : '';
-  if (birthDate && !normalizedBirth) return statusMsg('Birth date must be YYYY-MM-DD.');
-  if (deathDate && !normalizedDeath) return statusMsg('Death date must be YYYY-MM-DD.');
+  if (birthDate && !normalizedBirth) return statusMsg('Birth date must be YYYY or YYYY-MM-DD.');
+  if (deathDate && !normalizedDeath) return statusMsg('Death date must be YYYY or YYYY-MM-DD.');
   const person = sanitizePerson({
     id: nextId('P', db.people),
     name,
@@ -1180,7 +1180,7 @@ function cmdPersonUpdate(raw) {
   };
   const key = updates[field];
   if (!key) return statusMsg('Field must be name, birthDate, deathDate, branch, gender, or notes.');
-  if ((key === 'birthDate' || key === 'deathDate') && value && !normalizeDate(value)) return statusMsg('Dates must be YYYY-MM-DD.');
+  if ((key === 'birthDate' || key === 'deathDate') && value && !normalizeDate(value)) return statusMsg('Dates must be YYYY or YYYY-MM-DD.');
   match.person[key] = key === 'birthDate' || key === 'deathDate' ? normalizeDate(value) : cleanText(value);
   saveDB();
   render();
