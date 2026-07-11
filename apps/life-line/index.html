@@ -97,8 +97,8 @@ html, body {
 #main-row { display: grid; grid-template-columns: 1.1fr 0.9fr; overflow: hidden; }
 #main-panel { border-right: 1px solid var(--border); padding: 10px 12px; overflow-y: auto; }
 #side-panel { padding: 10px 12px; overflow: hidden; display: flex; flex-direction: column; }
-.tab-bar { display: flex; border-bottom: 1px solid var(--muted); margin-bottom: 8px; flex-shrink: 0; }
-.tab { padding: 3px 10px; cursor: pointer; color: var(--dim); font-size: 0.76em; letter-spacing: 1px; }
+.tab-bar { display: flex; border-bottom: 1px solid var(--muted); margin-bottom: 8px; flex-shrink: 0; overflow-x: auto; }
+.tab { padding: 3px 10px; cursor: pointer; color: var(--dim); font-size: 0.76em; letter-spacing: 1px; white-space: nowrap; flex-shrink: 0; }
 .tab.active { color: var(--accent); border-bottom: 2px solid var(--accent); margin-bottom: -1px; }
 .tab:hover:not(.active) { color: var(--fg); }
 .tab-pane { flex: 1; overflow-y: auto; }
@@ -194,6 +194,7 @@ html, body {
         <span class="tab active" data-tab="rel">RELATIONSHIPS</span>
         <span class="tab" data-tab="evt">EVENTS</span>
         <span class="tab" data-tab="led">DATE LEDGER</span>
+        <span class="tab" data-tab="loc">LOCATIONS</span>
       </div>
       <div id="tab-rel" class="tab-pane">
         <div id="relationship-list" class="dim">No family links recorded yet.</div>
@@ -203,6 +204,9 @@ html, body {
       </div>
       <div id="tab-led" class="tab-pane" style="display:none">
         <div id="date-ledger" class="dim">No dated records yet.</div>
+      </div>
+      <div id="tab-loc" class="tab-pane" style="display:none">
+        <div id="location-list" class="dim">No locations recorded yet. Use /location add.</div>
       </div>
     </div>
   </div>
@@ -1098,6 +1102,26 @@ function renderEvents() {
     .join('');
 }
 
+function renderLocations() {
+  const el = document.getElementById('location-list');
+  if (!db.locations.length) {
+    el.className = 'dim';
+    el.textContent = 'No locations recorded yet. Use /location add.';
+    return;
+  }
+  el.className = '';
+  el.innerHTML = db.locations
+    .slice()
+    .sort((a, b) => a.name.localeCompare(b.name))
+    .map(loc => {
+      const uses = db.people.filter(p => p.birthLocationId === loc.id || p.deathLocationId === loc.id).length
+        + db.relationships.filter(r => r.locationId === loc.id).length;
+      const usePart = uses ? ` · used by ${uses}` : ' · unused';
+      return `<div class="line"><span class="focus-meta">${escHtml(loc.id)}</span> · <span class="person-name">${escHtml(loc.name)}</span>${loc.notes ? ' · ' + escHtml(loc.notes) : ''}${usePart}</div>`;
+    })
+    .join('');
+}
+
 // ── Ancestor / Descendant trees ───────────────────────────────────────────────
 function buildAncestorNode(personId, depth, visited = new Set()) {
   if (visited.has(personId) || depth < 0) return null;
@@ -1160,6 +1184,7 @@ function render() {
   renderPeople();
   renderRelationships();
   renderEvents();
+  renderLocations();
   updateStatus();
 }
 
