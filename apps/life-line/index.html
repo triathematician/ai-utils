@@ -1181,7 +1181,6 @@ function showHelp() {
     '/rel update <id> endDate <YYYY-MM-DD>   (divorce date for spouse)',
     '/rel update <id> note <text>',
     '/rel remove relationship-id',
-    '/rel list',
     '/rel fill               walk plausible missing relationships, y/n to add each',
     '  * siblings auto-linked when two children share all parents',
     '',
@@ -1584,13 +1583,6 @@ function cmdRelationshipAdd(raw) {
 function handleRelationshipCommand(arg) {
   const trimmed = cleanText(arg);
   if (trimmed === 'fill') return startRelFill();
-  if (!trimmed || trimmed === 'list') {
-    const map = peopleMap();
-    const text = db.relationships.length
-      ? db.relationships.map(rel => `${rel.id}  ${relationshipLabel(rel, map).replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>')}`).join('\n')
-      : 'No relationships recorded.';
-    return openOverlay('RELATIONSHIPS', text, false);
-  }
   if (trimmed.startsWith('add ')) return cmdRelationshipAdd(trimmed.slice(4));
   if (trimmed.startsWith('set ')) {
     const rest = trimmed.slice(4).trim();
@@ -1655,7 +1647,7 @@ function handleRelationshipCommand(arg) {
     render();
     return statusMsg('Relationship removed: ' + id);
   }
-  statusMsg('Usage: /rel add|update|remove|list');
+  statusMsg('Usage: /rel add|set|update|remove|fill|cleanup');
 }
 
 function cmdEventAdd(raw) {
