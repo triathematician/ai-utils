@@ -807,10 +807,15 @@ function renderFocus() {
     ? attrs.map(([k, v]) => `<span class="chip">${escHtml(k)}: ${escHtml(v)}</span>`).join('')
     : '<span class="dim">No attributes. Use /attr set.</span>';
 
+  const locMap = new Map(db.locations.map(loc => [loc.id, loc]));
+  const birthLoc = locMap.get(focus.birthLocationId);
+  const deathLoc = locMap.get(focus.deathLocationId);
+  const placePart = [birthLoc && ('b. ' + birthLoc.name), deathLoc && ('d. ' + deathLoc.name)].filter(Boolean).join(' · ');
+
   el.className = '';
   el.innerHTML = `
     <div class="focus-name">${escHtml(focus.name)} <span class="focus-meta">(${escHtml(focus.id)})</span>${focus.gender ? ' <span class="dim" style="font-size:0.82em">' + escHtml(focus.gender) + '</span>' : ''}</div>
-    <div class="focus-meta">${escHtml(formatLife(focus))} · ${focusAgeHtml(focus)}</div>
+    <div class="focus-meta">${escHtml(formatLife(focus))} · ${focusAgeHtml(focus)}${placePart ? ' · ' + escHtml(placePart) : ''}</div>
     ${relRows.length ? relRows.join('') : '<div class="dim">No parents or siblings recorded.</div>'}
     <hr class="focus-divider">
     <div class="chip-row">${chips || '<span class="dim">No branch set.</span>'}</div>
@@ -844,6 +849,7 @@ function renderPeople() {
     return;
   }
   const people = db.people.slice().sort((a, b) => (a.birthDate || '9999-99-99').localeCompare(b.birthDate || '9999-99-99') || a.name.localeCompare(b.name));
+  const locMap = new Map(db.locations.map(loc => [loc.id, loc]));
   el.className = '';
   el.innerHTML = people.map(person => {
     const summary = relationSummary(person.id);
@@ -852,7 +858,9 @@ function renderPeople() {
       person.branch && `branch: ${escHtml(person.branch)}`,
       person.gender && `gender: ${escHtml(person.gender)}`,
       attrs,
-      `parents:${summary.parents.length} children:${summary.children.length} spouses:${summary.spouses.length} siblings:${summary.siblings.length}`
+      `parents:${summary.parents.length} children:${summary.children.length} spouses:${summary.spouses.length} siblings:${summary.siblings.length}`,
+      locMap.get(person.birthLocationId) && `born: ${escHtml(locMap.get(person.birthLocationId).name)}`,
+      locMap.get(person.deathLocationId) && `died: ${escHtml(locMap.get(person.deathLocationId).name)}`,
     ].filter(Boolean).join(' · ');
     return `
       <div class="person-card">
@@ -1630,11 +1638,18 @@ function exportGedcom() {
     if (g === 'male' || g === 'm') lines.push('1 SEX M');
     else if (g === 'female' || g === 'f') lines.push('1 SEX F');
     const bd = gedDate(person.birthDate);
-    if (bd) { lines.push('1 BIRT'); lines.push('2 DATE ' + bd); }
-    if (person.deathDate) {
+    const birthLoc = db.locations.find(l => l.id === person.birthLocationId);
+    const deathLoc = db.locations.find(l => l.id === person.deathLocationId);
+    if (bd || birthLoc) {
+      lines.push('1 BIRT');
+      if (bd) lines.push('2 DATE ' + bd);
+      if (birthLoc) lines.push('2 PLAC ' + birthLoc.name);
+    }
+    if (person.deathDate || deathLoc) {
       lines.push('1 DEAT Y');
       const dd = gedDate(person.deathDate);
       if (dd) lines.push('2 DATE ' + dd);
+      if (deathLoc) lines.push('2 PLAC ' + deathLoc.name);
     }
     if (person.branch) lines.push('1 _BRAN ' + person.branch);
     if (person.notes) lines.push('1 NOTE ' + person.notes);
