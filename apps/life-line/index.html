@@ -230,6 +230,7 @@ const THEMES = ['legacy','solar','monk','space','synth','dos','notebook','engine
 const RELATIONSHIP_TYPES = ['parent', 'child', 'spouse', 'partner', 'sibling'];
 let db = { people: [], relationships: [], events: [], locations: [], backlog: [], backlogArchive: [], theme: 'legacy', focusPersonId: '' };
 let wizard = null;
+let relFill = null; // { candidates: [...], index: 0, added: 0, focusId }
 let focusHistory = [];
 let historyPos = -1;
 let navigating = false;
@@ -520,6 +521,62 @@ function wizardFinish() {
 
 // ── Relationship helpers ─────────────────────────────────────────────────────
 const REL_KEYWORDS = new Set(['brother','sister','sibling','father','mother','parent','guardian','son','daughter','child','husband','wife','spouse','partner']);
+
+const RELFILL_LABELS = {
+  'parent-of-focus': 'PARENT',
+  'sibling-of-focus': 'SIBLING',
+  'child-of-focus': 'CHILD'
+};
+
+function relFillCurrentPrompt() {
+  const map = peopleMap();
+  const focus = map.get(relFill.focusId);
+  const candidate = relFill.candidates[relFill.index];
+  const other = map.get(candidate.otherId);
+  document.getElementById('console-prompt').textContent = 'ADD?>';
+  statusMsg(`Add ${other.name} as ${focus.name}'s ${RELFILL_LABELS[candidate.relType]}? (${candidate.reason}) y/n`);
+}
+
+function startRelFill() {
+  const focus = getFocusPerson();
+  if (!focus) return statusMsg('No focus person set.');
+  const candidates = buildRelFillCandidates(focus.id);
+  if (!candidates.length) return statusMsg('No plausible missing relationships found.');
+  relFill = { candidates, index: 0, added: 0, focusId: focus.id };
+  relFillCurrentPrompt();
+}
+
+function relFillApplyCurrent() {
+  const candidate = relFill.candidates[relFill.index];
+  let canonical;
+  if (candidate.relType === 'parent-of-focus') canonical = canonicalizeRelationship(candidate.otherId, 'parent', relFill.focusId);
+  if (candidate.relType === 'sibling-of-focus') canonical = canonicalizeRelationship(relFill.focusId, 'sibling', candidate.otherId);
+  if (candidate.relType === 'child-of-focus') canonical = canonicalizeRelationship(relFill.focusId, 'parent', candidate.otherId);
+  if (!canonical) return false;
+  const dup = db.relationships.find(r => r.type === canonical.type && r.fromId === canonical.fromId && r.toId === canonical.toId);
+  if (dup) return false;
+  const rel = sanitizeRelationship({ id: nextId('R', db.relationships), ...canonical });
+  db.relationships.push(rel);
+  return true;
+}
+
+function relFillAdvance(accepted) {
+  if (accepted && relFillApplyCurrent()) {
+    relFill.added++;
+    saveDB();
+    render();
+  }
+  relFill.index++;
+  if (relFill.index >= relFill.candidates.length) {
+    const total = relFill.candidates.length;
+    const added = relFill.added;
+    document.getElementById('console-prompt').textContent = 'LIFELINE>';
+    relFill = null;
+    statusMsg(`Added ${added} of ${total} suggestion${total === 1 ? '' : 's'}.`);
+    return;
+  }
+  relFillCurrentPrompt();
+}
 
 function addRelForFocus(focusId, keyword, otherId) {
   const kw = cleanText(keyword).toLowerCase();
@@ -1103,6 +1160,7 @@ function showHelp() {
     '/rel update <id> note <text>',
     '/rel remove relationship-id',
     '/rel list',
+    '/rel fill               walk plausible missing relationships, y/n to add each',
     '  * siblings auto-linked when two children share all parents',
     '',
     '── EVENTS ─────────────────────────────────────────────',
@@ -1480,6 +1538,7 @@ function cmdRelationshipAdd(raw) {
 
 function handleRelationshipCommand(arg) {
   const trimmed = cleanText(arg);
+  if (trimmed === 'fill') return startRelFill();
   if (!trimmed || trimmed === 'list') {
     const map = peopleMap();
     const text = db.relationships.length
@@ -1839,6 +1898,13 @@ input.addEventListener('keydown', event => {
     historyIdx = -1;
     historySaved = '';
     if (wizard) { wizardHandleInput(cmd); return; }
+    if (relFill) {
+      const answer = cmd.trim().toLowerCase();
+      if (answer === 'y' || answer === 'yes') relFillAdvance(true);
+      else if (answer === 'n' || answer === 'no' || answer === '') relFillAdvance(false);
+      else statusMsg('Please answer y or n.');
+      return;
+    }
     if (!cmd) return;
     if (cmdHistory[0] !== cmd) cmdHistory.unshift(cmd);
     if (cmdHistory.length > 200) cmdHistory.pop();
@@ -1885,6 +1951,13 @@ document.addEventListener('keydown', event => {
   if (event.altKey && event.key === 'ArrowLeft') { event.preventDefault(); goBack(); return; }
   if (event.altKey && event.key === 'ArrowRight') { event.preventDefault(); goForward(); return; }
   if (event.key === 'Escape') {
+    if (relFill) {
+      const remaining = relFill.candidates.length - relFill.index;
+      relFill = null;
+      document.getElementById('console-prompt').textContent = 'LIFELINE>';
+      statusMsg(`Cancelled (${remaining} suggestion${remaining === 1 ? '' : 's'} skipped).`);
+      return;
+    }
     if (wizard) {
       wizard = null;
       document.getElementById('console-prompt').textContent = 'LIFELINE>';
