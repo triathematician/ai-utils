@@ -1237,6 +1237,79 @@ function handlePersonCommand(arg) {
   statusMsg('Usage: /person add|update|remove|list|focus');
 }
 
+function findLocation(token) {
+  const query = cleanText(token);
+  if (!query) return { error: 'Location required.' };
+  const byId = db.locations.find(loc => loc.id.toLowerCase() === query.toLowerCase());
+  if (byId) return { location: byId };
+  const exactName = db.locations.find(loc => loc.name.toLowerCase() === query.toLowerCase());
+  if (exactName) return { location: exactName };
+  const partial = db.locations.filter(loc => loc.name.toLowerCase().includes(query.toLowerCase()));
+  if (partial.length === 1) return { location: partial[0] };
+  if (partial.length > 1) return { error: 'Ambiguous location: ' + query };
+  return { error: 'Location not found: ' + query };
+}
+
+function cmdLocationAdd(raw) {
+  const [name, notes] = splitPipe(raw);
+  if (!name) return statusMsg('Usage: /location add Name | notes');
+  const location = sanitizeLocation({ id: nextId('L', db.locations), name, notes });
+  db.locations.push(location);
+  saveDB();
+  render();
+  statusMsg(`Added location ${location.name} (${location.id}).`);
+}
+
+function cmdLocationUpdate(raw) {
+  const [token, fieldRaw, value] = splitPipe(raw);
+  const match = findLocation(token);
+  if (match.error) return statusMsg(match.error);
+  const field = cleanText(fieldRaw).toLowerCase();
+  const updates = { name: 'name', notes: 'notes' };
+  const key = updates[field];
+  if (!key) return statusMsg('Field must be name or notes.');
+  match.location[key] = cleanText(value);
+  saveDB();
+  render();
+  statusMsg(`Updated location ${match.location.name}: ${key}.`);
+}
+
+function cmdLocationRemove(raw) {
+  const match = findLocation(raw);
+  if (match.error) return statusMsg(match.error);
+  const removedId = match.location.id;
+  db.locations = db.locations.filter(loc => loc.id !== removedId);
+  db.people.forEach(person => {
+    if (person.birthLocationId === removedId) person.birthLocationId = '';
+    if (person.deathLocationId === removedId) person.deathLocationId = '';
+  });
+  saveDB();
+  render();
+  statusMsg(`Removed location ${match.location.name}.`);
+}
+
+function locationListText(query) {
+  const filtered = cleanText(query)
+    ? db.locations.filter(loc => loc.name.toLowerCase().includes(query.toLowerCase()) || loc.id.toLowerCase() === query.toLowerCase())
+    : db.locations.slice();
+  if (!filtered.length) return 'No matching locations.';
+  return filtered
+    .slice()
+    .sort((a, b) => a.name.localeCompare(b.name))
+    .map(loc => `${loc.id}  ${loc.name}${loc.notes ? '  — ' + loc.notes : ''}`)
+    .join('\n');
+}
+
+function handleLocationCommand(arg) {
+  const trimmed = cleanText(arg);
+  if (!trimmed || trimmed === 'list') return openOverlay('LOCATIONS', locationListText(''), false);
+  if (trimmed.startsWith('list ')) return openOverlay('LOCATIONS', locationListText(trimmed.slice(5)), false);
+  if (trimmed.startsWith('add ')) return cmdLocationAdd(trimmed.slice(4));
+  if (trimmed.startsWith('update ')) return cmdLocationUpdate(trimmed.slice(7));
+  if (trimmed.startsWith('remove ')) return cmdLocationRemove(trimmed.slice(7));
+  statusMsg('Usage: /location add|update|remove|list');
+}
+
 function handleAttrCommand(arg) {
   const trimmed = cleanText(arg);
   if (trimmed.startsWith('set ')) {
@@ -1686,6 +1759,7 @@ function handleConsoleCmd(raw) {
   if (cmd === '/export') return cmdExport(parts[1] || '');
   if (cmd === '/import') return cmdImport();
   if (cmd === '/person') return handlePersonCommand(rest);
+  if (cmd === '/location') return handleLocationCommand(rest);
   if (cmd === '/attr') return handleAttrCommand(rest);
   if (cmd === '/rel') return handleRelationshipCommand(rest);
   if (cmd === '/event') return handleEventCommand(rest);
