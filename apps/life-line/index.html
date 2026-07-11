@@ -658,6 +658,52 @@ function relationSummary(personId) {
   return { parents, children, spouses, siblings };
 }
 
+function isDirectlyRelated(idA, idB) {
+  if (idA === idB) return true;
+  return db.relationships.some(r =>
+    (r.fromId === idA && r.toId === idB) || (r.fromId === idB && r.toId === idA)
+  );
+}
+
+function buildRelFillCandidates(focusId) {
+  const map = peopleMap();
+  const summary = relationSummary(focusId);
+  const seen = new Set(); // dedupe by `otherId:relType`
+  const candidates = []; // { otherId, relType, reason }
+
+  function add(otherId, relType, reason) {
+    if (otherId === focusId || isDirectlyRelated(focusId, otherId)) return;
+    const key = otherId + ':' + relType;
+    if (seen.has(key)) return;
+    seen.add(key);
+    candidates.push({ otherId, relType, reason });
+  }
+
+  // Rule 1: parent's spouse -> missing other parent (only when exactly one parent is linked)
+  if (summary.parents.length === 1) {
+    const parent = summary.parents[0];
+    db.relationships.forEach(r => {
+      if (r.type !== 'spouse') return;
+      if (r.fromId !== parent.id && r.toId !== parent.id) return;
+      const spouseId = r.fromId === parent.id ? r.toId : r.fromId;
+      if (map.has(spouseId)) add(spouseId, 'parent-of-focus', "parent's spouse");
+    });
+  }
+
+  // Rule 4: sibling's parents -> focus's parents (explicit sibling records only)
+  db.relationships.forEach(r => {
+    if (r.type !== 'sibling') return;
+    if (r.fromId !== focusId && r.toId !== focusId) return;
+    const sibId = r.fromId === focusId ? r.toId : r.fromId;
+    db.relationships.forEach(pr => {
+      if (pr.type !== 'parent' || pr.toId !== sibId) return;
+      if (map.has(pr.fromId)) add(pr.fromId, 'parent-of-focus', "sibling's parent");
+    });
+  });
+
+  return candidates;
+}
+
 function formatLife(person) {
   const birth = person.birthDate || '????-??-??';
   const death = person.deathDate || '...';
