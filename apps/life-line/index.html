@@ -237,6 +237,11 @@ let navigating = false;
 function normalizeDate(value) {
   const raw = String(value || '').trim();
   if (!raw) return '';
+  const yearOnly = raw.match(/^(\d{4})$/);
+  if (yearOnly) {
+    const year = parseInt(yearOnly[1], 10);
+    return year >= 1 && year <= 9999 ? yearOnly[1] : '';
+  }
   const match = raw.match(/^(\d{4})-(\d{2})-(\d{2})$/);
   if (!match) return '';
   const iso = new Date(raw + 'T00:00:00Z');
