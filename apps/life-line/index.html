@@ -631,7 +631,7 @@ function formatLife(person) {
 
 function ageLabel(person) {
   if (!person.birthDate) return '';
-  const pad = d => /^\d{4}$/.test(d) ? d + '-01-01' : d;
+  const pad = d => /^\d{4}$/.test(d) ? d + '-01-01' : d; // year-only dates assume Jan 1 for age math
   const birth = new Date(pad(person.birthDate) + 'T00:00:00Z');
   const end = person.deathDate ? new Date(pad(person.deathDate) + 'T00:00:00Z') : new Date();
   let years = end.getUTCFullYear() - birth.getUTCFullYear();
