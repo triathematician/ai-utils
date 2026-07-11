@@ -228,7 +228,7 @@ const STORAGE_KEY = 'life_line_db';
 const EXPORT_SLUG = 'life-line';
 const THEMES = ['legacy','solar','monk','space','synth','dos','notebook','engineering','winter'];
 const RELATIONSHIP_TYPES = ['parent', 'child', 'spouse', 'partner', 'sibling'];
-let db = { people: [], relationships: [], events: [], backlog: [], backlogArchive: [], theme: 'legacy', focusPersonId: '' };
+let db = { people: [], relationships: [], events: [], locations: [], backlog: [], backlogArchive: [], theme: 'legacy', focusPersonId: '' };
 let wizard = null;
 let focusHistory = [];
 let historyPos = -1;
@@ -300,6 +300,8 @@ function sanitizePerson(raw) {
     name: cleanText(source.name) || 'UNNAMED PERSON',
     birthDate: normalizeDate(source.birthDate),
     deathDate: normalizeDate(source.deathDate),
+    birthLocationId: cleanText(source.birthLocationId),
+    deathLocationId: cleanText(source.deathLocationId),
     branch: cleanText(source.branch),
     gender: cleanText(source.gender),
     notes: cleanText(source.notes),
@@ -340,6 +342,16 @@ function sanitizeEvent(raw) {
   };
 }
 
+function sanitizeLocation(raw) {
+  const source = raw && typeof raw === 'object' ? raw : {};
+  return {
+    id: cleanText(source.id) || nextId('L', db.locations || []),
+    name: cleanText(source.name) || 'UNNAMED LOCATION',
+    notes: cleanText(source.notes),
+    createdAt: cleanText(source.createdAt) || new Date().toISOString()
+  };
+}
+
 function loadDB() {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
@@ -348,22 +360,25 @@ function loadDB() {
       people: Array.isArray(parsed.people) ? parsed.people : [],
       relationships: Array.isArray(parsed.relationships) ? parsed.relationships : [],
       events: Array.isArray(parsed.events) ? parsed.events : [],
+      locations: Array.isArray(parsed.locations) ? parsed.locations : [],
       backlog: Array.isArray(parsed.backlog) ? parsed.backlog : [],
       backlogArchive: Array.isArray(parsed.backlogArchive) ? parsed.backlogArchive : [],
       theme: cleanText(parsed.theme) || 'legacy',
       focusPersonId: cleanText(parsed.focusPersonId)
     };
-    db = { people: [], relationships: [], events: [] };
+    db = { people: [], relationships: [], events: [], locations: [] };
     base.people = base.people.map(sanitizePerson);
     db.people = base.people;
     base.relationships = base.relationships.map(sanitizeRelationship).filter(Boolean);
     db.relationships = base.relationships;
     base.events = base.events.map(sanitizeEvent);
     db.events = base.events;
+    base.locations = base.locations.map(sanitizeLocation);
+    db.locations = base.locations;
     if (!base.people.some(person => person.id === base.focusPersonId)) base.focusPersonId = base.people[0] ? base.people[0].id : '';
     return base;
   } catch {
-    return { people: [], relationships: [], events: [], backlog: [], backlogArchive: [], theme: 'legacy', focusPersonId: '' };
+    return { people: [], relationships: [], events: [], locations: [], backlog: [], backlogArchive: [], theme: 'legacy', focusPersonId: '' };
   }
 }
 
@@ -1427,6 +1442,7 @@ function exportDataJson() {
     people: db.people,
     relationships: db.relationships,
     events: db.events,
+    locations: db.locations,
     focusPersonId: db.focusPersonId
   };
 }
@@ -1444,6 +1460,7 @@ function importData(obj) {
     people: obj.people.map(sanitizePerson),
     relationships: obj.relationships.map(sanitizeRelationship).filter(Boolean),
     events: obj.events.map(sanitizeEvent),
+    locations: Array.isArray(obj.locations) ? obj.locations.map(sanitizeLocation) : [],
     backlog: db.backlog,
     backlogArchive: db.backlogArchive,
     theme: db.theme,
