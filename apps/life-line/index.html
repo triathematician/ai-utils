@@ -1224,6 +1224,8 @@ function showHelp() {
     '/rel add from | sibling | to          (manual override — only when parents not in tree)',
     '/rel update <id> date <YYYY-MM-DD>',
     '/rel update <id> endDate <YYYY-MM-DD>   (divorce date for spouse)',
+    '/rel update <id> marriage <date> [location]   (spouse only)',
+    '/rel update <id> location <name>        (clears if no value given)',
     '/rel update <id> note <text>',
     '/rel remove relationship-id',
     '/rel fill               walk plausible missing relationships, y/n to add each',
@@ -1677,9 +1679,39 @@ function handleRelationshipCommand(arg) {
     const value = parts.slice(2).join(' ');
     const rel = db.relationships.find(r => r.id.toLowerCase() === id.toLowerCase());
     if (!rel) return statusMsg('Relationship not found: ' + id);
+
+    if (field === 'marriage') {
+      if (!value) return statusMsg('Usage: /rel update ' + id + ' marriage <date> [location]');
+      const spaceIdx = value.indexOf(' ');
+      const datePart = spaceIdx === -1 ? value : value.slice(0, spaceIdx);
+      const locationPart = spaceIdx === -1 ? '' : value.slice(spaceIdx + 1).trim();
+      const normalized = normalizeDate(datePart);
+      if (!normalized) return statusMsg('Date must be YYYY or YYYY-MM-DD.');
+      rel.date = normalized;
+      let locationName = '';
+      if (locationPart) {
+        const location = resolveOrCreateLocation(locationPart);
+        rel.locationId = location.id;
+        locationName = location.name;
+      }
+      saveDB(); render();
+      return statusMsg(`${id}: marriage → ${normalized}${locationName ? ' @ ' + locationName : ''}`);
+    }
+    if (field === 'location') {
+      if (!value) {
+        rel.locationId = '';
+        saveDB(); render();
+        return statusMsg(`${id}: location cleared.`);
+      }
+      const location = resolveOrCreateLocation(value);
+      rel.locationId = location.id;
+      saveDB(); render();
+      return statusMsg(`${id}: location → ${location.name}`);
+    }
+
     const allowed = { date: 'date', enddate: 'endDate', end: 'endDate', divorce: 'endDate', note: 'note' };
     const key = allowed[field];
-    if (!key) return statusMsg('Field must be: date, endDate, note.');
+    if (!key) return statusMsg('Field must be: date, endDate, note, marriage, location.');
     if ((key === 'date' || key === 'endDate') && value && !normalizeDate(value)) return statusMsg('Date must be YYYY-MM-DD.');
     rel[key] = (key === 'date' || key === 'endDate') ? normalizeDate(value) : value;
     saveDB(); render();
