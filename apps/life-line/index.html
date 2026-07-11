@@ -533,7 +533,8 @@ const REL_KEYWORDS = new Set(['brother','sister','sibling','father','mother','pa
 
 const RELFILL_LABELS = {
   'parent-of-focus': 'PARENT',
-  'child-of-focus': 'CHILD'
+  'child-of-focus': 'CHILD',
+  'spouse-of-focus': 'SPOUSE'
 };
 
 function relFillPromptText() {
@@ -563,6 +564,7 @@ function relFillApplyCurrent() {
   let canonical;
   if (candidate.relType === 'parent-of-focus') canonical = canonicalizeRelationship(candidate.otherId, 'parent', relFill.focusId);
   if (candidate.relType === 'child-of-focus') canonical = canonicalizeRelationship(relFill.focusId, 'parent', candidate.otherId);
+  if (candidate.relType === 'spouse-of-focus') canonical = canonicalizeRelationship(relFill.focusId, 'spouse', candidate.otherId);
   if (!canonical) return false;
   const dup = db.relationships.find(r => r.type === canonical.type && r.fromId === canonical.fromId && r.toId === canonical.toId);
   if (dup) return false;
@@ -774,6 +776,14 @@ function buildRelFillCandidates(focusId) {
     db.relationships.forEach(r => {
       if (r.type !== 'parent' || r.fromId !== spouse.id) return;
       if (map.has(r.toId)) add(r.toId, 'child-of-focus', "spouse's child");
+    });
+  });
+
+  // Rule 5: shared child's other parent -> spouse of focus
+  summary.children.forEach(child => {
+    db.relationships.forEach(r => {
+      if (r.type !== 'parent' || r.toId !== child.id || r.fromId === focusId) return;
+      if (map.has(r.fromId)) add(r.fromId, 'spouse-of-focus', "child's other parent");
     });
   });
 
