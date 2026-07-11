@@ -243,10 +243,12 @@ function normalizeDate(value) {
     const year = parseInt(yearOnly[1], 10);
     return year >= 1 && year <= 9999 ? yearOnly[1] : '';
   }
-  const match = raw.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  const match = raw.match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/);
   if (!match) return '';
-  const iso = new Date(raw + 'T00:00:00Z');
-  return Number.isNaN(iso.getTime()) || iso.toISOString().slice(0, 10) !== raw ? '' : raw;
+  const [, y, mo, d] = match;
+  const padded = `${y}-${mo.padStart(2, '0')}-${d.padStart(2, '0')}`;
+  const iso = new Date(padded + 'T00:00:00Z');
+  return Number.isNaN(iso.getTime()) || iso.toISOString().slice(0, 10) !== padded ? '' : padded;
 }
 
 function cleanText(value) {
@@ -652,8 +654,25 @@ function handleSetCommand(arg) {
   const key = SET_FIELD_MAP[field.toLowerCase()];
   if (!key) return statusMsg('Field must be: name, birth, death, branch, gender, notes, birthplace, deathplace, marriage, divorce.');
   if (!value) return statusMsg('Usage: /set ' + field + ' <value>');
-  if ((key === 'birthDate' || key === 'deathDate') && !normalizeDate(value)) return statusMsg('Date must be YYYY or YYYY-MM-DD.');
-  focus[key] = (key === 'birthDate' || key === 'deathDate') ? normalizeDate(value) : value;
+
+  if (key === 'birthDate' || key === 'deathDate') {
+    const spaceIdx = value.indexOf(' ');
+    const datePart = spaceIdx === -1 ? value : value.slice(0, spaceIdx);
+    const locationPart = spaceIdx === -1 ? '' : value.slice(spaceIdx + 1).trim();
+    const normalized = normalizeDate(datePart);
+    if (!normalized) return statusMsg('Date must be YYYY or YYYY-MM-DD.');
+    focus[key] = normalized;
+    let locationName = '';
+    if (locationPart) {
+      const location = resolveOrCreateLocation(locationPart);
+      focus[key === 'birthDate' ? 'birthLocationId' : 'deathLocationId'] = location.id;
+      locationName = location.name;
+    }
+    saveDB(); render();
+    return statusMsg(focus.name + ': ' + field.toLowerCase() + ' → ' + normalized + (locationName ? ' @ ' + locationName : ''));
+  }
+
+  focus[key] = value;
   saveDB(); render();
   statusMsg(focus.name + ': ' + field.toLowerCase() + ' → ' + value);
 }
@@ -1152,6 +1171,8 @@ function showHelp() {
     '── SET FOCUS FIELDS ───────────────────────────────────',
     '/set name|birth|death|branch|gender|notes <value>',
     '                         update field on focus person',
+    '/set birth|death <date> <location>',
+    '                         set date + place in one go, e.g. /set birth 1925 PA',
     '/set birthplace|deathplace <name>   (creates location if new)',
     '',
     '── PEOPLE ─────────────────────────────────────────────',
