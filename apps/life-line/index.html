@@ -125,6 +125,13 @@ html, body {
 .filter-input { flex: 1; min-width: 120px; }
 .filter-input:focus, .filter-select:focus { border-color: var(--accent); }
 .filter-select { cursor: pointer; }
+.lifespan-toggle-row { margin-bottom: 6px; flex-shrink: 0; }
+.lifespan-toggle {
+  display: inline-block; border: 1px solid var(--dim); color: var(--dim);
+  padding: 1px 8px; font-size: 0.74em; letter-spacing: 1px; cursor: pointer; user-select: none;
+}
+.lifespan-toggle:hover { color: var(--fg); }
+.lifespan-toggle.active { border-color: var(--accent); color: var(--accent); }
 .top-panels { display: grid; grid-template-columns: 1.1fr 0.9fr; gap: 10px; min-height: 0; }
 .rel-row { display: flex; gap: 10px; padding: 2px 0; align-items: baseline; }
 .rel-label { color: var(--dim); font-size: 0.76em; letter-spacing: 1px; text-transform: uppercase; min-width: 72px; flex-shrink: 0; }
@@ -212,6 +219,9 @@ html, body {
         <span class="tab" data-tab="led">DATE LEDGER</span>
         <span class="tab" data-tab="loc">LOCATIONS</span>
       </div>
+      <div class="lifespan-toggle-row">
+        <span id="lifespan-toggle" class="lifespan-toggle" title="Restrict relationships/events/date ledger/locations to the focus person's lifetime">⧗ LIFESPAN ONLY</span>
+      </div>
       <div id="tab-rel" class="tab-pane">
         <div id="relationship-list" class="dim">No family links recorded yet.</div>
       </div>
@@ -248,9 +258,10 @@ const STORAGE_KEY = 'life_line_db';
 const EXPORT_SLUG = 'life-line';
 const THEMES = ['legacy','solar','monk','space','synth','dos','notebook','engineering','winter'];
 const RELATIONSHIP_TYPES = ['parent', 'child', 'spouse', 'partner', 'sibling'];
-let db = { people: [], relationships: [], events: [], locations: [], backlog: [], backlogArchive: [], theme: 'legacy', focusPersonId: '' };
+let db = { people: [], relationships: [], events: [], locations: [], backlog: [], backlogArchive: [], theme: 'legacy', focusPersonId: '', lifespanFilter: false };
 let wizard = null;
 let relFill = null; // { candidates: [...], index: 0, added: 0, focusId }
+let lifespanFilterEnabled = false;
 let focusHistory = [];
 let historyPos = -1;
 let navigating = false;
@@ -388,7 +399,8 @@ function loadDB() {
       backlog: Array.isArray(parsed.backlog) ? parsed.backlog : [],
       backlogArchive: Array.isArray(parsed.backlogArchive) ? parsed.backlogArchive : [],
       theme: cleanText(parsed.theme) || 'legacy',
-      focusPersonId: cleanText(parsed.focusPersonId)
+      focusPersonId: cleanText(parsed.focusPersonId),
+      lifespanFilter: parsed.lifespanFilter === true
     };
     db = { people: [], relationships: [], events: [], locations: [] };
     base.people = base.people.map(sanitizePerson);
@@ -402,7 +414,7 @@ function loadDB() {
     if (!base.people.some(person => person.id === base.focusPersonId)) base.focusPersonId = base.people[0] ? base.people[0].id : '';
     return base;
   } catch {
-    return { people: [], relationships: [], events: [], locations: [], backlog: [], backlogArchive: [], theme: 'legacy', focusPersonId: '' };
+    return { people: [], relationships: [], events: [], locations: [], backlog: [], backlogArchive: [], theme: 'legacy', focusPersonId: '', lifespanFilter: false };
   }
 }
 
@@ -1034,11 +1046,17 @@ function renderFocus() {
 }
 
 function renderDateLedger() {
-  const entries = buildDateLedger();
+  const allEntries = buildDateLedger();
   const el = document.getElementById('date-ledger');
-  if (!entries.length) {
+  if (!allEntries.length) {
     el.className = 'dim';
     el.textContent = 'No dated records yet.';
+    return;
+  }
+  const entries = allEntries.filter(entry => yearInLifespan(entry.date));
+  if (!entries.length) {
+    el.className = 'dim';
+    el.textContent = 'No dated records within the lifespan filter.';
     return;
   }
   el.className = '';
@@ -1066,6 +1084,69 @@ function wasAliveInYear(person, year) {
   if (birthYear === null) return false;
   const deathYear = person.deathDate ? parseInt(person.deathDate.slice(0, 4), 10) : null;
   return birthYear <= year && (deathYear === null || deathYear >= year);
+}
+
+// ── Lifespan filter (restrict RELATIONSHIPS/EVENTS/DATE LEDGER/LOCATIONS to the focus person's lifetime) ──
+function focusLifespanRange() {
+  const focus = getFocusPerson();
+  if (!focus || !focus.birthDate) return null;
+  const startYear = parseInt(focus.birthDate.slice(0, 4), 10);
+  const endYear = focus.deathDate ? parseInt(focus.deathDate.slice(0, 4), 10) : new Date().getFullYear();
+  return { startYear, endYear };
+}
+
+function yearInLifespan(dateStr) {
+  if (!lifespanFilterEnabled) return true;
+  const range = focusLifespanRange();
+  if (!range) return true;
+  if (!dateStr) return false;
+  const year = parseInt(dateStr.slice(0, 4), 10);
+  return year >= range.startYear && year <= range.endYear;
+}
+
+function relInLifespan(rel) {
+  if (!lifespanFilterEnabled) return true;
+  if (!focusLifespanRange()) return true;
+  return (!!rel.date && yearInLifespan(rel.date)) || (!!rel.endDate && yearInLifespan(rel.endDate));
+}
+
+function locationInLifespan(locId) {
+  if (!lifespanFilterEnabled) return true;
+  if (!focusLifespanRange()) return true;
+  const usedByPerson = db.people.some(p =>
+    (p.birthLocationId === locId && yearInLifespan(p.birthDate)) ||
+    (p.deathLocationId === locId && yearInLifespan(p.deathDate))
+  );
+  if (usedByPerson) return true;
+  return db.relationships.some(r => r.locationId === locId && yearInLifespan(r.date));
+}
+
+function toggleLifespanFilter() {
+  lifespanFilterEnabled = !lifespanFilterEnabled;
+  db.lifespanFilter = lifespanFilterEnabled;
+  saveDB();
+  updateLifespanToggleUI();
+  render();
+  statusMsg('Lifespan filter: ' + (lifespanFilterEnabled ? 'ON' : 'OFF'));
+}
+
+function updateLifespanToggleUI() {
+  const el = document.getElementById('lifespan-toggle');
+  if (el) el.classList.toggle('active', lifespanFilterEnabled);
+}
+
+function cmdLifespan(arg) {
+  const value = cleanText(arg).toLowerCase();
+  if (!value) return toggleLifespanFilter();
+  if (value === 'on') {
+    if (!lifespanFilterEnabled) toggleLifespanFilter();
+    return;
+  }
+  if (value === 'off') {
+    if (lifespanFilterEnabled) toggleLifespanFilter();
+    return;
+  }
+  statusMsg('Usage: /lifespan [on|off]');
 }
 
 function filterPeopleList(people, query) {
@@ -1135,8 +1216,14 @@ function renderRelationships() {
     relList.textContent = 'No family links recorded yet.';
     return;
   }
+  const filtered = db.relationships.filter(relInLifespan);
+  if (!filtered.length) {
+    relList.className = 'dim';
+    relList.textContent = 'No relationships within the lifespan filter.';
+    return;
+  }
   relList.className = '';
-  relList.innerHTML = db.relationships
+  relList.innerHTML = filtered
     .slice()
     .sort((a, b) => (a.date || '9999-99-99').localeCompare(b.date || '9999-99-99') || a.id.localeCompare(b.id))
     .map(rel => `<div class="line"><span class="focus-meta">${escHtml(rel.id)}</span> · ${relationshipLabel(rel, map)}</div>`)
@@ -1151,8 +1238,14 @@ function renderEvents() {
     el.textContent = 'No events logged yet. Use /event add.';
     return;
   }
+  const filtered = db.events.filter(event => yearInLifespan(event.date));
+  if (!filtered.length) {
+    el.className = 'dim';
+    el.textContent = 'No events within the lifespan filter.';
+    return;
+  }
   el.className = '';
-  el.innerHTML = db.events
+  el.innerHTML = filtered
     .slice()
     .sort((a, b) => (a.date || '9999-99-99').localeCompare(b.date || '9999-99-99') || a.id.localeCompare(b.id))
     .map(event => {
@@ -1169,8 +1262,14 @@ function renderLocations() {
     el.textContent = 'No locations recorded yet. Use /location add.';
     return;
   }
+  const filtered = db.locations.filter(loc => locationInLifespan(loc.id));
+  if (!filtered.length) {
+    el.className = 'dim';
+    el.textContent = 'No locations within the lifespan filter.';
+    return;
+  }
   el.className = '';
-  el.innerHTML = db.locations
+  el.innerHTML = filtered
     .slice()
     .sort((a, b) => a.name.localeCompare(b.name))
     .map(loc => {
@@ -1323,6 +1422,9 @@ function showHelp() {
     '',
     '── STANDARD ───────────────────────────────────────────',
     '/theme [name]            switch theme',
+    '/lifespan [on|off]       toggle restricting relationships/events/date ledger/',
+    '                         locations to the focus person\'s lifetime',
+    '                         (also toggleable via the ⧗ LIFESPAN ONLY chip in the side panel)',
     '/backlog [text]          add item to backlog',
     '/backlog list            show all backlog items',
     '/backlog done [n]        toggle item #n as done/open',
@@ -1915,7 +2017,8 @@ function importData(obj) {
     backlog: db.backlog,
     backlogArchive: db.backlogArchive,
     theme: db.theme,
-    focusPersonId: cleanText(obj.focusPersonId)
+    focusPersonId: cleanText(obj.focusPersonId),
+    lifespanFilter: db.lifespanFilter
   };
   db = base;
   if (!db.people.some(person => person.id === db.focusPersonId)) db.focusPersonId = db.people[0] ? db.people[0].id : '';
@@ -2152,6 +2255,7 @@ function handleConsoleCmd(raw) {
   if (cmd === '/ancestors' || cmd === '/anc') return showAncestors(parts[1]);
   if (cmd === '/descendants' || cmd === '/desc') return showDescendants(parts[1]);
   if (cmd === '/theme') return applyTheme(parts[1] || '');
+  if (cmd === '/lifespan') return cmdLifespan(parts[1] || '');
   if (cmd === '/backlog') return handleBacklog(rest);
   if (cmd === '/export') return cmdExport(parts[1] || '');
   if (cmd === '/import') return cmdImport();
@@ -2219,6 +2323,9 @@ function init() {
   applyTheme(db.theme || 'legacy');
   initTabs();
   initPeopleFilterBar();
+  lifespanFilterEnabled = db.lifespanFilter === true;
+  document.getElementById('lifespan-toggle').addEventListener('click', toggleLifespanFilter);
+  updateLifespanToggleUI();
   if (db.focusPersonId) { focusHistory = [db.focusPersonId]; historyPos = 0; }
   document.getElementById('nav-back').addEventListener('click', goBack);
   document.getElementById('nav-fwd').addEventListener('click', goForward);
