@@ -411,9 +411,18 @@ function downloadBlob(content, filename, type) {
   URL.revokeObjectURL(a.href);
 }
 
+let statusTimeout = null;
+
 function statusMsg(msg) {
+  if (statusTimeout) clearTimeout(statusTimeout);
   document.getElementById('console-status').textContent = msg;
-  setTimeout(updateStatus, 3000);
+  statusTimeout = setTimeout(updateStatus, 3000);
+}
+
+function statusMsgPersistent(msg) {
+  if (statusTimeout) clearTimeout(statusTimeout);
+  statusTimeout = null;
+  document.getElementById('console-status').textContent = msg;
 }
 
 function updateStatus() {
@@ -524,17 +533,20 @@ const REL_KEYWORDS = new Set(['brother','sister','sibling','father','mother','pa
 
 const RELFILL_LABELS = {
   'parent-of-focus': 'PARENT',
-  'sibling-of-focus': 'SIBLING',
   'child-of-focus': 'CHILD'
 };
 
-function relFillCurrentPrompt() {
+function relFillPromptText() {
   const map = peopleMap();
   const focus = map.get(relFill.focusId);
   const candidate = relFill.candidates[relFill.index];
   const other = map.get(candidate.otherId);
+  return `Add ${other.name} as ${focus.name}'s ${RELFILL_LABELS[candidate.relType]}? (${candidate.reason}) y/n`;
+}
+
+function relFillCurrentPrompt() {
   document.getElementById('console-prompt').textContent = 'ADD?>';
-  statusMsg(`Add ${other.name} as ${focus.name}'s ${RELFILL_LABELS[candidate.relType]}? (${candidate.reason}) y/n`);
+  statusMsgPersistent(relFillPromptText());
 }
 
 function startRelFill() {
@@ -550,7 +562,6 @@ function relFillApplyCurrent() {
   const candidate = relFill.candidates[relFill.index];
   let canonical;
   if (candidate.relType === 'parent-of-focus') canonical = canonicalizeRelationship(candidate.otherId, 'parent', relFill.focusId);
-  if (candidate.relType === 'sibling-of-focus') canonical = canonicalizeRelationship(relFill.focusId, 'sibling', candidate.otherId);
   if (candidate.relType === 'child-of-focus') canonical = canonicalizeRelationship(relFill.focusId, 'parent', candidate.otherId);
   if (!canonical) return false;
   const dup = db.relationships.find(r => r.type === canonical.type && r.fromId === canonical.fromId && r.toId === canonical.toId);
@@ -755,14 +766,6 @@ function buildRelFillCandidates(focusId) {
     db.relationships.forEach(pr => {
       if (pr.type !== 'parent' || pr.toId !== sibId) return;
       if (map.has(pr.fromId)) add(pr.fromId, 'parent-of-focus', "sibling's parent");
-    });
-  });
-
-  // Rule 2: parent's other children -> siblings of focus
-  summary.parents.forEach(parent => {
-    db.relationships.forEach(r => {
-      if (r.type !== 'parent' || r.fromId !== parent.id || r.toId === focusId) return;
-      if (map.has(r.toId)) add(r.toId, 'sibling-of-focus', "parent's other child");
     });
   });
 
@@ -1902,7 +1905,7 @@ input.addEventListener('keydown', event => {
       const answer = cmd.trim().toLowerCase();
       if (answer === 'y' || answer === 'yes') relFillAdvance(true);
       else if (answer === 'n' || answer === 'no' || answer === '') relFillAdvance(false);
-      else statusMsg('Please answer y or n.');
+      else statusMsgPersistent('Please answer y or n. ' + relFillPromptText());
       return;
     }
     if (!cmd) return;
