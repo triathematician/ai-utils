@@ -324,6 +324,7 @@ function sanitizeRelationship(raw) {
     type: canonical.type,
     date: normalizeDate(source.date),
     endDate: normalizeDate(source.endDate),
+    locationId: cleanText(source.locationId),
     note: cleanText(source.note),
     createdAt: cleanText(source.createdAt) || new Date().toISOString()
   };
@@ -626,8 +627,7 @@ function handleSetCommand(arg) {
   if (!focus) return statusMsg('No focus person. Set focus with /focus <name>.');
 
   if (field === 'marriage' || field === 'divorce') {
-    if (!value) return statusMsg('Usage: /set ' + field + ' YYYY-MM-DD');
-    if (!normalizeDate(value)) return statusMsg('Date must be YYYY-MM-DD.');
+    if (!value) return statusMsg('Usage: /set ' + field + (field === 'marriage' ? ' <date> [location]' : ' YYYY-MM-DD'));
     const spouseRels = db.relationships.filter(r => r.type === 'spouse' && (r.fromId === focus.id || r.toId === focus.id));
     if (!spouseRels.length) return statusMsg('No spouse recorded. Use /rel set spouse <name> first.');
     if (spouseRels.length > 1) {
@@ -638,9 +638,28 @@ function handleSetCommand(arg) {
       }).join(', ');
       return statusMsg('Multiple spouses — use /rel update <id> ' + field + ' ' + value + '  [' + list + ']');
     }
-    spouseRels[0][field === 'marriage' ? 'date' : 'endDate'] = normalizeDate(value);
+
+    if (field === 'divorce') {
+      if (!normalizeDate(value)) return statusMsg('Date must be YYYY-MM-DD.');
+      spouseRels[0].endDate = normalizeDate(value);
+      saveDB(); render();
+      return statusMsg(focus.name + ': divorce → ' + value);
+    }
+
+    const spaceIdx = value.indexOf(' ');
+    const datePart = spaceIdx === -1 ? value : value.slice(0, spaceIdx);
+    const locationPart = spaceIdx === -1 ? '' : value.slice(spaceIdx + 1).trim();
+    const normalized = normalizeDate(datePart);
+    if (!normalized) return statusMsg('Date must be YYYY or YYYY-MM-DD.');
+    spouseRels[0].date = normalized;
+    let locationName = '';
+    if (locationPart) {
+      const location = resolveOrCreateLocation(locationPart);
+      spouseRels[0].locationId = location.id;
+      locationName = location.name;
+    }
     saveDB(); render();
-    return statusMsg(focus.name + ': ' + field + ' → ' + value);
+    return statusMsg(focus.name + ': marriage → ' + normalized + (locationName ? ' @ ' + locationName : ''));
   }
 
   if (field === 'birthplace' || field === 'deathplace') {
@@ -846,7 +865,9 @@ function relationshipLabel(rel, map) {
   if (rel.type === 'parent') return `${nameLink(from)} → parent of → ${nameLink(to)}${datePart}${note}`;
   if (rel.type === 'spouse') {
     const ended = rel.endDate ? ' [divorced]' : '';
-    return `${nameLink(from)} ↔ spouse ↔ ${nameLink(to)}${datePart}${ended}${note}`;
+    const location = db.locations.find(l => l.id === rel.locationId);
+    const locationPart = location ? ` · ${escHtml(location.name)}` : '';
+    return `${nameLink(from)} ↔ spouse ↔ ${nameLink(to)}${datePart}${locationPart}${ended}${note}`;
   }
   return `${nameLink(from)} ↔ sibling ↔ ${nameLink(to)}${datePart}${note}`;
 }
@@ -909,7 +930,8 @@ function renderNuclearFamily() {
 
   for (const s of spousesSorted) {
     const rel = db.relationships.find(r => r.type === 'spouse' && ((r.fromId === focus.id && r.toId === s.id) || (r.toId === focus.id && r.fromId === s.id)));
-    const marriagePart = rel && rel.date ? ' <span class="rel-date">· m.' + rel.date.slice(0, 4) + (rel.endDate ? ' → ' + rel.endDate.slice(0, 4) : '') + '</span>' : '';
+    const marriageLoc = rel && db.locations.find(l => l.id === rel.locationId);
+    const marriagePart = rel && rel.date ? ' <span class="rel-date">· m.' + rel.date.slice(0, 4) + (rel.endDate ? ' → ' + rel.endDate.slice(0, 4) : '') + (marriageLoc ? ' · ' + escHtml(marriageLoc.name) : '') + '</span>' : '';
     const divTag = rel && rel.endDate ? ' <span class="dim">[div]</span>' : '';
     const birthPart = s.birthDate ? ' <span class="rel-date">· ' + s.birthDate.slice(0, 4) + '</span>' : '';
     const age = ageLabel(s);
@@ -1174,6 +1196,8 @@ function showHelp() {
     '/set birth|death <date> <location>',
     '                         set date + place in one go, e.g. /set birth 1925 PA',
     '/set birthplace|deathplace <name>   (creates location if new)',
+    '/set marriage <date> [location]     (requires exactly one spouse)',
+    '/set divorce <date>                 (requires exactly one spouse)',
     '',
     '── PEOPLE ─────────────────────────────────────────────',
     '/person add Name | birth | death | branch | gender | notes',
@@ -1511,6 +1535,9 @@ function cmdLocationRemove(raw) {
   db.people.forEach(person => {
     if (person.birthLocationId === removedId) person.birthLocationId = '';
     if (person.deathLocationId === removedId) person.deathLocationId = '';
+  });
+  db.relationships.forEach(rel => {
+    if (rel.locationId === removedId) rel.locationId = '';
   });
   saveDB();
   render();
@@ -1874,7 +1901,12 @@ function exportGedcom() {
     const rel = fam.spouseRel;
     if (rel) {
       const md = gedDate(rel.date);
-      if (md) { lines.push('1 MARR'); lines.push('2 DATE ' + md); }
+      const marriageLoc = db.locations.find(l => l.id === rel.locationId);
+      if (md || marriageLoc) {
+        lines.push('1 MARR');
+        if (md) lines.push('2 DATE ' + md);
+        if (marriageLoc) lines.push('2 PLAC ' + marriageLoc.name);
+      }
       if (rel.endDate) { lines.push('1 DIV Y'); const dd = gedDate(rel.endDate); if (dd) lines.push('2 DATE ' + dd); }
       if (rel.note) lines.push('1 NOTE ' + rel.note);
     }
