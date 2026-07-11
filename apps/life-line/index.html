@@ -559,8 +559,16 @@ function handleSetCommand(arg) {
     return statusMsg(focus.name + ': ' + field + ' → ' + value);
   }
 
+  if (field === 'birthplace' || field === 'deathplace') {
+    if (!value) return statusMsg('Usage: /set ' + field + ' <location name>');
+    const location = resolveOrCreateLocation(value);
+    focus[field === 'birthplace' ? 'birthLocationId' : 'deathLocationId'] = location.id;
+    saveDB(); render();
+    return statusMsg(focus.name + ': ' + field + ' → ' + location.name);
+  }
+
   const key = SET_FIELD_MAP[field.toLowerCase()];
-  if (!key) return statusMsg('Field must be: name, birth, death, branch, gender, notes, marriage, divorce.');
+  if (!key) return statusMsg('Field must be: name, birth, death, branch, gender, notes, birthplace, deathplace, marriage, divorce.');
   if (!value) return statusMsg('Usage: /set ' + field + ' <value>');
   if ((key === 'birthDate' || key === 'deathDate') && !normalizeDate(value)) return statusMsg('Date must be YYYY or YYYY-MM-DD.');
   focus[key] = (key === 'birthDate' || key === 'deathDate') ? normalizeDate(value) : value;
@@ -1258,6 +1266,16 @@ function cmdLocationAdd(raw) {
   saveDB();
   render();
   statusMsg(`Added location ${location.name} (${location.id}).`);
+}
+
+function resolveOrCreateLocation(name) {
+  const clean = cleanText(name);
+  if (!clean) return null;
+  const existing = db.locations.find(loc => loc.name.toLowerCase() === clean.toLowerCase());
+  if (existing) return existing;
+  const created = sanitizeLocation({ id: nextId('L', db.locations), name: clean });
+  db.locations.push(created);
+  return created;
 }
 
 function cmdLocationUpdate(raw) {
