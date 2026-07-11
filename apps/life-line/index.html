@@ -196,7 +196,7 @@ html, body {
     <div id="main-panel">
       <div class="row-header">◈ PEOPLE DIRECTORY</div>
       <div class="filter-bar">
-        <input type="text" id="people-filter" class="filter-input" placeholder="filter by name, branch, gender, notes..." autocomplete="off" spellcheck="false">
+        <input type="text" id="people-filter" class="filter-input" placeholder="filter by name, branch, gender, notes, or a year (alive then)..." autocomplete="off" spellcheck="false">
         <select id="people-sort" class="filter-select">
           <option value="birth">Sort: Birth date</option>
           <option value="name">Sort: Name</option>
@@ -1053,16 +1053,31 @@ function renderDateLedger() {
 let peopleFilterText = '';
 let peopleSortKey = 'birth';
 
-function filterPeopleList(people, query) {
-  const q = query.trim().toLowerCase();
-  if (!q) return people;
-  return people.filter(p =>
-    p.name.toLowerCase().includes(q) ||
+function personTextMatch(p, q) {
+  return p.name.toLowerCase().includes(q) ||
     p.id.toLowerCase().includes(q) ||
     (p.branch || '').toLowerCase().includes(q) ||
     (p.gender || '').toLowerCase().includes(q) ||
-    (p.notes || '').toLowerCase().includes(q)
-  );
+    (p.notes || '').toLowerCase().includes(q);
+}
+
+function wasAliveInYear(person, year) {
+  const birthYear = person.birthDate ? parseInt(person.birthDate.slice(0, 4), 10) : null;
+  if (birthYear === null) return false;
+  const deathYear = person.deathDate ? parseInt(person.deathDate.slice(0, 4), 10) : null;
+  return birthYear <= year && (deathYear === null || deathYear >= year);
+}
+
+function filterPeopleList(people, query) {
+  const raw = query.trim();
+  if (!raw) return people;
+  const q = raw.toLowerCase();
+  const yearMatch = raw.match(/^(\d{4})(-\d{1,2}(-\d{1,2})?)?$/);
+  if (yearMatch) {
+    const year = parseInt(yearMatch[1], 10);
+    return people.filter(p => wasAliveInYear(p, year) || personTextMatch(p, q));
+  }
+  return people.filter(p => personTextMatch(p, q));
 }
 
 function sortPeopleList(people, sortKey) {
