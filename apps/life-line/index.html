@@ -117,6 +117,14 @@ html, body {
   caret-color: var(--accent);
 }
 #console-status { color: var(--dim); font-size: 0.8em; min-width: 180px; text-align: right; white-space: nowrap; }
+.filter-bar { display: flex; gap: 6px; margin-bottom: 8px; flex-wrap: wrap; }
+.filter-input, .filter-select {
+  background: transparent; border: 1px solid var(--muted); color: var(--fg);
+  font-family: var(--font); font-size: 0.85em; padding: 3px 6px; outline: none;
+}
+.filter-input { flex: 1; min-width: 120px; }
+.filter-input:focus, .filter-select:focus { border-color: var(--accent); }
+.filter-select { cursor: pointer; }
 .top-panels { display: grid; grid-template-columns: 1.1fr 0.9fr; gap: 10px; min-height: 0; }
 .rel-row { display: flex; gap: 10px; padding: 2px 0; align-items: baseline; }
 .rel-label { color: var(--dim); font-size: 0.76em; letter-spacing: 1px; text-transform: uppercase; min-width: 72px; flex-shrink: 0; }
@@ -187,6 +195,14 @@ html, body {
   <div id="main-row">
     <div id="main-panel">
       <div class="row-header">◈ PEOPLE DIRECTORY</div>
+      <div class="filter-bar">
+        <input type="text" id="people-filter" class="filter-input" placeholder="filter by name, branch, gender, notes..." autocomplete="off" spellcheck="false">
+        <select id="people-sort" class="filter-select">
+          <option value="birth">Sort: Birth date</option>
+          <option value="name">Sort: Name</option>
+          <option value="branch">Sort: Branch</option>
+        </select>
+      </div>
       <div id="people-list" class="dim">No people yet. Add one with /person add Name | birth | death | branch | gender | notes</div>
     </div>
     <div id="side-panel">
@@ -1034,6 +1050,29 @@ function renderDateLedger() {
   }).join('');
 }
 
+let peopleFilterText = '';
+let peopleSortKey = 'birth';
+
+function filterPeopleList(people, query) {
+  const q = query.trim().toLowerCase();
+  if (!q) return people;
+  return people.filter(p =>
+    p.name.toLowerCase().includes(q) ||
+    p.id.toLowerCase().includes(q) ||
+    (p.branch || '').toLowerCase().includes(q) ||
+    (p.gender || '').toLowerCase().includes(q) ||
+    (p.notes || '').toLowerCase().includes(q)
+  );
+}
+
+function sortPeopleList(people, sortKey) {
+  const sorted = people.slice();
+  if (sortKey === 'name') sorted.sort((a, b) => a.name.localeCompare(b.name));
+  else if (sortKey === 'branch') sorted.sort((a, b) => (a.branch || '').localeCompare(b.branch || '') || a.name.localeCompare(b.name));
+  else sorted.sort((a, b) => (a.birthDate || '9999-99-99').localeCompare(b.birthDate || '9999-99-99') || a.name.localeCompare(b.name));
+  return sorted;
+}
+
 function renderPeople() {
   const el = document.getElementById('people-list');
   if (!db.people.length) {
@@ -1041,7 +1080,13 @@ function renderPeople() {
     el.textContent = 'No people yet. Add one with /person add Name | birth | death | branch | gender | notes';
     return;
   }
-  const people = db.people.slice().sort((a, b) => (a.birthDate || '9999-99-99').localeCompare(b.birthDate || '9999-99-99') || a.name.localeCompare(b.name));
+  const filtered = filterPeopleList(db.people, peopleFilterText);
+  if (!filtered.length) {
+    el.className = 'dim';
+    el.textContent = 'No matching people.';
+    return;
+  }
+  const people = sortPeopleList(filtered, peopleSortKey);
   const locMap = new Map(db.locations.map(loc => [loc.id, loc]));
   el.className = '';
   el.innerHTML = people.map(person => {
@@ -2119,7 +2164,8 @@ document.addEventListener('keydown', event => {
     document.getElementById('help-overlay').classList.remove('visible');
   }
   if (document.getElementById('help-overlay').classList.contains('visible')) return;
-  if (document.activeElement !== input) input.focus();
+  const activeTag = document.activeElement.tagName;
+  if (document.activeElement !== input && activeTag !== 'INPUT' && activeTag !== 'SELECT' && activeTag !== 'TEXTAREA') input.focus();
 });
 
 function initTabs() {
@@ -2134,10 +2180,18 @@ function initTabs() {
   });
 }
 
+function initPeopleFilterBar() {
+  const filterInput = document.getElementById('people-filter');
+  const sortSelect = document.getElementById('people-sort');
+  filterInput.addEventListener('input', () => { peopleFilterText = filterInput.value; renderPeople(); });
+  sortSelect.addEventListener('change', () => { peopleSortKey = sortSelect.value; renderPeople(); });
+}
+
 function init() {
   db = loadDB();
   applyTheme(db.theme || 'legacy');
   initTabs();
+  initPeopleFilterBar();
   if (db.focusPersonId) { focusHistory = [db.focusPersonId]; historyPos = 0; }
   document.getElementById('nav-back').addEventListener('click', goBack);
   document.getElementById('nav-fwd').addEventListener('click', goForward);
