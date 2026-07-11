@@ -701,6 +701,22 @@ function buildRelFillCandidates(focusId) {
     });
   });
 
+  // Rule 2: parent's other children -> siblings of focus
+  summary.parents.forEach(parent => {
+    db.relationships.forEach(r => {
+      if (r.type !== 'parent' || r.fromId !== parent.id || r.toId === focusId) return;
+      if (map.has(r.toId)) add(r.toId, 'sibling-of-focus', "parent's other child");
+    });
+  });
+
+  // Rule 3: spouse's children -> step-children of focus (focus becomes their parent)
+  summary.spouses.forEach(spouse => {
+    db.relationships.forEach(r => {
+      if (r.type !== 'parent' || r.fromId !== spouse.id) return;
+      if (map.has(r.toId)) add(r.toId, 'child-of-focus', "spouse's child");
+    });
+  });
+
   return candidates;
 }
 
