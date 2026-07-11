@@ -92,11 +92,16 @@ html, body {
 ::-webkit-scrollbar { width: 6px; }
 ::-webkit-scrollbar-track { background: var(--muted); }
 ::-webkit-scrollbar-thumb { background: var(--dim); }
-#app { display: grid; grid-template-rows: 30vh 60vh 10vh; height: 100vh; width: 100vw; }
+#app { display: grid; grid-template-rows: 40vh 1fr 40px; height: 100vh; width: 100vw; }
 #top-row { border-bottom: 1px solid var(--border); padding: 10px 12px; overflow-y: auto; }
 #main-row { display: grid; grid-template-columns: 1.1fr 0.9fr; overflow: hidden; }
 #main-panel { border-right: 1px solid var(--border); padding: 10px 12px; overflow-y: auto; }
-#side-panel { padding: 10px 12px; overflow-y: auto; }
+#side-panel { padding: 10px 12px; overflow: hidden; display: flex; flex-direction: column; }
+.tab-bar { display: flex; border-bottom: 1px solid var(--muted); margin-bottom: 8px; flex-shrink: 0; }
+.tab { padding: 3px 10px; cursor: pointer; color: var(--dim); font-size: 0.76em; letter-spacing: 1px; }
+.tab.active { color: var(--accent); border-bottom: 2px solid var(--accent); margin-bottom: -1px; }
+.tab:hover:not(.active) { color: var(--fg); }
+.tab-pane { flex: 1; overflow-y: auto; }
 #console-row {
   background: var(--muted); border-top: 1px solid var(--border);
   display: flex; align-items: center; padding: 0 12px; gap: 8px;
@@ -112,13 +117,14 @@ html, body {
   caret-color: var(--accent);
 }
 #console-status { color: var(--dim); font-size: 0.8em; min-width: 180px; text-align: right; white-space: nowrap; }
-.summary-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; margin-bottom: 8px; }
-.metric { border: 1px solid var(--muted); padding: 6px 8px; min-height: 54px; }
-.metric-label { color: var(--dim); font-size: 0.72em; letter-spacing: 1px; }
-.metric-value { color: var(--accent); font-size: 1.2em; }
-.top-panels { display: grid; grid-template-columns: 1.2fr 0.8fr; gap: 10px; min-height: 0; }
+.top-panels { display: grid; grid-template-columns: 1.1fr 0.9fr; gap: 10px; min-height: 0; }
+.rel-row { display: flex; gap: 10px; padding: 2px 0; align-items: baseline; }
+.rel-label { color: var(--dim); font-size: 0.76em; letter-spacing: 1px; text-transform: uppercase; min-width: 72px; flex-shrink: 0; }
+.rel-person { color: var(--fg); }
+.rel-date { color: var(--dim); font-size: 0.84em; }
+.focus-divider { border: none; border-top: 1px solid var(--muted); margin: 6px 0; }
 .mini-panel { border: 1px solid var(--muted); padding: 8px; min-height: 120px; }
-.section-title { color: var(--accent); margin-bottom: 4px; letter-spacing: 1px; font-size: 0.8em; }
+.section-title { color: var(--dim); margin-bottom: 4px; letter-spacing: 1px; font-size: 0.8em; }
 .focus-name { color: var(--accent); font-size: 1.1em; }
 .focus-meta, .dim { color: var(--dim); font-size: 0.84em; }
 .chip-row, .attr-row { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; }
@@ -140,7 +146,11 @@ html, body {
   white-space: nowrap; font-size: 0.82em;
 }
 .action-link:hover { background: var(--success); color: var(--bg); }
-.split-section { margin-top: 10px; }
+.nav-arrow { color: var(--dim); padding: 0 4px; font-size: 0.8em; user-select: none; }
+.nav-arrow.enabled { color: var(--fg); cursor: pointer; }
+.nav-arrow.enabled:hover { color: var(--accent); }
+.name-link { cursor: pointer; }
+.name-link:hover { text-decoration: underline; }
 #help-overlay {
   display: none; position: fixed; inset: 0;
   background: rgba(0,0,0,0.7); z-index: 150;
@@ -165,21 +175,12 @@ html, body {
 
 <div id="app">
   <div id="top-row">
-    <div class="row-header">◈ FAMILY SNAPSHOT</div>
-    <div class="summary-grid">
-      <div class="metric"><div class="metric-label">PEOPLE</div><div class="metric-value" id="metric-people">0</div></div>
-      <div class="metric"><div class="metric-label">RELATIONSHIPS</div><div class="metric-value" id="metric-relationships">0</div></div>
-      <div class="metric"><div class="metric-label">EVENTS</div><div class="metric-value" id="metric-events">0</div></div>
-      <div class="metric"><div class="metric-label">KNOWN DATES</div><div class="metric-value" id="metric-dates">0</div></div>
-    </div>
     <div class="top-panels">
       <div class="mini-panel">
-        <div class="section-title">FOCUS PERSON</div>
-        <div id="focus-card" class="dim">No people yet. Use /person add to start the tree.</div>
+        <div id="focus-card" class="dim">No people yet. Use /add to start the tree.</div>
       </div>
       <div class="mini-panel">
-        <div class="section-title">DATE LEDGER</div>
-        <div id="date-ledger" class="dim">No dated records yet.</div>
+        <div id="nuclear-family" class="dim">No people yet.</div>
       </div>
     </div>
   </div>
@@ -189,20 +190,25 @@ html, body {
       <div id="people-list" class="dim">No people yet. Add one with /person add Name | birth | death | branch | gender | notes</div>
     </div>
     <div id="side-panel">
-      <div class="row-header">◈ LINKS + EVENTS</div>
-      <div class="section-title">COMMON RELATIONSHIPS</div>
-      <div id="relationship-mix" class="dim">No relationships logged yet. Use /rel add.</div>
-      <div class="split-section">
-        <div class="section-title">RELATIONSHIP LEDGER</div>
+      <div class="tab-bar">
+        <span class="tab active" data-tab="rel">RELATIONSHIPS</span>
+        <span class="tab" data-tab="evt">EVENTS</span>
+        <span class="tab" data-tab="led">DATE LEDGER</span>
+      </div>
+      <div id="tab-rel" class="tab-pane">
         <div id="relationship-list" class="dim">No family links recorded yet.</div>
       </div>
-      <div class="split-section">
-        <div class="section-title">EVENT LOG</div>
+      <div id="tab-evt" class="tab-pane" style="display:none">
         <div id="event-list" class="dim">No events logged yet. Use /event add.</div>
+      </div>
+      <div id="tab-led" class="tab-pane" style="display:none">
+        <div id="date-ledger" class="dim">No dated records yet.</div>
       </div>
     </div>
   </div>
   <div id="console-row">
+    <span id="nav-back" class="nav-arrow" title="Go back (Alt+←)">◄</span>
+    <span id="nav-fwd" class="nav-arrow" title="Go forward (Alt+→)">►</span>
     <span id="console-prompt">LIFELINE&gt;</span>
     <input type="text" id="console-input" autocomplete="off" spellcheck="false">
     <span id="console-status">READY</span>
@@ -223,6 +229,10 @@ const EXPORT_SLUG = 'life-line';
 const THEMES = ['legacy','solar','monk','space','synth','dos','notebook','engineering','winter'];
 const RELATIONSHIP_TYPES = ['parent', 'child', 'spouse', 'partner', 'sibling'];
 let db = { people: [], relationships: [], events: [], backlog: [], backlogArchive: [], theme: 'legacy', focusPersonId: '' };
+let wizard = null;
+let focusHistory = [];
+let historyPos = -1;
+let navigating = false;
 
 function normalizeDate(value) {
   const raw = String(value || '').trim();
@@ -303,6 +313,7 @@ function sanitizeRelationship(raw) {
     toId: canonical.toId,
     type: canonical.type,
     date: normalizeDate(source.date),
+    endDate: normalizeDate(source.endDate),
     note: cleanText(source.note),
     createdAt: cleanText(source.createdAt) || new Date().toISOString()
   };
@@ -355,6 +366,10 @@ function saveDB() {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(db));
 }
 
+function nameLink(person) {
+  return `<span class="name-link person-name" data-person-focus="${escHtml(person.id)}">${escHtml(person.name)}</span>`;
+}
+
 function escHtml(str) {
   return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 }
@@ -382,8 +397,8 @@ function statusMsg(msg) {
 
 function updateStatus() {
   const focus = getFocusPerson();
-  const suffix = focus ? ' · FOCUS ' + focus.id : '';
-  document.getElementById('console-status').textContent = `${db.people.length} PEOPLE · ${db.relationships.length} LINKS${suffix}`;
+  const suffix = focus ? ' · ' + focus.name : '';
+  document.getElementById('console-status').textContent = `${db.people.length} PEOPLE · ${db.relationships.length} LINKS · ${db.events.length} EVENTS${suffix}`;
 }
 
 function peopleMap() {
@@ -420,12 +435,142 @@ function getFocusPerson() {
   return db.people.find(person => person.id === db.focusPersonId) || db.people[0] || null;
 }
 
+// ── Wizard ──────────────────────────────────────────────────────────────────
+const WIZARD_STEPS = [
+  { key: 'name',   label: 'NAME',   hint: '(required)' },
+  { key: 'birth',  label: 'BIRTH',  hint: '(YYYY-MM-DD or Enter to skip)' },
+  { key: 'death',  label: 'DEATH',  hint: '(YYYY-MM-DD or Enter to skip)' },
+  { key: 'branch', label: 'BRANCH', hint: '(family branch or Enter to skip)' },
+  { key: 'gender', label: 'GENDER', hint: '(or Enter to skip)' },
+  { key: 'notes',  label: 'NOTES',  hint: '(or Enter to skip)' },
+];
+
+function startWizard(relKeyword, relTargetId, prefillName) {
+  wizard = { step: prefillName ? 1 : 0, data: prefillName ? { name: prefillName } : {}, relKeyword, relTargetId };
+  wizardPrompt();
+}
+
+function wizardPrompt() {
+  const step = WIZARD_STEPS[wizard.step];
+  document.getElementById('console-prompt').textContent = step.label + '>';
+  statusMsg(step.label + ' ' + step.hint);
+}
+
+function wizardHandleInput(value) {
+  const step = WIZARD_STEPS[wizard.step];
+  const trimmed = value.trim();
+  if (step.key === 'name' && !trimmed) { statusMsg('Name is required. Enter a name:'); return; }
+  if ((step.key === 'birth' || step.key === 'death') && trimmed && !normalizeDate(trimmed)) {
+    statusMsg('Date must be YYYY-MM-DD. Try again:'); return;
+  }
+  if (trimmed) wizard.data[step.key] = trimmed;
+  wizard.step++;
+  if (wizard.step >= WIZARD_STEPS.length) wizardFinish();
+  else wizardPrompt();
+}
+
+function wizardFinish() {
+  const { data, relKeyword, relTargetId } = wizard;
+  wizard = null;
+  document.getElementById('console-prompt').textContent = 'LIFELINE>';
+  if (!data.name) { statusMsg('Add cancelled.'); return; }
+  const person = sanitizePerson({
+    id: nextId('P', db.people), name: data.name,
+    birthDate: normalizeDate(data.birth || ''), deathDate: normalizeDate(data.death || ''),
+    branch: data.branch || '', gender: data.gender || '', notes: data.notes || ''
+  });
+  db.people.push(person);
+  if (!db.focusPersonId) db.focusPersonId = person.id;
+  if (relKeyword && relTargetId) addRelForFocus(relTargetId, relKeyword, person.id);
+  saveDB(); render();
+  statusMsg('Added ' + person.name + ' (' + person.id + ').' + (relKeyword ? ' Linked as ' + relKeyword + '.' : ''));
+}
+
+// ── Relationship helpers ─────────────────────────────────────────────────────
+const REL_KEYWORDS = new Set(['brother','sister','sibling','father','mother','parent','guardian','son','daughter','child','husband','wife','spouse','partner']);
+
+function addRelForFocus(focusId, keyword, otherId) {
+  const kw = cleanText(keyword).toLowerCase();
+  let canonical;
+  if (['father','mother','parent','guardian'].includes(kw)) {
+    canonical = canonicalizeRelationship(otherId, 'parent', focusId);
+  } else if (['son','daughter','child'].includes(kw)) {
+    canonical = canonicalizeRelationship(focusId, 'parent', otherId);
+  } else if (['brother','sister','sibling'].includes(kw)) {
+    canonical = canonicalizeRelationship(focusId, 'sibling', otherId);
+  } else if (['husband','wife','spouse','partner'].includes(kw)) {
+    canonical = canonicalizeRelationship(focusId, 'spouse', otherId);
+  }
+  if (!canonical) return { error: 'Unknown relationship keyword: ' + keyword };
+  const dup = db.relationships.find(r => r.type === canonical.type && r.fromId === canonical.fromId && r.toId === canonical.toId);
+  if (dup) return { error: 'Relationship already exists (' + dup.id + ').' };
+  const rel = sanitizeRelationship({ id: nextId('R', db.relationships), ...canonical });
+  if (!rel) return { error: 'Could not create relationship.' };
+  db.relationships.push(rel);
+  return { ok: true };
+}
+
+
+// ── /set command ─────────────────────────────────────────────────────────────
+const SET_FIELD_MAP = { name:'name', birth:'birthDate', birthdate:'birthDate', death:'deathDate', deathdate:'deathDate', branch:'branch', gender:'gender', notes:'notes' };
+
+function handleSetCommand(arg) {
+  const spaceIdx = arg.trim().indexOf(' ');
+  const field = spaceIdx === -1 ? arg.trim() : arg.trim().slice(0, spaceIdx);
+  const value = spaceIdx === -1 ? '' : arg.trim().slice(spaceIdx + 1).trim();
+  const focus = getFocusPerson();
+  if (!focus) return statusMsg('No focus person. Set focus with /focus <name>.');
+
+  if (field === 'marriage' || field === 'divorce') {
+    if (!value) return statusMsg('Usage: /set ' + field + ' YYYY-MM-DD');
+    if (!normalizeDate(value)) return statusMsg('Date must be YYYY-MM-DD.');
+    const spouseRels = db.relationships.filter(r => r.type === 'spouse' && (r.fromId === focus.id || r.toId === focus.id));
+    if (!spouseRels.length) return statusMsg('No spouse recorded. Use /rel set spouse <name> first.');
+    if (spouseRels.length > 1) {
+      const map = peopleMap();
+      const list = spouseRels.map(r => {
+        const other = map.get(r.fromId === focus.id ? r.toId : r.fromId);
+        return r.id + ' (' + (other ? other.name : '?') + ')';
+      }).join(', ');
+      return statusMsg('Multiple spouses — use /rel update <id> ' + field + ' ' + value + '  [' + list + ']');
+    }
+    spouseRels[0][field === 'marriage' ? 'date' : 'endDate'] = normalizeDate(value);
+    saveDB(); render();
+    return statusMsg(focus.name + ': ' + field + ' → ' + value);
+  }
+
+  const key = SET_FIELD_MAP[field.toLowerCase()];
+  if (!key) return statusMsg('Field must be: name, birth, death, branch, gender, notes, marriage, divorce.');
+  if (!value) return statusMsg('Usage: /set ' + field + ' <value>');
+  if ((key === 'birthDate' || key === 'deathDate') && !normalizeDate(value)) return statusMsg('Date must be YYYY-MM-DD.');
+  focus[key] = (key === 'birthDate' || key === 'deathDate') ? normalizeDate(value) : value;
+  saveDB(); render();
+  statusMsg(focus.name + ': ' + field.toLowerCase() + ' → ' + value);
+}
+
+// ── /add command ─────────────────────────────────────────────────────────────
+function handleAddCommand(arg) {
+  const trimmed = cleanText(arg);
+  if (!trimmed) { startWizard(null, null, null); return; }
+  const parts = trimmed.split(/\s+/);
+  const firstWord = parts[0].toLowerCase();
+  if (REL_KEYWORDS.has(firstWord)) {
+    const name = parts.slice(1).join(' ');
+    if (!name) { startWizard(firstWord, (getFocusPerson() || {}).id || null, null); return; }
+    const focus = getFocusPerson();
+    if (!focus) return statusMsg('No focus person. Add someone first with /person add.');
+    startWizard(firstWord, focus.id, name);
+  } else {
+    startWizard(null, null, trimmed);
+  }
+}
+
 function relationSummary(personId) {
   const parents = [];
   const children = [];
   const spouses = [];
-  const siblings = [];
   const map = peopleMap();
+
   db.relationships.forEach(rel => {
     if (rel.type === 'parent') {
       if (rel.toId === personId && map.has(rel.fromId)) parents.push(map.get(rel.fromId));
@@ -435,11 +580,41 @@ function relationSummary(personId) {
       const otherId = rel.fromId === personId ? rel.toId : rel.fromId;
       if (map.has(otherId)) spouses.push(map.get(otherId));
     }
+  });
+
+  // Infer siblings from shared parents
+  const myParentIds = new Set(parents.map(p => p.id));
+  const siblingIds = new Set();
+  const siblings = []; // { person, half }
+
+  if (myParentIds.size > 0) {
+    // Group other children by which of my parents they share
+    const sharedParentCount = new Map(); // otherChildId -> count of shared parents
+    db.relationships.forEach(rel => {
+      if (rel.type === 'parent' && myParentIds.has(rel.fromId) && rel.toId !== personId) {
+        sharedParentCount.set(rel.toId, (sharedParentCount.get(rel.toId) || 0) + 1);
+      }
+    });
+    sharedParentCount.forEach((count, sibId) => {
+      if (map.has(sibId)) {
+        siblingIds.add(sibId);
+        siblings.push({ person: map.get(sibId), half: count < myParentIds.size });
+      }
+    });
+  }
+
+  // Also include any explicit sibling records (manual override when parents aren't in tree)
+  db.relationships.forEach(rel => {
     if (rel.type === 'sibling' && (rel.fromId === personId || rel.toId === personId)) {
       const otherId = rel.fromId === personId ? rel.toId : rel.fromId;
-      if (map.has(otherId)) siblings.push(map.get(otherId));
+      if (!siblingIds.has(otherId) && map.has(otherId)) {
+        siblingIds.add(otherId);
+        siblings.push({ person: map.get(otherId), half: false });
+      }
     }
   });
+
+  siblings.sort((a, b) => (a.person.birthDate || '9999').localeCompare(b.person.birthDate || '9999'));
   return { parents, children, spouses, siblings };
 }
 
@@ -449,35 +624,126 @@ function formatLife(person) {
   return `${birth} → ${death}`;
 }
 
+function ageLabel(person) {
+  if (!person.birthDate) return '';
+  const birth = new Date(person.birthDate + 'T00:00:00Z');
+  const end = person.deathDate ? new Date(person.deathDate + 'T00:00:00Z') : new Date();
+  let years = end.getUTCFullYear() - birth.getUTCFullYear();
+  const dm = end.getUTCMonth() - birth.getUTCMonth();
+  if (dm < 0 || (dm === 0 && end.getUTCDate() < birth.getUTCDate())) years--;
+  if (years < 0) return '';
+  return person.deathDate ? `${years}y` : `${years}y now`;
+}
+
 function relationshipLabel(rel, map) {
   const from = map.get(rel.fromId);
   const to = map.get(rel.toId);
   if (!from || !to) return '';
-  const date = rel.date ? ` · ${rel.date}` : '';
+  const datePart = rel.date && rel.endDate
+    ? ` · ${rel.date} → ${rel.endDate}`
+    : rel.date ? ` · ${rel.date}` : rel.endDate ? ` · ? → ${rel.endDate}` : '';
   const note = rel.note ? ` · ${escHtml(rel.note)}` : '';
-  if (rel.type === 'parent') return `${escHtml(from.name)} → parent of → ${escHtml(to.name)}${date}${note}`;
-  if (rel.type === 'spouse') return `${escHtml(from.name)} ↔ spouse ↔ ${escHtml(to.name)}${date}${note}`;
-  return `${escHtml(from.name)} ↔ sibling ↔ ${escHtml(to.name)}${date}${note}`;
+  if (rel.type === 'parent') return `${nameLink(from)} → parent of → ${nameLink(to)}${datePart}${note}`;
+  if (rel.type === 'spouse') {
+    const ended = rel.endDate ? ' [divorced]' : '';
+    return `${nameLink(from)} ↔ spouse ↔ ${nameLink(to)}${datePart}${ended}${note}`;
+  }
+  return `${nameLink(from)} ↔ sibling ↔ ${nameLink(to)}${datePart}${note}`;
 }
 
 function buildDateLedger() {
   const entries = [];
   db.people.forEach(person => {
-    if (person.birthDate) entries.push({ date: person.birthDate, label: 'BIRTH', text: person.name });
-    if (person.deathDate) entries.push({ date: person.deathDate, label: 'DEATH', text: person.name });
+    if (person.birthDate) entries.push({ date: person.birthDate, label: 'BIRTH', text: person.name, personId: person.id });
+    if (person.deathDate) entries.push({ date: person.deathDate, label: 'DEATH', text: person.name, personId: person.id });
+  });
+  const pmap = peopleMap();
+  db.relationships.forEach(rel => {
+    if (rel.type !== 'spouse') return;
+    const from = pmap.get(rel.fromId);
+    const to = pmap.get(rel.toId);
+    if (!from || !to) return;
+    const couple = from.name + ' & ' + to.name;
+    if (rel.date) entries.push({ date: rel.date, label: 'MARR', text: couple });
+    if (rel.endDate) entries.push({ date: rel.endDate, label: 'DIV', text: couple });
   });
   db.events.forEach(event => {
     if (event.date) entries.push({ date: event.date, label: event.type.toUpperCase(), text: event.title });
   });
-  return entries.sort((a, b) => a.date.localeCompare(b.date)).slice(-8);
+  return entries.sort((a, b) => a.date.localeCompare(b.date));
 }
 
-function renderMetrics() {
-  const knownDates = db.people.reduce((count, person) => count + (person.birthDate ? 1 : 0) + (person.deathDate ? 1 : 0), 0) + db.events.filter(event => event.date).length;
-  document.getElementById('metric-people').textContent = String(db.people.length);
-  document.getElementById('metric-relationships').textContent = String(db.relationships.length);
-  document.getElementById('metric-events').textContent = String(db.events.length);
-  document.getElementById('metric-dates').textContent = String(knownDates);
+function renderNuclearFamily() {
+  const el = document.getElementById('nuclear-family');
+  const focus = getFocusPerson();
+  if (!focus) { el.className = 'dim'; el.innerHTML = 'No people yet.'; return; }
+  const summary = relationSummary(focus.id);
+
+  if (!summary.spouses.length && !summary.children.length) {
+    el.className = 'dim';
+    el.innerHTML = 'No spouse or children recorded.';
+    return;
+  }
+
+  // Build child→parents map for grouping
+  const childParents = new Map();
+  db.relationships.forEach(r => {
+    if (r.type === 'parent') {
+      if (!childParents.has(r.toId)) childParents.set(r.toId, new Set());
+      childParents.get(r.toId).add(r.fromId);
+    }
+  });
+
+  function childRow(c) {
+    const age = ageLabel(c);
+    const yr = c.birthDate ? ' <span class="rel-date">· ' + c.birthDate.slice(0, 4) + '</span>' : '';
+    const ageHtml = age ? ' <span class="rel-date">· ' + age + (c.deathDate ? '<span style="color:var(--warn)">/d</span>' : '') + '</span>' : '';
+    return `<div class="rel-row" style="padding-left:14px">${nameLink(c)}${yr}${ageHtml}</div>`;
+  }
+
+  const assigned = new Set();
+  let html = '';
+
+  // Sort spouses by marriage date
+  const spousesSorted = summary.spouses.slice().sort((a, b) => {
+    const ra = db.relationships.find(r => r.type === 'spouse' && ((r.fromId === focus.id && r.toId === a.id) || (r.toId === focus.id && r.fromId === a.id)));
+    const rb = db.relationships.find(r => r.type === 'spouse' && ((r.fromId === focus.id && r.toId === b.id) || (r.toId === focus.id && r.fromId === b.id)));
+    return ((ra && ra.date) || '9999').localeCompare((rb && rb.date) || '9999');
+  });
+
+  for (const s of spousesSorted) {
+    const rel = db.relationships.find(r => r.type === 'spouse' && ((r.fromId === focus.id && r.toId === s.id) || (r.toId === focus.id && r.fromId === s.id)));
+    const marriagePart = rel && rel.date ? ' <span class="rel-date">· m.' + rel.date.slice(0, 4) + (rel.endDate ? ' → ' + rel.endDate.slice(0, 4) : '') + '</span>' : '';
+    const divTag = rel && rel.endDate ? ' <span class="dim">[div]</span>' : '';
+    const birthPart = s.birthDate ? ' <span class="rel-date">· ' + s.birthDate.slice(0, 4) + '</span>' : '';
+    const age = ageLabel(s);
+    const agePart = age ? ' <span class="rel-date">· ' + age + (s.deathDate ? '<span style="color:var(--warn)">/d</span>' : '') + '</span>' : '';
+    html += `<div class="rel-row"><span class="rel-label">Spouse</span>${nameLink(s)}${birthPart}${agePart}${marriagePart}${divTag}</div>`;
+
+    const shared = summary.children
+      .filter(c => { const p = childParents.get(c.id); return p && p.has(focus.id) && p.has(s.id); })
+      .sort((a, b) => (a.birthDate || '9999').localeCompare(b.birthDate || '9999'));
+    shared.forEach(c => { assigned.add(c.id); html += childRow(c); });
+  }
+
+  const unassigned = summary.children
+    .filter(c => !assigned.has(c.id))
+    .sort((a, b) => (a.birthDate || '9999').localeCompare(b.birthDate || '9999'));
+  if (unassigned.length) {
+    html += `<div class="section-title" style="margin-top:6px">OTHER CHILDREN</div>`;
+    unassigned.forEach(c => { html += childRow(c); });
+  }
+
+  el.className = '';
+  el.innerHTML = html;
+}
+
+
+function focusAgeHtml(person) {
+  const age = ageLabel(person);
+  if (!age) return '<span style="color:var(--dim)">birth unknown</span>';
+  if (person.deathDate) return '<span style="color:var(--warn)">deceased · ' + escHtml(age.replace(' now', '')) + ' at death</span>';
+  return '<span style="color:var(--success)">' + escHtml(age) + '</span>';
 }
 
 function renderFocus() {
@@ -485,29 +751,42 @@ function renderFocus() {
   const el = document.getElementById('focus-card');
   if (!focus) {
     el.className = 'dim';
-    el.innerHTML = 'No people yet. Use /person add to start the tree.';
+    el.innerHTML = 'No people yet. Use /add to start the tree.';
     return;
   }
   const summary = relationSummary(focus.id);
   const attrs = Object.entries(focus.attributes);
+
+  // relationship rows with natural labels
+  const relRows = [];
+  for (const p of summary.parents) {
+    const g = (p.gender || '').toLowerCase();
+    const lbl = (g === 'male' || g === 'm') ? 'Father' : (g === 'female' || g === 'f') ? 'Mother' : 'Parent';
+    relRows.push(`<div class="rel-row"><span class="rel-label">${lbl}</span>${nameLink(p)}${p.birthDate ? '<span class="rel-date"> · ' + escHtml(p.birthDate.slice(0,4)) + '</span>' : ''}</div>`);
+  }
+  if (summary.siblings.length) {
+    const full = summary.siblings.filter(s => !s.half);
+    const half = summary.siblings.filter(s => s.half);
+    if (full.length) relRows.push(`<div class="rel-row"><span class="rel-label">Siblings</span><span class="rel-person">${full.map(s => nameLink(s.person)).join(' · ')}</span></div>`);
+    if (half.length) relRows.push(`<div class="rel-row"><span class="rel-label">Half-sib</span><span class="rel-person">${half.map(s => nameLink(s.person)).join(' · ')}</span></div>`);
+  }
+
   const chips = [
     focus.branch && `<span class="chip chip-accent">${escHtml(focus.branch)}</span>`,
-    focus.gender && `<span class="chip">${escHtml(focus.gender)}</span>`,
-    `<span class="chip chip-good">${summary.parents.length} parent${summary.parents.length === 1 ? '' : 's'}</span>`,
-    `<span class="chip chip-good">${summary.children.length} child${summary.children.length === 1 ? '' : 'ren'}</span>`,
-    `<span class="chip">${summary.spouses.length} spouse${summary.spouses.length === 1 ? '' : 's'}</span>`,
-    `<span class="chip">${summary.siblings.length} sibling${summary.siblings.length === 1 ? '' : 's'}</span>`
   ].filter(Boolean).join('');
   const attrHtml = attrs.length
-    ? attrs.map(([key, value]) => `<span class="chip">${escHtml(key)}: ${escHtml(value)}</span>`).join('')
-    : '<span class="dim">No custom attributes yet. Use /attr set.</span>';
+    ? attrs.map(([k, v]) => `<span class="chip">${escHtml(k)}: ${escHtml(v)}</span>`).join('')
+    : '<span class="dim">No attributes. Use /attr set.</span>';
+
   el.className = '';
   el.innerHTML = `
-    <div class="focus-name">${escHtml(focus.name)} <span class="focus-meta">(${escHtml(focus.id)})</span></div>
-    <div class="focus-meta">${escHtml(formatLife(focus))}</div>
-    <div class="chip-row">${chips}</div>
+    <div class="focus-name">${escHtml(focus.name)} <span class="focus-meta">(${escHtml(focus.id)})</span>${focus.gender ? ' <span class="dim" style="font-size:0.82em">' + escHtml(focus.gender) + '</span>' : ''}</div>
+    <div class="focus-meta">${escHtml(formatLife(focus))} · ${focusAgeHtml(focus)}</div>
+    ${relRows.length ? relRows.join('') : '<div class="dim">No parents or siblings recorded.</div>'}
+    <hr class="focus-divider">
+    <div class="chip-row">${chips || '<span class="dim">No branch set.</span>'}</div>
     <div class="attr-row">${attrHtml}</div>
-    <div class="person-notes dim">${focus.notes ? escHtml(focus.notes) : 'No notes yet.'}</div>
+    <div class="person-notes dim">${focus.notes ? escHtml(focus.notes) : 'No notes.'}</div>
   `;
 }
 
@@ -520,7 +799,12 @@ function renderDateLedger() {
     return;
   }
   el.className = '';
-  el.innerHTML = entries.map(entry => `<div class="line"><span class="focus-meta">${escHtml(entry.date)}</span> · <span class="person-name">${escHtml(entry.label)}</span> · ${escHtml(entry.text)}</div>`).join('');
+  el.innerHTML = entries.map(entry => {
+    const nameHtml = entry.personId
+      ? `<span class="name-link person-name" data-person-focus="${escHtml(entry.personId)}">${escHtml(entry.text)}</span>`
+      : escHtml(entry.text);
+    return `<div class="line"><span class="focus-meta">${escHtml(entry.date)}</span> · <span class="person-name">${escHtml(entry.label)}</span> · ${nameHtml}</div>`;
+  }).join('');
 }
 
 function renderPeople() {
@@ -544,41 +828,23 @@ function renderPeople() {
     return `
       <div class="person-card">
         <div class="person-head">
-          <span class="action-link" data-person-focus="${escHtml(person.id)}">[FOCUS]</span>
-          <span class="person-name">${escHtml(person.name)}</span>
-          <span class="person-life">${escHtml(person.id)} · ${escHtml(formatLife(person))}</span>
+          ${nameLink(person)}
+          <span class="person-life">${escHtml(person.id)} · ${escHtml(formatLife(person))}${ageLabel(person) ? ' · ' + escHtml(ageLabel(person)) : ''}</span>
         </div>
         <div class="dim">${secondary}</div>
-        <div class="person-notes dim">${person.notes ? escHtml(person.notes) : 'No notes.'}</div>
       </div>
     `;
   }).join('');
-  el.querySelectorAll('[data-person-focus]').forEach(node => {
-    node.addEventListener('click', () => setFocus(node.dataset.personFocus, true));
-  });
 }
 
 function renderRelationships() {
   const map = peopleMap();
   const relList = document.getElementById('relationship-list');
-  const relMix = document.getElementById('relationship-mix');
   if (!db.relationships.length) {
     relList.className = 'dim';
     relList.textContent = 'No family links recorded yet.';
-    relMix.className = 'dim';
-    relMix.textContent = 'No relationships logged yet. Use /rel add.';
     return;
   }
-  const counts = db.relationships.reduce((acc, rel) => {
-    acc[rel.type] = (acc[rel.type] || 0) + 1;
-    return acc;
-  }, {});
-  relMix.className = '';
-  relMix.innerHTML = [
-    `<span class="chip chip-good">parent ${counts.parent || 0}</span>`,
-    `<span class="chip">spouse ${counts.spouse || 0}</span>`,
-    `<span class="chip">sibling ${counts.sibling || 0}</span>`
-  ].join(' ');
   relList.className = '';
   relList.innerHTML = db.relationships
     .slice()
@@ -600,15 +866,70 @@ function renderEvents() {
     .slice()
     .sort((a, b) => (a.date || '9999-99-99').localeCompare(b.date || '9999-99-99') || a.id.localeCompare(b.id))
     .map(event => {
-      const people = event.personIds.map(id => map.get(id)).filter(Boolean).map(person => person.name).join(', ');
+      const people = event.personIds.map(id => map.get(id)).filter(Boolean).map(p => nameLink(p)).join(', ');
       return `<div class="line"><span class="focus-meta">${escHtml(event.id)}</span> · <span class="person-name">${escHtml(event.type.toUpperCase())}</span> · ${event.date ? escHtml(event.date) + ' · ' : ''}${escHtml(event.title)}${people ? ' · ' + escHtml(people) : ''}${event.note ? ' · ' + escHtml(event.note) : ''}</div>`;
     })
     .join('');
 }
 
+// ── Ancestor / Descendant trees ───────────────────────────────────────────────
+function buildAncestorNode(personId, depth, visited = new Set()) {
+  if (visited.has(personId) || depth < 0) return null;
+  visited.add(personId);
+  const pmap = peopleMap();
+  const person = pmap.get(personId);
+  if (!person) return null;
+  const parents = db.relationships
+    .filter(r => r.type === 'parent' && r.toId === personId)
+    .map(r => pmap.get(r.fromId)).filter(Boolean);
+  return { person, children: parents.map(p => buildAncestorNode(p.id, depth - 1, visited)).filter(Boolean) };
+}
+
+function buildDescendantNode(personId, depth, visited = new Set()) {
+  if (visited.has(personId) || depth < 0) return null;
+  visited.add(personId);
+  const pmap = peopleMap();
+  const person = pmap.get(personId);
+  if (!person) return null;
+  const children = [...new Set(
+    db.relationships.filter(r => r.type === 'parent' && r.fromId === personId).map(r => r.toId)
+  )].map(id => pmap.get(id)).filter(Boolean)
+    .sort((a, b) => (a.birthDate || '9999').localeCompare(b.birthDate || '9999'));
+  return { person, children: children.map(c => buildDescendantNode(c.id, depth - 1, visited)).filter(Boolean) };
+}
+
+function renderTreeHtml(node, prefix, isLast) {
+  const connector = prefix !== null ? (isLast ? '└─ ' : '├─ ') : '';
+  const childPrefix = (prefix || '') + (prefix === null ? '' : isLast ? '   ' : '│  ');
+  const age = ageLabel(node.person);
+  const meta = formatLife(node.person) + (age ? '  ' + age : '');
+  const line = `<div style="white-space:pre;line-height:1.7">${escHtml((prefix || '') + connector)}${nameLink(node.person)}  <span style="color:var(--dim);font-size:0.84em">${escHtml(meta)}</span></div>`;
+  return line + node.children.map((child, i) => renderTreeHtml(child, childPrefix, i === node.children.length - 1)).join('');
+}
+
+function showAncestors(depthArg) {
+  const focus = getFocusPerson();
+  if (!focus) return statusMsg('No focus person set.');
+  const depth = Math.max(1, Math.min(8, parseInt(depthArg, 10) || 4));
+  const root = buildAncestorNode(focus.id, depth);
+  if (!root) return statusMsg('Could not build ancestor tree.');
+  const html = renderTreeHtml(root, null, true);
+  openOverlay(`◈ ANCESTORS — ${focus.name}  (${depth} generation${depth === 1 ? '' : 's'})`, html, true);
+}
+
+function showDescendants(depthArg) {
+  const focus = getFocusPerson();
+  if (!focus) return statusMsg('No focus person set.');
+  const depth = Math.max(1, Math.min(8, parseInt(depthArg, 10) || 4));
+  const root = buildDescendantNode(focus.id, depth);
+  if (!root) return statusMsg('Could not build descendant tree.');
+  const html = renderTreeHtml(root, null, true);
+  openOverlay(`◈ DESCENDANTS — ${focus.name}  (${depth} generation${depth === 1 ? '' : 's'})`, html, true);
+}
+
 function render() {
-  renderMetrics();
   renderFocus();
+  renderNuclearFamily();
   renderDateLedger();
   renderPeople();
   renderRelationships();
@@ -629,6 +950,19 @@ function openOverlay(title, body, useHtml) {
 
 function showHelp() {
   openOverlay('◈ LIFE LINE — COMMANDS', [
+    '── QUICK ADD ──────────────────────────────────────────',
+    '/ancestors [n]           show ancestor tree for focus person (default 4 generations)',
+    '/desc [n]                show descendant tree for focus person (default 4 generations)',
+    '',
+    '/add                     wizard: step-by-step add person',
+    '/add Name                wizard starting with name pre-filled',
+    '/add brother|sister|father|mother|son|daughter|spouse Name',
+    '                         add person + link to focus person',
+    '',
+    '── SET FOCUS FIELDS ───────────────────────────────────',
+    '/set name|birth|death|branch|gender|notes <value>',
+    '                         update field on focus person',
+    '',
     '── PEOPLE ─────────────────────────────────────────────',
     '/person add Name | birth | death | branch | gender | notes',
     '/person update person | field | value',
@@ -642,9 +976,16 @@ function showHelp() {
     '/attr list person',
     '',
     '── RELATIONSHIPS ──────────────────────────────────────',
-    '/rel add from | parent|child|spouse|partner|sibling | to | date | note',
+    '/rel set father|mother|son|daughter|brother|sister|spouse <person>',
+    '                         link focus person by keyword',
+    '/rel add from | parent|child|spouse | to | date | note',
+    '/rel add from | sibling | to          (manual override — only when parents not in tree)',
+    '/rel update <id> date <YYYY-MM-DD>',
+    '/rel update <id> endDate <YYYY-MM-DD>   (divorce date for spouse)',
+    '/rel update <id> note <text>',
     '/rel remove relationship-id',
     '/rel list',
+    '  * siblings auto-linked when two children share all parents',
     '',
     '── EVENTS ─────────────────────────────────────────────',
     '/event add type | date | title | person1, person2 | note',
@@ -660,7 +1001,7 @@ function showHelp() {
     '/backlog archive         move done items to archive',
     '/backlog archive list    show archived batches',
     '/backlog export          download backlog as .txt',
-    '/export [txt|json]       export app data',
+    '/export [txt|json|ged]   export app data (ged = GEDCOM for Ancestry etc.)',
     '/import                  import app data from .json',
     '/help                    show this help'
   ].join('\n'), false);
@@ -741,13 +1082,44 @@ function exportBacklog() {
   statusMsg(`Exported ${db.backlog.length} backlog item${db.backlog.length === 1 ? '' : 's'}.`);
 }
 
+function updateNavArrows() {
+  const back = document.getElementById('nav-back');
+  const fwd = document.getElementById('nav-fwd');
+  back.classList.toggle('enabled', historyPos > 0);
+  fwd.classList.toggle('enabled', historyPos < focusHistory.length - 1);
+}
+
 function setFocus(personId, silent) {
   const match = db.people.find(person => person.id === personId);
   if (!match) return statusMsg('Focus person not found.');
   db.focusPersonId = match.id;
   saveDB();
+  if (!navigating) {
+    focusHistory = focusHistory.slice(0, historyPos + 1);
+    if (focusHistory[focusHistory.length - 1] !== personId) {
+      focusHistory.push(personId);
+      historyPos = focusHistory.length - 1;
+    }
+  }
+  updateNavArrows();
   render();
   if (!silent) statusMsg('Focus: ' + match.name);
+}
+
+function goBack() {
+  if (historyPos <= 0) return;
+  navigating = true;
+  historyPos--;
+  setFocus(focusHistory[historyPos], true);
+  navigating = false;
+}
+
+function goForward() {
+  if (historyPos >= focusHistory.length - 1) return;
+  navigating = true;
+  historyPos++;
+  setFocus(focusHistory[historyPos], true);
+  navigating = false;
 }
 
 function personListText(query) {
@@ -891,14 +1263,15 @@ function cmdRelationshipAdd(raw) {
   if (date && !normalizedDate) return statusMsg('Relationship date must be YYYY-MM-DD.');
   const duplicate = db.relationships.find(rel => rel.type === canonical.type && rel.fromId === canonical.fromId && rel.toId === canonical.toId);
   if (duplicate) return statusMsg(`Duplicate relationship already exists (${duplicate.id}).`);
-  db.relationships.push(sanitizeRelationship({
+  const newRel = sanitizeRelationship({
     id: nextId('R', db.relationships),
     fromId: canonical.fromId,
     toId: canonical.toId,
     type: canonical.type,
     date: normalizedDate,
     note
-  }));
+  });
+  db.relationships.push(newRel);
   saveDB();
   render();
   statusMsg('Relationship added.');
@@ -914,6 +1287,60 @@ function handleRelationshipCommand(arg) {
     return openOverlay('RELATIONSHIPS', text, false);
   }
   if (trimmed.startsWith('add ')) return cmdRelationshipAdd(trimmed.slice(4));
+  if (trimmed.startsWith('set ')) {
+    const rest = trimmed.slice(4).trim();
+    const spaceIdx = rest.indexOf(' ');
+    const keyword = spaceIdx === -1 ? rest : rest.slice(0, spaceIdx);
+    const personToken = spaceIdx === -1 ? '' : rest.slice(spaceIdx + 1).trim();
+    if (!keyword || !personToken) return statusMsg('Usage: /rel set <type> <person>  (e.g. /rel set father John)');
+    const focus = getFocusPerson();
+    if (!focus) return statusMsg('No focus person set.');
+    if (!REL_KEYWORDS.has(keyword.toLowerCase())) return statusMsg('Type must be: father, mother, son, daughter, brother, sister, spouse, partner.');
+    const match = findPerson(personToken);
+    if (match.error) return statusMsg(match.error);
+    const result = addRelForFocus(focus.id, keyword, match.person.id);
+    if (result.error) return statusMsg(result.error);
+    saveDB(); render();
+    return statusMsg('Linked ' + focus.name + ' ↔ ' + keyword + ' ↔ ' + match.person.name + '.');
+  }
+  if (trimmed === 'cleanup') {
+    const childParents = new Map();
+    db.relationships.forEach(r => {
+      if (r.type === 'parent') {
+        if (!childParents.has(r.toId)) childParents.set(r.toId, new Set());
+        childParents.get(r.toId).add(r.fromId);
+      }
+    });
+    function shareAParent(idA, idB) {
+      const pa = childParents.get(idA) || new Set();
+      const pb = childParents.get(idB) || new Set();
+      for (const p of pa) if (pb.has(p)) return true;
+      return false;
+    }
+    const before = db.relationships.length;
+    db.relationships = db.relationships.filter(r =>
+      r.type !== 'sibling' || !shareAParent(r.fromId, r.toId)
+    );
+    const removed = before - db.relationships.length;
+    if (!removed) return statusMsg('No inferrable sibling records to remove.');
+    saveDB(); render();
+    return statusMsg(`Removed ${removed} sibling record${removed === 1 ? '' : 's'} now inferrable from parents.`);
+  }
+  if (trimmed.startsWith('update ')) {
+    const parts = trimmed.slice(7).trim().split(/\s+/);
+    const id = parts[0];
+    const field = (parts[1] || '').toLowerCase();
+    const value = parts.slice(2).join(' ');
+    const rel = db.relationships.find(r => r.id.toLowerCase() === id.toLowerCase());
+    if (!rel) return statusMsg('Relationship not found: ' + id);
+    const allowed = { date: 'date', enddate: 'endDate', end: 'endDate', divorce: 'endDate', note: 'note' };
+    const key = allowed[field];
+    if (!key) return statusMsg('Field must be: date, endDate, note.');
+    if ((key === 'date' || key === 'endDate') && value && !normalizeDate(value)) return statusMsg('Date must be YYYY-MM-DD.');
+    rel[key] = (key === 'date' || key === 'endDate') ? normalizeDate(value) : value;
+    saveDB(); render();
+    return statusMsg(`${id}: ${field} updated.`);
+  }
   if (trimmed.startsWith('remove ')) {
     const id = cleanText(trimmed.slice(7));
     const before = db.relationships.length;
@@ -923,7 +1350,7 @@ function handleRelationshipCommand(arg) {
     render();
     return statusMsg('Relationship removed: ' + id);
   }
-  statusMsg('Usage: /rel add|remove|list');
+  statusMsg('Usage: /rel add|update|remove|list');
 }
 
 function cmdEventAdd(raw) {
@@ -952,7 +1379,7 @@ function handleEventCommand(arg) {
     const map = peopleMap();
     const text = db.events.length
       ? db.events.map(event => {
-          const people = event.personIds.map(id => map.get(id)).filter(Boolean).map(person => person.name).join(', ');
+          const people = event.personIds.map(id => map.get(id)).filter(Boolean).map(p => nameLink(p)).join(', ');
           return `${event.id}  ${event.type.toUpperCase()}  ${event.date}  ${event.title}${people ? '  [' + people + ']' : ''}${event.note ? '  ' + event.note : ''}`;
         }).join('\n')
       : 'No events recorded.';
@@ -980,7 +1407,7 @@ function exportDataTxt() {
     ...db.people.map(person => `- ${person.id} | ${person.name} | ${formatLife(person)} | ${person.branch || '-'} | ${person.gender || '-'} | ${person.notes || '-'}`),
     '',
     'RELATIONSHIPS',
-    ...db.relationships.map(rel => `- ${rel.id} | ${relationshipLabel(rel, map).replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>')}`),
+    ...db.relationships.map(rel => `- ${rel.id} | ${relationshipLabel(rel, map).replace(/<[^>]+>/g, '').replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>')}`),
     '',
     'EVENTS',
     ...db.events.map(event => `- ${event.id} | ${event.type} | ${event.date} | ${event.title}`)
@@ -1020,13 +1447,127 @@ function importData(obj) {
   if (!db.people.some(person => person.id === db.focusPersonId)) db.focusPersonId = db.people[0] ? db.people[0].id : '';
 }
 
+function exportGedcom() {
+  const MONTHS = ['JAN','FEB','MAR','APR','MAY','JUN','JUL','AUG','SEP','OCT','NOV','DEC'];
+  function gedDate(iso) {
+    if (!iso) return null;
+    const [y, m, d] = iso.split('-');
+    if (!y) return null;
+    const mi = parseInt(m, 10), di = parseInt(d, 10);
+    if (mi && di) return `${di} ${MONTHS[mi-1]} ${y}`;
+    if (mi) return `${MONTHS[mi-1]} ${y}`;
+    return y;
+  }
+
+  const lines = [];
+  const now = new Date();
+  lines.push('0 HEAD');
+  lines.push('1 SOUR life-line');
+  lines.push('2 NAME LIFE LINE');
+  lines.push('2 VERS 1.0');
+  lines.push(`1 DATE ${now.getDate()} ${MONTHS[now.getMonth()]} ${now.getFullYear()}`);
+  lines.push('1 GEDC');
+  lines.push('2 VERS 5.5.1');
+  lines.push('2 FORM LINEAGE-LINKED');
+  lines.push('1 CHAR UTF-8');
+
+  // Build family groups from spouse relationships + child-parent links
+  const famMap = new Map();
+  let famCounter = 0;
+  const famKey = ids => [...ids].sort().join('|');
+
+  function getOrCreateFam(parentIds, spouseRel) {
+    const key = famKey(parentIds);
+    if (!famMap.has(key)) famMap.set(key, { id: 'F' + (++famCounter), parentIds: [...parentIds], children: [], spouseRel: null });
+    const fam = famMap.get(key);
+    if (spouseRel && !fam.spouseRel) fam.spouseRel = spouseRel;
+    return fam;
+  }
+
+  db.relationships.forEach(rel => {
+    if (rel.type === 'spouse') getOrCreateFam([rel.fromId, rel.toId], rel);
+  });
+
+  const childToParents = new Map();
+  db.relationships.forEach(rel => {
+    if (rel.type === 'parent') {
+      if (!childToParents.has(rel.toId)) childToParents.set(rel.toId, []);
+      childToParents.get(rel.toId).push(rel.fromId);
+    }
+  });
+  childToParents.forEach((parentIds, childId) => getOrCreateFam(parentIds, null).children.push(childId));
+
+  // Person → family lookups
+  const personFamS = new Map();
+  const personFamC = new Map();
+  famMap.forEach(fam => {
+    fam.parentIds.forEach(pid => { if (!personFamS.has(pid)) personFamS.set(pid, []); personFamS.get(pid).push(fam.id); });
+    fam.children.forEach(cid => personFamC.set(cid, fam.id));
+  });
+
+  // INDI records
+  const pmap = peopleMap();
+  db.people.forEach(person => {
+    lines.push(`0 @${person.id}@ INDI`);
+    const parts = person.name.trim().split(/\s+/);
+    const surname = parts.length > 1 ? parts.pop() : '';
+    lines.push(`1 NAME ${parts.join(' ')}${surname ? ' /' + surname + '/' : ''}`);
+    const g = (person.gender || '').toLowerCase();
+    if (g === 'male' || g === 'm') lines.push('1 SEX M');
+    else if (g === 'female' || g === 'f') lines.push('1 SEX F');
+    const bd = gedDate(person.birthDate);
+    if (bd) { lines.push('1 BIRT'); lines.push('2 DATE ' + bd); }
+    if (person.deathDate) {
+      lines.push('1 DEAT Y');
+      const dd = gedDate(person.deathDate);
+      if (dd) lines.push('2 DATE ' + dd);
+    }
+    if (person.branch) lines.push('1 _BRAN ' + person.branch);
+    if (person.notes) lines.push('1 NOTE ' + person.notes);
+    Object.entries(person.attributes || {}).forEach(([k, v]) => lines.push(`1 _ATTR ${k}: ${v}`));
+    (personFamS.get(person.id) || []).forEach(fid => lines.push('1 FAMS @' + fid + '@'));
+    const famc = personFamC.get(person.id);
+    if (famc) lines.push('1 FAMC @' + famc + '@');
+  });
+
+  // FAM records
+  famMap.forEach(fam => {
+    lines.push(`0 @${fam.id}@ FAM`);
+    const parents = fam.parentIds.map(id => pmap.get(id)).filter(Boolean);
+    let husb = null, wife = null, rest = [];
+    parents.forEach(p => {
+      const g = (p.gender || '').toLowerCase();
+      if (!husb && (g === 'male' || g === 'm')) husb = p;
+      else if (!wife && (g === 'female' || g === 'f')) wife = p;
+      else rest.push(p);
+    });
+    if (!husb && !wife) { husb = parents[0] || null; wife = parents[1] || null; }
+    else { if (!husb && rest.length) husb = rest.shift(); else if (!wife && rest.length) wife = rest.shift(); }
+    if (husb) lines.push('1 HUSB @' + husb.id + '@');
+    if (wife) lines.push('1 WIFE @' + wife.id + '@');
+    const rel = fam.spouseRel;
+    if (rel) {
+      const md = gedDate(rel.date);
+      if (md) { lines.push('1 MARR'); lines.push('2 DATE ' + md); }
+      if (rel.endDate) { lines.push('1 DIV Y'); const dd = gedDate(rel.endDate); if (dd) lines.push('2 DATE ' + dd); }
+      if (rel.note) lines.push('1 NOTE ' + rel.note);
+    }
+    fam.children.forEach(cid => lines.push('1 CHIL @' + cid + '@'));
+  });
+
+  lines.push('0 TRLR');
+  return lines.join('\r\n');
+}
+
 function cmdExport(format) {
   const now = todayStr();
   const doTxt = !format || format === 'txt';
   const doJson = !format || format === 'json';
-  if (!doTxt && !doJson) return statusMsg('Usage: /export [txt|json]');
+  const doGed = format === 'ged' || format === 'gedcom';
+  if (!doTxt && !doJson && !doGed) return statusMsg('Usage: /export [txt|json|ged]');
   if (doTxt) downloadBlob(exportDataTxt(), `${EXPORT_SLUG}-${now}.txt`, 'text/plain');
   if (doJson) downloadBlob(JSON.stringify(exportDataJson(), null, 2), `${EXPORT_SLUG}-${now}.json`, 'application/json');
+  if (doGed) downloadBlob(exportGedcom(), `${EXPORT_SLUG}-${now}.ged`, 'text/plain');
   statusMsg('Exported' + (format ? ' as .' + format : ' txt + json'));
 }
 
@@ -1068,12 +1609,43 @@ function applyTheme(name) {
   statusMsg('Theme: ' + name.toUpperCase());
 }
 
+document.addEventListener('click', event => {
+  const target = event.target.closest('[data-person-focus]');
+  if (target) {
+    setFocus(target.dataset.personFocus, true);
+    document.getElementById('help-overlay').classList.remove('visible');
+  }
+});
+
 const input = document.getElementById('console-input');
+const cmdHistory = [];
+let historyIdx = -1;
+let historySaved = '';
+
 input.addEventListener('keydown', event => {
   if (event.key === 'Enter') {
     const cmd = input.value.trim();
     input.value = '';
-    if (cmd) handleConsoleCmd(cmd);
+    historyIdx = -1;
+    historySaved = '';
+    if (wizard) { wizardHandleInput(cmd); return; }
+    if (!cmd) return;
+    if (cmdHistory[0] !== cmd) cmdHistory.unshift(cmd);
+    if (cmdHistory.length > 200) cmdHistory.pop();
+    handleConsoleCmd(cmd);
+  } else if (event.key === 'ArrowUp') {
+    event.preventDefault();
+    if (!cmdHistory.length) return;
+    if (historyIdx === -1) historySaved = input.value;
+    historyIdx = Math.min(historyIdx + 1, cmdHistory.length - 1);
+    input.value = cmdHistory[historyIdx];
+    input.setSelectionRange(input.value.length, input.value.length);
+  } else if (event.key === 'ArrowDown') {
+    event.preventDefault();
+    if (historyIdx === -1) return;
+    historyIdx--;
+    input.value = historyIdx === -1 ? historySaved : cmdHistory[historyIdx];
+    input.setSelectionRange(input.value.length, input.value.length);
   }
 });
 
@@ -1082,6 +1654,10 @@ function handleConsoleCmd(raw) {
   const cmd = parts[0].toLowerCase();
   const rest = raw.slice(cmd.length).trim();
   if (cmd === '/help') return showHelp();
+  if (cmd === '/add') return handleAddCommand(rest);
+  if (cmd === '/set') return handleSetCommand(rest);
+  if (cmd === '/ancestors' || cmd === '/anc') return showAncestors(parts[1]);
+  if (cmd === '/descendants' || cmd === '/desc') return showDescendants(parts[1]);
   if (cmd === '/theme') return applyTheme(parts[1] || '');
   if (cmd === '/backlog') return handleBacklog(rest);
   if (cmd === '/export') return cmdExport(parts[1] || '');
@@ -1095,15 +1671,42 @@ function handleConsoleCmd(raw) {
 }
 
 document.addEventListener('keydown', event => {
-  if (event.key === 'Escape') document.getElementById('help-overlay').classList.remove('visible');
+  if (event.altKey && event.key === 'ArrowLeft') { event.preventDefault(); goBack(); return; }
+  if (event.altKey && event.key === 'ArrowRight') { event.preventDefault(); goForward(); return; }
+  if (event.key === 'Escape') {
+    if (wizard) {
+      wizard = null;
+      document.getElementById('console-prompt').textContent = 'LIFELINE>';
+      statusMsg('Add cancelled.');
+      return;
+    }
+    document.getElementById('help-overlay').classList.remove('visible');
+  }
   if (document.getElementById('help-overlay').classList.contains('visible')) return;
   if (document.activeElement !== input) input.focus();
 });
 
+function initTabs() {
+  document.querySelectorAll('.tab').forEach(tab => {
+    tab.addEventListener('click', () => {
+      document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+      document.querySelectorAll('.tab-pane').forEach(p => p.style.display = 'none');
+      tab.classList.add('active');
+      document.getElementById('tab-' + tab.dataset.tab).style.display = '';
+      input.focus();
+    });
+  });
+}
+
 function init() {
   db = loadDB();
   applyTheme(db.theme || 'legacy');
+  initTabs();
+  if (db.focusPersonId) { focusHistory = [db.focusPersonId]; historyPos = 0; }
+  document.getElementById('nav-back').addEventListener('click', goBack);
+  document.getElementById('nav-fwd').addEventListener('click', goForward);
   render();
+  updateNavArrows();
   document.getElementById('splash').style.display = 'none';
   input.focus();
 }
