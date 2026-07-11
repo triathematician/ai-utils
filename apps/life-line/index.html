@@ -1268,6 +1268,7 @@ function showHelp() {
     '/set birthplace|deathplace <name>   (creates location if new)',
     '/set marriage <date> [location]     (requires exactly one spouse)',
     '/set divorce <date>                 (requires exactly one spouse)',
+    '/note <text>             append text to focus person\'s notes (shorthand for /set notes)',
     '',
     '── PEOPLE ─────────────────────────────────────────────',
     '/person add Name | birth | death | branch | gender | notes',
@@ -1516,6 +1517,16 @@ function cmdPersonFocus(raw) {
   const match = findPerson(raw);
   if (match.error) return statusMsg(match.error);
   setFocus(match.person.id);
+}
+
+function cmdNote(raw) {
+  const trimmed = cleanText(raw);
+  if (!trimmed) return statusMsg('Usage: /note <text>');
+  const focus = getFocusPerson();
+  if (!focus) return statusMsg('No focus person. Set focus with /focus <name>.');
+  focus.notes = focus.notes ? focus.notes + '; ' + trimmed : trimmed;
+  saveDB(); render();
+  statusMsg(focus.name + ': note added.');
 }
 
 const FOCUS_SHORTCUT_LABELS = {
@@ -2135,6 +2146,7 @@ function handleConsoleCmd(raw) {
   if (cmd === '/rel') return handleRelationshipCommand(rest);
   if (cmd === '/event') return handleEventCommand(rest);
   if (cmd === '/focus') return cmdPersonFocus(rest);
+  if (cmd === '/note') return cmdNote(rest);
   const shortcut = cmd.match(/^\/(f|m|s|c)(\d*)$/);
   if (shortcut) {
     const kindMap = { f: 'father', m: 'mother', s: 'spouse', c: 'child' };
