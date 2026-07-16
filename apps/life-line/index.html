@@ -1340,19 +1340,26 @@ function showDescendants(depthArg) {
 function computeTimelinePopulation(focusId, depth) {
   const pmap = peopleMap();
   const gen = new Map(); // personId -> generation offset relative to focus (0 = focus's generation)
+  const blood = new Set(); // personIds who are blood relatives (focus, ancestors, descendants, siblings)
 
-  function addWithExtras(id, g) {
-    if (gen.has(id)) return;
-    gen.set(id, g);
+  function addBlood(id, g) {
+    if (!gen.has(id)) gen.set(id, g);
+    blood.add(id);
+  }
+  function addSpouse(id, g) {
+    if (!gen.has(id)) gen.set(id, g);
+  }
+  function visit(id, g) {
+    addBlood(id, g);
     const summary = relationSummary(id);
-    summary.spouses.forEach(s => { if (!gen.has(s.id)) gen.set(s.id, g); });
-    summary.siblings.forEach(s => { if (!gen.has(s.person.id)) gen.set(s.person.id, g); });
+    summary.spouses.forEach(s => addSpouse(s.id, g));
+    summary.siblings.forEach(s => addBlood(s.person.id, g));
   }
 
   function walkAncestors(id, d, g, visited) {
     if (d < 0 || visited.has(id)) return;
     visited.add(id);
-    addWithExtras(id, g);
+    visit(id, g);
     db.relationships.filter(r => r.type === 'parent' && r.toId === id)
       .forEach(r => walkAncestors(r.fromId, d - 1, g - 1, visited));
   }
@@ -1360,7 +1367,7 @@ function computeTimelinePopulation(focusId, depth) {
   function walkDescendants(id, d, g, visited) {
     if (d < 0 || visited.has(id)) return;
     visited.add(id);
-    addWithExtras(id, g);
+    visit(id, g);
     db.relationships.filter(r => r.type === 'parent' && r.fromId === id)
       .forEach(r => walkDescendants(r.toId, d - 1, g + 1, visited));
   }
@@ -1368,7 +1375,7 @@ function computeTimelinePopulation(focusId, depth) {
   walkAncestors(focusId, depth, 0, new Set());
   walkDescendants(focusId, depth, 0, new Set());
 
-  const all = [...gen.entries()].map(([id, g]) => ({ person: pmap.get(id), gen: g })).filter(r => r.person);
+  const all = [...gen.entries()].map(([id, g]) => ({ person: pmap.get(id), gen: g, marriedIn: !blood.has(id) })).filter(r => r.person);
   const rows = all.filter(r => r.person.birthDate)
     .sort((a, b) => a.gen - b.gen || a.person.birthDate.localeCompare(b.person.birthDate));
   const undated = all.filter(r => !r.person.birthDate).map(r => r.person);
@@ -1441,9 +1448,14 @@ function buildTimelineSvg(rows, undated, focusId) {
     const colorIdx = ((r.gen % 10) + 10) % 10 + 1;
     const isFocus = p.id === focusId;
     const nameStyle = isFocus ? 'fill:var(--accent);font-weight:bold' : 'fill:var(--fg)';
-    const barStyle = isFocus
-      ? `fill:var(--cat-${colorIdx});fill-opacity:0.75;stroke:var(--accent);stroke-width:1.5`
-      : `fill:var(--cat-${colorIdx});fill-opacity:0.55`;
+    let barStyle;
+    if (isFocus) {
+      barStyle = `fill:var(--cat-${colorIdx});fill-opacity:0.75;stroke:var(--accent);stroke-width:1.5`;
+    } else if (r.marriedIn) {
+      barStyle = `fill:var(--cat-${colorIdx});fill-opacity:0.18;stroke:var(--cat-${colorIdx});stroke-width:1;stroke-dasharray:3,2`;
+    } else {
+      barStyle = `fill:var(--cat-${colorIdx});fill-opacity:0.55`;
+    }
     const age = ageLabel(p).replace(' now', '+');
     return `
       <text x="4" y="${y + rowH / 2 + 4}" font-size="12" font-family="monospace" style="${nameStyle};cursor:pointer" data-person-focus="${escHtml(p.id)}">${escHtml(p.name)}${isFocus ? ' ★' : ''}</text>
