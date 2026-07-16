@@ -1581,6 +1581,8 @@ function showHelp() {
     '/person remove person',
     '/person list [query]',
     '/person focus [person]',
+    '/person dupes            list groups of people with matching names (possible duplicates)',
+    '/person merge keep | remove   merge remove into keep (keep\'s fields win on conflict)',
     '',
     '── ATTRIBUTES ─────────────────────────────────────────',
     '/attr set person | key | value',
@@ -1817,6 +1819,90 @@ function cmdPersonRemove(raw) {
   statusMsg(`Removed ${match.person.name} and ${removedLinks} linked relationship${removedLinks === 1 ? '' : 's'}.`);
 }
 
+// ── Duplicate detection / merge ────────────────────────────────────────────
+function normalizeNameForDupeCheck(name) {
+  return cleanText(name).toLowerCase().replace(/\s+/g, ' ');
+}
+
+function findDuplicateClusters() {
+  const groups = new Map();
+  db.people.forEach(p => {
+    const key = normalizeNameForDupeCheck(p.name);
+    if (!key) return;
+    if (!groups.has(key)) groups.set(key, []);
+    groups.get(key).push(p);
+  });
+  return [...groups.values()].filter(g => g.length > 1);
+}
+
+function dupeClusterConfidence(cluster) {
+  const years = cluster.map(p => p.birthDate ? parseInt(p.birthDate.slice(0, 4), 10) : null);
+  if (years.some(y => y === null)) return 'check dates (missing birth date)';
+  const span = Math.max(...years) - Math.min(...years);
+  if (span <= 5) return 'likely';
+  return `unlikely — birth years ${span} years apart`;
+}
+
+function cmdPersonDupes() {
+  const clusters = findDuplicateClusters();
+  if (!clusters.length) return statusMsg('No likely duplicate names found.');
+  const text = clusters.map(cluster => {
+    const confidence = dupeClusterConfidence(cluster);
+    const lines = cluster.map(p => `  ${p.id}  ${p.name}  ${formatLife(p)}${p.branch ? '  [' + p.branch + ']' : ''}`).join('\n');
+    return `${cluster[0].name} (${confidence}):\n${lines}`;
+  }).join('\n\n');
+  openOverlay('POSSIBLE DUPLICATES', text, false);
+}
+
+function cmdPersonMerge(raw) {
+  const [keepToken, removeToken] = splitPipe(raw);
+  if (!keepToken || !removeToken) return statusMsg('Usage: /person merge keep | remove');
+  const keepMatch = findPerson(keepToken);
+  if (keepMatch.error) return statusMsg(keepMatch.error);
+  const removeMatch = findPerson(removeToken);
+  if (removeMatch.error) return statusMsg(removeMatch.error);
+  const keep = keepMatch.person;
+  const remove = removeMatch.person;
+  if (keep.id === remove.id) return statusMsg('Cannot merge a person into themselves.');
+
+  ['birthDate', 'deathDate', 'birthLocationId', 'deathLocationId', 'branch', 'gender'].forEach(f => {
+    if (!keep[f] && remove[f]) keep[f] = remove[f];
+  });
+  if (remove.notes) keep.notes = keep.notes ? keep.notes + '; ' + remove.notes : remove.notes;
+  keep.attributes = { ...remove.attributes, ...keep.attributes };
+
+  db.relationships = db.relationships
+    .map(rel => {
+      if (rel.fromId !== remove.id && rel.toId !== remove.id) return rel;
+      const newFromId = rel.fromId === remove.id ? keep.id : rel.fromId;
+      const newToId = rel.toId === remove.id ? keep.id : rel.toId;
+      const canonical = canonicalizeRelationship(newFromId, rel.type, newToId);
+      if (!canonical) return null;
+      return { ...rel, fromId: canonical.fromId, toId: canonical.toId };
+    })
+    .filter(Boolean);
+
+  const mergedRels = new Map();
+  db.relationships.forEach(rel => {
+    const key = rel.type + ':' + rel.fromId + ':' + rel.toId;
+    if (!mergedRels.has(key)) { mergedRels.set(key, rel); return; }
+    const existing = mergedRels.get(key);
+    ['date', 'endDate', 'locationId', 'note'].forEach(f => { if (!existing[f] && rel[f]) existing[f] = rel[f]; });
+  });
+  db.relationships = [...mergedRels.values()];
+
+  db.events.forEach(ev => {
+    ev.personIds = Array.from(new Set(ev.personIds.map(id => id === remove.id ? keep.id : id)));
+  });
+
+  db.people = db.people.filter(p => p.id !== remove.id);
+  if (db.focusPersonId === remove.id) db.focusPersonId = keep.id;
+
+  saveDB();
+  render();
+  statusMsg(`Merged ${remove.name} (${remove.id}) into ${keep.name} (${keep.id}).`);
+}
+
 function cmdPersonFocus(raw) {
   if (!cleanText(raw)) {
     const focus = getFocusPerson();
@@ -1868,7 +1954,9 @@ function handlePersonCommand(arg) {
   if (trimmed.startsWith('update ')) return cmdPersonUpdate(trimmed.slice(7));
   if (trimmed.startsWith('remove ')) return cmdPersonRemove(trimmed.slice(7));
   if (trimmed.startsWith('focus ')) return cmdPersonFocus(trimmed.slice(6));
-  statusMsg('Usage: /person add|update|remove|list|focus');
+  if (trimmed === 'dupes') return cmdPersonDupes();
+  if (trimmed.startsWith('merge ')) return cmdPersonMerge(trimmed.slice(6));
+  statusMsg('Usage: /person add|update|remove|list|focus|dupes|merge');
 }
 
 function findLocation(token) {
