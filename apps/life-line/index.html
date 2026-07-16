@@ -1438,6 +1438,19 @@ function buildTimelineSvg(rows, undated, focusId) {
     });
   });
 
+  let parentChildLines = '';
+  db.relationships.forEach(rel => {
+    if (rel.type !== 'parent' || (rel.fromId !== focusId && rel.toId !== focusId)) return;
+    const parentIdx = idToRowIndex.get(rel.fromId);
+    const childIdx = idToRowIndex.get(rel.toId);
+    if (parentIdx === undefined || childIdx === undefined) return;
+    const childBirthYear = parseInt(rows[childIdx].person.birthDate.slice(0, 4), 10);
+    const x = yearToX(childBirthYear);
+    const yTop = topM + Math.min(parentIdx, childIdx) * rowH + rowH / 2;
+    const yBottom = topM + Math.max(parentIdx, childIdx) * rowH + rowH / 2;
+    parentChildLines += `<line x1="${x}" y1="${yTop}" x2="${x}" y2="${yBottom}" style="stroke:var(--dim)" stroke-width="1"/>`;
+  });
+
   const bars = rows.map((r, i) => {
     const p = r.person;
     const y = topM + i * rowH;
@@ -1468,7 +1481,7 @@ function buildTimelineSvg(rows, undated, focusId) {
     ? `<div class="dim" style="margin-top:8px;font-size:0.82em">No birth date (not shown): ${undated.map(p => escHtml(p.name)).join(', ')}</div>`
     : '';
 
-  return `<div style="overflow-x:auto"><svg width="${totalW}" height="${totalH}" viewBox="0 0 ${totalW} ${totalH}" style="display:block">${gridlines}${nowLine}${markers}${bars}</svg></div>${undatedNote}`;
+  return `<div style="overflow-x:auto"><svg width="${totalW}" height="${totalH}" viewBox="0 0 ${totalW} ${totalH}" style="display:block">${gridlines}${nowLine}${markers}${parentChildLines}${bars}</svg></div>${undatedNote}`;
 }
 
 function showTimeline(depthArg) {
