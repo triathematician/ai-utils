@@ -1846,12 +1846,23 @@ function dupeClusterConfidence(cluster) {
 function cmdPersonDupes() {
   const clusters = findDuplicateClusters();
   if (!clusters.length) return statusMsg('No likely duplicate names found.');
-  const text = clusters.map(cluster => {
+  const html = clusters.map(cluster => {
     const confidence = dupeClusterConfidence(cluster);
-    const lines = cluster.map(p => `  ${p.id}  ${p.name}  ${formatLife(p)}${p.branch ? '  [' + p.branch + ']' : ''}`).join('\n');
-    return `${cluster[0].name} (${confidence}):\n${lines}`;
-  }).join('\n\n');
-  openOverlay('POSSIBLE DUPLICATES', text, false);
+    const lines = cluster.map(p => {
+      const removeId = cluster.find(o => o.id !== p.id).id;
+      const fillCmd = `/person merge ${p.id} | ${removeId}`;
+      return `<div class="line">${nameLink(p)} <span class="focus-meta">${escHtml(p.id)}</span> · ${escHtml(formatLife(p))}${p.branch ? ' · [' + escHtml(p.branch) + ']' : ''} <span class="action-link" data-merge-fill="${escHtml(fillCmd)}">[keep]</span></div>`;
+    }).join('');
+    return `<div style="margin-bottom:10px"><div class="section-title">${escHtml(cluster[0].name)} (${escHtml(confidence)})</div>${lines}</div>`;
+  }).join('');
+  openOverlay('POSSIBLE DUPLICATES', html, true);
+  document.querySelectorAll('[data-merge-fill]').forEach(node => {
+    node.addEventListener('click', () => {
+      input.value = node.dataset.mergeFill;
+      document.getElementById('help-overlay').classList.remove('visible');
+      input.focus();
+    });
+  });
 }
 
 function cmdPersonMerge(raw) {
