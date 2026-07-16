@@ -1353,7 +1353,10 @@ function computeTimelinePopulation(focusId, depth) {
     addBlood(id, g);
     const summary = relationSummary(id);
     summary.spouses.forEach(s => addSpouse(s.id, g));
-    summary.siblings.forEach(s => addBlood(s.person.id, g));
+    summary.siblings.forEach(s => {
+      addBlood(s.person.id, g);
+      relationSummary(s.person.id).spouses.forEach(sp => addSpouse(sp.id, g));
+    });
   }
 
   function walkAncestors(id, d, g, visited) {
