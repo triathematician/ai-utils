@@ -1439,16 +1439,36 @@ function buildTimelineSvg(rows, undated, focusId) {
   });
 
   let parentChildLines = '';
-  db.relationships.forEach(rel => {
-    if (rel.type !== 'parent' || (rel.fromId !== focusId && rel.toId !== focusId)) return;
-    const parentIdx = idToRowIndex.get(rel.fromId);
-    const childIdx = idToRowIndex.get(rel.toId);
+  const drawnConnectors = new Set();
+  function addParentChildConnector(parentId, childId) {
+    const key = parentId + '>' + childId;
+    if (drawnConnectors.has(key)) return;
+    drawnConnectors.add(key);
+    const parentIdx = idToRowIndex.get(parentId);
+    const childIdx = idToRowIndex.get(childId);
     if (parentIdx === undefined || childIdx === undefined) return;
     const childBirthYear = parseInt(rows[childIdx].person.birthDate.slice(0, 4), 10);
     const x = yearToX(childBirthYear);
     const yTop = topM + Math.min(parentIdx, childIdx) * rowH + rowH / 2;
     const yBottom = topM + Math.max(parentIdx, childIdx) * rowH + rowH / 2;
     parentChildLines += `<line x1="${x}" y1="${yTop}" x2="${x}" y2="${yBottom}" style="stroke:var(--dim)" stroke-width="1"/>`;
+    parentChildLines += `<circle cx="${x}" cy="${yTop}" r="3" style="fill:var(--dim)"/>`;
+    parentChildLines += `<circle cx="${x}" cy="${yBottom}" r="3" style="fill:var(--dim)"/>`;
+  }
+  db.relationships.forEach(rel => {
+    if (rel.type !== 'parent') return;
+    if (rel.toId === focusId) {
+      // rel.fromId is a parent of the focus person
+      addParentChildConnector(rel.fromId, rel.toId);
+    } else if (rel.fromId === focusId) {
+      // rel.toId is a child of the focus person; also connect the child's other parent (focus's spouse)
+      addParentChildConnector(rel.fromId, rel.toId);
+      db.relationships.forEach(other => {
+        if (other.type === 'parent' && other.toId === rel.toId && other.fromId !== focusId) {
+          addParentChildConnector(other.fromId, other.toId);
+        }
+      });
+    }
   });
 
   const bars = rows.map((r, i) => {
