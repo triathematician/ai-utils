@@ -1388,9 +1388,10 @@ function buildTimelineSvg(rows, undated, focusId) {
 
   const leftW = 190;
   const chartW = 640;
+  const rightW = 50;
   const rowH = 24;
   const topM = 34;
-  const totalW = leftW + chartW + 20;
+  const totalW = leftW + chartW + rightW;
   const totalH = topM + rows.length * rowH + 16;
 
   const range = maxYear - minYear;
@@ -1443,9 +1444,11 @@ function buildTimelineSvg(rows, undated, focusId) {
     const barStyle = isFocus
       ? `fill:var(--cat-${colorIdx});fill-opacity:0.75;stroke:var(--accent);stroke-width:1.5`
       : `fill:var(--cat-${colorIdx});fill-opacity:0.55`;
+    const age = ageLabel(p).replace(' now', '+');
     return `
       <text x="4" y="${y + rowH / 2 + 4}" font-size="12" font-family="monospace" style="${nameStyle};cursor:pointer" data-person-focus="${escHtml(p.id)}">${escHtml(p.name)}${isFocus ? ' ★' : ''}</text>
       <rect x="${x1}" y="${y + 4}" width="${Math.max(2, x2 - x1)}" height="${rowH - 10}" rx="2" style="${barStyle}"/>
+      <text x="${x2 + 6}" y="${y + rowH / 2 + 4}" font-size="11" font-family="monospace" style="fill:var(--dim)">${escHtml(age)}</text>
     `;
   }).join('');
 
@@ -1462,7 +1465,7 @@ function showTimeline(depthArg) {
   const depth = Math.max(1, Math.min(8, parseInt(depthArg, 10) || 4));
   const { rows, undated } = computeTimelinePopulation(focus.id, depth);
   if (!rows.length) return statusMsg('No dated relatives found to chart.');
-  const html = buildTimelineSvg(rows, undated, focus.id);
+  const html = `<div data-timeline-depth="${depth}">${buildTimelineSvg(rows, undated, focus.id)}</div>`;
   openOverlay(`◈ LIFESPAN TIMELINE — ${focus.name}  (${depth} generation${depth === 1 ? '' : 's'})`, html, true);
 }
 
@@ -2331,10 +2334,14 @@ function applyTheme(name) {
 
 document.addEventListener('click', event => {
   const target = event.target.closest('[data-person-focus]');
-  if (target) {
-    setFocus(target.dataset.personFocus, true);
-    document.getElementById('help-overlay').classList.remove('visible');
+  if (!target) return;
+  setFocus(target.dataset.personFocus, true);
+  const timelineWrap = target.closest('[data-timeline-depth]');
+  if (timelineWrap) {
+    showTimeline(timelineWrap.dataset.timelineDepth);
+    return;
   }
+  document.getElementById('help-overlay').classList.remove('visible');
 });
 
 const input = document.getElementById('console-input');
