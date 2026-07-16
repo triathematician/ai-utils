@@ -1436,6 +1436,18 @@ function buildTimelineSvg(rows, undated, focusId) {
     [yA, yB].forEach(y => {
       markers += `<polygon points="${x - 4},${y} ${x},${y - 4} ${x + 4},${y} ${x},${y + 4}" style="fill:var(--success)"/>`;
     });
+
+    if (rel.endDate) {
+      const divorceYear = parseInt(rel.endDate.slice(0, 4), 10);
+      if (divorceYear >= minYear && divorceYear <= maxYear) {
+        const dx = yearToX(divorceYear);
+        markers += `<line x1="${dx}" y1="${yA}" x2="${dx}" y2="${yB}" style="stroke:var(--warn)" stroke-width="1" stroke-dasharray="2,2"/>`;
+        [yA, yB].forEach(y => {
+          markers += `<line x1="${dx - 4}" y1="${y - 4}" x2="${dx + 4}" y2="${y + 4}" style="stroke:var(--warn)" stroke-width="1.5"/>`;
+          markers += `<line x1="${dx - 4}" y1="${y + 4}" x2="${dx + 4}" y2="${y - 4}" style="stroke:var(--warn)" stroke-width="1.5"/>`;
+        });
+      }
+    }
   });
 
   let parentChildLines = '';
