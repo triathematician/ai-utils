@@ -1653,7 +1653,15 @@ function renderCensusFocusCard() {
   }
   const locMap = new Map(db.locations.map(l => [l.id, l]));
   const loc = locMap.get(h.locationId);
-  const membersHtml = h.members.map(m => `<div class="rel-row"><span class="rel-label">${escHtml(m.relation || '—')}</span>${escHtml(m.name)}${m.gender ? ' <span class="rel-date">· ' + escHtml(m.gender) + '</span>' : ''}${m.age ? ' <span class="rel-date">· age ' + escHtml(m.age) + '</span>' : ''}${m.birthplace ? ' <span class="rel-date">· b. ' + escHtml(m.birthplace) + '</span>' : ''}${m.occupation ? ' <span class="rel-date">· ' + escHtml(m.occupation) + '</span>' : ''}</div>`).join('');
+  const membersHtml = h.members.map(m => {
+    const yearNum = parseInt(h.year, 10);
+    const ageNum = parseInt(m.age, 10);
+    const approxYear = !Number.isNaN(yearNum) && !Number.isNaN(ageNum) ? yearNum - ageNum : null;
+    const approxHtml = approxYear !== null
+      ? `<span style="margin-left:auto;color:var(--warn);font-size:0.8em" title="Approximate birth year, derived from census year minus age">~${approxYear}</span>`
+      : '';
+    return `<div class="rel-row"><span class="rel-label">${escHtml(m.relation || '—')}</span>${escHtml(m.name)}${m.gender ? ' <span class="rel-date">· ' + escHtml(m.gender) + '</span>' : ''}${m.age ? ' <span class="rel-date">· age ' + escHtml(m.age) + '</span>' : ''}${m.birthplace ? ' <span class="rel-date">· b. ' + escHtml(m.birthplace) + '</span>' : ''}${m.occupation ? ' <span class="rel-date">· ' + escHtml(m.occupation) + '</span>' : ''}${approxHtml}</div>`;
+  }).join('');
   el.className = '';
   el.innerHTML = `
     <div class="focus-name">${escHtml(h.id)} <span class="focus-meta">(${escHtml(h.year)})</span></div>
