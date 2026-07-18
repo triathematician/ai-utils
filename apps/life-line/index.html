@@ -258,7 +258,7 @@ const STORAGE_KEY = 'life_line_db';
 const EXPORT_SLUG = 'life-line';
 const THEMES = ['legacy','solar','monk','space','synth','dos','notebook','engineering','winter'];
 const RELATIONSHIP_TYPES = ['parent', 'child', 'spouse', 'partner', 'sibling'];
-let db = { people: [], relationships: [], events: [], locations: [], backlog: [], backlogArchive: [], theme: 'legacy', focusPersonId: '', lifespanFilter: false };
+let db = { people: [], relationships: [], events: [], locations: [], households: [], householdLinks: [], personMatches: [], backlog: [], backlogArchive: [], theme: 'legacy', focusPersonId: '', focusHouseholdId: '', lifespanFilter: false };
 let wizard = null;
 let relFill = null; // { candidates: [...], index: 0, added: 0, focusId }
 let lifespanFilterEnabled = false;
@@ -387,6 +387,61 @@ function sanitizeLocation(raw) {
   };
 }
 
+function sanitizeHouseholdMember(raw) {
+  const source = raw && typeof raw === 'object' ? raw : {};
+  return {
+    name: cleanText(source.name),
+    age: cleanText(source.age),
+    relation: cleanText(source.relation),
+    birthplace: cleanText(source.birthplace),
+    occupation: cleanText(source.occupation)
+  };
+}
+
+function sanitizeHousehold(raw) {
+  const source = raw && typeof raw === 'object' ? raw : {};
+  const members = Array.isArray(source.members) ? source.members.map(sanitizeHouseholdMember).filter(m => m.name) : [];
+  const year = cleanText(source.year).match(/^\d{4}$/) ? cleanText(source.year) : '';
+  return {
+    id: cleanText(source.id) || nextId('H', db.households || []),
+    year,
+    locationId: cleanText(source.locationId),
+    source: cleanText(source.source),
+    notes: cleanText(source.notes),
+    members,
+    createdAt: cleanText(source.createdAt) || new Date().toISOString()
+  };
+}
+
+function sanitizeHouseholdLink(raw) {
+  const source = raw && typeof raw === 'object' ? raw : {};
+  const fromId = cleanText(source.fromId);
+  const toId = cleanText(source.toId);
+  if (!fromId || !toId || fromId === toId) return null;
+  return {
+    id: cleanText(source.id) || nextId('HL', db.householdLinks || []),
+    fromId,
+    toId,
+    note: cleanText(source.note),
+    createdAt: cleanText(source.createdAt) || new Date().toISOString()
+  };
+}
+
+function sanitizePersonMatch(raw) {
+  const source = raw && typeof raw === 'object' ? raw : {};
+  const householdId = cleanText(source.householdId);
+  const personId = cleanText(source.personId);
+  const memberIndex = parseInt(source.memberIndex, 10);
+  if (!householdId || !personId || Number.isNaN(memberIndex) || memberIndex < 0) return null;
+  return {
+    id: cleanText(source.id) || nextId('M', db.personMatches || []),
+    householdId,
+    memberIndex,
+    personId,
+    createdAt: cleanText(source.createdAt) || new Date().toISOString()
+  };
+}
+
 function loadDB() {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
@@ -396,13 +451,17 @@ function loadDB() {
       relationships: Array.isArray(parsed.relationships) ? parsed.relationships : [],
       events: Array.isArray(parsed.events) ? parsed.events : [],
       locations: Array.isArray(parsed.locations) ? parsed.locations : [],
+      households: Array.isArray(parsed.households) ? parsed.households : [],
+      householdLinks: Array.isArray(parsed.householdLinks) ? parsed.householdLinks : [],
+      personMatches: Array.isArray(parsed.personMatches) ? parsed.personMatches : [],
       backlog: Array.isArray(parsed.backlog) ? parsed.backlog : [],
       backlogArchive: Array.isArray(parsed.backlogArchive) ? parsed.backlogArchive : [],
       theme: cleanText(parsed.theme) || 'legacy',
       focusPersonId: cleanText(parsed.focusPersonId),
+      focusHouseholdId: cleanText(parsed.focusHouseholdId),
       lifespanFilter: parsed.lifespanFilter === true
     };
-    db = { people: [], relationships: [], events: [], locations: [] };
+    db = { people: [], relationships: [], events: [], locations: [], households: [], householdLinks: [], personMatches: [] };
     base.people = base.people.map(sanitizePerson);
     db.people = base.people;
     base.relationships = base.relationships.map(sanitizeRelationship).filter(Boolean);
@@ -411,10 +470,17 @@ function loadDB() {
     db.events = base.events;
     base.locations = base.locations.map(sanitizeLocation);
     db.locations = base.locations;
+    base.households = base.households.map(sanitizeHousehold);
+    db.households = base.households;
+    base.householdLinks = base.householdLinks.map(sanitizeHouseholdLink).filter(Boolean);
+    db.householdLinks = base.householdLinks;
+    base.personMatches = base.personMatches.map(sanitizePersonMatch).filter(Boolean);
+    db.personMatches = base.personMatches;
     if (!base.people.some(person => person.id === base.focusPersonId)) base.focusPersonId = base.people[0] ? base.people[0].id : '';
+    if (!base.households.some(h => h.id === base.focusHouseholdId)) base.focusHouseholdId = base.households[0] ? base.households[0].id : '';
     return base;
   } catch {
-    return { people: [], relationships: [], events: [], locations: [], backlog: [], backlogArchive: [], theme: 'legacy', focusPersonId: '', lifespanFilter: false };
+    return { people: [], relationships: [], events: [], locations: [], households: [], householdLinks: [], personMatches: [], backlog: [], backlogArchive: [], theme: 'legacy', focusPersonId: '', focusHouseholdId: '', lifespanFilter: false };
   }
 }
 
@@ -2289,7 +2355,11 @@ function exportDataJson() {
     relationships: db.relationships,
     events: db.events,
     locations: db.locations,
-    focusPersonId: db.focusPersonId
+    households: db.households,
+    householdLinks: db.householdLinks,
+    personMatches: db.personMatches,
+    focusPersonId: db.focusPersonId,
+    focusHouseholdId: db.focusHouseholdId
   };
 }
 
@@ -2307,14 +2377,19 @@ function importData(obj) {
     relationships: obj.relationships.map(sanitizeRelationship).filter(Boolean),
     events: obj.events.map(sanitizeEvent),
     locations: Array.isArray(obj.locations) ? obj.locations.map(sanitizeLocation) : [],
+    households: Array.isArray(obj.households) ? obj.households.map(sanitizeHousehold) : [],
+    householdLinks: Array.isArray(obj.householdLinks) ? obj.householdLinks.map(sanitizeHouseholdLink).filter(Boolean) : [],
+    personMatches: Array.isArray(obj.personMatches) ? obj.personMatches.map(sanitizePersonMatch).filter(Boolean) : [],
     backlog: db.backlog,
     backlogArchive: db.backlogArchive,
     theme: db.theme,
     focusPersonId: cleanText(obj.focusPersonId),
+    focusHouseholdId: cleanText(obj.focusHouseholdId),
     lifespanFilter: db.lifespanFilter
   };
   db = base;
   if (!db.people.some(person => person.id === db.focusPersonId)) db.focusPersonId = db.people[0] ? db.people[0].id : '';
+  if (!db.households.some(h => h.id === db.focusHouseholdId)) db.focusHouseholdId = db.households[0] ? db.households[0].id : '';
 }
 
 function exportGedcom() {
