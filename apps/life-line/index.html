@@ -1664,7 +1664,7 @@ function renderCensusFocusCard() {
   }).join('');
   el.className = '';
   el.innerHTML = `
-    <div class="focus-name">${escHtml(h.id)} <span class="focus-meta">(${escHtml(h.year)})</span></div>
+    <div class="focus-name">${escHtml(h.id)} <span class="focus-meta">(${escHtml(h.year)})</span> <span class="action-link" data-household-edit="${escHtml(h.id)}">[edit]</span></div>
     <div class="focus-meta">${loc ? escHtml(loc.name) : 'No location set'}${h.source ? ' · ' + escHtml(h.source) : ''}</div>
     <hr class="focus-divider">
     ${membersHtml || '<div class="dim">No members recorded.</div>'}
@@ -3065,6 +3065,12 @@ function toggleCensusMode() {
 
 document.addEventListener('click', event => {
   if (event.target.closest('#lifespan-toggle')) return toggleLifespanFilter();
+  const editTarget = event.target.closest('[data-household-edit]');
+  if (editTarget) {
+    const household = db.households.find(h => h.id === editTarget.dataset.householdEdit);
+    if (household) openHouseholdDialog(household);
+    return;
+  }
   const householdTarget = event.target.closest('[data-household-focus]');
   if (householdTarget) {
     db.focusHouseholdId = householdTarget.dataset.householdFocus;
