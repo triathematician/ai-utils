@@ -294,6 +294,10 @@ let db = { people: [], relationships: [], events: [], locations: [], households:
 let wizard = null;
 let relFill = null; // { candidates: [...], index: 0, added: 0, focusId }
 let lifespanFilterEnabled = false;
+let viewMode = 'life';
+let lifeTopPanelsHtml = '';
+let lifeMainPanelHtml = '';
+let lifeSidePanelHtml = '';
 let focusHistory = [];
 let historyPos = -1;
 let navigating = false;
@@ -561,6 +565,12 @@ function statusMsgPersistent(msg) {
 }
 
 function updateStatus() {
+  if (viewMode === 'census') {
+    const focus = db.households.find(h => h.id === db.focusHouseholdId);
+    const suffix = focus ? ' · ' + focus.id : '';
+    document.getElementById('console-status').textContent = `${db.households.length} HOUSEHOLDS · ${db.householdLinks.length} LINKS${suffix}`;
+    return;
+  }
   const focus = getFocusPerson();
   const suffix = focus ? ' · ' + focus.name : '';
   document.getElementById('console-status').textContent = `${db.people.length} PEOPLE · ${db.relationships.length} LINKS · ${db.events.length} EVENTS${suffix}`;
@@ -1629,7 +1639,109 @@ function showTimeline(depthArg) {
   openOverlay(`◈ LIFESPAN TIMELINE — ${focus.name}  (${depth} generation${depth === 1 ? '' : 's'})`, html, true);
 }
 
+// ── Census workspace rendering ───────────────────────────────────────────────
+function renderCensusFocusCard() {
+  const el = document.getElementById('census-focus-card');
+  if (!el) return;
+  const h = db.households.find(x => x.id === db.focusHouseholdId) || db.households[0];
+  if (!h) {
+    el.className = 'dim';
+    el.innerHTML = 'No households yet. Use /household add to start.';
+    return;
+  }
+  const locMap = new Map(db.locations.map(l => [l.id, l]));
+  const loc = locMap.get(h.locationId);
+  const membersHtml = h.members.map(m => `<div class="rel-row"><span class="rel-label">${escHtml(m.relation || '—')}</span>${escHtml(m.name)}${m.age ? ' <span class="rel-date">· age ' + escHtml(m.age) + '</span>' : ''}${m.birthplace ? ' <span class="rel-date">· b. ' + escHtml(m.birthplace) + '</span>' : ''}${m.occupation ? ' <span class="rel-date">· ' + escHtml(m.occupation) + '</span>' : ''}</div>`).join('');
+  el.className = '';
+  el.innerHTML = `
+    <div class="focus-name">${escHtml(h.id)} <span class="focus-meta">(${escHtml(h.year)})</span></div>
+    <div class="focus-meta">${loc ? escHtml(loc.name) : 'No location set'}${h.source ? ' · ' + escHtml(h.source) : ''}</div>
+    <hr class="focus-divider">
+    ${membersHtml || '<div class="dim">No members recorded.</div>'}
+    <div class="person-notes dim">${h.notes ? escHtml(h.notes) : 'No notes.'}</div>
+  `;
+}
+
+function renderCensusStats() {
+  const el = document.getElementById('census-stats');
+  if (!el) return;
+  const candidates = findCandidateHouseholdLinks();
+  el.className = '';
+  el.innerHTML = `${db.households.length} household${db.households.length === 1 ? '' : 's'} · ${db.householdLinks.length} confirmed link${db.householdLinks.length === 1 ? '' : 's'} · ${candidates.length} candidate link${candidates.length === 1 ? '' : 's'}`;
+}
+
+function renderHouseholdDirectory() {
+  const el = document.getElementById('household-list');
+  if (!el) return;
+  if (!db.households.length) {
+    el.className = 'dim';
+    el.textContent = 'No households yet. Use /household add to start.';
+    return;
+  }
+  const locMap = new Map(db.locations.map(l => [l.id, l]));
+  el.className = '';
+  el.innerHTML = db.households
+    .slice()
+    .sort((a, b) => a.year.localeCompare(b.year) || a.id.localeCompare(b.id))
+    .map(h => {
+      const loc = locMap.get(h.locationId);
+      const memberNames = h.members.map(m => escHtml(m.name)).join(', ');
+      return `
+        <div class="person-card" data-household-focus="${escHtml(h.id)}" style="cursor:pointer">
+          <div class="person-head">
+            <span class="person-name">${escHtml(h.id)} · ${escHtml(h.year)}</span>
+            <span class="person-life">${loc ? escHtml(loc.name) : 'no location'} · ${h.members.length} member${h.members.length === 1 ? '' : 's'}</span>
+          </div>
+          <div class="dim">${memberNames || 'No members'}</div>
+        </div>
+      `;
+    })
+    .join('');
+}
+
+function renderCandidateLinksPanel() {
+  const el = document.getElementById('candidate-links-panel');
+  if (!el) return;
+  const candidates = findCandidateHouseholdLinks();
+  if (!candidates.length) {
+    el.className = 'dim';
+    el.textContent = 'No candidate links. Run /link for details.';
+    return;
+  }
+  el.className = '';
+  el.innerHTML = candidates.map(c => `<div class="line">${escHtml(householdSummary(c.earlier))}<br>↔ ${escHtml(householdSummary(c.later))}<br><span class="dim">${c.overlap} shared name${c.overlap === 1 ? '' : 's'} · ${escHtml(c.confidence)}</span></div>`).join('');
+}
+
+function renderConfirmedLinksPanel() {
+  const el = document.getElementById('confirmed-links-panel');
+  if (!el) return;
+  if (!db.householdLinks.length) {
+    el.className = 'dim';
+    el.textContent = 'No confirmed links.';
+    return;
+  }
+  const hMap = new Map(db.households.map(h => [h.id, h]));
+  el.className = '';
+  el.innerHTML = db.householdLinks.map(l => {
+    const a = hMap.get(l.fromId), b = hMap.get(l.toId);
+    return `<div class="line"><span class="focus-meta">${escHtml(l.id)}</span> · ${a ? escHtml(householdSummary(a)) : l.fromId}<br>↔ ${b ? escHtml(householdSummary(b)) : l.toId}</div>`;
+  }).join('');
+}
+
+function renderCensusMode() {
+  renderCensusFocusCard();
+  renderCensusStats();
+  renderHouseholdDirectory();
+  renderCandidateLinksPanel();
+  renderConfirmedLinksPanel();
+}
+
 function render() {
+  if (viewMode === 'census') {
+    renderCensusMode();
+    updateStatus();
+    return;
+  }
   renderFocus();
   renderNuclearFamily();
   renderDateLedger();
@@ -2872,7 +2984,66 @@ function applyTheme(name) {
   statusMsg('Theme: ' + name.toUpperCase());
 }
 
+// ── Census workspace mode toggle ─────────────────────────────────────────────
+const CENSUS_TOP_PANELS_HTML = `
+  <div class="mini-panel">
+    <div id="census-focus-card" class="dim">No households yet. Use /household add to start.</div>
+  </div>
+  <div class="mini-panel">
+    <div id="census-stats" class="dim">No households yet.</div>
+  </div>
+`;
+
+const CENSUS_MAIN_PANEL_HTML = `
+  <div class="row-header">◈ HOUSEHOLD DIRECTORY</div>
+  <div id="household-list" class="dim">No households yet. Use /household add to start.</div>
+`;
+
+const CENSUS_SIDE_PANEL_HTML = `
+  <div class="tab-bar">
+    <span class="tab active" data-tab="candlinks">CANDIDATE LINKS</span>
+    <span class="tab" data-tab="conflinks">CONFIRMED LINKS</span>
+  </div>
+  <div id="tab-candlinks" class="tab-pane">
+    <div id="candidate-links-panel" class="dim">No candidate links.</div>
+  </div>
+  <div id="tab-conflinks" class="tab-pane" style="display:none">
+    <div id="confirmed-links-panel" class="dim">No confirmed links.</div>
+  </div>
+`;
+
+function toggleCensusMode() {
+  const topPanels = document.querySelector('#top-row .top-panels');
+  const mainPanel = document.getElementById('main-panel');
+  const sidePanel = document.getElementById('side-panel');
+  if (viewMode === 'life') {
+    lifeTopPanelsHtml = topPanels.innerHTML;
+    lifeMainPanelHtml = mainPanel.innerHTML;
+    lifeSidePanelHtml = sidePanel.innerHTML;
+    topPanels.innerHTML = CENSUS_TOP_PANELS_HTML;
+    mainPanel.innerHTML = CENSUS_MAIN_PANEL_HTML;
+    sidePanel.innerHTML = CENSUS_SIDE_PANEL_HTML;
+    viewMode = 'census';
+  } else {
+    topPanels.innerHTML = lifeTopPanelsHtml;
+    mainPanel.innerHTML = lifeMainPanelHtml;
+    sidePanel.innerHTML = lifeSidePanelHtml;
+    viewMode = 'life';
+  }
+  render();
+  input.focus();
+  statusMsg('Mode: ' + (viewMode === 'census' ? 'CENSUS' : 'LIFE LINE'));
+}
+
 document.addEventListener('click', event => {
+  if (event.target.closest('#lifespan-toggle')) return toggleLifespanFilter();
+  const householdTarget = event.target.closest('[data-household-focus]');
+  if (householdTarget) {
+    db.focusHouseholdId = householdTarget.dataset.householdFocus;
+    saveDB();
+    renderCensusFocusCard();
+    return;
+  }
   const target = event.target.closest('[data-person-focus]');
   if (!target) return;
   setFocus(target.dataset.personFocus, true);
@@ -2934,6 +3105,7 @@ function handleConsoleCmd(raw) {
   if (cmd === '/descendants' || cmd === '/desc') return showDescendants(parts[1]);
   if (cmd === '/timeline' || cmd === '/tl') return showTimeline(parts[1]);
   if (cmd === '/theme') return applyTheme(parts[1] || '');
+  if (cmd === '/census') return toggleCensusMode();
   if (cmd === '/lifespan') return cmdLifespan(parts[1] || '');
   if (cmd === '/backlog') return handleBacklog(rest);
   if (cmd === '/export') return cmdExport(parts[1] || '');
@@ -2985,22 +3157,24 @@ document.addEventListener('keydown', event => {
 });
 
 function initTabs() {
-  document.querySelectorAll('.tab').forEach(tab => {
-    tab.addEventListener('click', () => {
-      document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-      document.querySelectorAll('.tab-pane').forEach(p => p.style.display = 'none');
-      tab.classList.add('active');
-      document.getElementById('tab-' + tab.dataset.tab).style.display = '';
-      input.focus();
-    });
+  document.addEventListener('click', event => {
+    const tab = event.target.closest('.tab');
+    if (!tab) return;
+    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('.tab-pane').forEach(p => p.style.display = 'none');
+    tab.classList.add('active');
+    document.getElementById('tab-' + tab.dataset.tab).style.display = '';
+    input.focus();
   });
 }
 
 function initPeopleFilterBar() {
-  const filterInput = document.getElementById('people-filter');
-  const sortSelect = document.getElementById('people-sort');
-  filterInput.addEventListener('input', () => { peopleFilterText = filterInput.value; renderPeople(); });
-  sortSelect.addEventListener('change', () => { peopleSortKey = sortSelect.value; renderPeople(); });
+  document.addEventListener('input', event => {
+    if (event.target.id === 'people-filter') { peopleFilterText = event.target.value; renderPeople(); }
+  });
+  document.addEventListener('change', event => {
+    if (event.target.id === 'people-sort') { peopleSortKey = event.target.value; renderPeople(); }
+  });
 }
 
 function init() {
@@ -3009,7 +3183,6 @@ function init() {
   initTabs();
   initPeopleFilterBar();
   lifespanFilterEnabled = db.lifespanFilter === true;
-  document.getElementById('lifespan-toggle').addEventListener('click', toggleLifespanFilter);
   updateLifespanToggleUI();
   if (db.focusPersonId) { focusHistory = [db.focusPersonId]; historyPos = 0; }
   document.getElementById('nav-back').addEventListener('click', goBack);
