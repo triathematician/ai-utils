@@ -2182,6 +2182,74 @@ document.getElementById('household-add-member').addEventListener('click', () => 
 document.getElementById('household-save').addEventListener('click', saveHouseholdDialog);
 document.getElementById('household-cancel').addEventListener('click', closeHouseholdDialog);
 
+function findHousehold(token) {
+  const query = cleanText(token);
+  if (!query) return { error: 'Household required.' };
+  const byId = db.households.find(h => h.id.toLowerCase() === query.toLowerCase());
+  if (byId) return { household: byId };
+  const locMap = new Map(db.locations.map(l => [l.id, l]));
+  const q = query.toLowerCase();
+  const matches = db.households.filter(h => {
+    const loc = locMap.get(h.locationId);
+    return h.year === query ||
+      (loc && loc.name.toLowerCase().includes(q)) ||
+      h.members.some(m => m.name.toLowerCase().includes(q));
+  });
+  if (matches.length === 1) return { household: matches[0] };
+  if (matches.length > 1) return { error: 'Ambiguous household: ' + query };
+  return { error: 'Household not found: ' + query };
+}
+
+function householdListText(query) {
+  const locMap = new Map(db.locations.map(l => [l.id, l]));
+  const q = cleanText(query).toLowerCase();
+  const filtered = q
+    ? db.households.filter(h => {
+        const loc = locMap.get(h.locationId);
+        return h.id.toLowerCase() === q || h.year.includes(q) ||
+          (loc && loc.name.toLowerCase().includes(q)) ||
+          h.members.some(m => m.name.toLowerCase().includes(q));
+      })
+    : db.households.slice();
+  if (!filtered.length) return 'No matching households.';
+  return filtered
+    .slice()
+    .sort((a, b) => a.year.localeCompare(b.year) || a.id.localeCompare(b.id))
+    .map(h => {
+      const loc = locMap.get(h.locationId);
+      const head = h.members[0] ? h.members[0].name : '(no members)';
+      return `${h.id}  ${h.year}  ${head}${loc ? ' · ' + loc.name : ''} · ${h.members.length} member${h.members.length === 1 ? '' : 's'}`;
+    })
+    .join('\n');
+}
+
+function cmdHouseholdRemove(raw) {
+  const match = findHousehold(raw);
+  if (match.error) return statusMsg(match.error);
+  const removedId = match.household.id;
+  db.households = db.households.filter(h => h.id !== removedId);
+  db.householdLinks = db.householdLinks.filter(l => l.fromId !== removedId && l.toId !== removedId);
+  db.personMatches = db.personMatches.filter(m => m.householdId !== removedId);
+  if (db.focusHouseholdId === removedId) db.focusHouseholdId = db.households[0] ? db.households[0].id : '';
+  saveDB();
+  render();
+  statusMsg(`Removed household ${removedId}.`);
+}
+
+function handleHouseholdCommand(arg) {
+  const trimmed = cleanText(arg);
+  if (!trimmed || trimmed === 'add') return openHouseholdDialog(null);
+  if (trimmed === 'list') return openOverlay('HOUSEHOLDS', householdListText(''), false);
+  if (trimmed.startsWith('list ')) return openOverlay('HOUSEHOLDS', householdListText(trimmed.slice(5)), false);
+  if (trimmed.startsWith('update ')) {
+    const match = findHousehold(trimmed.slice(7));
+    if (match.error) return statusMsg(match.error);
+    return openHouseholdDialog(match.household);
+  }
+  if (trimmed.startsWith('remove ')) return cmdHouseholdRemove(trimmed.slice(7));
+  statusMsg('Usage: /household add|update|remove|list');
+}
+
 function cmdLocationUpdate(raw) {
   const [token, fieldRaw, value] = splitPipe(raw);
   const match = findLocation(token);
@@ -2744,6 +2812,7 @@ function handleConsoleCmd(raw) {
   if (cmd === '/import') return cmdImport();
   if (cmd === '/person') return handlePersonCommand(rest);
   if (cmd === '/location') return handleLocationCommand(rest);
+  if (cmd === '/household') return handleHouseholdCommand(rest);
   if (cmd === '/attr') return handleAttrCommand(rest);
   if (cmd === '/rel') return handleRelationshipCommand(rest);
   if (cmd === '/event') return handleEventCommand(rest);
