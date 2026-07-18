@@ -290,7 +290,7 @@ const STORAGE_KEY = 'life_line_db';
 const EXPORT_SLUG = 'life-line';
 const THEMES = ['legacy','solar','monk','space','synth','dos','notebook','engineering','winter'];
 const RELATIONSHIP_TYPES = ['parent', 'child', 'spouse', 'partner', 'sibling'];
-let db = { people: [], relationships: [], events: [], locations: [], households: [], householdLinks: [], personMatches: [], backlog: [], backlogArchive: [], theme: 'legacy', focusPersonId: '', focusHouseholdId: '', lifespanFilter: false };
+let db = { people: [], relationships: [], events: [], locations: [], households: [], householdLinks: [], personMatches: [], dismissedHouseholdLinks: [], backlog: [], backlogArchive: [], theme: 'legacy', focusPersonId: '', focusHouseholdId: '', lifespanFilter: false };
 let wizard = null;
 let relFill = null; // { candidates: [...], index: 0, added: 0, focusId }
 let lifespanFilterEnabled = false;
@@ -486,6 +486,7 @@ function loadDB() {
       households: Array.isArray(parsed.households) ? parsed.households : [],
       householdLinks: Array.isArray(parsed.householdLinks) ? parsed.householdLinks : [],
       personMatches: Array.isArray(parsed.personMatches) ? parsed.personMatches : [],
+      dismissedHouseholdLinks: Array.isArray(parsed.dismissedHouseholdLinks) ? parsed.dismissedHouseholdLinks.filter(s => typeof s === 'string') : [],
       backlog: Array.isArray(parsed.backlog) ? parsed.backlog : [],
       backlogArchive: Array.isArray(parsed.backlogArchive) ? parsed.backlogArchive : [],
       theme: cleanText(parsed.theme) || 'legacy',
@@ -493,7 +494,7 @@ function loadDB() {
       focusHouseholdId: cleanText(parsed.focusHouseholdId),
       lifespanFilter: parsed.lifespanFilter === true
     };
-    db = { people: [], relationships: [], events: [], locations: [], households: [], householdLinks: [], personMatches: [] };
+    db = { people: [], relationships: [], events: [], locations: [], households: [], householdLinks: [], personMatches: [], dismissedHouseholdLinks: [] };
     base.people = base.people.map(sanitizePerson);
     db.people = base.people;
     base.relationships = base.relationships.map(sanitizeRelationship).filter(Boolean);
@@ -508,11 +509,12 @@ function loadDB() {
     db.householdLinks = base.householdLinks;
     base.personMatches = base.personMatches.map(sanitizePersonMatch).filter(Boolean);
     db.personMatches = base.personMatches;
+    db.dismissedHouseholdLinks = base.dismissedHouseholdLinks;
     if (!base.people.some(person => person.id === base.focusPersonId)) base.focusPersonId = base.people[0] ? base.people[0].id : '';
     if (!base.households.some(h => h.id === base.focusHouseholdId)) base.focusHouseholdId = base.households[0] ? base.households[0].id : '';
     return base;
   } catch {
-    return { people: [], relationships: [], events: [], locations: [], households: [], householdLinks: [], personMatches: [], backlog: [], backlogArchive: [], theme: 'legacy', focusPersonId: '', focusHouseholdId: '', lifespanFilter: false };
+    return { people: [], relationships: [], events: [], locations: [], households: [], householdLinks: [], personMatches: [], dismissedHouseholdLinks: [], backlog: [], backlogArchive: [], theme: 'legacy', focusPersonId: '', focusHouseholdId: '', lifespanFilter: false };
   }
 }
 
@@ -2283,13 +2285,14 @@ function householdLinkConfidence(earlier, later) {
 
 function findCandidateHouseholdLinks() {
   const existingLinks = new Set(db.householdLinks.map(l => [l.fromId, l.toId].sort().join(':')));
+  const dismissed = new Set(db.dismissedHouseholdLinks);
   const candidates = [];
   for (let i = 0; i < db.households.length; i++) {
     for (let j = i + 1; j < db.households.length; j++) {
       const a = db.households[i], b = db.households[j];
       if (!a.year || !b.year || a.year === b.year) continue;
       const key = [a.id, b.id].sort().join(':');
-      if (existingLinks.has(key)) continue;
+      if (existingLinks.has(key) || dismissed.has(key)) continue;
       const overlap = householdNameOverlap(a, b);
       const threshold = Math.min(2, Math.min(a.members.length, b.members.length));
       if (overlap < threshold || overlap === 0) continue;
@@ -2299,6 +2302,78 @@ function findCandidateHouseholdLinks() {
   }
   candidates.sort((x, y) => y.overlap - x.overlap);
   return candidates;
+}
+
+function householdSummary(h) {
+  const locMap = new Map(db.locations.map(l => [l.id, l]));
+  const loc = locMap.get(h.locationId);
+  const head = h.members[0] ? h.members[0].name : '(no members)';
+  return `${h.id} · ${h.year} · ${head}${loc ? ' · ' + loc.name : ''} · ${h.members.length} member${h.members.length === 1 ? '' : 's'}`;
+}
+
+function cmdCensusLinkList() {
+  const candidates = findCandidateHouseholdLinks();
+  if (!candidates.length) return statusMsg('No candidate household links found.');
+  const html = candidates.map((c, i) => {
+    const fillCmd = `/link confirm ${c.earlier.id} | ${c.later.id}`;
+    return `<div class="line">
+      <div>${escHtml(householdSummary(c.earlier))}</div>
+      <div>${escHtml(householdSummary(c.later))}</div>
+      <div class="dim">${c.overlap} shared name${c.overlap === 1 ? '' : 's'} · ${escHtml(c.confidence)}</div>
+      <span class="action-link" data-link-fill="${escHtml(fillCmd)}">[link]</span>
+      <span class="action-link" data-link-dismiss="${escHtml(c.earlier.id)}:${escHtml(c.later.id)}">[dismiss]</span>
+    </div>`;
+  }).join('');
+  openOverlay('CANDIDATE HOUSEHOLD LINKS', html, true);
+  document.querySelectorAll('[data-link-fill]').forEach(node => {
+    node.addEventListener('click', () => {
+      input.value = node.dataset.linkFill;
+      document.getElementById('help-overlay').classList.remove('visible');
+      input.focus();
+    });
+  });
+  document.querySelectorAll('[data-link-dismiss]').forEach(node => {
+    node.addEventListener('click', () => {
+      db.dismissedHouseholdLinks.push(node.dataset.linkDismiss);
+      saveDB();
+      cmdCensusLinkList();
+    });
+  });
+}
+
+function cmdLinkConfirm(raw) {
+  const [aToken, bToken] = splitPipe(raw);
+  if (!aToken || !bToken) return statusMsg('Usage: /link confirm household-a | household-b');
+  const aMatch = findHousehold(aToken);
+  if (aMatch.error) return statusMsg(aMatch.error);
+  const bMatch = findHousehold(bToken);
+  if (bMatch.error) return statusMsg(bMatch.error);
+  const link = sanitizeHouseholdLink({ fromId: aMatch.household.id, toId: bMatch.household.id });
+  if (!link) return statusMsg('Cannot link a household to itself.');
+  const dup = db.householdLinks.find(l => [l.fromId, l.toId].sort().join(':') === [link.fromId, link.toId].sort().join(':'));
+  if (dup) return statusMsg('Households already linked (' + dup.id + ').');
+  db.householdLinks.push(link);
+  saveDB();
+  render();
+  statusMsg(`Linked ${aMatch.household.id} ↔ ${bMatch.household.id}.`);
+}
+
+function cmdLinkRemove(raw) {
+  const id = cleanText(raw);
+  const before = db.householdLinks.length;
+  db.householdLinks = db.householdLinks.filter(l => l.id.toLowerCase() !== id.toLowerCase());
+  if (db.householdLinks.length === before) return statusMsg('Household link not found: ' + id);
+  saveDB();
+  render();
+  statusMsg('Household link removed: ' + id);
+}
+
+function handleLinkCommand(arg) {
+  const trimmed = cleanText(arg);
+  if (!trimmed || trimmed === 'list') return cmdCensusLinkList();
+  if (trimmed.startsWith('confirm ')) return cmdLinkConfirm(trimmed.slice(8));
+  if (trimmed.startsWith('remove ')) return cmdLinkRemove(trimmed.slice(7));
+  statusMsg('Usage: /link [list]|confirm household-a | household-b|remove link-id');
 }
 
 function cmdLocationUpdate(raw) {
@@ -2587,6 +2662,7 @@ function exportDataJson() {
     households: db.households,
     householdLinks: db.householdLinks,
     personMatches: db.personMatches,
+    dismissedHouseholdLinks: db.dismissedHouseholdLinks,
     focusPersonId: db.focusPersonId,
     focusHouseholdId: db.focusHouseholdId
   };
@@ -2609,6 +2685,7 @@ function importData(obj) {
     households: Array.isArray(obj.households) ? obj.households.map(sanitizeHousehold) : [],
     householdLinks: Array.isArray(obj.householdLinks) ? obj.householdLinks.map(sanitizeHouseholdLink).filter(Boolean) : [],
     personMatches: Array.isArray(obj.personMatches) ? obj.personMatches.map(sanitizePersonMatch).filter(Boolean) : [],
+    dismissedHouseholdLinks: Array.isArray(obj.dismissedHouseholdLinks) ? obj.dismissedHouseholdLinks.filter(s => typeof s === 'string') : [],
     backlog: db.backlog,
     backlogArchive: db.backlogArchive,
     theme: db.theme,
@@ -2864,6 +2941,7 @@ function handleConsoleCmd(raw) {
   if (cmd === '/person') return handlePersonCommand(rest);
   if (cmd === '/location') return handleLocationCommand(rest);
   if (cmd === '/household') return handleHouseholdCommand(rest);
+  if (cmd === '/link') return handleLinkCommand(rest);
   if (cmd === '/attr') return handleAttrCommand(rest);
   if (cmd === '/rel') return handleRelationshipCommand(rest);
   if (cmd === '/event') return handleEventCommand(rest);
