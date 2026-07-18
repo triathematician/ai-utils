@@ -180,6 +180,21 @@ html, body {
 #help-title { color: var(--accent); letter-spacing: 2px; margin-bottom: 8px; }
 #help-body { white-space: pre; line-height: 1.8; max-height: 60vh; overflow-y: auto; }
 #help-close { color: var(--dim); font-size: 0.82em; cursor: pointer; display: block; margin-top: 8px; }
+#household-overlay {
+  display: none; position: fixed; inset: 0;
+  background: rgba(0,0,0,0.7); z-index: 160;
+  align-items: center; justify-content: center;
+}
+#household-overlay.visible { display: flex; }
+.hh-dialog-box { max-width: min(95vw, 900px); max-height: 85vh; overflow-y: auto; }
+.hh-dialog-title { color: var(--accent); letter-spacing: 2px; margin-bottom: 10px; }
+.hh-field-row { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
+.hh-field-row label { color: var(--dim); font-size: 0.82em; width: 70px; flex-shrink: 0; }
+.hh-field-row .filter-input { flex: 1; }
+.hh-member-row { display: flex; gap: 6px; margin-bottom: 4px; align-items: center; }
+.hh-member-row .filter-input { flex: 1; min-width: 0; }
+.hh-member-row .hh-m-age { flex: 0 0 55px; }
+.hh-dialog-actions { margin-top: 14px; display: flex; gap: 14px; }
 </style>
 </head>
 <body>
@@ -250,6 +265,23 @@ html, body {
     <div id="help-title"></div>
     <div id="help-body"></div>
     <span id="help-close">[ESC] CLOSE</span>
+  </div>
+</div>
+
+<div id="household-overlay">
+  <div class="overlay-box hh-dialog-box">
+    <div id="household-dialog-title" class="hh-dialog-title"></div>
+    <div class="hh-field-row"><label>Year</label><input type="text" id="hh-year" class="filter-input" placeholder="1900"></div>
+    <div class="hh-field-row"><label>Location</label><input type="text" id="hh-location" class="filter-input" placeholder="Springfield, IL"></div>
+    <div class="hh-field-row"><label>Source</label><input type="text" id="hh-source" class="filter-input" placeholder="1900 US Census, ED 5, p.12"></div>
+    <div class="hh-field-row"><label>Notes</label><input type="text" id="hh-notes" class="filter-input"></div>
+    <div class="section-title" style="margin-top:10px">MEMBERS</div>
+    <div id="household-members"></div>
+    <span class="action-link" id="household-add-member">[+ add member]</span>
+    <div class="hh-dialog-actions">
+      <span class="action-link" id="household-save">[SAVE]</span>
+      <span class="action-link" id="household-cancel">[CANCEL / ESC]</span>
+    </div>
   </div>
 </div>
 
@@ -2072,6 +2104,84 @@ function resolveOrCreateLocation(name) {
   return created;
 }
 
+// ── Household bulk-add/edit dialog ──────────────────────────────────────────
+let householdDialogEditId = null;
+
+function addHouseholdMemberRow(member) {
+  const container = document.getElementById('household-members');
+  const row = document.createElement('div');
+  row.className = 'hh-member-row';
+  row.innerHTML = `
+    <input type="text" class="filter-input hh-m-name" placeholder="Name" value="${escHtml((member && member.name) || '')}">
+    <input type="text" class="filter-input hh-m-age" placeholder="Age" value="${escHtml((member && member.age) || '')}">
+    <input type="text" class="filter-input hh-m-relation" placeholder="Relation to head" value="${escHtml((member && member.relation) || '')}">
+    <input type="text" class="filter-input hh-m-birthplace" placeholder="Birthplace" value="${escHtml((member && member.birthplace) || '')}">
+    <input type="text" class="filter-input hh-m-occupation" placeholder="Occupation" value="${escHtml((member && member.occupation) || '')}">
+    <span class="action-link">[x]</span>
+  `;
+  row.querySelector('.action-link').addEventListener('click', () => row.remove());
+  container.appendChild(row);
+}
+
+function openHouseholdDialog(household) {
+  householdDialogEditId = household ? household.id : null;
+  document.getElementById('household-dialog-title').textContent = household ? 'EDIT HOUSEHOLD ' + household.id : 'ADD HOUSEHOLD';
+  document.getElementById('hh-year').value = household ? household.year : '';
+  const loc = household ? db.locations.find(l => l.id === household.locationId) : null;
+  document.getElementById('hh-location').value = loc ? loc.name : '';
+  document.getElementById('hh-source').value = household ? household.source : '';
+  document.getElementById('hh-notes').value = household ? household.notes : '';
+  const container = document.getElementById('household-members');
+  container.innerHTML = '';
+  const members = household && household.members.length ? household.members : [{}];
+  members.forEach(m => addHouseholdMemberRow(m));
+  document.getElementById('household-overlay').classList.add('visible');
+  document.getElementById('hh-year').focus();
+}
+
+function closeHouseholdDialog() {
+  householdDialogEditId = null;
+  document.getElementById('household-overlay').classList.remove('visible');
+  input.focus();
+}
+
+function saveHouseholdDialog() {
+  const year = document.getElementById('hh-year').value;
+  const locationName = document.getElementById('hh-location').value;
+  const source = document.getElementById('hh-source').value;
+  const notes = document.getElementById('hh-notes').value;
+  if (!/^\d{4}$/.test(cleanText(year))) return statusMsg('Year must be a 4-digit year, e.g. 1900.');
+  const members = [...document.querySelectorAll('#household-members .hh-member-row')].map(row => ({
+    name: row.querySelector('.hh-m-name').value,
+    age: row.querySelector('.hh-m-age').value,
+    relation: row.querySelector('.hh-m-relation').value,
+    birthplace: row.querySelector('.hh-m-birthplace').value,
+    occupation: row.querySelector('.hh-m-occupation').value
+  }));
+  const namedMembers = members.filter(m => cleanText(m.name));
+  if (!namedMembers.length) return statusMsg('At least one member needs a name.');
+  const locationId = cleanText(locationName) ? resolveOrCreateLocation(locationName).id : '';
+  const household = sanitizeHousehold({
+    id: householdDialogEditId || nextId('H', db.households),
+    year, locationId, source, notes, members
+  });
+  if (householdDialogEditId) {
+    const idx = db.households.findIndex(h => h.id === householdDialogEditId);
+    db.households[idx] = household;
+  } else {
+    db.households.push(household);
+    if (!db.focusHouseholdId) db.focusHouseholdId = household.id;
+  }
+  saveDB();
+  render();
+  closeHouseholdDialog();
+  statusMsg(`${householdDialogEditId ? 'Updated' : 'Added'} household ${household.id} (${household.year}, ${household.members.length} member${household.members.length === 1 ? '' : 's'}).`);
+}
+
+document.getElementById('household-add-member').addEventListener('click', () => addHouseholdMemberRow(null));
+document.getElementById('household-save').addEventListener('click', saveHouseholdDialog);
+document.getElementById('household-cancel').addEventListener('click', closeHouseholdDialog);
+
 function cmdLocationUpdate(raw) {
   const [token, fieldRaw, value] = splitPipe(raw);
   const match = findLocation(token);
@@ -2652,6 +2762,10 @@ document.addEventListener('keydown', event => {
   if (event.altKey && event.key === 'ArrowLeft') { event.preventDefault(); goBack(); return; }
   if (event.altKey && event.key === 'ArrowRight') { event.preventDefault(); goForward(); return; }
   if (event.key === 'Escape') {
+    if (document.getElementById('household-overlay').classList.contains('visible')) {
+      closeHouseholdDialog();
+      return;
+    }
     if (relFill) {
       const remaining = relFill.candidates.length - relFill.index;
       relFill = null;
