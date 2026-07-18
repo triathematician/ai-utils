@@ -2250,6 +2250,57 @@ function handleHouseholdCommand(arg) {
   statusMsg('Usage: /household add|update|remove|list');
 }
 
+// ── Candidate household links (same family across census years) ────────────
+function householdMemberNames(h) {
+  return h.members.map(m => cleanText(m.name).toLowerCase()).filter(Boolean);
+}
+
+function householdNameOverlap(a, b) {
+  const namesA = new Set(householdMemberNames(a));
+  return householdMemberNames(b).filter(n => namesA.has(n)).length;
+}
+
+function householdLinkConfidence(earlier, later) {
+  const yearGap = parseInt(later.year, 10) - parseInt(earlier.year, 10);
+  const earlierByName = new Map(earlier.members.map(m => [cleanText(m.name).toLowerCase(), m]));
+  let ageChecks = 0, ageOk = 0;
+  later.members.forEach(m => {
+    const key = cleanText(m.name).toLowerCase();
+    if (!key) return;
+    const match = earlierByName.get(key);
+    if (!match) return;
+    const ageA = parseInt(match.age, 10);
+    const ageB = parseInt(m.age, 10);
+    if (Number.isNaN(ageA) || Number.isNaN(ageB)) return;
+    ageChecks++;
+    if (Math.abs((ageA + yearGap) - ageB) <= 2) ageOk++;
+  });
+  if (ageChecks === 0) return 'check ages (insufficient data)';
+  if (ageOk === ageChecks) return 'likely';
+  if (ageOk >= ageChecks / 2) return 'possible';
+  return "unlikely — ages don't align";
+}
+
+function findCandidateHouseholdLinks() {
+  const existingLinks = new Set(db.householdLinks.map(l => [l.fromId, l.toId].sort().join(':')));
+  const candidates = [];
+  for (let i = 0; i < db.households.length; i++) {
+    for (let j = i + 1; j < db.households.length; j++) {
+      const a = db.households[i], b = db.households[j];
+      if (!a.year || !b.year || a.year === b.year) continue;
+      const key = [a.id, b.id].sort().join(':');
+      if (existingLinks.has(key)) continue;
+      const overlap = householdNameOverlap(a, b);
+      const threshold = Math.min(2, Math.min(a.members.length, b.members.length));
+      if (overlap < threshold || overlap === 0) continue;
+      const [earlier, later] = a.year < b.year ? [a, b] : [b, a];
+      candidates.push({ earlier, later, overlap, confidence: householdLinkConfidence(earlier, later) });
+    }
+  }
+  candidates.sort((x, y) => y.overlap - x.overlap);
+  return candidates;
+}
+
 function cmdLocationUpdate(raw) {
   const [token, fieldRaw, value] = splitPipe(raw);
   const match = findLocation(token);
