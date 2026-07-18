@@ -1833,7 +1833,7 @@ function showHelp() {
     '── CENSUS ─────────────────────────────────────────────',
     '/census                  swap to/from the census workspace',
     '/household add           open the bulk-entry dialog for a new household',
-    '/household update household   open the dialog pre-filled to edit',
+    '/household update [household]   open the dialog pre-filled to edit (defaults to focus household)',
     '/household remove household',
     '/household list [query]',
     '/link [list]             show candidate household links across years,',
@@ -2370,6 +2370,11 @@ function handleHouseholdCommand(arg) {
   if (!trimmed || trimmed === 'add') return openHouseholdDialog(null);
   if (trimmed === 'list') return openOverlay('HOUSEHOLDS', householdListText(''), false);
   if (trimmed.startsWith('list ')) return openOverlay('HOUSEHOLDS', householdListText(trimmed.slice(5)), false);
+  if (trimmed === 'update') {
+    const current = db.households.find(h => h.id === db.focusHouseholdId);
+    if (!current) return statusMsg('No focus household set. Use /household update <household>.');
+    return openHouseholdDialog(current);
+  }
   if (trimmed.startsWith('update ')) {
     const match = findHousehold(trimmed.slice(7));
     if (match.error) return statusMsg(match.error);
