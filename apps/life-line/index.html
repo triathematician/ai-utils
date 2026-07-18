@@ -194,6 +194,7 @@ html, body {
 .hh-member-row { display: flex; gap: 6px; margin-bottom: 4px; align-items: center; }
 .hh-member-row .filter-input { flex: 1; min-width: 0; }
 .hh-member-row .hh-m-age { flex: 0 0 55px; }
+.hh-member-row .hh-m-gender { flex: 0 0 70px; }
 .hh-dialog-actions { margin-top: 14px; display: flex; gap: 14px; }
 </style>
 </head>
@@ -429,6 +430,7 @@ function sanitizeHouseholdMember(raw) {
     name: cleanText(source.name),
     age: cleanText(source.age),
     relation: cleanText(source.relation),
+    gender: cleanText(source.gender),
     birthplace: cleanText(source.birthplace),
     occupation: cleanText(source.occupation)
   };
@@ -1651,7 +1653,7 @@ function renderCensusFocusCard() {
   }
   const locMap = new Map(db.locations.map(l => [l.id, l]));
   const loc = locMap.get(h.locationId);
-  const membersHtml = h.members.map(m => `<div class="rel-row"><span class="rel-label">${escHtml(m.relation || '—')}</span>${escHtml(m.name)}${m.age ? ' <span class="rel-date">· age ' + escHtml(m.age) + '</span>' : ''}${m.birthplace ? ' <span class="rel-date">· b. ' + escHtml(m.birthplace) + '</span>' : ''}${m.occupation ? ' <span class="rel-date">· ' + escHtml(m.occupation) + '</span>' : ''}</div>`).join('');
+  const membersHtml = h.members.map(m => `<div class="rel-row"><span class="rel-label">${escHtml(m.relation || '—')}</span>${escHtml(m.name)}${m.gender ? ' <span class="rel-date">· ' + escHtml(m.gender) + '</span>' : ''}${m.age ? ' <span class="rel-date">· age ' + escHtml(m.age) + '</span>' : ''}${m.birthplace ? ' <span class="rel-date">· b. ' + escHtml(m.birthplace) + '</span>' : ''}${m.occupation ? ' <span class="rel-date">· ' + escHtml(m.occupation) + '</span>' : ''}</div>`).join('');
   el.className = '';
   el.innerHTML = `
     <div class="focus-name">${escHtml(h.id)} <span class="focus-meta">(${escHtml(h.year)})</span></div>
@@ -2240,6 +2242,7 @@ function addHouseholdMemberRow(member) {
     <input type="text" class="filter-input hh-m-name" placeholder="Name" value="${escHtml((member && member.name) || '')}">
     <input type="text" class="filter-input hh-m-age" placeholder="Age" value="${escHtml((member && member.age) || '')}">
     <input type="text" class="filter-input hh-m-relation" placeholder="Relation to head" value="${escHtml((member && member.relation) || '')}">
+    <input type="text" class="filter-input hh-m-gender" placeholder="Gender" value="${escHtml((member && member.gender) || '')}">
     <input type="text" class="filter-input hh-m-birthplace" placeholder="Birthplace" value="${escHtml((member && member.birthplace) || '')}">
     <input type="text" class="filter-input hh-m-occupation" placeholder="Occupation" value="${escHtml((member && member.occupation) || '')}">
     <span class="action-link">[x]</span>
@@ -2280,6 +2283,7 @@ function saveHouseholdDialog() {
     name: row.querySelector('.hh-m-name').value,
     age: row.querySelector('.hh-m-age').value,
     relation: row.querySelector('.hh-m-relation').value,
+    gender: row.querySelector('.hh-m-gender').value,
     birthplace: row.querySelector('.hh-m-birthplace').value,
     occupation: row.querySelector('.hh-m-occupation').value
   }));
