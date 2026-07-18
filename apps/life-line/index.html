@@ -291,7 +291,7 @@ const STORAGE_KEY = 'life_line_db';
 const EXPORT_SLUG = 'life-line';
 const THEMES = ['legacy','solar','monk','space','synth','dos','notebook','engineering','winter'];
 const RELATIONSHIP_TYPES = ['parent', 'child', 'spouse', 'partner', 'sibling'];
-let db = { people: [], relationships: [], events: [], locations: [], households: [], householdLinks: [], personMatches: [], dismissedHouseholdLinks: [], backlog: [], backlogArchive: [], theme: 'legacy', focusPersonId: '', focusHouseholdId: '', lifespanFilter: false };
+let db = { people: [], relationships: [], events: [], locations: [], households: [], householdLinks: [], personMatches: [], personIdentities: [], dismissedHouseholdLinks: [], dismissedPersonLinks: [], backlog: [], backlogArchive: [], theme: 'legacy', focusPersonId: '', focusHouseholdId: '', lifespanFilter: false };
 let wizard = null;
 let relFill = null; // { candidates: [...], index: 0, added: 0, focusId }
 let lifespanFilterEnabled = false;
@@ -480,6 +480,33 @@ function sanitizePersonMatch(raw) {
   };
 }
 
+function sanitizePersonIdentityMember(raw) {
+  const source = raw && typeof raw === 'object' ? raw : {};
+  const householdId = cleanText(source.householdId);
+  const memberIndex = parseInt(source.memberIndex, 10);
+  if (!householdId || Number.isNaN(memberIndex) || memberIndex < 0) return null;
+  return { householdId, memberIndex };
+}
+
+function sanitizePersonIdentity(raw) {
+  const source = raw && typeof raw === 'object' ? raw : {};
+  const seen = new Set();
+  const members = (Array.isArray(source.members) ? source.members.map(sanitizePersonIdentityMember).filter(Boolean) : [])
+    .filter(m => {
+      const key = m.householdId + ':' + m.memberIndex;
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
+  if (members.length < 2) return null;
+  return {
+    id: cleanText(source.id) || nextId('PI', db.personIdentities || []),
+    members,
+    personId: cleanText(source.personId),
+    createdAt: cleanText(source.createdAt) || new Date().toISOString()
+  };
+}
+
 function loadDB() {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
@@ -492,7 +519,9 @@ function loadDB() {
       households: Array.isArray(parsed.households) ? parsed.households : [],
       householdLinks: Array.isArray(parsed.householdLinks) ? parsed.householdLinks : [],
       personMatches: Array.isArray(parsed.personMatches) ? parsed.personMatches : [],
+      personIdentities: Array.isArray(parsed.personIdentities) ? parsed.personIdentities : [],
       dismissedHouseholdLinks: Array.isArray(parsed.dismissedHouseholdLinks) ? parsed.dismissedHouseholdLinks.filter(s => typeof s === 'string') : [],
+      dismissedPersonLinks: Array.isArray(parsed.dismissedPersonLinks) ? parsed.dismissedPersonLinks.filter(s => typeof s === 'string') : [],
       backlog: Array.isArray(parsed.backlog) ? parsed.backlog : [],
       backlogArchive: Array.isArray(parsed.backlogArchive) ? parsed.backlogArchive : [],
       theme: cleanText(parsed.theme) || 'legacy',
@@ -500,7 +529,7 @@ function loadDB() {
       focusHouseholdId: cleanText(parsed.focusHouseholdId),
       lifespanFilter: parsed.lifespanFilter === true
     };
-    db = { people: [], relationships: [], events: [], locations: [], households: [], householdLinks: [], personMatches: [], dismissedHouseholdLinks: [] };
+    db = { people: [], relationships: [], events: [], locations: [], households: [], householdLinks: [], personMatches: [], personIdentities: [], dismissedHouseholdLinks: [], dismissedPersonLinks: [] };
     base.people = base.people.map(sanitizePerson);
     db.people = base.people;
     base.relationships = base.relationships.map(sanitizeRelationship).filter(Boolean);
@@ -515,12 +544,15 @@ function loadDB() {
     db.householdLinks = base.householdLinks;
     base.personMatches = base.personMatches.map(sanitizePersonMatch).filter(Boolean);
     db.personMatches = base.personMatches;
+    base.personIdentities = base.personIdentities.map(sanitizePersonIdentity).filter(Boolean);
+    db.personIdentities = base.personIdentities;
     db.dismissedHouseholdLinks = base.dismissedHouseholdLinks;
+    db.dismissedPersonLinks = base.dismissedPersonLinks;
     if (!base.people.some(person => person.id === base.focusPersonId)) base.focusPersonId = base.people[0] ? base.people[0].id : '';
     if (!base.households.some(h => h.id === base.focusHouseholdId)) base.focusHouseholdId = base.households[0] ? base.households[0].id : '';
     return base;
   } catch {
-    return { people: [], relationships: [], events: [], locations: [], households: [], householdLinks: [], personMatches: [], dismissedHouseholdLinks: [], backlog: [], backlogArchive: [], theme: 'legacy', focusPersonId: '', focusHouseholdId: '', lifespanFilter: false };
+    return { people: [], relationships: [], events: [], locations: [], households: [], householdLinks: [], personMatches: [], personIdentities: [], dismissedHouseholdLinks: [], dismissedPersonLinks: [], backlog: [], backlogArchive: [], theme: 'legacy', focusPersonId: '', focusHouseholdId: '', lifespanFilter: false };
   }
 }
 
@@ -1653,14 +1685,18 @@ function renderCensusFocusCard() {
   }
   const locMap = new Map(db.locations.map(l => [l.id, l]));
   const loc = locMap.get(h.locationId);
-  const membersHtml = h.members.map(m => {
+  const membersHtml = h.members.map((m, mi) => {
     const yearNum = parseInt(h.year, 10);
     const ageNum = parseInt(m.age, 10);
     const approxYear = !Number.isNaN(yearNum) && !Number.isNaN(ageNum) ? yearNum - ageNum : null;
     const approxHtml = approxYear !== null
       ? `<span style="margin-left:auto;color:var(--warn);font-size:0.8em" title="Approximate birth year, derived from census year minus age">~${approxYear}</span>`
       : '';
-    return `<div class="rel-row"><span class="rel-label">${escHtml(m.relation || '—')}</span>${escHtml(m.name)}${m.gender ? ' <span class="rel-date">· ' + escHtml(m.gender) + '</span>' : ''}${m.age ? ' <span class="rel-date">· age ' + escHtml(m.age) + '</span>' : ''}${m.birthplace ? ' <span class="rel-date">· b. ' + escHtml(m.birthplace) + '</span>' : ''}${m.occupation ? ' <span class="rel-date">· ' + escHtml(m.occupation) + '</span>' : ''}${approxHtml}</div>`;
+    const identity = findIdentityForMember(h.id, mi);
+    const linkBadge = identity
+      ? ` <span class="action-link" data-identity-view="${identity.id}" title="Linked across ${identity.members.length} household records">⛓${identity.members.length}</span>`
+      : '';
+    return `<div class="rel-row"><span class="rel-label">${escHtml(m.relation || '—')}</span>${escHtml(m.name)}${m.gender ? ' <span class="rel-date">· ' + escHtml(m.gender) + '</span>' : ''}${m.age ? ' <span class="rel-date">· age ' + escHtml(m.age) + '</span>' : ''}${m.birthplace ? ' <span class="rel-date">· b. ' + escHtml(m.birthplace) + '</span>' : ''}${m.occupation ? ' <span class="rel-date">· ' + escHtml(m.occupation) + '</span>' : ''}${linkBadge}${approxHtml}</div>`;
   }).join('');
   el.className = '';
   el.innerHTML = `
@@ -1738,12 +1774,47 @@ function renderConfirmedLinksPanel() {
   }).join('');
 }
 
+function renderCandidateMatchesPanel() {
+  const el = document.getElementById('candidate-matches-panel');
+  if (!el) return;
+  const candidates = findCandidatePersonLinks();
+  if (!candidates.length) {
+    el.className = 'dim';
+    el.textContent = 'No candidate person links. Run /match for details.';
+    return;
+  }
+  el.className = '';
+  el.innerHTML = candidates.map(c => `<div class="line">${escHtml(c.aMember.name)} · ${escHtml(c.aHousehold.id)} (${escHtml(c.aHousehold.year)})<br>↔ ${escHtml(c.bMember.name)} · ${escHtml(c.bHousehold.id)} (${escHtml(c.bHousehold.year)})<br><span class="dim">${escHtml(c.confidence)}</span></div>`).join('');
+}
+
+function renderConfirmedMatchesPanel() {
+  const el = document.getElementById('confirmed-matches-panel');
+  if (!el) return;
+  if (!db.personIdentities.length) {
+    el.className = 'dim';
+    el.textContent = 'No confirmed person links.';
+    return;
+  }
+  const hMap = new Map(db.households.map(h => [h.id, h]));
+  el.className = '';
+  el.innerHTML = db.personIdentities.map(pi => {
+    const rows = pi.members.map(m => {
+      const h = hMap.get(m.householdId);
+      const member = h ? h.members[m.memberIndex] : null;
+      return `${escHtml(member ? member.name : '?')} · ${escHtml(m.householdId)}${h ? ' (' + escHtml(h.year) + ')' : ''}`;
+    }).join('<br>↔ ');
+    return `<div class="line"><span class="focus-meta">${escHtml(pi.id)}</span> · ${rows}</div>`;
+  }).join('');
+}
+
 function renderCensusMode() {
   renderCensusFocusCard();
   renderCensusStats();
   renderHouseholdDirectory();
   renderCandidateLinksPanel();
   renderConfirmedLinksPanel();
+  renderCandidateMatchesPanel();
+  renderConfirmedMatchesPanel();
 }
 
 function render() {
@@ -1848,6 +1919,10 @@ function showHelp() {
     '                         [link]/[dismiss] each one',
     '/link confirm household-a | household-b',
     '/link remove link-id',
+    '/match [list]             show candidate links between the same person across',
+    '                         households (name + approximate birth year), [match]/[dismiss] each',
+    '/match confirm household.index | household.index',
+    '/match remove household.index-or-identity-id',
     '',
     '── STANDARD ───────────────────────────────────────────',
     '/theme [name]            switch theme',
@@ -2367,6 +2442,9 @@ function cmdHouseholdRemove(raw) {
   db.households = db.households.filter(h => h.id !== removedId);
   db.householdLinks = db.householdLinks.filter(l => l.fromId !== removedId && l.toId !== removedId);
   db.personMatches = db.personMatches.filter(m => m.householdId !== removedId);
+  db.personIdentities = db.personIdentities
+    .map(pi => sanitizePersonIdentity({ ...pi, members: pi.members.filter(m => m.householdId !== removedId) }))
+    .filter(Boolean);
   if (db.focusHouseholdId === removedId) db.focusHouseholdId = db.households[0] ? db.households[0].id : '';
   saveDB();
   render();
@@ -2514,6 +2592,181 @@ function handleLinkCommand(arg) {
   if (trimmed.startsWith('confirm ')) return cmdLinkConfirm(trimmed.slice(8));
   if (trimmed.startsWith('remove ')) return cmdLinkRemove(trimmed.slice(7));
   statusMsg('Usage: /link [list]|confirm household-a | household-b|remove link-id');
+}
+
+// ── Person identity links (same individual across census years) ───────────
+function memberToken(householdId, memberIndex) {
+  return householdId + '.' + memberIndex;
+}
+
+function findIdentityForMember(householdId, memberIndex) {
+  return db.personIdentities.find(pi => pi.members.some(m => m.householdId === householdId && m.memberIndex === memberIndex)) || null;
+}
+
+function identityForToken(token) {
+  return db.personIdentities.find(pi => pi.id.toLowerCase() === cleanText(token).toLowerCase()) || null;
+}
+
+function parseMemberToken(token) {
+  const clean = cleanText(token);
+  const dot = clean.lastIndexOf('.');
+  if (dot === -1) return { error: 'Use household.index format, e.g. H1.0' };
+  const householdId = clean.slice(0, dot);
+  const memberIndex = parseInt(clean.slice(dot + 1), 10);
+  const household = db.households.find(h => h.id.toLowerCase() === householdId.toLowerCase());
+  if (!household) return { error: 'Household not found: ' + householdId };
+  if (Number.isNaN(memberIndex) || !household.members[memberIndex]) return { error: 'Member not found: ' + token };
+  return { household, memberIndex, member: household.members[memberIndex] };
+}
+
+function memberApproxBirthYear(household, member) {
+  const yearNum = parseInt(household.year, 10);
+  const ageNum = parseInt(member.age, 10);
+  if (Number.isNaN(yearNum) || Number.isNaN(ageNum)) return null;
+  return yearNum - ageNum;
+}
+
+function personLinkConfidence(yearA, yearB) {
+  if (yearA === null || yearB === null) return 'check ages (insufficient data)';
+  const diff = Math.abs(yearA - yearB);
+  if (diff <= 1) return 'likely';
+  if (diff <= 3) return 'possible';
+  return "unlikely — birth years don't align";
+}
+
+function findCandidatePersonLinks() {
+  const dismissed = new Set(db.dismissedPersonLinks);
+  const candidates = [];
+  for (let i = 0; i < db.households.length; i++) {
+    for (let j = i + 1; j < db.households.length; j++) {
+      const a = db.households[i], b = db.households[j];
+      if (a.year && b.year && a.year === b.year) continue;
+      a.members.forEach((ma, mi) => {
+        if (!ma.name) return;
+        b.members.forEach((mb, mj) => {
+          if (!mb.name || ma.name.toLowerCase() !== mb.name.toLowerCase()) return;
+          const identityA = findIdentityForMember(a.id, mi);
+          const identityB = findIdentityForMember(b.id, mj);
+          if (identityA && identityA === identityB) return;
+          const key = [memberToken(a.id, mi), memberToken(b.id, mj)].sort().join('|');
+          if (dismissed.has(key)) return;
+          candidates.push({
+            aHousehold: a, aIndex: mi, aMember: ma,
+            bHousehold: b, bIndex: mj, bMember: mb,
+            confidence: personLinkConfidence(memberApproxBirthYear(a, ma), memberApproxBirthYear(b, mb))
+          });
+        });
+      });
+    }
+  }
+  const rank = c => c.confidence === 'likely' ? 0 : c.confidence === 'possible' ? 1 : c.confidence.startsWith('check') ? 2 : 3;
+  candidates.sort((x, y) => rank(x) - rank(y));
+  return candidates;
+}
+
+function cmdMatchList() {
+  const candidates = findCandidatePersonLinks();
+  if (!candidates.length) return statusMsg('No candidate person links found.');
+  const html = candidates.map(c => {
+    const aTok = memberToken(c.aHousehold.id, c.aIndex);
+    const bTok = memberToken(c.bHousehold.id, c.bIndex);
+    const fillCmd = `/match confirm ${aTok} | ${bTok}`;
+    const dismissKey = [aTok, bTok].sort().join('|');
+    return `<div class="line">
+      <div>${escHtml(c.aMember.name)} · ${escHtml(aTok)} · ${escHtml(c.aHousehold.year)}${c.aMember.age ? ' · age ' + escHtml(c.aMember.age) : ''}</div>
+      <div>${escHtml(c.bMember.name)} · ${escHtml(bTok)} · ${escHtml(c.bHousehold.year)}${c.bMember.age ? ' · age ' + escHtml(c.bMember.age) : ''}</div>
+      <div class="dim">${escHtml(c.confidence)}</div>
+      <span class="action-link" data-match-fill="${escHtml(fillCmd)}">[match]</span>
+      <span class="action-link" data-match-dismiss="${escHtml(dismissKey)}">[dismiss]</span>
+    </div>`;
+  }).join('');
+  openOverlay('CANDIDATE PERSON LINKS', html, true);
+  document.querySelectorAll('[data-match-fill]').forEach(node => {
+    node.addEventListener('click', () => {
+      input.value = node.dataset.matchFill;
+      document.getElementById('help-overlay').classList.remove('visible');
+      input.focus();
+    });
+  });
+  document.querySelectorAll('[data-match-dismiss]').forEach(node => {
+    node.addEventListener('click', () => {
+      db.dismissedPersonLinks.push(node.dataset.matchDismiss);
+      saveDB();
+      cmdMatchList();
+    });
+  });
+}
+
+function cmdMatchConfirm(raw) {
+  const [aToken, bToken] = splitPipe(raw);
+  if (!aToken || !bToken) return statusMsg('Usage: /match confirm household.index | household.index');
+  const a = parseMemberToken(aToken);
+  if (a.error) return statusMsg(a.error);
+  const b = parseMemberToken(bToken);
+  if (b.error) return statusMsg(b.error);
+  if (a.household.id === b.household.id && a.memberIndex === b.memberIndex) return statusMsg('Cannot link a person to themself.');
+  const identityA = findIdentityForMember(a.household.id, a.memberIndex);
+  const identityB = findIdentityForMember(b.household.id, b.memberIndex);
+  const members = [
+    ...(identityA ? identityA.members : [{ householdId: a.household.id, memberIndex: a.memberIndex }]),
+    ...(identityB ? identityB.members : [{ householdId: b.household.id, memberIndex: b.memberIndex }])
+  ];
+  const personId = (identityA && identityA.personId) || (identityB && identityB.personId) || '';
+  const keepId = identityA ? identityA.id : (identityB ? identityB.id : undefined);
+  const merged = sanitizePersonIdentity({ id: keepId, members, personId });
+  if (!merged) return statusMsg('Could not link those members.');
+  db.personIdentities = db.personIdentities.filter(pi => pi !== identityA && pi !== identityB);
+  db.personIdentities.push(merged);
+  saveDB();
+  render();
+  statusMsg(`Linked ${a.member.name} (${a.household.id}) ↔ ${b.member.name} (${b.household.id}).`);
+}
+
+function cmdMatchRemove(raw) {
+  const token = cleanText(raw);
+  if (!token) return statusMsg('Usage: /match remove household.index or identity-id');
+  const byId = identityForToken(token);
+  if (byId) {
+    db.personIdentities = db.personIdentities.filter(pi => pi !== byId);
+    saveDB();
+    render();
+    return statusMsg('Person link removed: ' + byId.id);
+  }
+  const parsed = parseMemberToken(token);
+  if (parsed.error) return statusMsg(parsed.error);
+  const identity = findIdentityForMember(parsed.household.id, parsed.memberIndex);
+  if (!identity) return statusMsg('That member is not linked to anyone.');
+  const remainingMembers = identity.members.filter(m => !(m.householdId === parsed.household.id && m.memberIndex === parsed.memberIndex));
+  db.personIdentities = db.personIdentities.filter(pi => pi !== identity);
+  const rebuilt = sanitizePersonIdentity({ id: identity.id, members: remainingMembers, personId: identity.personId });
+  if (rebuilt) db.personIdentities.push(rebuilt);
+  saveDB();
+  render();
+  statusMsg(`Unlinked ${parsed.member.name} (${parsed.household.id}).`);
+}
+
+function handleMatchCommand(arg) {
+  const trimmed = cleanText(arg);
+  if (!trimmed || trimmed === 'list') return cmdMatchList();
+  if (trimmed.startsWith('confirm ')) return cmdMatchConfirm(trimmed.slice(8));
+  if (trimmed.startsWith('remove ')) return cmdMatchRemove(trimmed.slice(7));
+  statusMsg('Usage: /match [list]|confirm household.index | household.index|remove household.index-or-identity-id');
+}
+
+function showIdentityOverlay(identityId) {
+  const identity = identityForToken(identityId);
+  if (!identity) return;
+  const hMap = new Map(db.households.map(h => [h.id, h]));
+  const html = identity.members.map(m => {
+    const h = hMap.get(m.householdId);
+    const member = h ? h.members[m.memberIndex] : null;
+    if (!h || !member) return '';
+    return `<div class="line">
+      <span class="action-link" data-household-focus="${escHtml(h.id)}">${escHtml(h.id)} (${escHtml(h.year)})</span>
+      · ${escHtml(member.name)}${member.age ? ' · age ' + escHtml(member.age) : ''}
+    </div>`;
+  }).join('');
+  openOverlay('LINKED APPEARANCES', html, true);
 }
 
 function cmdLocationUpdate(raw) {
@@ -2802,7 +3055,9 @@ function exportDataJson() {
     households: db.households,
     householdLinks: db.householdLinks,
     personMatches: db.personMatches,
+    personIdentities: db.personIdentities,
     dismissedHouseholdLinks: db.dismissedHouseholdLinks,
+    dismissedPersonLinks: db.dismissedPersonLinks,
     focusPersonId: db.focusPersonId,
     focusHouseholdId: db.focusHouseholdId
   };
@@ -2825,7 +3080,9 @@ function importData(obj) {
     households: Array.isArray(obj.households) ? obj.households.map(sanitizeHousehold) : [],
     householdLinks: Array.isArray(obj.householdLinks) ? obj.householdLinks.map(sanitizeHouseholdLink).filter(Boolean) : [],
     personMatches: Array.isArray(obj.personMatches) ? obj.personMatches.map(sanitizePersonMatch).filter(Boolean) : [],
+    personIdentities: Array.isArray(obj.personIdentities) ? obj.personIdentities.map(sanitizePersonIdentity).filter(Boolean) : [],
     dismissedHouseholdLinks: Array.isArray(obj.dismissedHouseholdLinks) ? obj.dismissedHouseholdLinks.filter(s => typeof s === 'string') : [],
+    dismissedPersonLinks: Array.isArray(obj.dismissedPersonLinks) ? obj.dismissedPersonLinks.filter(s => typeof s === 'string') : [],
     backlog: db.backlog,
     backlogArchive: db.backlogArchive,
     theme: db.theme,
@@ -3031,12 +3288,20 @@ const CENSUS_SIDE_PANEL_HTML = `
   <div class="tab-bar">
     <span class="tab active" data-tab="candlinks">CANDIDATE LINKS</span>
     <span class="tab" data-tab="conflinks">CONFIRMED LINKS</span>
+    <span class="tab" data-tab="candmatches">CANDIDATE PEOPLE</span>
+    <span class="tab" data-tab="confmatches">CONFIRMED PEOPLE</span>
   </div>
   <div id="tab-candlinks" class="tab-pane">
     <div id="candidate-links-panel" class="dim">No candidate links.</div>
   </div>
   <div id="tab-conflinks" class="tab-pane" style="display:none">
     <div id="confirmed-links-panel" class="dim">No confirmed links.</div>
+  </div>
+  <div id="tab-candmatches" class="tab-pane" style="display:none">
+    <div id="candidate-matches-panel" class="dim">No candidate person links.</div>
+  </div>
+  <div id="tab-confmatches" class="tab-pane" style="display:none">
+    <div id="confirmed-matches-panel" class="dim">No confirmed person links.</div>
   </div>
 `;
 
@@ -3071,11 +3336,17 @@ document.addEventListener('click', event => {
     if (household) openHouseholdDialog(household);
     return;
   }
+  const identityTarget = event.target.closest('[data-identity-view]');
+  if (identityTarget) {
+    showIdentityOverlay(identityTarget.dataset.identityView);
+    return;
+  }
   const householdTarget = event.target.closest('[data-household-focus]');
   if (householdTarget) {
     db.focusHouseholdId = householdTarget.dataset.householdFocus;
     saveDB();
     renderCensusFocusCard();
+    document.getElementById('help-overlay').classList.remove('visible');
     return;
   }
   const target = event.target.closest('[data-person-focus]');
@@ -3148,6 +3419,7 @@ function handleConsoleCmd(raw) {
   if (cmd === '/location') return handleLocationCommand(rest);
   if (cmd === '/household') return handleHouseholdCommand(rest);
   if (cmd === '/link') return handleLinkCommand(rest);
+  if (cmd === '/match') return handleMatchCommand(rest);
   if (cmd === '/attr') return handleAttrCommand(rest);
   if (cmd === '/rel') return handleRelationshipCommand(rest);
   if (cmd === '/event') return handleEventCommand(rest);
