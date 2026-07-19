@@ -1689,10 +1689,24 @@ function renderCensusFocusCard() {
     const yearNum = parseInt(h.year, 10);
     const ageNum = parseInt(m.age, 10);
     const approxYear = !Number.isNaN(yearNum) && !Number.isNaN(ageNum) ? yearNum - ageNum : null;
-    const approxHtml = approxYear !== null
-      ? `<span style="margin-left:auto;color:var(--warn);font-size:0.8em" title="Approximate birth year, derived from census year minus age">~${approxYear}</span>`
-      : '';
     const identity = findIdentityForMember(h.id, mi);
+    let approxHtml = '';
+    if (approxYear !== null) {
+      let years = [approxYear];
+      if (identity) {
+        years = identity.members
+          .map(im => {
+            const ih = db.households.find(x => x.id === im.householdId);
+            const imem = ih ? ih.members[im.memberIndex] : null;
+            return ih && imem ? memberApproxBirthYear(ih, imem) : null;
+          })
+          .filter(y => y !== null);
+        if (!years.length) years = [approxYear];
+      }
+      const rangeMin = Math.min(...years), rangeMax = Math.max(...years);
+      const rangeText = rangeMin !== rangeMax ? ` [${rangeMin}-${rangeMax}]` : '';
+      approxHtml = `<span style="margin-left:auto;color:var(--warn);font-size:0.8em" title="Approximate birth year, derived from census year minus age">~${approxYear}${rangeText}</span>`;
+    }
     const linkBadge = identity
       ? ` <span class="action-link" data-identity-view="${identity.id}" title="Linked across ${identity.members.length} household records">⛓${identity.members.length}</span>`
       : '';
