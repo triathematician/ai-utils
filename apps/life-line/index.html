@@ -2555,16 +2555,43 @@ function householdLinkConfidence(earlier, later) {
   return "unlikely — ages don't align";
 }
 
+function householdComponentMap() {
+  const adj = new Map();
+  db.households.forEach(h => adj.set(h.id, new Set()));
+  db.householdLinks.forEach(l => {
+    if (adj.has(l.fromId) && adj.has(l.toId)) {
+      adj.get(l.fromId).add(l.toId);
+      adj.get(l.toId).add(l.fromId);
+    }
+  });
+  const componentOf = new Map();
+  let compId = 0;
+  db.households.forEach(h => {
+    if (componentOf.has(h.id)) return;
+    const queue = [h.id];
+    componentOf.set(h.id, compId);
+    while (queue.length) {
+      const cur = queue.shift();
+      adj.get(cur).forEach(n => {
+        if (!componentOf.has(n)) { componentOf.set(n, compId); queue.push(n); }
+      });
+    }
+    compId++;
+  });
+  return componentOf;
+}
+
 function findCandidateHouseholdLinks() {
-  const existingLinks = new Set(db.householdLinks.map(l => [l.fromId, l.toId].sort().join(':')));
   const dismissed = new Set(db.dismissedHouseholdLinks);
+  const componentOf = householdComponentMap();
   const candidates = [];
   for (let i = 0; i < db.households.length; i++) {
     for (let j = i + 1; j < db.households.length; j++) {
       const a = db.households[i], b = db.households[j];
       if (!a.year || !b.year || a.year === b.year) continue;
+      if (componentOf.get(a.id) === componentOf.get(b.id)) continue;
       const key = [a.id, b.id].sort().join(':');
-      if (existingLinks.has(key) || dismissed.has(key)) continue;
+      if (dismissed.has(key)) continue;
       const overlap = householdNameOverlap(a, b);
       const threshold = Math.min(2, Math.min(a.members.length, b.members.length));
       if (overlap < threshold || overlap === 0) continue;
