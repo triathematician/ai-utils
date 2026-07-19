@@ -1887,7 +1887,11 @@ function renderConfirmedTreeLinksPanel() {
   el.innerHTML = linked.map(identity => {
     const rep = representativeMemberForIdentity(identity);
     const person = pMap.get(identity.personId);
-    return `<div class="line"><span class="focus-meta">${escHtml(identity.id)}</span> · ${rep ? escHtml(rep.member.name) + ' · ' + escHtml(rep.household.id) + ' (' + escHtml(rep.household.year) + ')' : '?'}<br>↔ ${person ? escHtml(person.name) : identity.personId}</div>`;
+    const range = identityYearRange(identity);
+    const rangeText = range.min !== null ? (range.min === range.max ? '~' + range.min : `~${range.min}-${range.max}`) : '';
+    const recordsText = `${identity.members.length} linked record${identity.members.length === 1 ? '' : 's'}`;
+    const detail = [rangeText, recordsText].filter(Boolean).join(' · ');
+    return `<div class="line"><span class="focus-meta">${escHtml(identity.id)}</span> · ${rep ? escHtml(rep.member.name) : '?'}${detail ? ' · ' + escHtml(detail) : ''}<br>↔ ${person ? escHtml(person.name) : identity.personId}</div>`;
   }).join('');
 }
 
