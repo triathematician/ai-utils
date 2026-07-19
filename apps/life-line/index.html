@@ -2702,6 +2702,19 @@ function memberApproxBirthYear(household, member) {
   return yearNum - ageNum;
 }
 
+function nameTokens(name) {
+  return cleanText(name).toLowerCase().replace(/[.,]/g, '').split(/\s+/).filter(Boolean);
+}
+
+// Matches names that share a first and last name but differ in middle names/initials,
+// e.g. "Emil J Staheli" ↔ "Emil Staheli".
+function namesLikelyMatch(a, b) {
+  const ta = nameTokens(a), tb = nameTokens(b);
+  if (!ta.length || !tb.length) return false;
+  if (ta.join(' ') === tb.join(' ')) return true;
+  return ta[0] === tb[0] && ta[ta.length - 1] === tb[tb.length - 1];
+}
+
 function personLinkConfidence(yearA, yearB) {
   if (yearA === null || yearB === null) return 'check ages (insufficient data)';
   const diff = Math.abs(yearA - yearB);
@@ -2720,7 +2733,7 @@ function findCandidatePersonLinks() {
       a.members.forEach((ma, mi) => {
         if (!ma.name) return;
         b.members.forEach((mb, mj) => {
-          if (!mb.name || ma.name.toLowerCase() !== mb.name.toLowerCase()) return;
+          if (!mb.name || !namesLikelyMatch(ma.name, mb.name)) return;
           const identityA = findIdentityForMember(a.id, mi);
           const identityB = findIdentityForMember(b.id, mj);
           if (identityA && identityA === identityB) return;
