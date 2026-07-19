@@ -296,37 +296,37 @@ html, body {
 // ══════════════════════════════════════════════════════════════════════════
 //   Constants & theme list ............................................ L327
 //   Data model sanitizers (person/relationship/event/location/...) .... L402
-//   loadDB / saveDB .................................................... L545
-//   Utility helpers (cleanText, escHtml, splitPipe, nextId, findX) ..... L604
-//   Wizard (guided /add flow) .......................................... L684
-//   Relationship helpers ............................................... L747
-//   /set command ........................................................ L832
-//   /add command ......................................................... L912
-//   Lifespan filter ...................................................... L1274
-//   Ancestor / descendant trees .......................................... L1469
-//   Lifespan timeline ..................................................... L1524
-//   Census workspace rendering ............................................ L1717
-//   render() -- central re-render dispatcher .............................. L1923
-//   Duplicate detection / merge ............................................ L2241
-//   Household bulk-add/edit dialog ......................................... L2426
-//   Candidate household links (family across census years) ................ L2582
-//   Person identity links (same person across census years) ................ L2755
-//   Tree links (census members <-> family-tree people) ..................... L2953
-//   exportDataJson / importData ............................................. L3432
-//   exportGedcom .............................................................. L3485
-//   /export, /import commands ................................................. L3609
-//   Theme switching ............................................................ L3646
-//   Census workspace mode toggle (life-line <-> census swap) .................. L3659
-//   handleConsoleCmd -- top-level command dispatch ............................. L3830
-//   Tab bar / people filter-sort bar init ....................................... L3894
-//   init() / DOMContentLoaded .................................................... L3937
+//   loadDB / saveDB .................................................... L530
+//   Utility helpers (cleanText, escHtml, splitPipe, nextId, findX) ..... L586
+//   Wizard (guided /add flow) .......................................... L666
+//   Relationship helpers ............................................... L729
+//   /set command ........................................................ L814
+//   /add command ......................................................... L894
+//   Lifespan filter ...................................................... L1256
+//   Ancestor / descendant trees .......................................... L1451
+//   Lifespan timeline ..................................................... L1506
+//   Census workspace rendering ............................................ L1699
+//   render() -- central re-render dispatcher .............................. L1903
+//   Duplicate detection / merge ............................................ L2222
+//   Household bulk-add/edit dialog ......................................... L2407
+//   Candidate household links (family across census years) ................ L2562
+//   Person identity links (same person across census years) ................ L2735
+//   Tree links (census identities <-> family-tree people) .................. L2933
+//   exportDataJson / importData ............................................. L3453
+//   exportGedcom .............................................................. L3504
+//   /export, /import commands ................................................. L3628
+//   Theme switching ............................................................ L3665
+//   Census workspace mode toggle (life-line <-> census swap) .................. L3678
+//   handleConsoleCmd -- top-level command dispatch ............................. L3849
+//   Tab bar / people filter-sort bar init ....................................... L3913
+//   init() / DOMContentLoaded .................................................... L3956
 // ══════════════════════════════════════════════════════════════════════════
 
 const STORAGE_KEY = 'life_line_db';
 const EXPORT_SLUG = 'life-line';
 const THEMES = ['legacy','solar','monk','space','synth','dos','notebook','engineering','winter'];
 const RELATIONSHIP_TYPES = ['parent', 'child', 'spouse', 'partner', 'sibling'];
-let db = { people: [], relationships: [], events: [], locations: [], households: [], householdLinks: [], personMatches: [], personIdentities: [], dismissedHouseholdLinks: [], dismissedPersonLinks: [], dismissedTreeLinks: [], backlog: [], backlogArchive: [], theme: 'legacy', focusPersonId: '', focusHouseholdId: '', lifespanFilter: false };
+let db = { people: [], relationships: [], events: [], locations: [], households: [], householdLinks: [], personIdentities: [], dismissedHouseholdLinks: [], dismissedPersonLinks: [], dismissedTreeLinks: [], backlog: [], backlogArchive: [], theme: 'legacy', focusPersonId: '', focusHouseholdId: '', lifespanFilter: false };
 let wizard = null;
 let relFill = null; // { candidates: [...], index: 0, added: 0, focusId }
 let lifespanFilterEnabled = false;
@@ -500,21 +500,6 @@ function sanitizeHouseholdLink(raw) {
   };
 }
 
-function sanitizePersonMatch(raw) {
-  const source = raw && typeof raw === 'object' ? raw : {};
-  const householdId = cleanText(source.householdId);
-  const personId = cleanText(source.personId);
-  const memberIndex = parseInt(source.memberIndex, 10);
-  if (!householdId || !personId || Number.isNaN(memberIndex) || memberIndex < 0) return null;
-  return {
-    id: cleanText(source.id) || nextId('M', db.personMatches || []),
-    householdId,
-    memberIndex,
-    personId,
-    createdAt: cleanText(source.createdAt) || new Date().toISOString()
-  };
-}
-
 function sanitizePersonIdentityMember(raw) {
   const source = raw && typeof raw === 'object' ? raw : {};
   const householdId = cleanText(source.householdId);
@@ -533,7 +518,7 @@ function sanitizePersonIdentity(raw) {
       seen.add(key);
       return true;
     });
-  if (members.length < 2) return null;
+  if (members.length < 1) return null;
   return {
     id: cleanText(source.id) || nextId('PI', db.personIdentities || []),
     members,
@@ -553,7 +538,6 @@ function loadDB() {
       locations: Array.isArray(parsed.locations) ? parsed.locations : [],
       households: Array.isArray(parsed.households) ? parsed.households : [],
       householdLinks: Array.isArray(parsed.householdLinks) ? parsed.householdLinks : [],
-      personMatches: Array.isArray(parsed.personMatches) ? parsed.personMatches : [],
       personIdentities: Array.isArray(parsed.personIdentities) ? parsed.personIdentities : [],
       dismissedHouseholdLinks: Array.isArray(parsed.dismissedHouseholdLinks) ? parsed.dismissedHouseholdLinks.filter(s => typeof s === 'string') : [],
       dismissedPersonLinks: Array.isArray(parsed.dismissedPersonLinks) ? parsed.dismissedPersonLinks.filter(s => typeof s === 'string') : [],
@@ -565,7 +549,7 @@ function loadDB() {
       focusHouseholdId: cleanText(parsed.focusHouseholdId),
       lifespanFilter: parsed.lifespanFilter === true
     };
-    db = { people: [], relationships: [], events: [], locations: [], households: [], householdLinks: [], personMatches: [], personIdentities: [], dismissedHouseholdLinks: [], dismissedPersonLinks: [], dismissedTreeLinks: [] };
+    db = { people: [], relationships: [], events: [], locations: [], households: [], householdLinks: [], personIdentities: [], dismissedHouseholdLinks: [], dismissedPersonLinks: [], dismissedTreeLinks: [] };
     base.people = base.people.map(sanitizePerson);
     db.people = base.people;
     base.relationships = base.relationships.map(sanitizeRelationship).filter(Boolean);
@@ -578,8 +562,6 @@ function loadDB() {
     db.households = base.households;
     base.householdLinks = base.householdLinks.map(sanitizeHouseholdLink).filter(Boolean);
     db.householdLinks = base.householdLinks;
-    base.personMatches = base.personMatches.map(sanitizePersonMatch).filter(Boolean);
-    db.personMatches = base.personMatches;
     base.personIdentities = base.personIdentities.map(sanitizePersonIdentity).filter(Boolean);
     db.personIdentities = base.personIdentities;
     db.dismissedHouseholdLinks = base.dismissedHouseholdLinks;
@@ -589,7 +571,7 @@ function loadDB() {
     if (!base.households.some(h => h.id === base.focusHouseholdId)) base.focusHouseholdId = base.households[0] ? base.households[0].id : '';
     return base;
   } catch {
-    return { people: [], relationships: [], events: [], locations: [], households: [], householdLinks: [], personMatches: [], personIdentities: [], dismissedHouseholdLinks: [], dismissedPersonLinks: [], dismissedTreeLinks: [], backlog: [], backlogArchive: [], theme: 'legacy', focusPersonId: '', focusHouseholdId: '', lifespanFilter: false };
+    return { people: [], relationships: [], events: [], locations: [], households: [], householdLinks: [], personIdentities: [], dismissedHouseholdLinks: [], dismissedPersonLinks: [], dismissedTreeLinks: [], backlog: [], backlogArchive: [], theme: 'legacy', focusPersonId: '', focusHouseholdId: '', lifespanFilter: false };
   }
 }
 
@@ -1213,7 +1195,7 @@ function renderFocus() {
   const birthLoc = locMap.get(focus.birthLocationId);
   const deathLoc = locMap.get(focus.deathLocationId);
   const placePart = [birthLoc && ('b. ' + birthLoc.name), deathLoc && ('d. ' + deathLoc.name)].filter(Boolean).join(' · ');
-  const censusMatchCount = db.personMatches.filter(m => m.personId === focus.id).length;
+  const censusMatchCount = db.personIdentities.filter(pi => pi.personId === focus.id).length;
   const censusBadge = censusMatchCount
     ? ` <span class="action-link" data-census-matches-view="${escHtml(focus.id)}" title="Linked census appearances">⌗ ${censusMatchCount} census record${censusMatchCount === 1 ? '' : 's'}</span>`
     : '';
@@ -1751,9 +1733,8 @@ function renderCensusFocusCard() {
     const linkBadge = identity
       ? ` <span class="action-link" data-identity-view="${identity.id}" title="Linked across ${identity.members.length} household records">⛓${identity.members.length}</span>`
       : '';
-    const treeMatch = findPersonMatchForMember(h.id, mi);
-    const treePerson = treeMatch ? db.people.find(p => p.id === treeMatch.personId) : null;
-    const treeMatchCount = treePerson ? db.personMatches.filter(pm => pm.personId === treePerson.id).length : 0;
+    const treePerson = identity && identity.personId ? db.people.find(p => p.id === identity.personId) : null;
+    const treeMatchCount = treePerson ? db.personIdentities.filter(pi => pi.personId === treePerson.id).length : 0;
     const treeBadge = treePerson
       ? ` <span class="action-link" data-census-matches-view="${escHtml(treePerson.id)}" title="Linked to family tree person${treeMatchCount > 1 ? ' (' + treeMatchCount + ' census records)' : ''}">→ ${escHtml(treePerson.name)}${treeMatchCount > 1 ? ' ×' + treeMatchCount : ''}</span>`
       : '';
@@ -1886,25 +1867,24 @@ function renderCandidateTreeLinksPanel() {
     return;
   }
   el.className = '';
-  el.innerHTML = candidates.map(c => `<div class="line">${escHtml(c.member.name)} · ${escHtml(c.household.id)} (${escHtml(c.household.year)})<br>↔ ${escHtml(c.person.name)} · ${escHtml(c.person.id)}<br><span class="dim">${escHtml(c.confidence)}</span></div>`).join('');
+  el.innerHTML = candidates.map(c => `<div class="line">${escHtml(c.rep.member.name)} · ${escHtml(c.rep.household.id)} (${escHtml(c.rep.household.year)})<br>↔ ${escHtml(c.person.name)} · ${escHtml(c.person.id)}<br><span class="dim">${escHtml(c.confidence)}</span></div>`).join('');
 }
 
 function renderConfirmedTreeLinksPanel() {
   const el = document.getElementById('confirmed-treelinks-panel');
   if (!el) return;
-  if (!db.personMatches.length) {
+  const linked = db.personIdentities.filter(pi => pi.personId);
+  if (!linked.length) {
     el.className = 'dim';
     el.textContent = 'No confirmed tree links.';
     return;
   }
-  const hMap = new Map(db.households.map(h => [h.id, h]));
   const pMap = new Map(db.people.map(p => [p.id, p]));
   el.className = '';
-  el.innerHTML = db.personMatches.map(m => {
-    const h = hMap.get(m.householdId);
-    const member = h ? h.members[m.memberIndex] : null;
-    const person = pMap.get(m.personId);
-    return `<div class="line"><span class="focus-meta">${escHtml(m.id)}</span> · ${member ? escHtml(member.name) : '?'} · ${escHtml(m.householdId)}${h ? ' (' + escHtml(h.year) + ')' : ''}<br>↔ ${person ? escHtml(person.name) : m.personId}</div>`;
+  el.innerHTML = linked.map(identity => {
+    const rep = representativeMemberForIdentity(identity);
+    const person = pMap.get(identity.personId);
+    return `<div class="line"><span class="focus-meta">${escHtml(identity.id)}</span> · ${rep ? escHtml(rep.member.name) + ' · ' + escHtml(rep.household.id) + ' (' + escHtml(rep.household.year) + ')' : '?'}<br>↔ ${person ? escHtml(person.name) : identity.personId}</div>`;
   }).join('');
 }
 
@@ -2026,10 +2006,11 @@ function showHelp() {
     '                         households (name + approximate birth year), [match]/[dismiss] each',
     '/match confirm household.index | household.index',
     '/match remove household.index-or-identity-id',
-    '/treelink [list]          show candidate links between a census household member and',
-    '                         a family-tree person (name + birth year), [link]/[dismiss] each',
-    '/treelink confirm household.index | person',
-    '/treelink remove household.index-or-match-id',
+    '/treelink [list]          show candidate links between a census identity (PI#, or a',
+    '                         household.index if not yet cross-census matched) and a',
+    '                         family-tree person, [link]/[dismiss] each',
+    '/treelink confirm identity-id-or-household.index | person',
+    '/treelink remove identity-id-or-household.index',
     '',
     '── STANDARD ───────────────────────────────────────────',
     '/theme [name]            switch theme',
@@ -2231,7 +2212,7 @@ function cmdPersonRemove(raw) {
   db.people = db.people.filter(person => person.id !== removedId);
   db.relationships = db.relationships.filter(rel => rel.fromId !== removedId && rel.toId !== removedId);
   db.events = db.events.map(event => ({ ...event, personIds: event.personIds.filter(id => id !== removedId) }));
-  db.personMatches = db.personMatches.filter(m => m.personId !== removedId);
+  db.personIdentities.forEach(pi => { if (pi.personId === removedId) pi.personId = ''; });
   if (db.focusPersonId === removedId) db.focusPersonId = db.people[0] ? db.people[0].id : '';
   saveDB();
   render();
@@ -2326,7 +2307,7 @@ function cmdPersonMerge(raw) {
   });
 
   db.people = db.people.filter(p => p.id !== remove.id);
-  db.personMatches.forEach(m => { if (m.personId === remove.id) m.personId = keep.id; });
+  db.personIdentities.forEach(pi => { if (pi.personId === remove.id) pi.personId = keep.id; });
   if (db.focusPersonId === remove.id) db.focusPersonId = keep.id;
 
   saveDB();
@@ -2550,7 +2531,6 @@ function cmdHouseholdRemove(raw) {
   const removedId = match.household.id;
   db.households = db.households.filter(h => h.id !== removedId);
   db.householdLinks = db.householdLinks.filter(l => l.fromId !== removedId && l.toId !== removedId);
-  db.personMatches = db.personMatches.filter(m => m.householdId !== removedId);
   db.personIdentities = db.personIdentities
     .map(pi => sanitizePersonIdentity({ ...pi, members: pi.members.filter(m => m.householdId !== removedId) }))
     .filter(Boolean);
@@ -2950,59 +2930,26 @@ function showIdentityOverlay(identityId) {
   openOverlay('LINKED APPEARANCES', html, true);
 }
 
-// ── Tree links (census household members ↔ family-tree people) ────────────
+// ── Tree links (census identities ↔ family-tree people) ────────────────────
 const MAX_TREE_LINK_YEAR_GAP = 15;
 
 function personBirthYear(p) {
   return p.birthDate ? parseInt(p.birthDate.slice(0, 4), 10) : null;
 }
 
-function findPersonMatchForMember(householdId, memberIndex) {
-  return db.personMatches.find(m => m.householdId === householdId && m.memberIndex === memberIndex) || null;
-}
-
-function treeLinkConfidence(memberYear, personYear) {
-  if (memberYear === null || personYear === null) return 'check ages (insufficient data)';
-  const diff = Math.abs(memberYear - personYear);
-  if (diff <= 2) return 'likely';
-  if (diff <= 5) return 'possible';
-  return `unlikely — birth years ${diff} yrs apart`;
-}
-
-function findCandidateTreeLinks() {
-  const dismissed = new Set(db.dismissedTreeLinks);
-  const candidates = [];
-  db.households.forEach(h => {
-    h.members.forEach((m, mi) => {
-      if (!m.name || findPersonMatchForMember(h.id, mi)) return;
-      const memberYear = memberApproxBirthYear(h, m);
-      db.people.forEach(p => {
-        if (!namesLikelyMatch(m.name, p.name)) return;
-        const key = [memberToken(h.id, mi), p.id].sort().join('|');
-        if (dismissed.has(key)) return;
-        const personYear = personBirthYear(p);
-        if (memberYear !== null && personYear !== null && Math.abs(memberYear - personYear) > MAX_TREE_LINK_YEAR_GAP) return;
-        candidates.push({ household: h, memberIndex: mi, member: m, person: p, confidence: treeLinkConfidence(memberYear, personYear) });
-      });
-    });
-  });
-  const rank = c => c.confidence === 'likely' ? 0 : c.confidence === 'possible' ? 1 : c.confidence.startsWith('check') ? 2 : 3;
-  candidates.sort((x, y) => rank(x) - rank(y));
-  return candidates;
-}
-
-// Birth-year range + every distinct birthplace recorded across a member's confirmed
-// cross-census identity (falls back to just this one record if not yet linked).
-function censusIdentityDetailsHtml(household, memberIndex) {
-  const identity = findIdentityForMember(household.id, memberIndex);
-  if (!identity) {
-    const m = household.members[memberIndex];
-    const year = memberApproxBirthYear(household, m);
-    const parts = [];
-    if (year !== null) parts.push('~' + year);
-    if (m.birthplace) parts.push(m.birthplace);
-    return parts.join(' · ');
+// First household+member a census identity actually resolves to (identities are id lists;
+// this is the display-friendly anchor used for names/years/locations).
+function representativeMemberForIdentity(identity) {
+  const hMap = new Map(db.households.map(h => [h.id, h]));
+  for (const im of identity.members) {
+    const ih = hMap.get(im.householdId);
+    const imem = ih ? ih.members[im.memberIndex] : null;
+    if (ih && imem) return { household: ih, memberIndex: im.memberIndex, member: imem };
   }
+  return null;
+}
+
+function identityYearRange(identity) {
   const hMap = new Map(db.households.map(h => [h.id, h]));
   const years = [];
   const places = new Set();
@@ -3014,13 +2961,99 @@ function censusIdentityDetailsHtml(household, memberIndex) {
     if (y !== null) years.push(y);
     if (imem.birthplace) places.add(imem.birthplace);
   });
+  return { min: years.length ? Math.min(...years) : null, max: years.length ? Math.max(...years) : null, places: [...places] };
+}
+
+// Every household member already gets folded into SOME identity once tree-linked (a
+// singleton identity if it wasn't already part of a confirmed cross-census match) so a
+// tree link always resolves to a PI id, never a bare household.index token.
+function getOrCreateIdentityForMember(householdId, memberIndex) {
+  const existing = findIdentityForMember(householdId, memberIndex);
+  if (existing) return existing;
+  const identity = sanitizePersonIdentity({ members: [{ householdId, memberIndex }] });
+  db.personIdentities.push(identity);
+  return identity;
+}
+
+function resolveCensusUnitToken(token, create) {
+  const clean = cleanText(token);
+  const asIdentity = identityForToken(clean);
+  if (asIdentity) return { identity: asIdentity };
+  const parsed = parseMemberToken(clean);
+  if (parsed.error) return { error: parsed.error };
+  const identity = create
+    ? getOrCreateIdentityForMember(parsed.household.id, parsed.memberIndex)
+    : findIdentityForMember(parsed.household.id, parsed.memberIndex);
+  if (!identity) return { error: 'That census record is not linked to anyone.' };
+  return { identity };
+}
+
+function treeLinkConfidence(yearMin, yearMax, personYear) {
+  if (yearMin === null || personYear === null) return 'check ages (insufficient data)';
+  const dist = personYear < yearMin ? yearMin - personYear : personYear > yearMax ? personYear - yearMax : 0;
+  if (dist <= 2) return 'likely';
+  if (dist <= 5) return 'possible';
+  return `unlikely — birth years ${dist} yrs apart`;
+}
+
+function findCandidateTreeLinks() {
+  const dismissed = new Set(db.dismissedTreeLinks);
+  const covered = new Set();
+  const candidates = [];
+
+  db.personIdentities.forEach(identity => {
+    identity.members.forEach(m => covered.add(memberToken(m.householdId, m.memberIndex)));
+    if (identity.personId) return;
+    const rep = representativeMemberForIdentity(identity);
+    if (!rep) return;
+    const range = identityYearRange(identity);
+    db.people.forEach(p => {
+      if (!namesLikelyMatch(rep.member.name, p.name)) return;
+      const key = [identity.id, p.id].sort().join('|');
+      if (dismissed.has(key)) return;
+      const personYear = personBirthYear(p);
+      if (range.min !== null && personYear !== null) {
+        const dist = personYear < range.min ? range.min - personYear : personYear > range.max ? personYear - range.max : 0;
+        if (dist > MAX_TREE_LINK_YEAR_GAP) return;
+      }
+      candidates.push({ token: identity.id, rep, range, recordCount: identity.members.length, person: p, confidence: treeLinkConfidence(range.min, range.max, personYear) });
+    });
+  });
+
+  db.households.forEach(h => {
+    h.members.forEach((m, mi) => {
+      if (!m.name || covered.has(memberToken(h.id, mi))) return;
+      const memberYear = memberApproxBirthYear(h, m);
+      db.people.forEach(p => {
+        if (!namesLikelyMatch(m.name, p.name)) return;
+        const tok = memberToken(h.id, mi);
+        const key = [tok, p.id].sort().join('|');
+        if (dismissed.has(key)) return;
+        const personYear = personBirthYear(p);
+        if (memberYear !== null && personYear !== null && Math.abs(memberYear - personYear) > MAX_TREE_LINK_YEAR_GAP) return;
+        candidates.push({
+          token: tok,
+          rep: { household: h, memberIndex: mi, member: m },
+          range: { min: memberYear, max: memberYear, places: m.birthplace ? [m.birthplace] : [] },
+          recordCount: 1,
+          person: p,
+          confidence: treeLinkConfidence(memberYear, memberYear, personYear)
+        });
+      });
+    });
+  });
+
+  const rank = c => c.confidence === 'likely' ? 0 : c.confidence === 'possible' ? 1 : c.confidence.startsWith('check') ? 2 : 3;
+  candidates.sort((x, y) => rank(x) - rank(y));
+  return candidates;
+}
+
+// Birth-year range + every distinct birthplace across the candidate's census records.
+function censusUnitDetailsHtml(c) {
   const parts = [];
-  if (years.length) {
-    const yrMin = Math.min(...years), yrMax = Math.max(...years);
-    parts.push(yrMin === yrMax ? '~' + yrMin : `~${yrMin}-${yrMax}`);
-  }
-  if (places.size) parts.push([...places].join(', '));
-  parts.push(`${identity.members.length} linked census records`);
+  if (c.range.min !== null) parts.push(c.range.min === c.range.max ? '~' + c.range.min : `~${c.range.min}-${c.range.max}`);
+  if (c.range.places.length) parts.push(c.range.places.join(', '));
+  if (c.recordCount > 1) parts.push(`${c.recordCount} linked census records`);
   return parts.join(' · ');
 }
 
@@ -3040,13 +3073,12 @@ function cmdTreeLinkList() {
   const candidates = findCandidateTreeLinks();
   if (!candidates.length) return statusMsg('No candidate tree links found.');
   const html = candidates.map(c => {
-    const tok = memberToken(c.household.id, c.memberIndex);
-    const fillCmd = `/treelink confirm ${tok} | ${c.person.id}`;
-    const dismissKey = [tok, c.person.id].sort().join('|');
-    const censusDetail = censusIdentityDetailsHtml(c.household, c.memberIndex);
+    const fillCmd = `/treelink confirm ${c.token} | ${c.person.id}`;
+    const dismissKey = [c.token, c.person.id].sort().join('|');
+    const censusDetail = censusUnitDetailsHtml(c);
     const treeDetail = personTreeDetailsHtml(c.person);
     return `<div class="line">
-      <div>${escHtml(c.member.name)} · ${escHtml(tok)} · ${escHtml(c.household.year)}${c.member.age ? ' · age ' + escHtml(c.member.age) : ''}</div>
+      <div>${escHtml(c.rep.member.name)} · ${escHtml(c.token)} · ${escHtml(c.rep.household.id)} (${escHtml(c.rep.household.year)})${c.rep.member.age ? ' · age ' + escHtml(c.rep.member.age) : ''}</div>
       ${censusDetail ? `<div class="dim">${escHtml(censusDetail)}</div>` : ''}
       <div>${escHtml(c.person.name)} · ${escHtml(c.person.id)}</div>
       ${treeDetail ? `<div class="dim">${escHtml(treeDetail)}</div>` : ''}
@@ -3073,39 +3105,32 @@ function cmdTreeLinkList() {
 }
 
 function cmdTreeLinkConfirm(raw) {
-  const [memberTok, personTok] = splitPipe(raw);
-  if (!memberTok || !personTok) return statusMsg('Usage: /treelink confirm household.index | person');
-  const parsedMember = parseMemberToken(memberTok);
-  if (parsedMember.error) return statusMsg(parsedMember.error);
+  const [unitTok, personTok] = splitPipe(raw);
+  if (!unitTok || !personTok) return statusMsg('Usage: /treelink confirm identity-id-or-household.index | person');
+  const resolved = resolveCensusUnitToken(unitTok, true);
+  if (resolved.error) return statusMsg(resolved.error);
   const personMatch = findPerson(personTok);
   if (personMatch.error) return statusMsg(personMatch.error);
-  if (findPersonMatchForMember(parsedMember.household.id, parsedMember.memberIndex)) return statusMsg('That census entry is already linked to a person. Remove it first.');
-  const match = sanitizePersonMatch({ householdId: parsedMember.household.id, memberIndex: parsedMember.memberIndex, personId: personMatch.person.id });
-  if (!match) return statusMsg('Could not link.');
-  db.personMatches.push(match);
+  const identity = resolved.identity;
+  if (identity.personId) return statusMsg('That census identity is already linked to a person. Remove it first.');
+  identity.personId = personMatch.person.id;
   saveDB();
   render();
-  statusMsg(`Linked ${parsedMember.member.name} (${parsedMember.household.id}) → ${personMatch.person.name}.`);
+  const rep = representativeMemberForIdentity(identity);
+  statusMsg(`Linked ${identity.id}${rep ? ' (' + rep.member.name + ')' : ''} → ${personMatch.person.name}.`);
 }
 
 function cmdTreeLinkRemove(raw) {
   const token = cleanText(raw);
-  if (!token) return statusMsg('Usage: /treelink remove household.index-or-match-id');
-  const byId = db.personMatches.find(m => m.id.toLowerCase() === token.toLowerCase());
-  if (byId) {
-    db.personMatches = db.personMatches.filter(m => m !== byId);
-    saveDB();
-    render();
-    return statusMsg('Tree link removed: ' + byId.id);
-  }
-  const parsed = parseMemberToken(token);
-  if (parsed.error) return statusMsg(parsed.error);
-  const existing = findPersonMatchForMember(parsed.household.id, parsed.memberIndex);
-  if (!existing) return statusMsg('That census entry is not linked to a person.');
-  db.personMatches = db.personMatches.filter(m => m !== existing);
+  if (!token) return statusMsg('Usage: /treelink remove identity-id-or-household.index');
+  const resolved = resolveCensusUnitToken(token, false);
+  if (resolved.error) return statusMsg(resolved.error);
+  const identity = resolved.identity;
+  if (!identity.personId) return statusMsg('That census identity is not linked to a person.');
+  identity.personId = '';
   saveDB();
   render();
-  statusMsg(`Unlinked ${parsed.member.name} (${parsed.household.id}).`);
+  statusMsg(`Unlinked ${identity.id}.`);
 }
 
 function handleTreeLinkCommand(arg) {
@@ -3113,7 +3138,7 @@ function handleTreeLinkCommand(arg) {
   if (!trimmed || trimmed === 'list') return cmdTreeLinkList();
   if (trimmed.startsWith('confirm ')) return cmdTreeLinkConfirm(trimmed.slice(8));
   if (trimmed.startsWith('remove ')) return cmdTreeLinkRemove(trimmed.slice(7));
-  statusMsg('Usage: /treelink [list]|confirm household.index | person|remove household.index-or-match-id');
+  statusMsg('Usage: /treelink [list]|confirm identity-id-or-household.index | person|remove identity-id-or-household.index');
 }
 
 function focusTreeLinkedPerson(personId) {
@@ -3132,24 +3157,20 @@ function jumpToCensusHousehold(householdId) {
 
 function showCensusMatchesOverlay(personId) {
   const person = db.people.find(p => p.id === personId);
-  const matches = db.personMatches.filter(m => m.personId === personId);
-  if (!person || !matches.length) return;
-  const hMap = new Map(db.households.map(h => [h.id, h]));
+  const identities = db.personIdentities.filter(pi => pi.personId === personId);
+  if (!person || !identities.length) return;
   const locMap = new Map(db.locations.map(l => [l.id, l]));
-  const sorted = matches.slice().sort((a, b) => {
-    const ha = hMap.get(a.householdId), hb = hMap.get(b.householdId);
-    return (ha ? ha.year : '').localeCompare(hb ? hb.year : '');
-  });
-  const rows = sorted.map(m => {
-    const h = hMap.get(m.householdId);
-    const member = h ? h.members[m.memberIndex] : null;
-    if (!h || !member) return '';
-    const loc = locMap.get(h.locationId);
-    return `<div class="line">
-      <span class="action-link" data-census-household-jump="${escHtml(h.id)}">${escHtml(h.id)} (${escHtml(h.year)})</span>
-      · ${escHtml(member.name)}${member.age ? ' · age ' + escHtml(member.age) : ''}${loc ? ' · ' + escHtml(loc.name) : ''}
-    </div>`;
-  }).join('');
+  const rows = identities
+    .map(identity => ({ identity, rep: representativeMemberForIdentity(identity) }))
+    .filter(x => x.rep)
+    .sort((a, b) => a.rep.household.year.localeCompare(b.rep.household.year))
+    .map(({ identity, rep }) => {
+      const loc = locMap.get(rep.household.locationId);
+      return `<div class="line">
+        <span class="action-link" data-census-household-jump="${escHtml(rep.household.id)}">${escHtml(identity.id)} · ${escHtml(rep.household.id)} (${escHtml(rep.household.year)})</span>
+        · ${escHtml(rep.member.name)}${rep.member.age ? ' · age ' + escHtml(rep.member.age) : ''}${loc ? ' · ' + escHtml(loc.name) : ''}${identity.members.length > 1 ? ' · ' + identity.members.length + ' linked records' : ''}
+      </div>`;
+    }).join('');
   const header = `<div class="line"><span class="action-link" data-tree-person-focus="${escHtml(person.id)}">${escHtml(person.name)} (${escHtml(person.id)})</span></div><hr class="focus-divider">`;
   openOverlay('CENSUS APPEARANCES', header + rows, true);
 }
@@ -3439,7 +3460,6 @@ function exportDataJson() {
     locations: db.locations,
     households: db.households,
     householdLinks: db.householdLinks,
-    personMatches: db.personMatches,
     personIdentities: db.personIdentities,
     dismissedHouseholdLinks: db.dismissedHouseholdLinks,
     dismissedPersonLinks: db.dismissedPersonLinks,
@@ -3465,7 +3485,6 @@ function importData(obj) {
     locations: Array.isArray(obj.locations) ? obj.locations.map(sanitizeLocation) : [],
     households: Array.isArray(obj.households) ? obj.households.map(sanitizeHousehold) : [],
     householdLinks: Array.isArray(obj.householdLinks) ? obj.householdLinks.map(sanitizeHouseholdLink).filter(Boolean) : [],
-    personMatches: Array.isArray(obj.personMatches) ? obj.personMatches.map(sanitizePersonMatch).filter(Boolean) : [],
     personIdentities: Array.isArray(obj.personIdentities) ? obj.personIdentities.map(sanitizePersonIdentity).filter(Boolean) : [],
     dismissedHouseholdLinks: Array.isArray(obj.dismissedHouseholdLinks) ? obj.dismissedHouseholdLinks.filter(s => typeof s === 'string') : [],
     dismissedPersonLinks: Array.isArray(obj.dismissedPersonLinks) ? obj.dismissedPersonLinks.filter(s => typeof s === 'string') : [],
