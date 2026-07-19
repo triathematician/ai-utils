@@ -2802,7 +2802,11 @@ function showIdentityOverlay(identityId) {
   if (!identity) return;
   const hMap = new Map(db.households.map(h => [h.id, h]));
   const locMap = new Map(db.locations.map(l => [l.id, l]));
-  const html = identity.members.map(m => {
+  const sortedMembers = identity.members.slice().sort((a, b) => {
+    const ha = hMap.get(a.householdId), hb = hMap.get(b.householdId);
+    return (ha ? ha.year : '').localeCompare(hb ? hb.year : '');
+  });
+  const html = sortedMembers.map(m => {
     const h = hMap.get(m.householdId);
     const member = h ? h.members[m.memberIndex] : null;
     if (!h || !member) return '';
