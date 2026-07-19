@@ -98,10 +98,12 @@ html, body {
 #main-panel { border-right: 1px solid var(--border); padding: 10px 12px; overflow-y: auto; }
 #side-panel { padding: 10px 12px; overflow: hidden; display: flex; flex-direction: column; }
 .tab-bar { display: flex; border-bottom: 1px solid var(--muted); margin-bottom: 8px; flex-shrink: 0; overflow-x: auto; }
-.tab { padding: 3px 10px; cursor: pointer; color: var(--dim); font-size: 0.76em; letter-spacing: 1px; white-space: nowrap; flex-shrink: 0; }
-.tab.active { color: var(--accent); border-bottom: 2px solid var(--accent); margin-bottom: -1px; }
-.tab:hover:not(.active) { color: var(--fg); }
-.tab-pane { flex: 1; overflow-y: auto; }
+.tab, .ctab-main, .ctab-sub { padding: 3px 10px; cursor: pointer; color: var(--dim); font-size: 0.76em; letter-spacing: 1px; white-space: nowrap; flex-shrink: 0; }
+.tab.active, .ctab-main.active, .ctab-sub.active { color: var(--accent); border-bottom: 2px solid var(--accent); margin-bottom: -1px; }
+.tab:hover:not(.active), .ctab-main:hover:not(.active), .ctab-sub:hover:not(.active) { color: var(--fg); }
+.tab-pane, .ctab-pane, .ctab-sub-pane { flex: 1; overflow-y: auto; }
+.ctab-pane { display: flex; flex-direction: column; }
+.sub-tab-bar { margin-top: 6px; }
 #console-row {
   background: var(--muted); border-top: 1px solid var(--border);
   display: flex; align-items: center; padding: 0 12px; gap: 8px;
@@ -323,7 +325,7 @@ const STORAGE_KEY = 'life_line_db';
 const EXPORT_SLUG = 'life-line';
 const THEMES = ['legacy','solar','monk','space','synth','dos','notebook','engineering','winter'];
 const RELATIONSHIP_TYPES = ['parent', 'child', 'spouse', 'partner', 'sibling'];
-let db = { people: [], relationships: [], events: [], locations: [], households: [], householdLinks: [], personMatches: [], personIdentities: [], dismissedHouseholdLinks: [], dismissedPersonLinks: [], backlog: [], backlogArchive: [], theme: 'legacy', focusPersonId: '', focusHouseholdId: '', lifespanFilter: false };
+let db = { people: [], relationships: [], events: [], locations: [], households: [], householdLinks: [], personMatches: [], personIdentities: [], dismissedHouseholdLinks: [], dismissedPersonLinks: [], dismissedTreeLinks: [], backlog: [], backlogArchive: [], theme: 'legacy', focusPersonId: '', focusHouseholdId: '', lifespanFilter: false };
 let wizard = null;
 let relFill = null; // { candidates: [...], index: 0, added: 0, focusId }
 let lifespanFilterEnabled = false;
@@ -554,6 +556,7 @@ function loadDB() {
       personIdentities: Array.isArray(parsed.personIdentities) ? parsed.personIdentities : [],
       dismissedHouseholdLinks: Array.isArray(parsed.dismissedHouseholdLinks) ? parsed.dismissedHouseholdLinks.filter(s => typeof s === 'string') : [],
       dismissedPersonLinks: Array.isArray(parsed.dismissedPersonLinks) ? parsed.dismissedPersonLinks.filter(s => typeof s === 'string') : [],
+      dismissedTreeLinks: Array.isArray(parsed.dismissedTreeLinks) ? parsed.dismissedTreeLinks.filter(s => typeof s === 'string') : [],
       backlog: Array.isArray(parsed.backlog) ? parsed.backlog : [],
       backlogArchive: Array.isArray(parsed.backlogArchive) ? parsed.backlogArchive : [],
       theme: cleanText(parsed.theme) || 'legacy',
@@ -561,7 +564,7 @@ function loadDB() {
       focusHouseholdId: cleanText(parsed.focusHouseholdId),
       lifespanFilter: parsed.lifespanFilter === true
     };
-    db = { people: [], relationships: [], events: [], locations: [], households: [], householdLinks: [], personMatches: [], personIdentities: [], dismissedHouseholdLinks: [], dismissedPersonLinks: [] };
+    db = { people: [], relationships: [], events: [], locations: [], households: [], householdLinks: [], personMatches: [], personIdentities: [], dismissedHouseholdLinks: [], dismissedPersonLinks: [], dismissedTreeLinks: [] };
     base.people = base.people.map(sanitizePerson);
     db.people = base.people;
     base.relationships = base.relationships.map(sanitizeRelationship).filter(Boolean);
@@ -580,11 +583,12 @@ function loadDB() {
     db.personIdentities = base.personIdentities;
     db.dismissedHouseholdLinks = base.dismissedHouseholdLinks;
     db.dismissedPersonLinks = base.dismissedPersonLinks;
+    db.dismissedTreeLinks = base.dismissedTreeLinks;
     if (!base.people.some(person => person.id === base.focusPersonId)) base.focusPersonId = base.people[0] ? base.people[0].id : '';
     if (!base.households.some(h => h.id === base.focusHouseholdId)) base.focusHouseholdId = base.households[0] ? base.households[0].id : '';
     return base;
   } catch {
-    return { people: [], relationships: [], events: [], locations: [], households: [], householdLinks: [], personMatches: [], personIdentities: [], dismissedHouseholdLinks: [], dismissedPersonLinks: [], backlog: [], backlogArchive: [], theme: 'legacy', focusPersonId: '', focusHouseholdId: '', lifespanFilter: false };
+    return { people: [], relationships: [], events: [], locations: [], households: [], householdLinks: [], personMatches: [], personIdentities: [], dismissedHouseholdLinks: [], dismissedPersonLinks: [], dismissedTreeLinks: [], backlog: [], backlogArchive: [], theme: 'legacy', focusPersonId: '', focusHouseholdId: '', lifespanFilter: false };
   }
 }
 
@@ -1742,7 +1746,12 @@ function renderCensusFocusCard() {
     const linkBadge = identity
       ? ` <span class="action-link" data-identity-view="${identity.id}" title="Linked across ${identity.members.length} household records">⛓${identity.members.length}</span>`
       : '';
-    return `<div class="rel-row"><span class="rel-label">${escHtml(m.relation || '—')}</span>${escHtml(m.name)}${m.gender ? ' <span class="rel-date">· ' + escHtml(m.gender) + '</span>' : ''}${m.age ? ' <span class="rel-date">· age ' + escHtml(m.age) + '</span>' : ''}${m.birthplace ? ' <span class="rel-date">· b. ' + escHtml(m.birthplace) + '</span>' : ''}${m.occupation ? ' <span class="rel-date">· ' + escHtml(m.occupation) + '</span>' : ''}${linkBadge}${approxHtml}</div>`;
+    const treeMatch = findPersonMatchForMember(h.id, mi);
+    const treePerson = treeMatch ? db.people.find(p => p.id === treeMatch.personId) : null;
+    const treeBadge = treePerson
+      ? ` <span class="action-link" data-tree-person-focus="${escHtml(treePerson.id)}" title="Linked to family tree person">→ ${escHtml(treePerson.name)}</span>`
+      : '';
+    return `<div class="rel-row"><span class="rel-label">${escHtml(m.relation || '—')}</span>${escHtml(m.name)}${m.gender ? ' <span class="rel-date">· ' + escHtml(m.gender) + '</span>' : ''}${m.age ? ' <span class="rel-date">· age ' + escHtml(m.age) + '</span>' : ''}${m.birthplace ? ' <span class="rel-date">· b. ' + escHtml(m.birthplace) + '</span>' : ''}${m.occupation ? ' <span class="rel-date">· ' + escHtml(m.occupation) + '</span>' : ''}${linkBadge}${treeBadge}${approxHtml}</div>`;
   }).join('');
   const group = householdLinkedGroup(h.id);
   const seriesHtml = group.length > 1
@@ -1861,6 +1870,38 @@ function renderConfirmedMatchesPanel() {
   }).join('');
 }
 
+function renderCandidateTreeLinksPanel() {
+  const el = document.getElementById('candidate-treelinks-panel');
+  if (!el) return;
+  const candidates = findCandidateTreeLinks();
+  if (!candidates.length) {
+    el.className = 'dim';
+    el.textContent = 'No candidate tree links. Run /treelink for details.';
+    return;
+  }
+  el.className = '';
+  el.innerHTML = candidates.map(c => `<div class="line">${escHtml(c.member.name)} · ${escHtml(c.household.id)} (${escHtml(c.household.year)})<br>↔ ${escHtml(c.person.name)} · ${escHtml(c.person.id)}<br><span class="dim">${escHtml(c.confidence)}</span></div>`).join('');
+}
+
+function renderConfirmedTreeLinksPanel() {
+  const el = document.getElementById('confirmed-treelinks-panel');
+  if (!el) return;
+  if (!db.personMatches.length) {
+    el.className = 'dim';
+    el.textContent = 'No confirmed tree links.';
+    return;
+  }
+  const hMap = new Map(db.households.map(h => [h.id, h]));
+  const pMap = new Map(db.people.map(p => [p.id, p]));
+  el.className = '';
+  el.innerHTML = db.personMatches.map(m => {
+    const h = hMap.get(m.householdId);
+    const member = h ? h.members[m.memberIndex] : null;
+    const person = pMap.get(m.personId);
+    return `<div class="line"><span class="focus-meta">${escHtml(m.id)}</span> · ${member ? escHtml(member.name) : '?'} · ${escHtml(m.householdId)}${h ? ' (' + escHtml(h.year) + ')' : ''}<br>↔ ${person ? escHtml(person.name) : m.personId}</div>`;
+  }).join('');
+}
+
 function renderCensusMode() {
   renderCensusFocusCard();
   renderCensusStats();
@@ -1869,6 +1910,8 @@ function renderCensusMode() {
   renderConfirmedLinksPanel();
   renderCandidateMatchesPanel();
   renderConfirmedMatchesPanel();
+  renderCandidateTreeLinksPanel();
+  renderConfirmedTreeLinksPanel();
 }
 
 function render() {
@@ -1977,6 +2020,10 @@ function showHelp() {
     '                         households (name + approximate birth year), [match]/[dismiss] each',
     '/match confirm household.index | household.index',
     '/match remove household.index-or-identity-id',
+    '/treelink [list]          show candidate links between a census household member and',
+    '                         a family-tree person (name + birth year), [link]/[dismiss] each',
+    '/treelink confirm household.index | person',
+    '/treelink remove household.index-or-match-id',
     '',
     '── STANDARD ───────────────────────────────────────────',
     '/theme [name]            switch theme',
@@ -2178,6 +2225,7 @@ function cmdPersonRemove(raw) {
   db.people = db.people.filter(person => person.id !== removedId);
   db.relationships = db.relationships.filter(rel => rel.fromId !== removedId && rel.toId !== removedId);
   db.events = db.events.map(event => ({ ...event, personIds: event.personIds.filter(id => id !== removedId) }));
+  db.personMatches = db.personMatches.filter(m => m.personId !== removedId);
   if (db.focusPersonId === removedId) db.focusPersonId = db.people[0] ? db.people[0].id : '';
   saveDB();
   render();
@@ -2272,6 +2320,7 @@ function cmdPersonMerge(raw) {
   });
 
   db.people = db.people.filter(p => p.id !== remove.id);
+  db.personMatches.forEach(m => { if (m.personId === remove.id) m.personId = keep.id; });
   if (db.focusPersonId === remove.id) db.focusPersonId = keep.id;
 
   saveDB();
@@ -2895,6 +2944,128 @@ function showIdentityOverlay(identityId) {
   openOverlay('LINKED APPEARANCES', html, true);
 }
 
+// ── Tree links (census household members ↔ family-tree people) ────────────
+const MAX_TREE_LINK_YEAR_GAP = 15;
+
+function personBirthYear(p) {
+  return p.birthDate ? parseInt(p.birthDate.slice(0, 4), 10) : null;
+}
+
+function findPersonMatchForMember(householdId, memberIndex) {
+  return db.personMatches.find(m => m.householdId === householdId && m.memberIndex === memberIndex) || null;
+}
+
+function treeLinkConfidence(memberYear, personYear) {
+  if (memberYear === null || personYear === null) return 'check ages (insufficient data)';
+  const diff = Math.abs(memberYear - personYear);
+  if (diff <= 2) return 'likely';
+  if (diff <= 5) return 'possible';
+  return `unlikely — birth years ${diff} yrs apart`;
+}
+
+function findCandidateTreeLinks() {
+  const dismissed = new Set(db.dismissedTreeLinks);
+  const candidates = [];
+  db.households.forEach(h => {
+    h.members.forEach((m, mi) => {
+      if (!m.name || findPersonMatchForMember(h.id, mi)) return;
+      const memberYear = memberApproxBirthYear(h, m);
+      db.people.forEach(p => {
+        if (!namesLikelyMatch(m.name, p.name)) return;
+        const key = [memberToken(h.id, mi), p.id].sort().join('|');
+        if (dismissed.has(key)) return;
+        const personYear = personBirthYear(p);
+        if (memberYear !== null && personYear !== null && Math.abs(memberYear - personYear) > MAX_TREE_LINK_YEAR_GAP) return;
+        candidates.push({ household: h, memberIndex: mi, member: m, person: p, confidence: treeLinkConfidence(memberYear, personYear) });
+      });
+    });
+  });
+  const rank = c => c.confidence === 'likely' ? 0 : c.confidence === 'possible' ? 1 : c.confidence.startsWith('check') ? 2 : 3;
+  candidates.sort((x, y) => rank(x) - rank(y));
+  return candidates;
+}
+
+function cmdTreeLinkList() {
+  const candidates = findCandidateTreeLinks();
+  if (!candidates.length) return statusMsg('No candidate tree links found.');
+  const html = candidates.map(c => {
+    const tok = memberToken(c.household.id, c.memberIndex);
+    const fillCmd = `/treelink confirm ${tok} | ${c.person.id}`;
+    const dismissKey = [tok, c.person.id].sort().join('|');
+    return `<div class="line">
+      <div>${escHtml(c.member.name)} · ${escHtml(tok)} · ${escHtml(c.household.year)}${c.member.age ? ' · age ' + escHtml(c.member.age) : ''}</div>
+      <div>${escHtml(c.person.name)} · ${escHtml(c.person.id)}${c.person.birthDate ? ' · b. ' + escHtml(c.person.birthDate.slice(0, 4)) : ''}</div>
+      <div class="dim">${escHtml(c.confidence)}</div>
+      <span class="action-link" data-treelink-fill="${escHtml(fillCmd)}">[link]</span>
+      <span class="action-link" data-treelink-dismiss="${escHtml(dismissKey)}">[dismiss]</span>
+    </div>`;
+  }).join('');
+  openOverlay('CANDIDATE TREE LINKS', html, true);
+  document.querySelectorAll('[data-treelink-fill]').forEach(node => {
+    node.addEventListener('click', () => {
+      input.value = node.dataset.treelinkFill;
+      document.getElementById('help-overlay').classList.remove('visible');
+      input.focus();
+    });
+  });
+  document.querySelectorAll('[data-treelink-dismiss]').forEach(node => {
+    node.addEventListener('click', () => {
+      db.dismissedTreeLinks.push(node.dataset.treelinkDismiss);
+      saveDB();
+      cmdTreeLinkList();
+    });
+  });
+}
+
+function cmdTreeLinkConfirm(raw) {
+  const [memberTok, personTok] = splitPipe(raw);
+  if (!memberTok || !personTok) return statusMsg('Usage: /treelink confirm household.index | person');
+  const parsedMember = parseMemberToken(memberTok);
+  if (parsedMember.error) return statusMsg(parsedMember.error);
+  const personMatch = findPerson(personTok);
+  if (personMatch.error) return statusMsg(personMatch.error);
+  if (findPersonMatchForMember(parsedMember.household.id, parsedMember.memberIndex)) return statusMsg('That census entry is already linked to a person. Remove it first.');
+  const match = sanitizePersonMatch({ householdId: parsedMember.household.id, memberIndex: parsedMember.memberIndex, personId: personMatch.person.id });
+  if (!match) return statusMsg('Could not link.');
+  db.personMatches.push(match);
+  saveDB();
+  render();
+  statusMsg(`Linked ${parsedMember.member.name} (${parsedMember.household.id}) → ${personMatch.person.name}.`);
+}
+
+function cmdTreeLinkRemove(raw) {
+  const token = cleanText(raw);
+  if (!token) return statusMsg('Usage: /treelink remove household.index-or-match-id');
+  const byId = db.personMatches.find(m => m.id.toLowerCase() === token.toLowerCase());
+  if (byId) {
+    db.personMatches = db.personMatches.filter(m => m !== byId);
+    saveDB();
+    render();
+    return statusMsg('Tree link removed: ' + byId.id);
+  }
+  const parsed = parseMemberToken(token);
+  if (parsed.error) return statusMsg(parsed.error);
+  const existing = findPersonMatchForMember(parsed.household.id, parsed.memberIndex);
+  if (!existing) return statusMsg('That census entry is not linked to a person.');
+  db.personMatches = db.personMatches.filter(m => m !== existing);
+  saveDB();
+  render();
+  statusMsg(`Unlinked ${parsed.member.name} (${parsed.household.id}).`);
+}
+
+function handleTreeLinkCommand(arg) {
+  const trimmed = cleanText(arg);
+  if (!trimmed || trimmed === 'list') return cmdTreeLinkList();
+  if (trimmed.startsWith('confirm ')) return cmdTreeLinkConfirm(trimmed.slice(8));
+  if (trimmed.startsWith('remove ')) return cmdTreeLinkRemove(trimmed.slice(7));
+  statusMsg('Usage: /treelink [list]|confirm household.index | person|remove household.index-or-match-id');
+}
+
+function focusTreeLinkedPerson(personId) {
+  toggleCensusMode();
+  setFocus(personId, true);
+}
+
 function cmdLocationUpdate(raw) {
   const [token, fieldRaw, value] = splitPipe(raw);
   const match = findLocation(token);
@@ -3184,6 +3355,7 @@ function exportDataJson() {
     personIdentities: db.personIdentities,
     dismissedHouseholdLinks: db.dismissedHouseholdLinks,
     dismissedPersonLinks: db.dismissedPersonLinks,
+    dismissedTreeLinks: db.dismissedTreeLinks,
     focusPersonId: db.focusPersonId,
     focusHouseholdId: db.focusHouseholdId
   };
@@ -3209,6 +3381,7 @@ function importData(obj) {
     personIdentities: Array.isArray(obj.personIdentities) ? obj.personIdentities.map(sanitizePersonIdentity).filter(Boolean) : [],
     dismissedHouseholdLinks: Array.isArray(obj.dismissedHouseholdLinks) ? obj.dismissedHouseholdLinks.filter(s => typeof s === 'string') : [],
     dismissedPersonLinks: Array.isArray(obj.dismissedPersonLinks) ? obj.dismissedPersonLinks.filter(s => typeof s === 'string') : [],
+    dismissedTreeLinks: Array.isArray(obj.dismissedTreeLinks) ? obj.dismissedTreeLinks.filter(s => typeof s === 'string') : [],
     backlog: db.backlog,
     backlogArchive: db.backlogArchive,
     theme: db.theme,
@@ -3412,22 +3585,48 @@ const CENSUS_MAIN_PANEL_HTML = `
 
 const CENSUS_SIDE_PANEL_HTML = `
   <div class="tab-bar">
-    <span class="tab active" data-tab="candlinks">CANDIDATE LINKS</span>
-    <span class="tab" data-tab="conflinks">CONFIRMED LINKS</span>
-    <span class="tab" data-tab="candmatches">CANDIDATE PEOPLE</span>
-    <span class="tab" data-tab="confmatches">CONFIRMED PEOPLE</span>
+    <span class="ctab-main active" data-ctab="household">HOUSEHOLD LINKS</span>
+    <span class="ctab-main" data-ctab="people">PEOPLE MATCHES</span>
+    <span class="ctab-main" data-ctab="tree">TREE LINKS</span>
   </div>
-  <div id="tab-candlinks" class="tab-pane">
-    <div id="candidate-links-panel" class="dim">No candidate links.</div>
+
+  <div id="ctab-pane-household" class="ctab-pane">
+    <div class="tab-bar sub-tab-bar">
+      <span class="ctab-sub active" data-csub="candidates">CANDIDATES</span>
+      <span class="ctab-sub" data-csub="confirmed">CONFIRMED</span>
+    </div>
+    <div id="ctab-pane-household-candidates" class="ctab-sub-pane">
+      <div id="candidate-links-panel" class="dim">No candidate links.</div>
+    </div>
+    <div id="ctab-pane-household-confirmed" class="ctab-sub-pane" style="display:none">
+      <div id="confirmed-links-panel" class="dim">No confirmed links.</div>
+    </div>
   </div>
-  <div id="tab-conflinks" class="tab-pane" style="display:none">
-    <div id="confirmed-links-panel" class="dim">No confirmed links.</div>
+
+  <div id="ctab-pane-people" class="ctab-pane" style="display:none">
+    <div class="tab-bar sub-tab-bar">
+      <span class="ctab-sub active" data-csub="candidates">CANDIDATES</span>
+      <span class="ctab-sub" data-csub="confirmed">CONFIRMED</span>
+    </div>
+    <div id="ctab-pane-people-candidates" class="ctab-sub-pane">
+      <div id="candidate-matches-panel" class="dim">No candidate person links.</div>
+    </div>
+    <div id="ctab-pane-people-confirmed" class="ctab-sub-pane" style="display:none">
+      <div id="confirmed-matches-panel" class="dim">No confirmed person links.</div>
+    </div>
   </div>
-  <div id="tab-candmatches" class="tab-pane" style="display:none">
-    <div id="candidate-matches-panel" class="dim">No candidate person links.</div>
-  </div>
-  <div id="tab-confmatches" class="tab-pane" style="display:none">
-    <div id="confirmed-matches-panel" class="dim">No confirmed person links.</div>
+
+  <div id="ctab-pane-tree" class="ctab-pane" style="display:none">
+    <div class="tab-bar sub-tab-bar">
+      <span class="ctab-sub active" data-csub="candidates">CANDIDATES</span>
+      <span class="ctab-sub" data-csub="confirmed">CONFIRMED</span>
+    </div>
+    <div id="ctab-pane-tree-candidates" class="ctab-sub-pane">
+      <div id="candidate-treelinks-panel" class="dim">No candidate tree links.</div>
+    </div>
+    <div id="ctab-pane-tree-confirmed" class="ctab-sub-pane" style="display:none">
+      <div id="confirmed-treelinks-panel" class="dim">No confirmed tree links.</div>
+    </div>
   </div>
 `;
 
@@ -3465,6 +3664,11 @@ document.addEventListener('click', event => {
   const identityTarget = event.target.closest('[data-identity-view]');
   if (identityTarget) {
     showIdentityOverlay(identityTarget.dataset.identityView);
+    return;
+  }
+  const treePersonTarget = event.target.closest('[data-tree-person-focus]');
+  if (treePersonTarget) {
+    focusTreeLinkedPerson(treePersonTarget.dataset.treePersonFocus);
     return;
   }
   const householdTarget = event.target.closest('[data-household-focus]');
@@ -3546,6 +3750,7 @@ function handleConsoleCmd(raw) {
   if (cmd === '/household') return handleHouseholdCommand(rest);
   if (cmd === '/link') return handleLinkCommand(rest);
   if (cmd === '/match') return handleMatchCommand(rest);
+  if (cmd === '/treelink') return handleTreeLinkCommand(rest);
   if (cmd === '/attr') return handleAttrCommand(rest);
   if (cmd === '/rel') return handleRelationshipCommand(rest);
   if (cmd === '/event') return handleEventCommand(rest);
@@ -3600,6 +3805,28 @@ function initTabs() {
   });
 }
 
+function initCensusTabs() {
+  document.addEventListener('click', event => {
+    const main = event.target.closest('.ctab-main');
+    if (main) {
+      document.querySelectorAll('.ctab-main').forEach(t => t.classList.remove('active'));
+      document.querySelectorAll('.ctab-pane').forEach(p => p.style.display = 'none');
+      main.classList.add('active');
+      document.getElementById('ctab-pane-' + main.dataset.ctab).style.display = '';
+      input.focus();
+      return;
+    }
+    const sub = event.target.closest('.ctab-sub');
+    if (!sub) return;
+    const parentPane = sub.closest('.ctab-pane');
+    parentPane.querySelectorAll('.ctab-sub').forEach(t => t.classList.remove('active'));
+    parentPane.querySelectorAll('.ctab-sub-pane').forEach(p => p.style.display = 'none');
+    sub.classList.add('active');
+    document.getElementById(parentPane.id + '-' + sub.dataset.csub).style.display = '';
+    input.focus();
+  });
+}
+
 function initPeopleFilterBar() {
   document.addEventListener('input', event => {
     if (event.target.id === 'people-filter') { peopleFilterText = event.target.value; renderPeople(); }
@@ -3613,6 +3840,7 @@ function init() {
   db = loadDB();
   applyTheme(db.theme || 'legacy');
   initTabs();
+  initCensusTabs();
   initPeopleFilterBar();
   lifespanFilterEnabled = db.lifespanFilter === true;
   updateLifespanToggleUI();
