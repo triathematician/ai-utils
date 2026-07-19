@@ -287,6 +287,38 @@ html, body {
 </div>
 
 <script>
+// ══════════════════════════════════════════════════════════════════════════
+// TABLE OF CONTENTS -- section banners below use the same "── Name ──" style;
+// search for the title text to jump straight there. Line numbers are
+// approximate and drift as the file grows.
+// ══════════════════════════════════════════════════════════════════════════
+//   Constants & theme list ............................................ L322
+//   Data model sanitizers (person/relationship/event/location/...) .... L399
+//   loadDB / saveDB .................................................... L542
+//   Utility helpers (cleanText, escHtml, splitPipe, nextId, findX) ..... L599
+//   Wizard (guided /add flow) .......................................... L679
+//   Relationship helpers ............................................... L742
+//   /set command ........................................................ L827
+//   /add command ......................................................... L907
+//   Lifespan filter ...................................................... L1265
+//   Ancestor / descendant trees .......................................... L1460
+//   Lifespan timeline ..................................................... L1515
+//   Census workspace rendering ............................................ L1708
+//   render() -- central re-render dispatcher .............................. L1874
+//   Duplicate detection / merge ............................................ L2187
+//   Household bulk-add/edit dialog ......................................... L2371
+//   Candidate household links (family across census years) ................ L2527
+//   Person identity links (same person across census years) ................ L2673
+//   exportDataJson / importData ............................................. L3129
+//   exportGedcom .............................................................. L3180
+//   /export, /import commands ................................................. L3304
+//   Theme switching ............................................................ L3341
+//   Census workspace mode toggle (life-line <-> census swap) .................. L3354
+//   handleConsoleCmd -- top-level command dispatch ............................. L3484
+//   Tab bar / people filter-sort bar init ....................................... L3547
+//   init() / DOMContentLoaded .................................................... L3568
+// ══════════════════════════════════════════════════════════════════════════
+
 const STORAGE_KEY = 'life_line_db';
 const EXPORT_SLUG = 'life-line';
 const THEMES = ['legacy','solar','monk','space','synth','dos','notebook','engineering','winter'];
