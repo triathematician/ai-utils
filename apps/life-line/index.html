@@ -1195,7 +1195,7 @@ function renderFocus() {
   const birthLoc = locMap.get(focus.birthLocationId);
   const deathLoc = locMap.get(focus.deathLocationId);
   const placePart = [birthLoc && ('b. ' + birthLoc.name), deathLoc && ('d. ' + deathLoc.name)].filter(Boolean).join(' · ');
-  const censusMatchCount = db.personIdentities.filter(pi => pi.personId === focus.id).length;
+  const censusMatchCount = db.personIdentities.filter(pi => pi.personId === focus.id).reduce((sum, pi) => sum + pi.members.length, 0);
   const censusBadge = censusMatchCount
     ? ` <span class="action-link" data-census-matches-view="${escHtml(focus.id)}" title="Linked census appearances">⌗ ${censusMatchCount} census record${censusMatchCount === 1 ? '' : 's'}</span>`
     : '';
