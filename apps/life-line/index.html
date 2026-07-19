@@ -302,24 +302,24 @@ html, body {
 //   Relationship helpers ............................................... L747
 //   /set command ........................................................ L832
 //   /add command ......................................................... L912
-//   Lifespan filter ...................................................... L1270
-//   Ancestor / descendant trees .......................................... L1465
-//   Lifespan timeline ..................................................... L1520
-//   Census workspace rendering ............................................ L1713
-//   render() -- central re-render dispatcher .............................. L1918
-//   Duplicate detection / merge ............................................ L2236
-//   Household bulk-add/edit dialog ......................................... L2421
-//   Candidate household links (family across census years) ................ L2577
-//   Person identity links (same person across census years) ................ L2750
-//   Tree links (census members <-> family-tree people) ..................... L2948
-//   exportDataJson / importData ............................................. L3394
-//   exportGedcom .............................................................. L3447
-//   /export, /import commands ................................................. L3571
-//   Theme switching ............................................................ L3608
-//   Census workspace mode toggle (life-line <-> census swap) .................. L3621
-//   handleConsoleCmd -- top-level command dispatch ............................. L3782
-//   Tab bar / people filter-sort bar init ....................................... L3846
-//   init() / DOMContentLoaded .................................................... L3889
+//   Lifespan filter ...................................................... L1274
+//   Ancestor / descendant trees .......................................... L1469
+//   Lifespan timeline ..................................................... L1524
+//   Census workspace rendering ............................................ L1717
+//   render() -- central re-render dispatcher .............................. L1923
+//   Duplicate detection / merge ............................................ L2241
+//   Household bulk-add/edit dialog ......................................... L2426
+//   Candidate household links (family across census years) ................ L2582
+//   Person identity links (same person across census years) ................ L2755
+//   Tree links (census members <-> family-tree people) ..................... L2953
+//   exportDataJson / importData ............................................. L3432
+//   exportGedcom .............................................................. L3485
+//   /export, /import commands ................................................. L3609
+//   Theme switching ............................................................ L3646
+//   Census workspace mode toggle (life-line <-> census swap) .................. L3659
+//   handleConsoleCmd -- top-level command dispatch ............................. L3830
+//   Tab bar / people filter-sort bar init ....................................... L3894
+//   init() / DOMContentLoaded .................................................... L3937
 // ══════════════════════════════════════════════════════════════════════════
 
 const STORAGE_KEY = 'life_line_db';
@@ -1213,10 +1213,14 @@ function renderFocus() {
   const birthLoc = locMap.get(focus.birthLocationId);
   const deathLoc = locMap.get(focus.deathLocationId);
   const placePart = [birthLoc && ('b. ' + birthLoc.name), deathLoc && ('d. ' + deathLoc.name)].filter(Boolean).join(' · ');
+  const censusMatchCount = db.personMatches.filter(m => m.personId === focus.id).length;
+  const censusBadge = censusMatchCount
+    ? ` <span class="action-link" data-census-matches-view="${escHtml(focus.id)}" title="Linked census appearances">⌗ ${censusMatchCount} census record${censusMatchCount === 1 ? '' : 's'}</span>`
+    : '';
 
   el.className = '';
   el.innerHTML = `
-    <div class="focus-name">${escHtml(focus.name)} <span class="focus-meta">(${escHtml(focus.id)})</span>${focus.gender ? ' <span class="dim" style="font-size:0.82em">' + escHtml(focus.gender) + '</span>' : ''}</div>
+    <div class="focus-name">${escHtml(focus.name)} <span class="focus-meta">(${escHtml(focus.id)})</span>${focus.gender ? ' <span class="dim" style="font-size:0.82em">' + escHtml(focus.gender) + '</span>' : ''}${censusBadge}</div>
     <div class="focus-meta">${escHtml(formatLife(focus))} · ${focusAgeHtml(focus)}${placePart ? ' · ' + escHtml(placePart) : ''}</div>
     ${relRows.length ? relRows.join('') : '<div class="dim">No parents or siblings recorded.</div>'}
     <hr class="focus-divider">
@@ -1749,8 +1753,9 @@ function renderCensusFocusCard() {
       : '';
     const treeMatch = findPersonMatchForMember(h.id, mi);
     const treePerson = treeMatch ? db.people.find(p => p.id === treeMatch.personId) : null;
+    const treeMatchCount = treePerson ? db.personMatches.filter(pm => pm.personId === treePerson.id).length : 0;
     const treeBadge = treePerson
-      ? ` <span class="action-link" data-tree-person-focus="${escHtml(treePerson.id)}" title="Linked to family tree person">→ ${escHtml(treePerson.name)}</span>`
+      ? ` <span class="action-link" data-census-matches-view="${escHtml(treePerson.id)}" title="Linked to family tree person${treeMatchCount > 1 ? ' (' + treeMatchCount + ' census records)' : ''}">→ ${escHtml(treePerson.name)}${treeMatchCount > 1 ? ' ×' + treeMatchCount : ''}</span>`
       : '';
     return `<div class="rel-row"><span class="rel-label">${escHtml(m.relation || '—')}</span>${escHtml(m.name)}${m.gender ? ' <span class="rel-date">· ' + escHtml(m.gender) + '</span>' : ''}${m.age ? ' <span class="rel-date">· age ' + escHtml(m.age) + '</span>' : ''}${m.birthplace ? ' <span class="rel-date">· b. ' + escHtml(m.birthplace) + '</span>' : ''}${m.occupation ? ' <span class="rel-date">· ' + escHtml(m.occupation) + '</span>' : ''}${linkBadge}${treeBadge}${approxHtml}</div>`;
   }).join('');
@@ -3112,8 +3117,41 @@ function handleTreeLinkCommand(arg) {
 }
 
 function focusTreeLinkedPerson(personId) {
-  toggleCensusMode();
+  if (viewMode === 'census') toggleCensusMode();
   setFocus(personId, true);
+  document.getElementById('help-overlay').classList.remove('visible');
+}
+
+function jumpToCensusHousehold(householdId) {
+  if (viewMode !== 'census') toggleCensusMode();
+  db.focusHouseholdId = householdId;
+  saveDB();
+  renderCensusFocusCard();
+  document.getElementById('help-overlay').classList.remove('visible');
+}
+
+function showCensusMatchesOverlay(personId) {
+  const person = db.people.find(p => p.id === personId);
+  const matches = db.personMatches.filter(m => m.personId === personId);
+  if (!person || !matches.length) return;
+  const hMap = new Map(db.households.map(h => [h.id, h]));
+  const locMap = new Map(db.locations.map(l => [l.id, l]));
+  const sorted = matches.slice().sort((a, b) => {
+    const ha = hMap.get(a.householdId), hb = hMap.get(b.householdId);
+    return (ha ? ha.year : '').localeCompare(hb ? hb.year : '');
+  });
+  const rows = sorted.map(m => {
+    const h = hMap.get(m.householdId);
+    const member = h ? h.members[m.memberIndex] : null;
+    if (!h || !member) return '';
+    const loc = locMap.get(h.locationId);
+    return `<div class="line">
+      <span class="action-link" data-census-household-jump="${escHtml(h.id)}">${escHtml(h.id)} (${escHtml(h.year)})</span>
+      · ${escHtml(member.name)}${member.age ? ' · age ' + escHtml(member.age) : ''}${loc ? ' · ' + escHtml(loc.name) : ''}
+    </div>`;
+  }).join('');
+  const header = `<div class="line"><span class="action-link" data-tree-person-focus="${escHtml(person.id)}">${escHtml(person.name)} (${escHtml(person.id)})</span></div><hr class="focus-divider">`;
+  openOverlay('CENSUS APPEARANCES', header + rows, true);
 }
 
 function cmdLocationUpdate(raw) {
@@ -3719,6 +3757,16 @@ document.addEventListener('click', event => {
   const treePersonTarget = event.target.closest('[data-tree-person-focus]');
   if (treePersonTarget) {
     focusTreeLinkedPerson(treePersonTarget.dataset.treePersonFocus);
+    return;
+  }
+  const censusMatchesTarget = event.target.closest('[data-census-matches-view]');
+  if (censusMatchesTarget) {
+    showCensusMatchesOverlay(censusMatchesTarget.dataset.censusMatchesView);
+    return;
+  }
+  const censusHouseholdJumpTarget = event.target.closest('[data-census-household-jump]');
+  if (censusHouseholdJumpTarget) {
+    jumpToCensusHousehold(censusHouseholdJumpTarget.dataset.censusHouseholdJump);
     return;
   }
   const householdTarget = event.target.closest('[data-household-focus]');
