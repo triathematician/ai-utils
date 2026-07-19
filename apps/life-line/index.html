@@ -2750,6 +2750,8 @@ function personLinkConfidence(yearA, yearB) {
   return `unlikely — birth years ${diff} yrs apart`;
 }
 
+const MAX_PERSON_LINK_YEAR_GAP = 15;
+
 function findCandidatePersonLinks() {
   const dismissed = new Set(db.dismissedPersonLinks);
   const candidates = [];
@@ -2766,10 +2768,12 @@ function findCandidatePersonLinks() {
           if (identityA && identityA === identityB) return;
           const key = [memberToken(a.id, mi), memberToken(b.id, mj)].sort().join('|');
           if (dismissed.has(key)) return;
+          const yearA = memberApproxBirthYear(a, ma), yearB = memberApproxBirthYear(b, mb);
+          if (yearA !== null && yearB !== null && Math.abs(yearA - yearB) > MAX_PERSON_LINK_YEAR_GAP) return;
           candidates.push({
             aHousehold: a, aIndex: mi, aMember: ma,
             bHousehold: b, bIndex: mj, bMember: mb,
-            confidence: personLinkConfidence(memberApproxBirthYear(a, ma), memberApproxBirthYear(b, mb))
+            confidence: personLinkConfidence(yearA, yearB)
           });
         });
       });
