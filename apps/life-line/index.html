@@ -1698,10 +1698,18 @@ function renderCensusFocusCard() {
       : '';
     return `<div class="rel-row"><span class="rel-label">${escHtml(m.relation || '—')}</span>${escHtml(m.name)}${m.gender ? ' <span class="rel-date">· ' + escHtml(m.gender) + '</span>' : ''}${m.age ? ' <span class="rel-date">· age ' + escHtml(m.age) + '</span>' : ''}${m.birthplace ? ' <span class="rel-date">· b. ' + escHtml(m.birthplace) + '</span>' : ''}${m.occupation ? ' <span class="rel-date">· ' + escHtml(m.occupation) + '</span>' : ''}${linkBadge}${approxHtml}</div>`;
   }).join('');
+  const group = householdLinkedGroup(h.id);
+  const seriesHtml = group.length > 1
+    ? `<div class="focus-meta">${group.map(g => g.id === h.id
+        ? `<strong>${escHtml(g.id)} (${escHtml(g.year)})</strong>`
+        : `<span class="action-link" data-household-focus="${escHtml(g.id)}">${escHtml(g.id)} (${escHtml(g.year)})</span>`
+      ).join(' → ')}</div>`
+    : '';
   el.className = '';
   el.innerHTML = `
     <div class="focus-name">${escHtml(h.id)} <span class="focus-meta">(${escHtml(h.year)})</span> <span class="action-link" data-household-edit="${escHtml(h.id)}">[edit]</span></div>
     <div class="focus-meta">${loc ? escHtml(loc.name) : 'No location set'}${h.source ? ' · ' + escHtml(h.source) : ''}</div>
+    ${seriesHtml}
     <hr class="focus-divider">
     ${membersHtml || '<div class="dim">No members recorded.</div>'}
     <div class="person-notes dim">${h.notes ? escHtml(h.notes) : 'No notes.'}</div>
@@ -2527,6 +2535,28 @@ function householdSummary(h) {
   const loc = locMap.get(h.locationId);
   const head = h.members[0] ? h.members[0].name : '(no members)';
   return `${h.id} · ${h.year} · ${head}${loc ? ' · ' + loc.name : ''} · ${h.members.length} member${h.members.length === 1 ? '' : 's'}`;
+}
+
+function householdLinkedGroup(householdId) {
+  const adj = new Map();
+  db.householdLinks.forEach(l => {
+    if (!adj.has(l.fromId)) adj.set(l.fromId, new Set());
+    if (!adj.has(l.toId)) adj.set(l.toId, new Set());
+    adj.get(l.fromId).add(l.toId);
+    adj.get(l.toId).add(l.fromId);
+  });
+  const visited = new Set([householdId]);
+  const queue = [householdId];
+  while (queue.length) {
+    const cur = queue.shift();
+    (adj.get(cur) || new Set()).forEach(n => {
+      if (!visited.has(n)) { visited.add(n); queue.push(n); }
+    });
+  }
+  return Array.from(visited)
+    .map(id => db.households.find(h => h.id === id))
+    .filter(Boolean)
+    .sort((a, b) => a.year.localeCompare(b.year) || a.id.localeCompare(b.id));
 }
 
 function cmdCensusLinkList() {
