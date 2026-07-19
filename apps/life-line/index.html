@@ -312,14 +312,14 @@ html, body {
 //   Candidate household links (family across census years) ................ L2577
 //   Person identity links (same person across census years) ................ L2750
 //   Tree links (census members <-> family-tree people) ..................... L2948
-//   exportDataJson / importData ............................................. L3345
-//   exportGedcom .............................................................. L3398
-//   /export, /import commands ................................................. L3522
-//   Theme switching ............................................................ L3559
-//   Census workspace mode toggle (life-line <-> census swap) .................. L3572
-//   handleConsoleCmd -- top-level command dispatch ............................. L3733
-//   Tab bar / people filter-sort bar init ....................................... L3797
-//   init() / DOMContentLoaded .................................................... L3840
+//   exportDataJson / importData ............................................. L3394
+//   exportGedcom .............................................................. L3447
+//   /export, /import commands ................................................. L3571
+//   Theme switching ............................................................ L3608
+//   Census workspace mode toggle (life-line <-> census swap) .................. L3621
+//   handleConsoleCmd -- top-level command dispatch ............................. L3782
+//   Tab bar / people filter-sort bar init ....................................... L3846
+//   init() / DOMContentLoaded .................................................... L3889
 // ══════════════════════════════════════════════════════════════════════════
 
 const STORAGE_KEY = 'life_line_db';
@@ -2986,6 +2986,51 @@ function findCandidateTreeLinks() {
   return candidates;
 }
 
+// Birth-year range + every distinct birthplace recorded across a member's confirmed
+// cross-census identity (falls back to just this one record if not yet linked).
+function censusIdentityDetailsHtml(household, memberIndex) {
+  const identity = findIdentityForMember(household.id, memberIndex);
+  if (!identity) {
+    const m = household.members[memberIndex];
+    const year = memberApproxBirthYear(household, m);
+    const parts = [];
+    if (year !== null) parts.push('~' + year);
+    if (m.birthplace) parts.push(m.birthplace);
+    return parts.join(' · ');
+  }
+  const hMap = new Map(db.households.map(h => [h.id, h]));
+  const years = [];
+  const places = new Set();
+  identity.members.forEach(im => {
+    const ih = hMap.get(im.householdId);
+    const imem = ih ? ih.members[im.memberIndex] : null;
+    if (!ih || !imem) return;
+    const y = memberApproxBirthYear(ih, imem);
+    if (y !== null) years.push(y);
+    if (imem.birthplace) places.add(imem.birthplace);
+  });
+  const parts = [];
+  if (years.length) {
+    const yrMin = Math.min(...years), yrMax = Math.max(...years);
+    parts.push(yrMin === yrMax ? '~' + yrMin : `~${yrMin}-${yrMax}`);
+  }
+  if (places.size) parts.push([...places].join(', '));
+  parts.push(`${identity.members.length} linked census records`);
+  return parts.join(' · ');
+}
+
+function personTreeDetailsHtml(person) {
+  const locMap = new Map(db.locations.map(l => [l.id, l]));
+  const birthLoc = locMap.get(person.birthLocationId);
+  const summary = relationSummary(person.id);
+  const parts = [];
+  if (person.birthDate) parts.push('b. ' + person.birthDate);
+  if (birthLoc) parts.push(birthLoc.name);
+  if (summary.spouses.length) parts.push('sp. ' + summary.spouses.map(s => s.name).join(', '));
+  if (summary.parents.length) parts.push('parents: ' + summary.parents.map(p => p.name).join(', '));
+  return parts.join(' · ');
+}
+
 function cmdTreeLinkList() {
   const candidates = findCandidateTreeLinks();
   if (!candidates.length) return statusMsg('No candidate tree links found.');
@@ -2993,9 +3038,13 @@ function cmdTreeLinkList() {
     const tok = memberToken(c.household.id, c.memberIndex);
     const fillCmd = `/treelink confirm ${tok} | ${c.person.id}`;
     const dismissKey = [tok, c.person.id].sort().join('|');
+    const censusDetail = censusIdentityDetailsHtml(c.household, c.memberIndex);
+    const treeDetail = personTreeDetailsHtml(c.person);
     return `<div class="line">
       <div>${escHtml(c.member.name)} · ${escHtml(tok)} · ${escHtml(c.household.year)}${c.member.age ? ' · age ' + escHtml(c.member.age) : ''}</div>
-      <div>${escHtml(c.person.name)} · ${escHtml(c.person.id)}${c.person.birthDate ? ' · b. ' + escHtml(c.person.birthDate.slice(0, 4)) : ''}</div>
+      ${censusDetail ? `<div class="dim">${escHtml(censusDetail)}</div>` : ''}
+      <div>${escHtml(c.person.name)} · ${escHtml(c.person.id)}</div>
+      ${treeDetail ? `<div class="dim">${escHtml(treeDetail)}</div>` : ''}
       <div class="dim">${escHtml(c.confidence)}</div>
       <span class="action-link" data-treelink-fill="${escHtml(fillCmd)}">[link]</span>
       <span class="action-link" data-treelink-dismiss="${escHtml(dismissKey)}">[dismiss]</span>
