@@ -634,6 +634,7 @@ input[type=range]::-webkit-slider-thumb {
   <button class="tab" onclick="switchTab('sales')">GAINS</button>
   <button class="tab" onclick="switchTab('monthly')">Monthly</button>
   <button class="tab" onclick="switchTab('transactions')">Transactions</button>
+  <button class="tab" onclick="switchTab('alerts')">Alerts</button>
   <button class="tab" onclick="switchTab('summary')">Summary</button>
   <button class="tab" onclick="switchTab('research')">Research</button>
   <button class="tab" onclick="switchTab('powder')">Dry Powder</button>
@@ -776,6 +777,30 @@ input[type=range]::-webkit-slider-thumb {
     </table>
     <div class="no-data" id="txEmpty" style="display:none">
       No transactions yet. Add positions with entry or exit points.
+    </div>
+  </div>
+</div>
+
+<!-- ============ ALERTS VIEW ============ -->
+<div class="view" id="view-alerts">
+  <div class="section-label">Buy / Sell Target Alerts</div>
+  <div class="table-wrap">
+    <table id="alertsTable">
+      <thead>
+        <tr>
+          <th>Ticker</th>
+          <th>Price</th>
+          <th>Buy Target</th>
+          <th>Dist</th>
+          <th>Sell Target</th>
+          <th>Dist</th>
+          <th>Status</th>
+        </tr>
+      </thead>
+      <tbody id="alertsBody"></tbody>
+    </table>
+    <div class="no-data" id="alertsEmpty" style="display:none">
+      No buy/sell targets set. Add targets from a position's Deep Dive tab.
     </div>
   </div>
 </div>
@@ -2208,8 +2233,10 @@ function buildChart(pos, price, entries, exits, range = '1Y') {
   const visibleTrades = trades.filter(e => e.date >= rangeStart);
   const tradePrices = visibleTrades.map(e => e.price);
   const priceVals = pts.map(([,v]) => v);
-  const minP = Math.min(...priceVals, ...tradePrices);
-  const maxP = Math.max(...priceVals, ...tradePrices);
+  const avg = avgCost(entries);
+  const refVals = [avg, pos.buyTarget, pos.sellTarget].filter(v => v);
+  const minP = Math.min(...priceVals, ...tradePrices, ...refVals);
+  const maxP = Math.max(...priceVals, ...tradePrices, ...refVals);
   const pRange = maxP - minP || 1;
 
   const t0 = new Date(rangeStart+'T12:00:00Z').getTime();
@@ -2220,12 +2247,16 @@ function buildChart(pos, price, entries, exits, range = '1Y') {
   const yOf = v => (PT + (1 - (v - minP) / pRange) * (CHART_H - PT - PB)).toFixed(1);
 
   const polyline = pts.map(([d,v]) => `${xOf(d)},${yOf(v)}`).join(' ');
-  const avg = avgCost(entries);
   const lineColor = '#5b8db8'; // neutral blue — not profit/loss coded
 
-  const avgLine = avg && avg >= minP && avg <= maxP
-    ? `<line x1="${PX}" y1="${yOf(avg)}" x2="${W-PX}" y2="${yOf(avg)}" stroke="#4a6070" stroke-width="1" stroke-dasharray="4,3"/>`
+  const refLine = (value, color, label, dotted) => value
+    ? `<line x1="${PX}" y1="${yOf(value)}" x2="${W-PX}" y2="${yOf(value)}" stroke="${color}" stroke-width="0.5" ${dotted ? 'stroke-linecap="round" stroke-dasharray="0.1,3"' : 'stroke-dasharray="4,3"'} opacity="0.85"/>
+       <text x="${W-PX-2}" y="${yOf(value)-2}" text-anchor="end" font-size="6" fill="${color}">${label} $${fmt2(value)}</text>`
     : '';
+
+  const avgLine = refLine(avg, '#7a95a8', 'avg', false);
+  const buyTargetLine = refLine(pos.buyTarget, '#00e5a0', 'buy', true);
+  const sellTargetLine = refLine(pos.sellTarget, '#20d0e0', 'sell', true);
 
   // buy = amber; sell = green if profit, red if loss
   const tradeColor = e => {
@@ -2253,6 +2284,8 @@ function buildChart(pos, price, entries, exits, range = '1Y') {
   return `<svg viewBox="0 0 ${W} ${H}" style="width:100%;height:auto;display:block">
     <rect width="${W}" height="${H}" fill="#080c10" rx="3"/>
     ${avgLine}
+    ${buyTargetLine}
+    ${sellTargetLine}
     <polyline points="${polyline}" fill="none" stroke="${lineColor}" stroke-width="1.5"/>
     ${lineDots}
     <line x1="${PX}" y1="${axisY}" x2="${W-PX}" y2="${axisY}" stroke="#1e3040" stroke-width="0.75"/>
@@ -2408,6 +2441,8 @@ function renderDeepDive(ticker) {
 
   const chartHtml = buildChart(pos, price, entries, exits, ddChartRange);
 
+  const targetsHtml = buildTargetsSection(pos, price, avg, p);
+
   document.getElementById('ddCatBadge').innerHTML = `<span class="cat-badge ${ddCatClass}" title="${thesisTip}" style="cursor:${thesisTip ? 'help' : 'default'}">${ddCatLabel}</span>`;
 
   document.getElementById('deepDiveContent').innerHTML = `
@@ -2458,6 +2493,9 @@ function renderDeepDive(ticker) {
     <div class="entry-chips">${tradeChips || '<span style="color:var(--muted)">None recorded</span>'}</div>
     ${(entries.length || exits.length) ? `<div style="font-size:10px;color:var(--muted);margin-top:6px">${totalShares(entries)} bought${activeShares > 0 ? ' · '+activeShares+' active' : ''}${exits.length ? ' · '+totalShares(exits)+' sold' : ''}${exits.length ? ' · $'+fmt2(totalCost(exits))+' returned' : ''} · $${fmt2(totalCost(entries))} deployed</div>` : ''}
 
+    <div class="section-label">Buy / Sell Targets</div>
+    ${targetsHtml}
+
     <div class="section-label">High-Water Marks</div>
     <div class="windows-grid" style="grid-template-columns:repeat(${windows.length},1fr)">${windowCells}</div>
 
@@ -2480,6 +2518,98 @@ function renderDeepDive(ticker) {
       <button class="btn btn-green" onclick="openAddTxModal('${pos.id}')">+ Transaction</button>
     </div>
   `;
+}
+
+const TARGET_BASIS_LABELS = { cost: 'Cost', price: 'Price', mo1l: '1mo Low', mo1: '1mo High', yr1l: '1yr Low', yr1: '1yr High', ath: 'ATH', atl: 'ATL', rct: 'RCT', rctLow: 'RCT' };
+const TARGET_BUY_PRESETS = [
+  { basis: 'cost', pct: -10 }, { basis: 'cost', pct: -20 },
+  { basis: 'rctLow', pct: -10 }, { basis: 'rctLow', pct: -20 },
+  { basis: 'mo1l', pct: 0 }, { basis: 'mo1l', pct: -5 }, { basis: 'mo1l', pct: 5 },
+  { basis: 'yr1l', pct: 10 }
+];
+const TARGET_SELL_PRESETS = [
+  { basis: 'cost', pct: 10 }, { basis: 'cost', pct: 25 }, { basis: 'cost', pct: 50 },
+  { basis: 'rct', pct: 10 }, { basis: 'rct', pct: 20 },
+  { basis: 'mo1', pct: 0 }, { basis: 'mo1', pct: 5 }, { basis: 'ath', pct: -5 }
+];
+
+// Highest (or lowest) entry price in the last 30 days, or the most recent entry if none fall in that window
+function calcRCT(entries, mode = 'max') {
+  const dated = [...entries.filter(e => e.date)].sort((a, b) => a.date < b.date ? -1 : 1);
+  if (!dated.length) return null;
+  const cutoff = new Date();
+  cutoff.setDate(cutoff.getDate() - 30);
+  const cutoffStr = cutoff.toISOString().split('T')[0];
+  const recent = dated.filter(e => e.date >= cutoffStr);
+  if (!recent.length) return dated[dated.length - 1].price;
+  return mode === 'min' ? Math.min(...recent.map(e => e.price)) : Math.max(...recent.map(e => e.price));
+}
+
+function targetBasisMap(pos, avg, p) {
+  const price = pos.manualPrice || p.price;
+  const entries = parseEntries(pos.entries);
+  const rct = calcRCT(entries, 'max');
+  const rctLow = calcRCT(entries, 'min');
+  return { cost: avg, price, mo1l: p.mo1l, mo1: p.mo1, yr1l: p.yr1l, yr1: p.yr1, ath: p.ath, atl: p.atl, rct, rctLow };
+}
+
+function buildTargetsSection(pos, price, avg, p) {
+  const basisMap = targetBasisMap(pos, avg, p);
+
+  const renderPresetBtn = (field, preset) => {
+    const basisVal = basisMap[preset.basis];
+    const disabled = !basisVal;
+    const label = preset.pct === 0 ? TARGET_BASIS_LABELS[preset.basis] : `${TARGET_BASIS_LABELS[preset.basis]} ${preset.pct >= 0 ? '+' : ''}${preset.pct}%`;
+    const title = basisVal ? '$' + fmt2(basisVal * (1 + preset.pct / 100)) : 'Unavailable';
+    return `<button ${disabled ? 'disabled' : ''} onclick="setTarget('${field}','${pos.id}','${preset.basis}',${preset.pct})" style="font-size:9px;padding:3px 7px;border-radius:3px;border:1px solid var(--border2);background:transparent;color:${disabled ? 'var(--dim)' : 'var(--muted)'};cursor:${disabled ? 'not-allowed' : 'pointer'};font-family:inherit" title="${title}">${label}</button>`;
+  };
+
+  const renderTargetBox = (field, label, presets, color) => {
+    const val = pos[field];
+    const dist = (price && val) ? ((val - price) / price) * 100 : null;
+    const reached = dist !== null && (field === 'buyTarget' ? dist >= 0 : dist <= 0);
+    return `<div style="padding:10px;background:var(--bg2);border:1px solid ${reached ? color : 'var(--border)'};border-radius:4px">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+        <span style="font-size:10px;text-transform:uppercase;letter-spacing:0.08em;color:var(--muted)">${label}</span>
+        ${reached ? `<span style="font-size:9px;font-weight:700;color:${color}">TARGET HIT</span>` : ''}
+      </div>
+      <div style="display:flex;align-items:center;gap:6px;margin-bottom:8px">
+        <span style="color:var(--muted);font-size:13px">$</span>
+        <input type="number" step="0.01" value="${val || ''}" placeholder="—" onchange="updateTarget('${field}','${pos.id}',this.value)" style="width:90px;font-size:13px">
+        ${dist !== null ? `<span style="font-size:10px;color:${reached ? color : 'var(--muted)'}">${dist >= 0 ? '+' : ''}${fmt1(dist)}% vs price</span>` : ''}
+      </div>
+      <div style="display:flex;flex-wrap:wrap;gap:4px">${presets.map(pr => renderPresetBtn(field, pr)).join('')}</div>
+    </div>`;
+  };
+
+  return `<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px">
+    ${renderTargetBox('buyTarget', 'Buy Target', TARGET_BUY_PRESETS, 'var(--green)')}
+    ${renderTargetBox('sellTarget', 'Sell Target', TARGET_SELL_PRESETS, 'var(--cyan)')}
+  </div>`;
+}
+
+function setTarget(field, posId, basisKey, pct) {
+  const pos = state.positions.find(x => x.id === posId);
+  if (!pos) return;
+  const p = state.prices[pos.ticker] || {};
+  const entries = parseEntries(pos.entries);
+  const avg = avgCost(entries);
+  const basisVal = targetBasisMap(pos, avg, p)[basisKey];
+  if (!basisVal) { showAlert('Basis value not available for this ticker', 'error'); return; }
+  pos[field] = Math.round(basisVal * (1 + pct / 100) * 100) / 100;
+  pos.updatedAt = new Date().toISOString();
+  save();
+  renderDeepDive();
+}
+
+function updateTarget(field, posId, value) {
+  const pos = state.positions.find(x => x.id === posId);
+  if (!pos) return;
+  const v = parseFloat(value);
+  pos[field] = (!isNaN(v) && v > 0) ? v : null;
+  pos.updatedAt = new Date().toISOString();
+  save();
+  renderDeepDive();
 }
 
 function renderPinnedDeepDive(pin) {
@@ -3852,6 +3982,7 @@ function switchTab(name) {
   if (name === 'sales') renderSalesHistory();
   if (name === 'monthly') renderMonthlySummary();
   if (name === 'transactions') renderTransactions();
+  if (name === 'alerts') renderAlerts();
 }
 
 function populateDeepDiveSelect(preferredId) {
@@ -4285,6 +4416,52 @@ function sortTxBy(col) {
   renderTransactions();
 }
 
+function renderAlerts() {
+  const tbody = document.getElementById('alertsBody');
+  const empty = document.getElementById('alertsEmpty');
+  if (!tbody || !empty) return;
+
+  const rows = state.positions
+    .filter(pos => !isExited(pos) && (pos.buyTarget || pos.sellTarget))
+    .map(pos => {
+      const p = state.prices[pos.ticker] || {};
+      const price = pos.manualPrice || p.price;
+      const buyDist = (price && pos.buyTarget) ? ((pos.buyTarget - price) / price) * 100 : null;
+      const sellDist = (price && pos.sellTarget) ? ((pos.sellTarget - price) / price) * 100 : null;
+      const buyHit = buyDist !== null && buyDist >= 0;
+      const sellHit = sellDist !== null && sellDist <= 0;
+      const closest = [buyDist, sellDist].filter(d => d !== null).map(Math.abs).sort((a, b) => a - b)[0] ?? Infinity;
+      return { pos, price, buyDist, sellDist, buyHit, sellHit, closest };
+    })
+    .sort((a, b) => {
+      const aHit = a.buyHit || a.sellHit, bHit = b.buyHit || b.sellHit;
+      if (aHit !== bHit) return aHit ? -1 : 1;
+      return a.closest - b.closest;
+    });
+
+  if (!rows.length) { tbody.innerHTML = ''; empty.style.display = 'block'; return; }
+  empty.style.display = 'none';
+
+  tbody.innerHTML = rows.map(({ pos, price, buyDist, sellDist, buyHit, sellHit }) => {
+    const distHtml = (dist, hit, color) => dist === null
+      ? '<span style="color:var(--dim)">—</span>'
+      : `<span style="color:${hit ? color : 'var(--muted)'}">${dist >= 0 ? '+' : ''}${fmt1(dist)}%</span>`;
+    const statusHtml = [
+      buyHit ? `<span style="color:var(--green);font-weight:600;font-size:10px;padding:2px 6px;border:1px solid var(--green2);border-radius:2px;background:rgba(0,229,160,0.08)">BUY HIT</span>` : '',
+      sellHit ? `<span style="color:var(--cyan);font-weight:600;font-size:10px;padding:2px 6px;border:1px solid var(--cyan);border-radius:2px;background:rgba(32,208,224,0.08)">SELL HIT</span>` : ''
+    ].filter(Boolean).join(' ') || '<span style="color:var(--dim)">—</span>';
+    return `<tr onclick="selectPosition('${pos.id}')">
+      <td><span class="ticker">${pos.ticker}</span></td>
+      <td class="price">${price ? '$' + fmt2(price) : '<span style="color:var(--muted)">—</span>'}</td>
+      <td>${pos.buyTarget ? '$' + fmt2(pos.buyTarget) : '<span style="color:var(--dim)">—</span>'}</td>
+      <td>${distHtml(buyDist, buyHit, 'var(--green)')}</td>
+      <td>${pos.sellTarget ? '$' + fmt2(pos.sellTarget) : '<span style="color:var(--dim)">—</span>'}</td>
+      <td>${distHtml(sellDist, sellHit, 'var(--cyan)')}</td>
+      <td>${statusHtml}</td>
+    </tr>`;
+  }).join('');
+}
+
 function showAlert(msg, type) {
   const el = document.getElementById('alertBar');
   el.textContent = msg;
@@ -4362,6 +4539,7 @@ function renderAll() {
   renderSalesHistory();
   renderMonthlySummary();
   renderTransactions();
+  renderAlerts();
   if (document.getElementById('view-hypothesis')?.classList.contains('active')) renderHypothesis();
 }
 
