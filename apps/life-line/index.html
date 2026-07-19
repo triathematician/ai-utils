@@ -3024,10 +3024,22 @@ function treeLinkConfidence(yearMin, yearMax, personYear) {
   return `unlikely — birth years ${dist} yrs apart`;
 }
 
-const SPOUSAL_RELATIONS = new Set(['wife', 'husband', 'spouse']);
+const SPOUSAL_RELATIONS = new Set(['wife']);
 
 function isSpousalRelation(relation) {
   return SPOUSAL_RELATIONS.has(cleanText(relation).toLowerCase());
+}
+
+function isFemale(person) {
+  const g = cleanText(person.gender).toLowerCase();
+  return !g || g === 'female' || g === 'f';
+}
+
+// First-token-only comparison -- deliberately ignores the surname so a maiden/married
+// mismatch doesn't block the match, while still requiring the given name to line up.
+function firstNameMatches(a, b) {
+  const ta = nameTokens(a), tb = nameTokens(b);
+  return ta.length > 0 && tb.length > 0 && ta[0] === tb[0];
 }
 
 function findCandidateTreeLinks() {
@@ -3100,7 +3112,15 @@ function findCandidateTreeLinks() {
         const rep = memberIdentity ? representativeMemberForIdentity(memberIdentity) : { household: h, memberIndex: mi, member: m };
         const range = memberIdentity ? identityYearRange(memberIdentity) : { min: memberApproxBirthYear(h, m), max: memberApproxBirthYear(h, m), places: m.birthplace ? [m.birthplace] : [] };
         const recordCount = memberIdentity ? memberIdentity.members.length : 1;
+        const resolved = memberIdentity ? resolvedMembersForIdentity(memberIdentity) : [{ household: h, memberIndex: mi, member: m }];
         spouses.forEach(sp => {
+          if (!isFemale(sp)) return;
+          if (!resolved.some(rm => firstNameMatches(rm.member.name, sp.name))) return;
+          const personYear = personBirthYear(sp);
+          if (range.min !== null && personYear !== null) {
+            const dist = personYear < range.min ? range.min - personYear : personYear > range.max ? personYear - range.max : 0;
+            if (dist > MAX_TREE_LINK_YEAR_GAP) return;
+          }
           const key = [token, sp.id].sort().join('|');
           if (dismissed.has(key) || suggested.has(token + '|' + sp.id)) return;
           candidates.push({ token, rep, range, recordCount, person: sp, confidence: `likely — spouse of linked ${anchorPerson.name}` });
