@@ -2720,7 +2720,7 @@ function personLinkConfidence(yearA, yearB) {
   const diff = Math.abs(yearA - yearB);
   if (diff <= 1) return 'likely';
   if (diff <= 3) return 'possible';
-  return "unlikely — birth years don't align";
+  return `unlikely — birth years ${diff} yrs apart`;
 }
 
 function findCandidatePersonLinks() {
