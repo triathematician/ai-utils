@@ -2966,27 +2966,28 @@ function personBirthYear(p) {
 
 // First household+member a census identity actually resolves to (identities are id lists;
 // this is the display-friendly anchor used for names/years/locations).
-function representativeMemberForIdentity(identity) {
+function resolvedMembersForIdentity(identity) {
   const hMap = new Map(db.households.map(h => [h.id, h]));
-  for (const im of identity.members) {
-    const ih = hMap.get(im.householdId);
-    const imem = ih ? ih.members[im.memberIndex] : null;
-    if (ih && imem) return { household: ih, memberIndex: im.memberIndex, member: imem };
-  }
-  return null;
+  return identity.members
+    .map(im => {
+      const ih = hMap.get(im.householdId);
+      const imem = ih ? ih.members[im.memberIndex] : null;
+      return ih && imem ? { household: ih, memberIndex: im.memberIndex, member: imem } : null;
+    })
+    .filter(Boolean);
+}
+
+function representativeMemberForIdentity(identity) {
+  return resolvedMembersForIdentity(identity)[0] || null;
 }
 
 function identityYearRange(identity) {
-  const hMap = new Map(db.households.map(h => [h.id, h]));
   const years = [];
   const places = new Set();
-  identity.members.forEach(im => {
-    const ih = hMap.get(im.householdId);
-    const imem = ih ? ih.members[im.memberIndex] : null;
-    if (!ih || !imem) return;
-    const y = memberApproxBirthYear(ih, imem);
+  resolvedMembersForIdentity(identity).forEach(({ household, member }) => {
+    const y = memberApproxBirthYear(household, member);
     if (y !== null) years.push(y);
-    if (imem.birthplace) places.add(imem.birthplace);
+    if (member.birthplace) places.add(member.birthplace);
   });
   return { min: years.length ? Math.min(...years) : null, max: years.length ? Math.max(...years) : null, places: [...places] };
 }
@@ -3031,11 +3032,12 @@ function findCandidateTreeLinks() {
   db.personIdentities.forEach(identity => {
     identity.members.forEach(m => covered.add(memberToken(m.householdId, m.memberIndex)));
     if (identity.personId) return;
-    const rep = representativeMemberForIdentity(identity);
+    const resolved = resolvedMembersForIdentity(identity);
+    const rep = resolved[0];
     if (!rep) return;
     const range = identityYearRange(identity);
     db.people.forEach(p => {
-      if (!namesLikelyMatch(rep.member.name, p.name)) return;
+      if (!resolved.some(rm => namesLikelyMatch(rm.member.name, p.name))) return;
       const key = [identity.id, p.id].sort().join('|');
       if (dismissed.has(key)) return;
       const personYear = personBirthYear(p);
