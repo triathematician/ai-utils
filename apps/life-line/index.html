@@ -197,6 +197,13 @@ html, body {
 .hh-member-row .filter-input { flex: 1; min-width: 0; }
 .hh-member-row .hh-m-age { flex: 0 0 55px; }
 .hh-member-row .hh-m-gender { flex: 0 0 70px; }
+.hh-m-extended { display: none; gap: 6px; margin: 0 0 8px 0; padding-left: 4px; }
+.hh-m-extended.visible { display: flex; }
+.hh-m-extended .filter-input { flex: 1; min-width: 0; }
+.hh-m-extended .hh-m-birth-y { flex: 0 0 50px; }
+.hh-m-extended .hh-m-birth-m { flex: 0 0 40px; }
+.hh-m-extended .hh-m-birth-d { flex: 0 0 40px; }
+.hh-m-extended .hh-m-immig, .hh-m-extended .hh-m-natur { flex: 0 0 60px; }
 .hh-dialog-actions { margin-top: 14px; display: flex; gap: 14px; }
 </style>
 </head>
@@ -281,6 +288,8 @@ html, body {
     <div class="section-title" style="margin-top:10px">MEMBERS</div>
     <div id="household-members"></div>
     <span class="action-link" id="household-add-member">[+ add member]</span>
+    <span class="action-link" id="household-fill" title="Fill in missing last names (from the first member) and missing relation-to-head guesses">[fill]</span>
+    <span class="action-link" id="household-toggle-extended" title="Show mother's/father's birthplace, birthdate, and immigration/naturalization years">[+ extended]</span>
     <div class="hh-dialog-actions">
       <span class="action-link" id="household-save">[SAVE]</span>
       <span class="action-link" id="household-cancel">[CANCEL / ESC]</span>
@@ -326,10 +335,11 @@ const STORAGE_KEY = 'life_line_db';
 const EXPORT_SLUG = 'life-line';
 const THEMES = ['legacy','solar','monk','space','synth','dos','notebook','engineering','winter'];
 const RELATIONSHIP_TYPES = ['parent', 'child', 'spouse', 'partner', 'sibling'];
-let db = { people: [], relationships: [], events: [], locations: [], households: [], householdLinks: [], personIdentities: [], dismissedHouseholdLinks: [], dismissedPersonLinks: [], dismissedTreeLinks: [], backlog: [], backlogArchive: [], theme: 'legacy', focusPersonId: '', focusHouseholdId: '', lifespanFilter: false };
+let db = { people: [], relationships: [], events: [], locations: [], households: [], householdLinks: [], personIdentities: [], dismissedHouseholdLinks: [], dismissedPersonLinks: [], dismissedTreeLinks: [], backlog: [], backlogArchive: [], theme: 'legacy', focusPersonId: '', focusHouseholdId: '', lifespanFilter: false, viewMode: 'life' };
 let wizard = null;
 let relFill = null; // { candidates: [...], index: 0, added: 0, focusId }
 let lifespanFilterEnabled = false;
+let timelineShowHouseholds = false;
 let viewMode = 'life';
 let lifeTopPanelsHtml = '';
 let lifeMainPanelHtml = '';
@@ -467,7 +477,14 @@ function sanitizeHouseholdMember(raw) {
     relation: cleanText(source.relation),
     gender: cleanText(source.gender),
     birthplace: cleanText(source.birthplace),
-    occupation: cleanText(source.occupation)
+    occupation: cleanText(source.occupation),
+    birthYear: cleanText(source.birthYear),
+    birthMonth: cleanText(source.birthMonth),
+    birthDay: cleanText(source.birthDay),
+    motherBirthplace: cleanText(source.motherBirthplace),
+    fatherBirthplace: cleanText(source.fatherBirthplace),
+    immigrationYear: cleanText(source.immigrationYear),
+    naturalizationYear: cleanText(source.naturalizationYear)
   };
 }
 
@@ -547,7 +564,8 @@ function loadDB() {
       theme: cleanText(parsed.theme) || 'legacy',
       focusPersonId: cleanText(parsed.focusPersonId),
       focusHouseholdId: cleanText(parsed.focusHouseholdId),
-      lifespanFilter: parsed.lifespanFilter === true
+      lifespanFilter: parsed.lifespanFilter === true,
+      viewMode: parsed.viewMode === 'census' ? 'census' : 'life'
     };
     db = { people: [], relationships: [], events: [], locations: [], households: [], householdLinks: [], personIdentities: [], dismissedHouseholdLinks: [], dismissedPersonLinks: [], dismissedTreeLinks: [] };
     base.people = base.people.map(sanitizePerson);
@@ -571,7 +589,7 @@ function loadDB() {
     if (!base.households.some(h => h.id === base.focusHouseholdId)) base.focusHouseholdId = base.households[0] ? base.households[0].id : '';
     return base;
   } catch {
-    return { people: [], relationships: [], events: [], locations: [], households: [], householdLinks: [], personIdentities: [], dismissedHouseholdLinks: [], dismissedPersonLinks: [], dismissedTreeLinks: [], backlog: [], backlogArchive: [], theme: 'legacy', focusPersonId: '', focusHouseholdId: '', lifespanFilter: false };
+    return { people: [], relationships: [], events: [], locations: [], households: [], householdLinks: [], personIdentities: [], dismissedHouseholdLinks: [], dismissedPersonLinks: [], dismissedTreeLinks: [], backlog: [], backlogArchive: [], theme: 'legacy', focusPersonId: '', focusHouseholdId: '', lifespanFilter: false, viewMode: 'life' };
   }
 }
 
@@ -581,6 +599,13 @@ function saveDB() {
 
 function nameLink(person) {
   return `<span class="name-link person-name" data-person-focus="${escHtml(person.id)}">${escHtml(person.name)}</span>`;
+}
+
+// Small ⌗ marker shown next to a name wherever it has at least one confirmed census
+// record linked to it (via db.personIdentities) -- a quick visual cue, not interactive.
+function censusBadgeHtml(personId) {
+  const hasCensusLinks = db.personIdentities.some(pi => pi.personId === personId);
+  return hasCensusLinks ? ' <span title="Linked census records" style="color:var(--accent)">⌗</span>' : '';
 }
 
 function escHtml(str) {
@@ -1114,7 +1139,7 @@ function renderNuclearFamily() {
     const age = ageLabel(c);
     const yr = c.birthDate ? ' <span class="rel-date">· ' + c.birthDate.slice(0, 4) + '</span>' : '';
     const ageHtml = age ? ' <span class="rel-date">· ' + age + (c.deathDate ? '<span style="color:var(--warn)">/d</span>' : '') + '</span>' : '';
-    return `<div class="rel-row" style="padding-left:14px">${nameLink(c)}${yr}${ageHtml}</div>`;
+    return `<div class="rel-row" style="padding-left:14px">${nameLink(c)}${censusBadgeHtml(c.id)}${yr}${ageHtml}</div>`;
   }
 
   const assigned = new Set();
@@ -1131,7 +1156,7 @@ function renderNuclearFamily() {
     const birthPart = s.birthDate ? ' <span class="rel-date">· ' + s.birthDate.slice(0, 4) + '</span>' : '';
     const age = ageLabel(s);
     const agePart = age ? ' <span class="rel-date">· ' + age + (s.deathDate ? '<span style="color:var(--warn)">/d</span>' : '') + '</span>' : '';
-    html += `<div class="rel-row"><span class="rel-label">Spouse</span>${nameLink(s)}${birthPart}${agePart}${marriagePart}${divTag}</div>`;
+    html += `<div class="rel-row"><span class="rel-label">Spouse</span>${nameLink(s)}${censusBadgeHtml(s.id)}${birthPart}${agePart}${marriagePart}${divTag}</div>`;
 
     const shared = summary.children
       .filter(c => { const p = childParents.get(c.id); return p && p.has(focus.id) && p.has(s.id); })
@@ -1159,6 +1184,47 @@ function focusAgeHtml(person) {
   return '<span style="color:var(--success)">' + escHtml(age) + '</span>';
 }
 
+// Known (date, place) facts for a person -- birth, death, marriages, and every census
+// year reachable through their tree-linked identities. Only facts with both a date and
+// a resolvable location are kept; no transition dates between facts are inferred.
+function personLocationFacts(person) {
+  const locMap = new Map(db.locations.map(loc => [loc.id, loc]));
+  const facts = [];
+  const addFact = (date, label, locationId) => {
+    const loc = locMap.get(locationId);
+    if (date && loc) facts.push({ date, label, place: loc.name });
+  };
+  addFact(person.birthDate, 'Born', person.birthLocationId);
+  db.relationships
+    .filter(r => r.type === 'spouse' && (r.fromId === person.id || r.toId === person.id))
+    .forEach(r => addFact(r.date, 'Married', r.locationId));
+  db.personIdentities
+    .filter(pi => pi.personId === person.id)
+    .forEach(identity => {
+      resolvedMembersForIdentity(identity).forEach(({ household }) => addFact(household.year, 'Census', household.locationId));
+    });
+  addFact(person.deathDate, 'Died', person.deathLocationId);
+
+  const seen = new Set();
+  return facts
+    .filter(f => {
+      const key = f.date + '|' + f.label + '|' + f.place;
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    })
+    .sort((a, b) => a.date.localeCompare(b.date));
+}
+
+function renderLocationFactsHtml(person) {
+  const facts = personLocationFacts(person);
+  if (!facts.length) return '';
+  const rows = facts
+    .map(f => `<div class="rel-row"><span class="rel-label">${escHtml(f.date)}</span><span class="rel-person">${escHtml(f.label)} · ${escHtml(f.place)}</span></div>`)
+    .join('');
+  return `<div class="loc-fact-list">${rows}</div>`;
+}
+
 function renderFocus() {
   const focus = getFocusPerson();
   const el = document.getElementById('focus-card');
@@ -1171,17 +1237,18 @@ function renderFocus() {
   const attrs = Object.entries(focus.attributes);
 
   // relationship rows with natural labels
-  const relRows = [];
+  const parentRows = [];
   for (const p of summary.parents) {
     const g = (p.gender || '').toLowerCase();
     const lbl = (g === 'male' || g === 'm') ? 'Father' : (g === 'female' || g === 'f') ? 'Mother' : 'Parent';
-    relRows.push(`<div class="rel-row"><span class="rel-label">${lbl}</span>${nameLink(p)}${p.birthDate ? '<span class="rel-date"> · ' + escHtml(p.birthDate.slice(0,4)) + '</span>' : ''}</div>`);
+    parentRows.push(`<div class="rel-row"><span class="rel-label">${lbl}</span>${nameLink(p)}${censusBadgeHtml(p.id)}${p.birthDate ? '<span class="rel-date"> · ' + escHtml(p.birthDate.slice(0,4)) + '</span>' : ''}</div>`);
   }
+  const siblingRows = [];
   if (summary.siblings.length) {
     const full = summary.siblings.filter(s => !s.half);
     const half = summary.siblings.filter(s => s.half);
-    if (full.length) relRows.push(`<div class="rel-row"><span class="rel-label">Siblings</span><span class="rel-person">${full.map(s => nameLink(s.person)).join(' · ')}</span></div>`);
-    if (half.length) relRows.push(`<div class="rel-row"><span class="rel-label">Half-sib</span><span class="rel-person">${half.map(s => nameLink(s.person)).join(' · ')}</span></div>`);
+    if (full.length) siblingRows.push(`<div class="rel-row"><span class="rel-label">Siblings</span><span class="rel-person">${full.map(s => nameLink(s.person) + censusBadgeHtml(s.person.id)).join(' · ')}</span></div>`);
+    if (half.length) siblingRows.push(`<div class="rel-row"><span class="rel-label">Half-sib</span><span class="rel-person">${half.map(s => nameLink(s.person) + censusBadgeHtml(s.person.id)).join(' · ')}</span></div>`);
   }
 
   const chips = [
@@ -1204,7 +1271,10 @@ function renderFocus() {
   el.innerHTML = `
     <div class="focus-name">${escHtml(focus.name)} <span class="focus-meta">(${escHtml(focus.id)})</span>${focus.gender ? ' <span class="dim" style="font-size:0.82em">' + escHtml(focus.gender) + '</span>' : ''}${censusBadge}</div>
     <div class="focus-meta">${escHtml(formatLife(focus))} · ${focusAgeHtml(focus)}${placePart ? ' · ' + escHtml(placePart) : ''}</div>
-    ${relRows.length ? relRows.join('') : '<div class="dim">No parents or siblings recorded.</div>'}
+    ${parentRows.join('')}
+    ${renderLocationFactsHtml(focus)}
+    ${siblingRows.join('')}
+    ${!parentRows.length && !siblingRows.length ? '<div class="dim">No parents or siblings recorded.</div>' : ''}
     <hr class="focus-divider">
     <div class="chip-row">${chips || '<span class="dim">No branch set.</span>'}</div>
     <div class="attr-row">${attrHtml}</div>
@@ -1285,7 +1355,8 @@ function locationInLifespan(locId) {
     (p.deathLocationId === locId && yearInLifespan(p.deathDate))
   );
   if (usedByPerson) return true;
-  return db.relationships.some(r => r.locationId === locId && yearInLifespan(r.date));
+  if (db.relationships.some(r => r.locationId === locId && yearInLifespan(r.date))) return true;
+  return db.households.some(h => h.locationId === locId && yearInLifespan(h.year));
 }
 
 function toggleLifespanFilter() {
@@ -1366,7 +1437,7 @@ function renderPeople() {
     return `
       <div class="person-card">
         <div class="person-head">
-          ${nameLink(person)}
+          ${nameLink(person)}${censusBadgeHtml(person.id)}
           <span class="person-life">${escHtml(person.id)} · ${escHtml(formatLife(person))}${ageLabel(person) ? ' · ' + escHtml(ageLabel(person)) : ''}</span>
         </div>
         <div class="dim">${secondary}</div>
@@ -1422,6 +1493,39 @@ function renderEvents() {
     .join('');
 }
 
+// Every place a location is referenced: births/deaths, marriages, and census households.
+function locationUsageRows(loc) {
+  const map = peopleMap();
+  const rows = [];
+  db.people.forEach(p => {
+    if (p.birthLocationId === loc.id) rows.push(`<div class="line">Born · ${nameLink(p)}${p.birthDate ? ' · ' + escHtml(p.birthDate.slice(0, 4)) : ''}</div>`);
+    if (p.deathLocationId === loc.id) rows.push(`<div class="line">Died · ${nameLink(p)}${p.deathDate ? ' · ' + escHtml(p.deathDate.slice(0, 4)) : ''}</div>`);
+  });
+  db.relationships.forEach(r => {
+    if (r.locationId === loc.id) rows.push(`<div class="line">Married · ${relationshipLabel(r, map)}</div>`);
+  });
+  db.households.forEach(h => {
+    if (h.locationId === loc.id) {
+      rows.push(`<div class="line">Census · <span class="action-link" data-census-household-jump="${escHtml(h.id)}">${escHtml(h.id)} (${escHtml(h.year)})</span> · ${h.members.length} member${h.members.length === 1 ? '' : 's'}</div>`);
+    }
+  });
+  return rows;
+}
+
+function locationUsageCount(loc) {
+  return db.people.filter(p => p.birthLocationId === loc.id || p.deathLocationId === loc.id).length
+    + db.relationships.filter(r => r.locationId === loc.id).length
+    + db.households.filter(h => h.locationId === loc.id).length;
+}
+
+function showLocationUsages(locId) {
+  const loc = db.locations.find(l => l.id === locId);
+  if (!loc) return;
+  const rows = locationUsageRows(loc);
+  const body = rows.length ? rows.join('') : '<div class="dim">Not used yet.</div>';
+  openOverlay(`◈ LOCATION — ${loc.name}`, body, true);
+}
+
 function renderLocations() {
   const el = document.getElementById('location-list');
   if (!db.locations.length) {
@@ -1440,10 +1544,10 @@ function renderLocations() {
     .slice()
     .sort((a, b) => a.name.localeCompare(b.name))
     .map(loc => {
-      const uses = db.people.filter(p => p.birthLocationId === loc.id || p.deathLocationId === loc.id).length
-        + db.relationships.filter(r => r.locationId === loc.id).length;
+      const uses = locationUsageCount(loc);
       const usePart = uses ? ` · used by ${uses}` : ' · unused';
-      return `<div class="line"><span class="focus-meta">${escHtml(loc.id)}</span> · <span class="person-name">${escHtml(loc.name)}</span>${loc.notes ? ' · ' + escHtml(loc.notes) : ''}${usePart}</div>`;
+      const mergeFill = `/location merge ${loc.id} | `;
+      return `<div class="line"><span class="focus-meta">${escHtml(loc.id)}</span> · <span class="action-link person-name" data-location-view="${escHtml(loc.id)}">${escHtml(loc.name)}</span>${loc.notes ? ' · ' + escHtml(loc.notes) : ''}${usePart} <span class="action-link" data-location-merge-fill="${escHtml(mergeFill)}" title="Keep this location -- fill in which duplicate to merge into it">[merge]</span></div>`;
     })
     .join('');
 }
@@ -1474,12 +1578,27 @@ function buildDescendantNode(personId, depth, visited = new Set()) {
   return { person, children: children.map(c => buildDescendantNode(c.id, depth - 1, visited)).filter(Boolean) };
 }
 
+// The state/place abbreviation shown next to each person in the ancestor/descendant
+// trees: the last word of the birthplace if it's already a two-letter code (e.g. "UT"),
+// otherwise the first five characters of that last word as a compact stand-in.
+function birthplaceAbbrev(name) {
+  const words = cleanText(name).split(/\s+/).filter(Boolean);
+  if (!words.length) return '';
+  const last = words[words.length - 1].replace(/[^A-Za-z]/g, '');
+  if (!last) return '';
+  return /^[A-Za-z]{2}$/.test(last) ? last.toUpperCase() : last.slice(0, 5);
+}
+
 function renderTreeHtml(node, prefix, isLast) {
   const connector = prefix !== null ? (isLast ? '└─ ' : '├─ ') : '';
   const childPrefix = (prefix || '') + (prefix === null ? '' : isLast ? '   ' : '│  ');
   const age = ageLabel(node.person);
   const meta = formatLife(node.person) + (age ? '  ' + age : '');
-  const line = `<div style="white-space:pre;line-height:1.7">${escHtml((prefix || '') + connector)}${nameLink(node.person)}  <span style="color:var(--dim);font-size:0.84em">${escHtml(meta)}</span></div>`;
+  const birthLoc = db.locations.find(l => l.id === node.person.birthLocationId);
+  const abbrev = birthLoc ? birthplaceAbbrev(birthLoc.name) : '';
+  const abbrevPart = abbrev ? ` <span style="color:var(--dim);font-size:0.84em">[${escHtml(abbrev)}]</span>` : '';
+  const censusBadge = censusBadgeHtml(node.person.id);
+  const line = `<div style="white-space:pre;line-height:1.7">${escHtml((prefix || '') + connector)}${nameLink(node.person)}${censusBadge}  <span style="color:var(--dim);font-size:0.84em">${escHtml(meta)}</span>${abbrevPart}</div>`;
   return line + node.children.map((child, i) => renderTreeHtml(child, childPrefix, i === node.children.length - 1)).join('');
 }
 
@@ -1552,7 +1671,7 @@ function computeTimelinePopulation(focusId, depth) {
   return { rows, undated };
 }
 
-function buildTimelineSvg(rows, undated, focusId) {
+function buildTimelineSvg(rows, undated, focusId, showHouseholds) {
   const currentYear = new Date().getFullYear();
   const years = [];
   rows.forEach(r => {
@@ -1653,6 +1772,52 @@ function buildTimelineSvg(rows, undated, focusId) {
     }
   });
 
+  // Census markers: the focus person's own census years always get a small square.
+  // With the household toggle on, every co-resident who also has a row in this chart
+  // gets a square too, joined by a vertical connector for that census year.
+  const locMap = new Map(db.locations.map(loc => [loc.id, loc]));
+  let censusMarkers = '';
+  const seenHouseholds = new Set();
+  db.personIdentities
+    .filter(pi => pi.personId === focusId)
+    .forEach(identity => {
+      resolvedMembersForIdentity(identity).forEach(({ household }) => {
+        if (seenHouseholds.has(household.id)) return;
+        seenHouseholds.add(household.id);
+        const year = parseInt(household.year, 10);
+        if (Number.isNaN(year) || year < minYear || year > maxYear) return;
+        const loc = locMap.get(household.locationId);
+        const tooltip = escHtml(household.year + ' · census · ' + (loc ? loc.name : 'unknown place') + ' -- click to view household');
+        const x = yearToX(year);
+
+        let residentIds = [focusId];
+        if (showHouseholds) {
+          residentIds = [...new Set(household.members
+            .map((m, mi) => {
+              const memberIdentity = findIdentityForMember(household.id, mi);
+              return memberIdentity && memberIdentity.personId;
+            })
+            .filter(Boolean)
+            .concat(focusId))];
+        }
+        const residentRowIdx = residentIds
+          .filter(id => idToRowIndex.has(id))
+          .map(id => idToRowIndex.get(id))
+          .sort((a, b) => a - b);
+        if (!residentRowIdx.length) return;
+
+        if (residentRowIdx.length > 1) {
+          const yTop = topM + residentRowIdx[0] * rowH + rowH / 2;
+          const yBottom = topM + residentRowIdx[residentRowIdx.length - 1] * rowH + rowH / 2;
+          censusMarkers += `<line x1="${x}" y1="${yTop}" x2="${x}" y2="${yBottom}" style="stroke:var(--accent);stroke-width:1;stroke-dasharray:1,2"/>`;
+        }
+        residentRowIdx.forEach(rowIdx => {
+          const y = topM + rowIdx * rowH + rowH / 2;
+          censusMarkers += `<rect x="${x - 3}" y="${y - 3}" width="6" height="6" style="fill:var(--accent);cursor:pointer" data-census-household-jump="${escHtml(household.id)}"><title>${tooltip}</title></rect>`;
+        });
+      });
+    });
+
   const bars = rows.map((r, i) => {
     const p = r.person;
     const y = topM + i * rowH;
@@ -1683,7 +1848,7 @@ function buildTimelineSvg(rows, undated, focusId) {
     ? `<div class="dim" style="margin-top:8px;font-size:0.82em">No birth date (not shown): ${undated.map(p => escHtml(p.name)).join(', ')}</div>`
     : '';
 
-  return `<div style="overflow-x:auto"><svg width="${totalW}" height="${totalH}" viewBox="0 0 ${totalW} ${totalH}" style="display:block">${gridlines}${nowLine}${markers}${parentChildLines}${bars}</svg></div>${undatedNote}`;
+  return `<div style="overflow-x:auto"><svg width="${totalW}" height="${totalH}" viewBox="0 0 ${totalW} ${totalH}" style="display:block">${gridlines}${nowLine}${markers}${parentChildLines}${bars}${censusMarkers}</svg></div>${undatedNote}`;
 }
 
 function showTimeline(depthArg) {
@@ -1692,7 +1857,8 @@ function showTimeline(depthArg) {
   const depth = Math.max(1, Math.min(8, parseInt(depthArg, 10) || 4));
   const { rows, undated } = computeTimelinePopulation(focus.id, depth);
   if (!rows.length) return statusMsg('No dated relatives found to chart.');
-  const html = `<div data-timeline-depth="${depth}">${buildTimelineSvg(rows, undated, focus.id)}</div>`;
+  const toggleHtml = `<div class="lifespan-toggle-row"><span class="lifespan-toggle${timelineShowHouseholds ? ' active' : ''}" data-timeline-household-toggle title="Connect everyone from the same census household who appears in this chart">⌗ SHOW HOUSEHOLDS</span></div>`;
+  const html = `<div data-timeline-depth="${depth}">${toggleHtml}${buildTimelineSvg(rows, undated, focus.id, timelineShowHouseholds)}</div>`;
   openOverlay(`◈ LIFESPAN TIMELINE — ${focus.name}  (${depth} generation${depth === 1 ? '' : 's'})`, html, true);
 }
 
@@ -1741,7 +1907,8 @@ function renderCensusFocusCard() {
       ].filter(Boolean).join(' · ');
       combinedBadge = ` <span class="action-link" data-identity-view="${identity.id}" title="${escHtml(titleParts)}">${countPart}${personPart}</span>`;
     }
-    return `<div class="rel-row"><span class="rel-label">${escHtml(m.relation || '—')}</span>${escHtml(m.name)}${m.gender ? ' <span class="rel-date">· ' + escHtml(m.gender) + '</span>' : ''}${m.age ? ' <span class="rel-date">· age ' + escHtml(m.age) + '</span>' : ''}${m.birthplace ? ' <span class="rel-date">· b. ' + escHtml(m.birthplace) + '</span>' : ''}${m.occupation ? ' <span class="rel-date">· ' + escHtml(m.occupation) + '</span>' : ''}${combinedBadge}${approxHtml}</div>`;
+    const nameHtml = `<span title="${escHtml(memberToken(h.id, mi))}">${escHtml(m.name)}</span>`;
+    return `<div class="rel-row"><span class="rel-label">${escHtml(m.relation || '—')}</span>${nameHtml}${m.gender ? ' <span class="rel-date">· ' + escHtml(m.gender) + '</span>' : ''}${m.age ? ' <span class="rel-date">· age ' + escHtml(m.age) + '</span>' : ''}${m.birthplace ? ' <span class="rel-date">· b. ' + escHtml(m.birthplace) + '</span>' : ''}${m.occupation ? ' <span class="rel-date">· ' + escHtml(m.occupation) + '</span>' : ''}${combinedBadge}${approxHtml}</div>`;
   }).join('');
   const group = householdLinkedGroup(h.id);
   const seriesHtml = group.length > 1
@@ -1769,6 +1936,8 @@ function renderCensusStats() {
   el.innerHTML = `${db.households.length} household${db.households.length === 1 ? '' : 's'} · ${db.householdLinks.length} confirmed link${db.householdLinks.length === 1 ? '' : 's'} · ${candidates.length} candidate link${candidates.length === 1 ? '' : 's'}`;
 }
 
+let householdFilterText = '';
+
 function renderHouseholdDirectory() {
   const el = document.getElementById('household-list');
   if (!el) return;
@@ -1777,14 +1946,20 @@ function renderHouseholdDirectory() {
     el.textContent = 'No households yet. Use /household add to start.';
     return;
   }
+  const filtered = filterHouseholdList(db.households, householdFilterText);
+  if (!filtered.length) {
+    el.className = 'dim';
+    el.textContent = 'No matching households.';
+    return;
+  }
   const locMap = new Map(db.locations.map(l => [l.id, l]));
   el.className = '';
-  el.innerHTML = db.households
+  el.innerHTML = filtered
     .slice()
     .sort((a, b) => a.year.localeCompare(b.year) || a.id.localeCompare(b.id))
     .map(h => {
       const loc = locMap.get(h.locationId);
-      const memberNames = h.members.map(m => escHtml(m.name)).join(', ');
+      const memberNames = h.members.map((m, mi) => `<span title="${escHtml(memberToken(h.id, mi))}">${escHtml(m.name)}</span>`).join(', ');
       return `
         <div class="person-card" data-household-focus="${escHtml(h.id)}" style="cursor:pointer">
           <div class="person-head">
@@ -1808,7 +1983,7 @@ function renderCandidateLinksPanel() {
     return;
   }
   el.className = '';
-  el.innerHTML = candidates.map(c => `<div class="line">${escHtml(householdSummary(c.earlier))}<br>↔ ${escHtml(householdSummary(c.later))}<br><span class="dim">${c.overlap} shared name${c.overlap === 1 ? '' : 's'} · ${escHtml(c.confidence)}</span></div>`).join('');
+  el.innerHTML = candidates.map(c => `<div class="line">${escHtml(householdSummary(c.earlier))}<br>↔ ${escHtml(householdSummary(c.later))}<br><span class="dim" title="${escHtml(sharedNamesPreview(c.earlier, c.later))}">${c.overlap} shared name${c.overlap === 1 ? '' : 's'} · ${escHtml(c.confidence)}</span></div>`).join('');
 }
 
 function renderConfirmedLinksPanel() {
@@ -1979,6 +2154,8 @@ function showHelp() {
     '/location add Name | notes',
     '/location update location | field | value',
     '/location remove location',
+    '/location merge keep | remove | [preferred name]',
+    '                         repoints every use of "remove" to "keep" and deletes it',
     '/location list [query]',
     '',
     '── RELATIONSHIPS ──────────────────────────────────────',
@@ -2004,6 +2181,8 @@ function showHelp() {
     '/household add           open the bulk-entry dialog for a new household',
     '/household update [household]   open the dialog pre-filled to edit (defaults to focus household)',
     '/household remove household',
+    '/household split household.index   move that member and everyone after them',
+    '                         (by list position) into a new household',
     '/household list [query]',
     '/link [list]             show candidate household links across years,',
     '                         [link]/[dismiss] each one',
@@ -2413,11 +2592,18 @@ function resolveOrCreateLocation(name) {
 
 // ── Household bulk-add/edit dialog ──────────────────────────────────────────
 let householdDialogEditId = null;
+// Extended per-member fields (mother's/father's birthplace, birthdate, immigration/
+// naturalization years) are rare enough to stay hidden by default; this remembers the
+// toggle state across dialog open/close within the session.
+let householdExtendedVisible = false;
 
-function addHouseholdMemberRow(member) {
+function addHouseholdMemberRow(member, memberIndex) {
   const container = document.getElementById('household-members');
   const row = document.createElement('div');
   row.className = 'hh-member-row';
+  // Split only makes sense for a member that's actually saved to a household (memberIndex
+  // set) and isn't the first person -- that's the "second head" case /household split fixes.
+  const canSplit = typeof memberIndex === 'number' && memberIndex > 0;
   row.innerHTML = `
     <input type="text" class="filter-input hh-m-name" placeholder="Name" value="${escHtml((member && member.name) || '')}">
     <input type="text" class="filter-input hh-m-age" placeholder="Age" value="${escHtml((member && member.age) || '')}">
@@ -2425,10 +2611,41 @@ function addHouseholdMemberRow(member) {
     <input type="text" class="filter-input hh-m-gender" placeholder="Gender" value="${escHtml((member && member.gender) || '')}">
     <input type="text" class="filter-input hh-m-birthplace" placeholder="Birthplace" value="${escHtml((member && member.birthplace) || '')}">
     <input type="text" class="filter-input hh-m-occupation" placeholder="Occupation" value="${escHtml((member && member.occupation) || '')}">
-    <span class="action-link">[x]</span>
+    ${canSplit ? '<span class="action-link hh-m-split" style="display:none" title="Split this member and everyone after them into a new household">[split]</span>' : ''}
+    <span class="action-link hh-m-remove">[x]</span>
   `;
-  row.querySelector('.action-link').addEventListener('click', () => row.remove());
+  row.querySelector('.hh-m-remove').addEventListener('click', () => { extRow.remove(); row.remove(); });
+
+  const splitBtn = row.querySelector('.hh-m-split');
+  if (splitBtn) {
+    const relationInput = row.querySelector('.hh-m-relation');
+    const updateSplitVisibility = () => {
+      splitBtn.style.display = cleanText(relationInput.value).toLowerCase() === 'head' ? '' : 'none';
+    };
+    relationInput.addEventListener('input', updateSplitVisibility);
+    updateSplitVisibility();
+    splitBtn.addEventListener('click', () => {
+      if (!householdDialogEditId) return;
+      const token = `${householdDialogEditId}.${memberIndex}`;
+      closeHouseholdDialog();
+      cmdHouseholdSplit(token);
+    });
+  }
+
   container.appendChild(row);
+
+  const extRow = document.createElement('div');
+  extRow.className = 'hh-m-extended' + (householdExtendedVisible ? ' visible' : '');
+  extRow.innerHTML = `
+    <input type="text" class="filter-input hh-m-birth-y" placeholder="Birth yr" value="${escHtml((member && member.birthYear) || '')}">
+    <input type="text" class="filter-input hh-m-birth-m" placeholder="Mo" value="${escHtml((member && member.birthMonth) || '')}">
+    <input type="text" class="filter-input hh-m-birth-d" placeholder="Day" value="${escHtml((member && member.birthDay) || '')}">
+    <input type="text" class="filter-input hh-m-father-bp" placeholder="Father's birthplace" value="${escHtml((member && member.fatherBirthplace) || '')}">
+    <input type="text" class="filter-input hh-m-mother-bp" placeholder="Mother's birthplace" value="${escHtml((member && member.motherBirthplace) || '')}">
+    <input type="text" class="filter-input hh-m-immig" placeholder="Immig. yr" value="${escHtml((member && member.immigrationYear) || '')}">
+    <input type="text" class="filter-input hh-m-natur" placeholder="Natur. yr" value="${escHtml((member && member.naturalizationYear) || '')}">
+  `;
+  container.appendChild(extRow);
 }
 
 function openHouseholdDialog(household) {
@@ -2442,7 +2659,7 @@ function openHouseholdDialog(household) {
   const container = document.getElementById('household-members');
   container.innerHTML = '';
   const members = household && household.members.length ? household.members : [{}];
-  members.forEach(m => addHouseholdMemberRow(m));
+  members.forEach((m, i) => addHouseholdMemberRow(m, household ? i : undefined));
   document.getElementById('household-overlay').classList.add('visible');
   document.getElementById('hh-year').focus();
 }
@@ -2459,14 +2676,26 @@ function saveHouseholdDialog() {
   const source = document.getElementById('hh-source').value;
   const notes = document.getElementById('hh-notes').value;
   if (!/^\d{4}$/.test(cleanText(year))) return statusMsg('Year must be a 4-digit year, e.g. 1900.');
-  const members = [...document.querySelectorAll('#household-members .hh-member-row')].map(row => ({
-    name: row.querySelector('.hh-m-name').value,
-    age: row.querySelector('.hh-m-age').value,
-    relation: row.querySelector('.hh-m-relation').value,
-    gender: row.querySelector('.hh-m-gender').value,
-    birthplace: row.querySelector('.hh-m-birthplace').value,
-    occupation: row.querySelector('.hh-m-occupation').value
-  }));
+  // Each .hh-member-row is immediately followed by its .hh-m-extended sibling
+  // (added together in addHouseholdMemberRow), so pair them up by DOM position.
+  const members = [...document.querySelectorAll('#household-members .hh-member-row')].map(row => {
+    const extRow = row.nextElementSibling;
+    return {
+      name: row.querySelector('.hh-m-name').value,
+      age: row.querySelector('.hh-m-age').value,
+      relation: row.querySelector('.hh-m-relation').value,
+      gender: row.querySelector('.hh-m-gender').value,
+      birthplace: row.querySelector('.hh-m-birthplace').value,
+      occupation: row.querySelector('.hh-m-occupation').value,
+      birthYear: extRow.querySelector('.hh-m-birth-y').value,
+      birthMonth: extRow.querySelector('.hh-m-birth-m').value,
+      birthDay: extRow.querySelector('.hh-m-birth-d').value,
+      motherBirthplace: extRow.querySelector('.hh-m-mother-bp').value,
+      fatherBirthplace: extRow.querySelector('.hh-m-father-bp').value,
+      immigrationYear: extRow.querySelector('.hh-m-immig').value,
+      naturalizationYear: extRow.querySelector('.hh-m-natur').value
+    };
+  });
   const namedMembers = members.filter(m => cleanText(m.name));
   if (!namedMembers.length) return statusMsg('At least one member needs a name.');
   const locationId = cleanText(locationName) ? resolveOrCreateLocation(locationName).id : '';
@@ -2479,15 +2708,76 @@ function saveHouseholdDialog() {
     db.households[idx] = household;
   } else {
     db.households.push(household);
-    if (!db.focusHouseholdId) db.focusHouseholdId = household.id;
   }
+  db.focusHouseholdId = household.id;
   saveDB();
   render();
   closeHouseholdDialog();
   statusMsg(`${householdDialogEditId ? 'Updated' : 'Added'} household ${household.id} (${household.year}, ${household.members.length} member${household.members.length === 1 ? '' : 's'}).`);
 }
 
+// Fills gaps in the dialog's in-progress rows -- never overwrites something already
+// typed in. Last names come from the first member (first word = given name, the rest =
+// surname); relation-to-head is head/spouse/child, only guessing spouse when the age gap
+// is small enough to be plausible and the member's gender is known.
+const SPOUSE_AGE_GAP_MAX = 15;
+
+function fillHouseholdMembers() {
+  const rows = [...document.querySelectorAll('#household-members .hh-member-row')];
+  if (!rows.length) return;
+  const nameInputs = rows.map(r => r.querySelector('.hh-m-name'));
+  const ageInputs = rows.map(r => r.querySelector('.hh-m-age'));
+  const relationInputs = rows.map(r => r.querySelector('.hh-m-relation'));
+  const genderInputs = rows.map(r => r.querySelector('.hh-m-gender'));
+
+  const firstNameParts = cleanText(nameInputs[0].value).split(/\s+/).filter(Boolean);
+  // Everything after the given name is the surname -- except a bare middle initial
+  // ("William H Ausherman"), which isn't part of it.
+  let lastNameParts = firstNameParts.slice(1);
+  if (lastNameParts.length > 1 && /^[A-Za-z]\.?$/.test(lastNameParts[0])) lastNameParts = lastNameParts.slice(1);
+  const lastName = lastNameParts.join(' ');
+  if (lastName) {
+    // A single token ("Jenny") or a given name plus a bare middle initial ("Jenny S"/"Jenny S.")
+    // has no real surname yet; anything else (2+ full words) is assumed to already have one.
+    const missingLastName = value => {
+      const parts = value.split(/\s+/).filter(Boolean);
+      return parts.length === 1 || (parts.length === 2 && /^[A-Za-z]\.?$/.test(parts[1]));
+    };
+    nameInputs.forEach(input => {
+      const value = cleanText(input.value);
+      if (value && missingLastName(value)) input.value = value + ' ' + lastName;
+    });
+  }
+
+  const genderOf = i => cleanText(genderInputs[i].value).toLowerCase();
+  const isFemale = g => g === 'female' || g === 'f';
+  const isMale = g => g === 'male' || g === 'm';
+
+  rows.forEach((row, i) => {
+    if (cleanText(relationInputs[i].value)) return;
+    if (i === 0) { relationInputs[0].value = 'head'; return; }
+    if (i === 1) {
+      const ageHead = parseInt(ageInputs[0].value, 10);
+      const ageSpouse = parseInt(ageInputs[1].value, 10);
+      if (Number.isNaN(ageHead) || Number.isNaN(ageSpouse) || Math.abs(ageHead - ageSpouse) > SPOUSE_AGE_GAP_MAX) return;
+      const g = genderOf(1);
+      if (isFemale(g)) relationInputs[1].value = 'wife';
+      else if (isMale(g)) relationInputs[1].value = 'husband';
+      return;
+    }
+    const g = genderOf(i);
+    if (isFemale(g)) relationInputs[i].value = 'daughter';
+    else if (isMale(g)) relationInputs[i].value = 'son';
+  });
+}
+
 document.getElementById('household-add-member').addEventListener('click', () => addHouseholdMemberRow(null));
+document.getElementById('household-fill').addEventListener('click', fillHouseholdMembers);
+document.getElementById('household-toggle-extended').addEventListener('click', () => {
+  householdExtendedVisible = !householdExtendedVisible;
+  document.getElementById('household-toggle-extended').textContent = householdExtendedVisible ? '[- extended]' : '[+ extended]';
+  document.querySelectorAll('#household-members .hh-m-extended').forEach(el => el.classList.toggle('visible', householdExtendedVisible));
+});
 document.getElementById('household-save').addEventListener('click', saveHouseholdDialog);
 document.getElementById('household-cancel').addEventListener('click', closeHouseholdDialog);
 
@@ -2509,16 +2799,27 @@ function findHousehold(token) {
   return { error: 'Household not found: ' + query };
 }
 
+// Matches a household against a free-text query: household id, year, location name, or
+// any member's name -- shared by the /household list command and the live directory filter.
+function householdMatchesQuery(h, q, locMap) {
+  const loc = locMap.get(h.locationId);
+  return h.id.toLowerCase() === q || h.year.includes(q) ||
+    (loc && loc.name.toLowerCase().includes(q)) ||
+    h.members.some(m => m.name.toLowerCase().includes(q));
+}
+
+function filterHouseholdList(households, query) {
+  const q = cleanText(query).toLowerCase();
+  if (!q) return households;
+  const locMap = new Map(db.locations.map(l => [l.id, l]));
+  return households.filter(h => householdMatchesQuery(h, q, locMap));
+}
+
 function householdListText(query) {
   const locMap = new Map(db.locations.map(l => [l.id, l]));
   const q = cleanText(query).toLowerCase();
   const filtered = q
-    ? db.households.filter(h => {
-        const loc = locMap.get(h.locationId);
-        return h.id.toLowerCase() === q || h.year.includes(q) ||
-          (loc && loc.name.toLowerCase().includes(q)) ||
-          h.members.some(m => m.name.toLowerCase().includes(q));
-      })
+    ? db.households.filter(h => householdMatchesQuery(h, q, locMap))
     : db.households.slice();
   if (!filtered.length) return 'No matching households.';
   return filtered
@@ -2547,6 +2848,51 @@ function cmdHouseholdRemove(raw) {
   statusMsg(`Removed household ${removedId}.`);
 }
 
+// Splits a household in two at a given member: the member at `splitIndex` and everyone
+// listed after them move into a brand-new household record (same year/location/source),
+// leaving everyone before them in the original. Fixes entries that accidentally combined
+// two families (two heads) into one census record. Tree-linked identities for the moved
+// members are repointed to the new household; existing household-links stay on the
+// original record since we can't tell which side they actually belonged to.
+function cmdHouseholdSplit(token) {
+  const clean = cleanText(token);
+  const dot = clean.lastIndexOf('.');
+  if (dot === -1) return statusMsg('Usage: /household split <household>.<index>, e.g. H1.2');
+  const householdToken = clean.slice(0, dot);
+  const splitIndex = parseInt(clean.slice(dot + 1), 10);
+  const household = db.households.find(h => h.id.toLowerCase() === householdToken.toLowerCase());
+  if (!household) return statusMsg('Household not found: ' + householdToken);
+  if (Number.isNaN(splitIndex) || splitIndex <= 0 || splitIndex >= household.members.length) {
+    return statusMsg(`Split index must be between 1 and ${household.members.length - 1}.`);
+  }
+
+  const movedMembers = household.members.slice(splitIndex);
+  const newHousehold = sanitizeHousehold({
+    year: household.year,
+    locationId: household.locationId,
+    source: household.source,
+    notes: (household.notes ? household.notes + ' · ' : '') + `Split from ${household.id}`,
+    members: movedMembers
+  });
+  db.households.push(newHousehold);
+
+  db.personIdentities = db.personIdentities
+    .map(pi => sanitizePersonIdentity({
+      ...pi,
+      members: pi.members.map(m => {
+        if (m.householdId !== household.id || m.memberIndex < splitIndex) return m;
+        return { householdId: newHousehold.id, memberIndex: m.memberIndex - splitIndex };
+      })
+    }))
+    .filter(Boolean);
+
+  household.members = household.members.slice(0, splitIndex);
+  db.focusHouseholdId = newHousehold.id;
+  saveDB();
+  render();
+  statusMsg(`Split ${movedMembers.length} member${movedMembers.length === 1 ? '' : 's'} into new household ${newHousehold.id}.`);
+}
+
 function handleHouseholdCommand(arg) {
   const trimmed = cleanText(arg);
   if (!trimmed || trimmed === 'add') return openHouseholdDialog(null);
@@ -2563,30 +2909,53 @@ function handleHouseholdCommand(arg) {
     return openHouseholdDialog(match.household);
   }
   if (trimmed.startsWith('remove ')) return cmdHouseholdRemove(trimmed.slice(7));
-  statusMsg('Usage: /household add|update|remove|list');
+  if (trimmed.startsWith('split ')) return cmdHouseholdSplit(trimmed.slice(6));
+  statusMsg('Usage: /household add|update|remove|split|list');
 }
 
 // ── Candidate household links (same family across census years) ────────────
-function householdMemberNames(h) {
-  return h.members.map(m => cleanText(m.name).toLowerCase()).filter(Boolean);
+// Members of `a` and `b` known to be the same person, either because their names match
+// or because an existing personIdentity already links them (e.g. a maiden/married name
+// change caught by a prior tree link or cross-census person match).
+function householdMatchedPairs(a, b) {
+  const bByName = new Map();
+  b.members.forEach((m, bi) => {
+    const key = cleanText(m.name).toLowerCase();
+    if (key && !bByName.has(key)) bByName.set(key, bi);
+  });
+  const pairs = [];
+  a.members.forEach((m, ai) => {
+    const key = cleanText(m.name).toLowerCase();
+    let bi = key ? bByName.get(key) : undefined;
+    if (bi === undefined) {
+      const identity = findIdentityForMember(a.id, ai);
+      const match = identity && identity.members.find(im => im.householdId === b.id);
+      if (match) bi = match.memberIndex;
+    }
+    if (bi !== undefined) pairs.push({ aMember: m, bMember: b.members[bi] });
+  });
+  return pairs;
 }
 
-function householdNameOverlap(a, b) {
-  const namesA = new Set(householdMemberNames(a));
-  return householdMemberNames(b).filter(n => namesA.has(n)).length;
+function householdOverlap(a, b) {
+  return householdMatchedPairs(a, b).length;
+}
+
+// Preview text for the shared-names tooltip -- shows the matched name on each side, or
+// "nameA ↔ nameB" when the pair was matched via an existing identity link rather than
+// an exact name match (e.g. a recorded maiden/married name change).
+function sharedNamesPreview(a, b) {
+  return householdMatchedPairs(a, b)
+    .map(({ aMember, bMember }) => aMember.name === bMember.name ? aMember.name : `${aMember.name} ↔ ${bMember.name}`)
+    .join(', ');
 }
 
 function householdLinkConfidence(earlier, later) {
   const yearGap = parseInt(later.year, 10) - parseInt(earlier.year, 10);
-  const earlierByName = new Map(earlier.members.map(m => [cleanText(m.name).toLowerCase(), m]));
   let ageChecks = 0, ageOk = 0;
-  later.members.forEach(m => {
-    const key = cleanText(m.name).toLowerCase();
-    if (!key) return;
-    const match = earlierByName.get(key);
-    if (!match) return;
-    const ageA = parseInt(match.age, 10);
-    const ageB = parseInt(m.age, 10);
+  householdMatchedPairs(earlier, later).forEach(({ aMember, bMember }) => {
+    const ageA = parseInt(aMember.age, 10);
+    const ageB = parseInt(bMember.age, 10);
     if (Number.isNaN(ageA) || Number.isNaN(ageB)) return;
     ageChecks++;
     if (Math.abs((ageA + yearGap) - ageB) <= 2) ageOk++;
@@ -2634,7 +3003,7 @@ function findCandidateHouseholdLinks() {
       if (componentOf.get(a.id) === componentOf.get(b.id)) continue;
       const key = [a.id, b.id].sort().join(':');
       if (dismissed.has(key)) continue;
-      const overlap = householdNameOverlap(a, b);
+      const overlap = householdOverlap(a, b);
       const threshold = Math.min(2, Math.min(a.members.length, b.members.length));
       if (overlap < threshold || overlap === 0) continue;
       const [earlier, later] = a.year < b.year ? [a, b] : [b, a];
@@ -2676,15 +3045,18 @@ function householdLinkedGroup(householdId) {
 
 function cmdCensusLinkList() {
   const candidates = findCandidateHouseholdLinks();
-  if (!candidates.length) return statusMsg('No candidate household links found.');
+  if (!candidates.length) {
+    document.getElementById('help-overlay').classList.remove('visible');
+    return statusMsg('No candidate household links found.');
+  }
   const html = candidates.map((c, i) => {
     const fillCmd = `/link confirm ${c.earlier.id} | ${c.later.id}`;
     return `<div class="line">
       <div>${escHtml(householdSummary(c.earlier))}</div>
       <div>${escHtml(householdSummary(c.later))}</div>
-      <div class="dim">${c.overlap} shared name${c.overlap === 1 ? '' : 's'} · ${escHtml(c.confidence)}</div>
+      <div class="dim" title="${escHtml(sharedNamesPreview(c.earlier, c.later))}">${c.overlap} shared name${c.overlap === 1 ? '' : 's'} · ${escHtml(c.confidence)}</div>
       <span class="action-link" data-link-fill="${escHtml(fillCmd)}">[link]</span>
-      <span class="action-link" data-link-dismiss="${escHtml(c.earlier.id)}:${escHtml(c.later.id)}">[dismiss]</span>
+      <span class="action-link" data-link-dismiss="${escHtml([c.earlier.id, c.later.id].sort().join(':'))}">[dismiss]</span>
     </div>`;
   }).join('');
   openOverlay('CANDIDATE HOUSEHOLD LINKS', html, true);
@@ -2828,7 +3200,10 @@ function findCandidatePersonLinks() {
 
 function cmdMatchList() {
   const candidates = findCandidatePersonLinks();
-  if (!candidates.length) return statusMsg('No candidate person links found.');
+  if (!candidates.length) {
+    document.getElementById('help-overlay').classList.remove('visible');
+    return statusMsg('No candidate person links found.');
+  }
   const html = candidates.map(c => {
     const aTok = memberToken(c.aHousehold.id, c.aIndex);
     const bTok = memberToken(c.bHousehold.id, c.bIndex);
@@ -2951,9 +3326,17 @@ function showLinkedAppearances(opts) {
       · ${escHtml(member.name)}${member.age ? ' · age ' + escHtml(member.age) : ''}${loc ? ' · ' + escHtml(loc.name) : ''}
     </div>`;
   }).join('');
-  const header = person
-    ? `<div class="line"><span class="action-link" data-tree-person-focus="${escHtml(person.id)}">${escHtml(person.name)} (${escHtml(person.id)})</span></div><hr class="focus-divider">`
-    : '';
+  let header = '';
+  if (person) {
+    const birthYear = person.birthDate ? person.birthDate.slice(0, 4) : '';
+    const deathYear = person.deathDate ? person.deathDate.slice(0, 4) : '';
+    const birthLoc = locMap.get(person.birthLocationId);
+    const deathLoc = locMap.get(person.deathLocationId);
+    const birthPart = birthYear || birthLoc ? 'b. ' + [birthYear, birthLoc && birthLoc.name].filter(Boolean).join(', ') : '';
+    const deathPart = deathYear || deathLoc ? 'd. ' + [deathYear, deathLoc && deathLoc.name].filter(Boolean).join(', ') : '';
+    const lifePart = [birthPart, deathPart].filter(Boolean).join(' · ');
+    header = `<div class="line"><span class="action-link" data-tree-person-focus="${escHtml(person.id)}">${escHtml(person.name)} (${escHtml(person.id)})</span>${lifePart ? '<div class="focus-meta">' + escHtml(lifePart) + '</div>' : ''}</div><hr class="focus-divider">`;
+  }
   openOverlay('LINKED APPEARANCES', header + rows, true);
 }
 
@@ -3158,7 +3541,10 @@ function personTreeDetailsHtml(person) {
 
 function cmdTreeLinkList() {
   const candidates = findCandidateTreeLinks();
-  if (!candidates.length) return statusMsg('No candidate tree links found.');
+  if (!candidates.length) {
+    document.getElementById('help-overlay').classList.remove('visible');
+    return statusMsg('No candidate tree links found.');
+  }
   const html = candidates.map(c => {
     const fillCmd = `/treelink confirm ${c.token} | ${c.person.id}`;
     const dismissKey = [c.token, c.person.id].sort().join('|');
@@ -3268,9 +3654,46 @@ function cmdLocationRemove(raw) {
   db.relationships.forEach(rel => {
     if (rel.locationId === removedId) rel.locationId = '';
   });
+  db.households.forEach(h => {
+    if (h.locationId === removedId) h.locationId = '';
+  });
   saveDB();
   render();
   statusMsg(`Removed location ${match.location.name}.`);
+}
+
+// Merges `remove` into `keep`: every person/relationship/household pointing at `remove`
+// gets repointed to `keep`, `remove` is deleted, and an optional third field lets you pick
+// the surviving name (e.g. when neither existing name is quite right).
+function cmdLocationMerge(raw) {
+  const [keepToken, removeToken, preferredName] = splitPipe(raw);
+  if (!keepToken || !removeToken) return statusMsg('Usage: /location merge keep | remove | [preferred name]');
+  const keepMatch = findLocation(keepToken);
+  if (keepMatch.error) return statusMsg(keepMatch.error);
+  const removeMatch = findLocation(removeToken);
+  if (removeMatch.error) return statusMsg(removeMatch.error);
+  const keep = keepMatch.location;
+  const remove = removeMatch.location;
+  if (keep.id === remove.id) return statusMsg('Cannot merge a location into itself.');
+
+  if (cleanText(preferredName)) keep.name = cleanText(preferredName);
+  if (remove.notes && remove.notes !== keep.notes) keep.notes = keep.notes ? keep.notes + '; ' + remove.notes : remove.notes;
+
+  db.people.forEach(person => {
+    if (person.birthLocationId === remove.id) person.birthLocationId = keep.id;
+    if (person.deathLocationId === remove.id) person.deathLocationId = keep.id;
+  });
+  db.relationships.forEach(rel => {
+    if (rel.locationId === remove.id) rel.locationId = keep.id;
+  });
+  db.households.forEach(h => {
+    if (h.locationId === remove.id) h.locationId = keep.id;
+  });
+
+  db.locations = db.locations.filter(loc => loc.id !== remove.id);
+  saveDB();
+  render();
+  statusMsg(`Merged ${remove.name} (${remove.id}) into ${keep.name} (${keep.id}).`);
 }
 
 function locationListText(query) {
@@ -3292,7 +3715,8 @@ function handleLocationCommand(arg) {
   if (trimmed.startsWith('add ')) return cmdLocationAdd(trimmed.slice(4));
   if (trimmed.startsWith('update ')) return cmdLocationUpdate(trimmed.slice(7));
   if (trimmed.startsWith('remove ')) return cmdLocationRemove(trimmed.slice(7));
-  statusMsg('Usage: /location add|update|remove|list');
+  if (trimmed.startsWith('merge ')) return cmdLocationMerge(trimmed.slice(6));
+  statusMsg('Usage: /location add|update|remove|merge|list');
 }
 
 function handleAttrCommand(arg) {
@@ -3754,6 +4178,9 @@ const CENSUS_TOP_PANELS_HTML = `
 
 const CENSUS_MAIN_PANEL_HTML = `
   <div class="row-header">◈ HOUSEHOLD DIRECTORY</div>
+  <div class="filter-bar">
+    <input type="text" id="household-filter" class="filter-input" placeholder="filter by location, name, or year..." autocomplete="off" spellcheck="false">
+  </div>
   <div id="household-list" class="dim">No households yet. Use /household add to start.</div>
 `;
 
@@ -3804,7 +4231,7 @@ const CENSUS_SIDE_PANEL_HTML = `
   </div>
 `;
 
-function toggleCensusMode() {
+function toggleCensusMode(silent) {
   const topPanels = document.querySelector('#top-row .top-panels');
   const mainPanel = document.getElementById('main-panel');
   const sidePanel = document.getElementById('side-panel');
@@ -3815,6 +4242,7 @@ function toggleCensusMode() {
     topPanels.innerHTML = CENSUS_TOP_PANELS_HTML;
     mainPanel.innerHTML = CENSUS_MAIN_PANEL_HTML;
     sidePanel.innerHTML = CENSUS_SIDE_PANEL_HTML;
+    document.getElementById('household-filter').value = householdFilterText;
     viewMode = 'census';
   } else {
     topPanels.innerHTML = lifeTopPanelsHtml;
@@ -3822,7 +4250,10 @@ function toggleCensusMode() {
     sidePanel.innerHTML = lifeSidePanelHtml;
     viewMode = 'life';
   }
+  db.viewMode = viewMode;
+  saveDB();
   render();
+  if (silent) return;
   input.focus();
   statusMsg('Mode: ' + (viewMode === 'census' ? 'CENSUS' : 'LIFE LINE'));
 }
@@ -3855,12 +4286,30 @@ document.addEventListener('click', event => {
     jumpToCensusHousehold(censusHouseholdJumpTarget.dataset.censusHouseholdJump);
     return;
   }
+  const locationViewTarget = event.target.closest('[data-location-view]');
+  if (locationViewTarget) {
+    showLocationUsages(locationViewTarget.dataset.locationView);
+    return;
+  }
+  const locationMergeFillTarget = event.target.closest('[data-location-merge-fill]');
+  if (locationMergeFillTarget) {
+    input.value = locationMergeFillTarget.dataset.locationMergeFill;
+    input.focus();
+    return;
+  }
   const householdTarget = event.target.closest('[data-household-focus]');
   if (householdTarget) {
     db.focusHouseholdId = householdTarget.dataset.householdFocus;
     saveDB();
     renderCensusFocusCard();
     document.getElementById('help-overlay').classList.remove('visible');
+    return;
+  }
+  const timelineHouseholdToggle = event.target.closest('[data-timeline-household-toggle]');
+  if (timelineHouseholdToggle) {
+    timelineShowHouseholds = !timelineShowHouseholds;
+    const wrap = timelineHouseholdToggle.closest('[data-timeline-depth]');
+    showTimeline(wrap ? wrap.dataset.timelineDepth : undefined);
     return;
   }
   const target = event.target.closest('[data-person-focus]');
@@ -4014,6 +4463,7 @@ function initCensusTabs() {
 function initPeopleFilterBar() {
   document.addEventListener('input', event => {
     if (event.target.id === 'people-filter') { peopleFilterText = event.target.value; renderPeople(); }
+    if (event.target.id === 'household-filter') { householdFilterText = event.target.value; renderHouseholdDirectory(); }
   });
   document.addEventListener('change', event => {
     if (event.target.id === 'people-sort') { peopleSortKey = event.target.value; renderPeople(); }
@@ -4031,6 +4481,7 @@ function init() {
   if (db.focusPersonId) { focusHistory = [db.focusPersonId]; historyPos = 0; }
   document.getElementById('nav-back').addEventListener('click', goBack);
   document.getElementById('nav-fwd').addEventListener('click', goForward);
+  if (db.viewMode === 'census') toggleCensusMode(true);
   render();
   updateNavArrows();
   document.getElementById('splash').style.display = 'none';
