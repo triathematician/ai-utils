@@ -807,7 +807,15 @@ input[type=range]::-webkit-slider-thumb {
 
 <!-- ============ ALERTS VIEW ============ -->
 <div class="view" id="view-alerts">
-  <div class="section-label">Buy / Sell Target Alerts</div>
+  <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
+    <div class="section-label" style="margin-bottom:0">Buy / Sell Target Alerts</div>
+  </div>
+  <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
+    <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:0.1em">
+      <input type="checkbox" id="alertsIncludeClosed" checked onchange="renderAlerts()" style="width:auto;accent-color:var(--cyan)">
+      Include closed/exited tickers
+    </label>
+  </div>
   <div class="table-wrap">
     <table id="alertsTable">
       <thead>
@@ -3968,6 +3976,10 @@ function selectPosition(id) {
   if (row) row.classList.add('selected');
   const pos = state.positions.find(p => p.id === id);
   if (pos) {
+    if (isExited(pos)) {
+      const closedCb = document.getElementById('deepDiveShowClosed');
+      if (closedCb) closedCb.checked = true;
+    }
     switchTab('deepdive');
     renderDeepDive(pos.ticker);
   }
@@ -4232,6 +4244,7 @@ function renderSalesHistory() {
       rows.push({
         date: sell.date,
         ticker: pos.ticker,
+        posId: pos.id,
         shares: sell.shares,
         sellPrice: sell.price,
         currentPrice,
@@ -4288,7 +4301,7 @@ function renderSalesHistory() {
       ? `<span style="color:${gradeColor(r.pnl)};font-weight:500">${r.pnl >= 0 ? '+' : '-'}$${fmt2(Math.abs(r.pnl))}</span>${r.unmatchedShares ? `<span style="color:var(--muted)"> (unmatched ${r.unmatchedShares})</span>` : ''}`
       : '<span style="color:var(--muted)">—</span>';
     return `
-    <tr>
+    <tr onclick="selectPosition('${r.posId}')" style="cursor:pointer">
       <td>${r.date || '<span style="color:var(--muted)">—</span>'}</td>
       <td><span class="ticker">${r.ticker}</span>${r.washSale ? ' <span title="Loss within 30 days of a buy — may trigger wash sale rule" style="font-size:9px;font-weight:700;color:#f5a623;border:1px solid #f5a623;border-radius:3px;padding:1px 4px;letter-spacing:0.06em;cursor:help">⚠ WASH?</span>' : ''}${r.noBuy ? ' <span title="Loss sale within last 30 days — buying now would trigger wash sale rule" style="font-size:9px;font-weight:700;color:#e05c5c;border:1px solid #e05c5c;border-radius:3px;padding:1px 4px;letter-spacing:0.06em;cursor:help">🚫 NO BUY</span>' : ''}</td>
       <td>${pnlHtml}</td>
@@ -5480,7 +5493,7 @@ function renderTransactions() {
     const currentPrice = pos.manualPrice || state.prices[pos.ticker]?.price || null;
     parseEntries(pos.entries).forEach(e => {
       rows.push({
-        date: e.date, ticker: pos.ticker, type: 'BUY',
+        date: e.date, ticker: pos.ticker, type: 'BUY', posId: pos.id,
         shares: e.shares, price: e.price, value: e.price * e.shares,
         currentPrice,
         pctSince: currentPrice ? (currentPrice - e.price) / e.price * 100 : null
@@ -5488,7 +5501,7 @@ function renderTransactions() {
     });
     parseEntries(pos.exits).forEach(e => {
       rows.push({
-        date: e.date, ticker: pos.ticker, type: 'SELL',
+        date: e.date, ticker: pos.ticker, type: 'SELL', posId: pos.id,
         shares: e.shares, price: e.price, value: e.price * e.shares,
         currentPrice,
         pctSince: currentPrice ? (currentPrice - e.price) / e.price * 100 : null
@@ -5530,7 +5543,7 @@ function renderTransactions() {
     const pctHtml = r.pctSince !== null
       ? `<span style="color:${gradeColor(r.pctSince)}">${r.pctSince >= 0 ? '+' : ''}${fmt1(r.pctSince)}%</span>`
       : '<span style="color:var(--muted)">—</span>';
-    return `<tr>
+    return `<tr onclick="selectPosition('${r.posId}')" style="cursor:pointer">
       <td>${r.date || '<span style="color:var(--muted)">—</span>'}</td>
       <td><span class="ticker">${r.ticker}</span></td>
       <td>${typeHtml}</td>
@@ -5554,8 +5567,10 @@ function renderAlerts() {
   const empty = document.getElementById('alertsEmpty');
   if (!tbody || !empty) return;
 
+  const includeClosed = document.getElementById('alertsIncludeClosed')?.checked ?? true;
+
   const rows = state.positions
-    .filter(pos => !isExited(pos) && (pos.buyTarget || pos.sellTarget))
+    .filter(pos => (includeClosed || !isExited(pos)) && (pos.buyTarget || pos.sellTarget))
     .map(pos => {
       const p = state.prices[pos.ticker] || {};
       const price = pos.manualPrice || p.price;
@@ -5583,8 +5598,9 @@ function renderAlerts() {
       buyHit ? `<span style="color:var(--green);font-weight:600;font-size:10px;padding:2px 6px;border:1px solid var(--green2);border-radius:2px;background:rgba(0,229,160,0.08)">BUY HIT</span>` : '',
       sellHit ? `<span style="color:var(--cyan);font-weight:600;font-size:10px;padding:2px 6px;border:1px solid var(--cyan);border-radius:2px;background:rgba(32,208,224,0.08)">SELL HIT</span>` : ''
     ].filter(Boolean).join(' ') || '<span style="color:var(--dim)">—</span>';
-    return `<tr onclick="selectPosition('${pos.id}')">
-      <td><span class="ticker">${pos.ticker}</span></td>
+    const exited = isExited(pos);
+    return `<tr onclick="selectPosition('${pos.id}')" ${exited ? 'style="opacity:0.55"' : ''}>
+      <td><span class="ticker" ${exited ? 'style="color:var(--muted)"' : ''}>${pos.ticker}</span></td>
       <td class="price">${price ? '$' + fmt2(price) : '<span style="color:var(--muted)">—</span>'}</td>
       <td>${pos.buyTarget ? '$' + fmt2(pos.buyTarget) : '<span style="color:var(--dim)">—</span>'}</td>
       <td>${distHtml(buyDist, buyHit, 'var(--green)')}</td>
