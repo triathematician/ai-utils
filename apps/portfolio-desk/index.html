@@ -780,8 +780,13 @@ input[type=range]::-webkit-slider-thumb {
 
 <!-- ============ TRANSACTIONS VIEW ============ -->
 <div class="view" id="view-transactions">
-  <div style="margin-bottom:10px">
+  <div style="margin-bottom:10px;display:flex;align-items:center;gap:10px">
     <button class="btn btn-green" onclick="openAddTxModal(null)">+ Transaction</button>
+    <select id="txTypeFilter" onchange="state.txTypeFilter=this.value;renderTransactions()" style="width:110px">
+      <option value="ALL">All Types</option>
+      <option value="BUY">Buy</option>
+      <option value="SELL">Sell</option>
+    </select>
   </div>
   <div class="table-wrap">
     <table id="txTable">
@@ -1209,6 +1214,7 @@ let state = {
   salesSortDir: -1,
   txSortCol: 'date',
   txSortDir: -1,
+  txTypeFilter: 'ALL',
   monthlySortCol: 'month',
   monthlySortDir: -1,
   yearlySortCol: 'year',
@@ -3900,7 +3906,13 @@ function saveTx() {
   save();
   closeTxModal();
   renderAll();
-  if (document.getElementById('view-deepdive')?.classList.contains('active')) renderDeepDive();
+  if (document.getElementById('view-deepdive')?.classList.contains('active')) {
+    if (isExited(pos)) {
+      const closedCb = document.getElementById('deepDiveShowClosed');
+      if (closedCb) closedCb.checked = true;
+    }
+    renderDeepDive(pos.ticker);
+  }
   showAlert(`${_txType} recorded for ${pos.ticker}`, 'success');
 }
 
@@ -4295,7 +4307,7 @@ function renderSalesHistory() {
   empty.style.display = 'none';
   tbody.innerHTML = rows.map(r => {
     const currentVsSaleHtml = r.currentVsSale !== null
-      ? `<span style="color:${gradeColor(r.currentVsSale)}" aria-label="${r.currentVsSale >= 0 ? 'increase' : 'decrease'} ${fmt1(Math.abs(r.currentVsSale))} percent">${r.currentVsSale >= 0 ? '▲ +' : '▼ '}${fmt1(Math.abs(r.currentVsSale))}%</span>`
+      ? `<span style="color:${gradeColor(-r.currentVsSale)}" aria-label="${r.currentVsSale >= 0 ? 'increase' : 'decrease'} ${fmt1(Math.abs(r.currentVsSale))} percent">${r.currentVsSale >= 0 ? '▲ +' : '▼ '}${fmt1(Math.abs(r.currentVsSale))}%</span>`
       : '<span style="color:var(--muted)">—</span>';
     const pnlHtml = r.matchedShares
       ? `<span style="color:${gradeColor(r.pnl)};font-weight:500">${r.pnl >= 0 ? '+' : '-'}$${fmt2(Math.abs(r.pnl))}</span>${r.unmatchedShares ? `<span style="color:var(--muted)"> (unmatched ${r.unmatchedShares})</span>` : ''}`
@@ -5488,6 +5500,9 @@ function renderTransactions() {
   const empty = document.getElementById('txEmpty');
   if (!tbody || !empty) return;
 
+  const filterSel = document.getElementById('txTypeFilter');
+  if (filterSel && filterSel.value !== state.txTypeFilter) filterSel.value = state.txTypeFilter;
+
   const rows = [];
   state.positions.forEach(pos => {
     const currentPrice = pos.manualPrice || state.prices[pos.ticker]?.price || null;
@@ -5509,6 +5524,8 @@ function renderTransactions() {
     });
   });
 
+  const filteredRows = state.txTypeFilter === 'ALL' ? rows : rows.filter(r => r.type === state.txTypeFilter);
+
   const getTxVal = r => {
     switch (state.txSortCol) {
       case 'date':    return r.date || '9999-99-99';
@@ -5522,7 +5539,7 @@ function renderTransactions() {
       default:        return 0;
     }
   };
-  rows.sort((a, b) => {
+  filteredRows.sort((a, b) => {
     const av = getTxVal(a), bv = getTxVal(b);
     return (av < bv ? -1 : av > bv ? 1 : 0) * state.txSortDir;
   });
@@ -5532,16 +5549,16 @@ function renderTransactions() {
   const activeTh = document.querySelectorAll('#txTable thead th')[thMap[state.txSortCol]];
   if (activeTh) activeTh.classList.add(state.txSortDir === 1 ? 'sort-asc' : 'sort-desc');
 
-  if (!rows.length) { tbody.innerHTML = ''; empty.style.display = 'block'; return; }
+  if (!filteredRows.length) { tbody.innerHTML = ''; empty.style.display = 'block'; return; }
   empty.style.display = 'none';
 
-  tbody.innerHTML = rows.map(r => {
+  tbody.innerHTML = filteredRows.map(r => {
     const isBuy = r.type === 'BUY';
     const typeHtml = isBuy
       ? `<span style="color:var(--green);font-weight:600;font-size:10px;padding:2px 6px;border:1px solid var(--green2);border-radius:2px;background:rgba(0,229,160,0.08)">BUY</span>`
       : `<span style="color:var(--red);font-weight:600;font-size:10px;padding:2px 6px;border:1px solid var(--red2);border-radius:2px;background:rgba(255,68,85,0.08)">SELL</span>`;
     const pctHtml = r.pctSince !== null
-      ? `<span style="color:${gradeColor(r.pctSince)}">${r.pctSince >= 0 ? '+' : ''}${fmt1(r.pctSince)}%</span>`
+      ? `<span style="color:${gradeColor(isBuy ? r.pctSince : -r.pctSince)}">${r.pctSince >= 0 ? '+' : ''}${fmt1(r.pctSince)}%</span>`
       : '<span style="color:var(--muted)">—</span>';
     return `<tr onclick="selectPosition('${r.posId}')" style="cursor:pointer">
       <td>${r.date || '<span style="color:var(--muted)">—</span>'}</td>
@@ -5591,9 +5608,13 @@ function renderAlerts() {
   empty.style.display = 'none';
 
   tbody.innerHTML = rows.map(({ pos, price, buyDist, sellDist, buyHit, sellHit }) => {
-    const distHtml = (dist, hit, color) => dist === null
+    const buyAbs = buyDist === null ? Infinity : Math.abs(buyDist);
+    const sellAbs = sellDist === null ? Infinity : Math.abs(sellDist);
+    const buyIsClosest = buyDist !== null && buyAbs <= sellAbs;
+    const sellIsClosest = sellDist !== null && sellAbs < buyAbs;
+    const distHtml = (dist, hit, color, isClosest) => dist === null
       ? '<span style="color:var(--dim)">—</span>'
-      : `<span style="color:${hit ? color : 'var(--muted)'}">${dist >= 0 ? '+' : ''}${fmt1(dist)}%</span>`;
+      : `<span style="color:${isClosest ? 'var(--blue)' : (hit ? color : 'var(--muted)')};${isClosest ? 'font-weight:700;background:rgba(60,140,255,0.18);padding:2px 6px;border-radius:2px' : ''}">${dist >= 0 ? '+' : ''}${fmt1(dist)}%</span>`;
     const statusHtml = [
       buyHit ? `<span style="color:var(--green);font-weight:600;font-size:10px;padding:2px 6px;border:1px solid var(--green2);border-radius:2px;background:rgba(0,229,160,0.08)">BUY HIT</span>` : '',
       sellHit ? `<span style="color:var(--cyan);font-weight:600;font-size:10px;padding:2px 6px;border:1px solid var(--cyan);border-radius:2px;background:rgba(32,208,224,0.08)">SELL HIT</span>` : ''
@@ -5603,9 +5624,9 @@ function renderAlerts() {
       <td><span class="ticker" ${exited ? 'style="color:var(--muted)"' : ''}>${pos.ticker}</span></td>
       <td class="price">${price ? '$' + fmt2(price) : '<span style="color:var(--muted)">—</span>'}</td>
       <td>${pos.buyTarget ? '$' + fmt2(pos.buyTarget) : '<span style="color:var(--dim)">—</span>'}</td>
-      <td>${distHtml(buyDist, buyHit, 'var(--green)')}</td>
+      <td>${distHtml(buyDist, buyHit, 'var(--green)', buyIsClosest)}</td>
       <td>${pos.sellTarget ? '$' + fmt2(pos.sellTarget) : '<span style="color:var(--dim)">—</span>'}</td>
-      <td>${distHtml(sellDist, sellHit, 'var(--cyan)')}</td>
+      <td>${distHtml(sellDist, sellHit, 'var(--cyan)', sellIsClosest)}</td>
       <td>${statusHtml}</td>
     </tr>`;
   }).join('');
