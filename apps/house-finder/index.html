@@ -1,0 +1,709 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>HOUSE FINDER</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@300;400;500;600;700&family=Source+Code+Pro:wght@300;400;600;700&family=VT323&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #121212; --fg: #ffb000; --accent: #ff0000;
+  --dim: #7a5500; --muted: #3a2800; --border: #ffb000;
+  --success: #00ff41; --warn: #ff6600;
+  --font: 'VT323', 'Courier New', monospace;
+  --font-size: 20px; --line-h: 1.4;
+}
+[data-theme="solar"] {
+  --bg:#002b36; --fg:#839496; --accent:#b58900;
+  --dim:#4a5456; --muted:#073642; --border:#839496;
+  --success:#859900; --warn:#cb4b16; --font:'Fira Code',monospace;
+}
+[data-theme="monk"] {
+  --bg:#f5f5f5; --fg:#2a2a2a; --accent:#000000;
+  --dim:#888; --muted:#e0e0e0; --border:#2a2a2a;
+  --success:#1a6600; --warn:#aa4400; --font:'Source Code Pro',monospace;
+}
+[data-theme="space"] {
+  --bg:#0a0a1a; --fg:#a0c0ff; --accent:#00ffff;
+  --dim:#304060; --muted:#0f0f2a; --border:#304080;
+  --success:#00ffaa; --warn:#ff6060; --font:'Fira Code',monospace;
+}
+[data-theme="synth"] {
+  --bg:#1a0033; --fg:#ff00ff; --accent:#00ffff;
+  --dim:#660066; --muted:#2a0044; --border:#ff00ff;
+  --success:#00ff88; --warn:#ffaa00; --font:'Fira Code',monospace;
+}
+[data-theme="dos"] {
+  --bg:#0000aa; --fg:#aaaaaa; --accent:#ffffff;
+  --dim:#5555ff; --muted:#0000cc; --border:#aaaaaa;
+  --success:#55ff55; --warn:#ffff55; --font:'VT323',monospace;
+}
+[data-theme="notebook"] {
+  --bg:#fafaf2; --fg:#1a1a2e; --accent:#c0392b;
+  --dim:#8a8a9a; --muted:#eeeede; --border:#90a8d4;
+  --success:#2e7d32; --warn:#e65100; --font:'Source Code Pro',monospace;
+}
+[data-theme="winter"] {
+  --bg:#0d1b2a; --fg:#d8eaf4; --accent:#7ec8e3;
+  --dim:#5a7f94; --muted:#1a2f40; --border:#3d6b8c;
+  --success:#4ecdc4; --warn:#f4a261; --font:'Fira Code',monospace;
+}
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html, body {
+  height: 100%; background: var(--bg); color: var(--fg);
+  font-family: var(--font); font-size: var(--font-size);
+  line-height: var(--line-h); overflow: hidden;
+}
+::selection { background: var(--fg); color: var(--bg); }
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: var(--muted); }
+::-webkit-scrollbar-thumb { background: var(--dim); }
+#app { display: grid; grid-template-rows: 28vh 62vh 10vh; height: 100vh; width: 100vw; }
+#top-row { border-bottom: 1px solid var(--border); padding: 10px 12px; overflow-y: auto; }
+#main-row { display: grid; grid-template-columns: 1fr 1fr; overflow: hidden; }
+#main-panel { border-right: 1px solid var(--border); padding: 10px 12px; overflow-y: auto; }
+#side-panel { padding: 10px 12px; overflow-y: auto; }
+.row-header {
+  color: var(--accent); font-size: 0.8em; letter-spacing: 2px;
+  margin-bottom: 4px; border-bottom: 1px solid var(--muted); padding-bottom: 4px;
+}
+#console-row {
+  background: var(--muted); border-top: 1px solid var(--border);
+  display: flex; align-items: center; padding: 0 12px; gap: 8px;
+}
+#console-prompt { color: var(--accent); white-space: nowrap; }
+#console-input {
+  flex: 1; background: transparent; border: none; outline: none;
+  color: var(--fg); font-family: var(--font); font-size: var(--font-size);
+  caret-color: var(--accent);
+}
+#console-status { color: var(--dim); font-size: 0.8em; min-width: 180px; text-align: right; white-space: nowrap; }
+.summary-grid { display: grid; grid-template-columns: repeat(5, minmax(0,1fr)); gap: 6px; }
+.metric { border: 1px solid var(--muted); padding: 6px 8px; }
+.metric-label { color: var(--dim); font-size: 0.7em; letter-spacing: 1px; }
+.metric-value { color: var(--accent); font-size: 1.1em; }
+.section-title { color: var(--accent); margin: 8px 0 2px; letter-spacing: 1px; font-size: 0.8em; }
+.line { padding: 2px 0; border-bottom: 1px solid var(--muted); }
+.line:last-child { border-bottom: none; }
+.dim { color: var(--dim); font-size: 0.85em; }
+.warn { color: var(--warn); }
+.ok { color: var(--success); }
+.house-row { padding: 3px 0; border-bottom: 1px solid var(--muted); cursor: pointer; }
+.house-row:hover { background: var(--muted); }
+.house-row:last-child { border-bottom: none; }
+.house-num { color: var(--dim); display: inline-block; width: 3ch; }
+.house-addr { color: var(--fg); display: inline-block; }
+.house-score { color: var(--success); display: inline-block; min-width: 8ch; text-align: right; float: right; }
+.house-price { color: var(--accent); display: inline-block; min-width: 10ch; float: right; }
+.prio-row { padding: 2px 0; border-bottom: 1px solid var(--muted); }
+.prio-row:last-child { border-bottom: none; }
+.prio-name { color: var(--fg); }
+.prio-weight { color: var(--dim); font-size: 0.85em; }
+.badge-meets { color: var(--success); }
+.badge-partial { color: var(--warn); }
+.badge-no { color: var(--accent); }
+#help-overlay {
+  display: none; position: fixed; inset: 0;
+  background: rgba(0,0,0,0.7); z-index: 150;
+  align-items: center; justify-content: center;
+}
+#help-overlay.visible { display: flex; }
+.overlay-box {
+  background: var(--bg); border: 1px solid var(--border);
+  padding: 16px 20px; min-width: 640px; max-width: min(96vw,1100px);
+  font-family: var(--font); color: var(--fg); max-height: 90vh; overflow-y: auto;
+}
+#help-title { color: var(--accent); letter-spacing: 2px; margin-bottom: 8px; }
+#help-body { white-space: pre-wrap; line-height: 1.8; max-height: 70vh; overflow-y: auto; }
+#help-close { color: var(--dim); font-size: 0.82em; cursor: pointer; display: block; margin-top: 8px; }
+/* sortable table in overlay */
+.ht-wrap { overflow-x: auto; }
+table.ht { border-collapse: collapse; width: 100%; font-size: 0.85em; }
+table.ht th {
+  color: var(--accent); border-bottom: 1px solid var(--border);
+  padding: 4px 8px; text-align: left; cursor: pointer; white-space: nowrap;
+  user-select: none;
+}
+table.ht th:hover { color: var(--fg); }
+table.ht td { padding: 3px 8px; border-bottom: 1px solid var(--muted); vertical-align: top; white-space: nowrap; }
+table.ht tr:hover td { background: var(--muted); }
+</style>
+</head>
+<body>
+<div id="app">
+  <div id="top-row">
+    <div class="row-header">◈ HOUSE FINDER — SNAPSHOT</div>
+    <div class="summary-grid">
+      <div class="metric"><div class="metric-label">HOUSES</div><div class="metric-value" id="m-houses">0</div></div>
+      <div class="metric"><div class="metric-label">PRIORITIES</div><div class="metric-value" id="m-prios">0</div></div>
+      <div class="metric"><div class="metric-label">TOP SCORE</div><div class="metric-value" id="m-top">—</div></div>
+      <div class="metric"><div class="metric-label">AVG SCORE</div><div class="metric-value" id="m-avg">—</div></div>
+      <div class="metric"><div class="metric-label">PRICE RANGE</div><div class="metric-value" id="m-price">—</div></div>
+    </div>
+    <div class="section-title">TOP RANKED</div>
+    <div id="top-list" class="dim">No houses yet. Add one with /add.</div>
+  </div>
+  <div id="main-row">
+    <div id="main-panel">
+      <div class="row-header">◈ HOUSES</div>
+      <div id="house-list" class="dim">No houses yet. Add one with /add.</div>
+    </div>
+    <div id="side-panel">
+      <div class="row-header">◈ PRIORITIES</div>
+      <div id="prio-list" class="dim">No priorities yet. Add with /prio add name [weight].</div>
+    </div>
+  </div>
+  <div id="console-row">
+    <span id="console-prompt">HOUSE&gt;</span>
+    <input type="text" id="console-input" autocomplete="off" spellcheck="false">
+    <span id="console-status">READY</span>
+  </div>
+</div>
+
+<div id="help-overlay">
+  <div class="overlay-box">
+    <div id="help-title"></div>
+    <div id="help-body"></div>
+    <span id="help-close">[ESC] CLOSE</span>
+  </div>
+</div>
+
+<script>
+const STORAGE_KEY = 'house_finder_db';
+const EXPORT_SLUG = 'house-finder';
+const THEMES = ['legacy','solar','monk','space','synth','dos','notebook','winter'];
+
+// ── DB SCHEMA ──────────────────────────────────────────────────────────────
+// db.houses   : [{ id, address, price, sqft, mls, link, notes, scores: {prioId: 2|1|0} }]
+// db.priorities : [{ id, name, weight }]  weight default 1
+// scores: 2=meets, 1=partial, 0=no
+// ──────────────────────────────────────────────────────────────────────────
+
+let db = loadDB();
+let overlayMode = null; // 'help' | 'table' | 'house'
+let tableSort = { col: 'score', dir: -1 };
+let viewHouseId = null;
+
+function loadDB() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    const p = raw ? JSON.parse(raw) : {};
+    p.houses = Array.isArray(p.houses) ? p.houses : [];
+    p.priorities = Array.isArray(p.priorities) ? p.priorities : [];
+    return p;
+  } catch { return { houses: [], priorities: [] }; }
+}
+function saveDB() { localStorage.setItem(STORAGE_KEY, JSON.stringify(db)); }
+function nextId(arr) { return arr.length ? Math.max(...arr.map(x => x.id)) + 1 : 1; }
+function escHtml(s) {
+  return String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+function fmtPrice(n) {
+  if (n == null || n === '') return '—';
+  const v = Number(n);
+  if (isNaN(v)) return String(n);
+  if (v >= 1e6) return '$' + (v/1e6).toFixed(2) + 'M';
+  if (v >= 1000) return '$' + Math.round(v).toLocaleString();
+  return '$' + v;
+}
+function fmtSqft(n) { return (n != null && n !== '') ? Number(n).toLocaleString() + ' sf' : '—'; }
+function scoreLabel(v) {
+  if (v === 2) return '<span class="badge-meets">●</span>';
+  if (v === 1) return '<span class="badge-partial">◐</span>';
+  return '<span class="badge-no">○</span>';
+}
+function scoreLabelText(v) {
+  if (v === 2) return 'MEETS';
+  if (v === 1) return 'PARTIAL';
+  return 'NO';
+}
+
+// weighted score 0–100
+function calcScore(house) {
+  if (!db.priorities.length) return null;
+  let num = 0, den = 0;
+  db.priorities.forEach(p => {
+    const w = Number(p.weight) || 1;
+    const s = house.scores?.[p.id] ?? 0;
+    num += s * w;
+    den += 2 * w;
+  });
+  return den ? Math.round((num / den) * 100) : 0;
+}
+
+function statusMsg(msg) {
+  document.getElementById('console-status').textContent = msg;
+  setTimeout(updateStatus, 3000);
+}
+function updateStatus() {
+  document.getElementById('console-status').textContent = `${db.houses.length} HOUSE${db.houses.length === 1 ? '' : 'S'} · ${db.priorities.length} PRIO${db.priorities.length === 1 ? '' : 'S'}`;
+}
+function downloadBlob(content, filename, type) {
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([content], { type }));
+  a.download = filename;
+  a.click();
+  URL.revokeObjectURL(a.href);
+}
+function applyTheme(name) {
+  if (!name) {
+    const cur = db.theme || 'legacy';
+    const others = THEMES.filter(t => t !== cur);
+    name = others[Math.floor(Math.random() * others.length)];
+  }
+  if (!THEMES.includes(name)) { statusMsg('Unknown theme: ' + name); return; }
+  document.documentElement.dataset.theme = name === 'legacy' ? '' : name;
+  db.theme = name;
+  saveDB();
+  statusMsg('Theme: ' + name.toUpperCase());
+}
+
+// ── RENDER ────────────────────────────────────────────────────────────────
+function renderAll() {
+  renderSnapshot();
+  renderHouseList();
+  renderPrioList();
+  updateStatus();
+}
+
+function renderSnapshot() {
+  const houses = db.houses;
+  document.getElementById('m-houses').textContent = houses.length;
+  document.getElementById('m-prios').textContent = db.priorities.length;
+  const scores = houses.map(h => calcScore(h)).filter(s => s !== null);
+  if (scores.length) {
+    document.getElementById('m-top').textContent = Math.max(...scores);
+    document.getElementById('m-avg').textContent = Math.round(scores.reduce((a,b)=>a+b,0)/scores.length);
+  } else {
+    document.getElementById('m-top').textContent = '—';
+    document.getElementById('m-avg').textContent = '—';
+  }
+  const prices = houses.map(h => Number(h.price)).filter(v => !isNaN(v) && v > 0);
+  if (prices.length) {
+    document.getElementById('m-price').textContent = fmtPrice(Math.min(...prices)) + '–' + fmtPrice(Math.max(...prices));
+  } else {
+    document.getElementById('m-price').textContent = '—';
+  }
+
+  // top 3 by score
+  const sorted = [...houses].map(h => ({ h, s: calcScore(h) ?? -1 })).sort((a,b) => b.s - a.s).slice(0, 3);
+  const el = document.getElementById('top-list');
+  if (!sorted.length) { el.innerHTML = '<span class="dim">No houses yet. Add one with /add.</span>'; return; }
+  el.innerHTML = sorted.map(({ h, s }, i) =>
+    `<div class="house-row" data-id="${h.id}">
+      <span class="house-num">${i+1}.</span>
+      <span class="house-score">${s !== null ? s : '—'}</span>
+      <span class="house-price">${fmtPrice(h.price)}</span>
+      <span class="house-addr">${escHtml(h.address || '(no address)')}</span>
+    </div>`
+  ).join('');
+  el.querySelectorAll('.house-row').forEach(row =>
+    row.addEventListener('click', () => openHouseView(Number(row.dataset.id)))
+  );
+}
+
+function renderHouseList() {
+  const el = document.getElementById('house-list');
+  if (!db.houses.length) { el.innerHTML = '<span class="dim">No houses yet. Add one with /add.</span>'; return; }
+  el.innerHTML = db.houses.map((h, i) => {
+    const s = calcScore(h);
+    return `<div class="house-row" data-id="${h.id}">
+      <span class="house-num">${i+1}.</span>
+      <span class="house-score">${s !== null ? s : '—'}</span>
+      <span class="house-price">${fmtPrice(h.price)}</span>
+      <span class="house-addr">${escHtml(h.address || '(no address)')}</span>
+    </div>`;
+  }).join('');
+  el.querySelectorAll('.house-row').forEach(row =>
+    row.addEventListener('click', () => openHouseView(Number(row.dataset.id)))
+  );
+}
+
+function renderPrioList() {
+  const el = document.getElementById('prio-list');
+  if (!db.priorities.length) { el.innerHTML = '<span class="dim">No priorities yet. Add with /prio add name [weight].</span>'; return; }
+  el.innerHTML = db.priorities.map((p, i) =>
+    `<div class="prio-row">
+      <span class="house-num">${i+1}.</span>
+      <span class="prio-name">${escHtml(p.name)}</span>
+      <span class="prio-weight"> (w=${Number(p.weight)||1})</span>
+    </div>`
+  ).join('');
+}
+
+// ── OVERLAY ───────────────────────────────────────────────────────────────
+function openOverlay(title, bodyHtml) {
+  document.getElementById('help-title').textContent = title;
+  document.getElementById('help-body').innerHTML = bodyHtml;
+  document.getElementById('help-overlay').classList.add('visible');
+}
+function closeOverlay() {
+  document.getElementById('help-overlay').classList.remove('visible');
+  overlayMode = null;
+  viewHouseId = null;
+}
+
+function openHouseView(id) {
+  const h = db.houses.find(x => x.id === id);
+  if (!h) return;
+  overlayMode = 'house';
+  viewHouseId = id;
+  renderHouseOverlay(h);
+}
+
+function renderHouseOverlay(h) {
+  const score = calcScore(h);
+  let html = `<div style="margin-bottom:8px;">`;
+  html += `<div style="color:var(--accent);font-size:1.1em;">${escHtml(h.address || '(no address)')}</div>`;
+  html += `<div><span class="dim">MLS:</span> ${escHtml(h.mls||'—')}  <span class="dim">Price:</span> ${fmtPrice(h.price)}  <span class="dim">Sqft:</span> ${fmtSqft(h.sqft)}</div>`;
+  if (h.link) html += `<div><span class="dim">Link:</span> <a href="${escHtml(h.link)}" target="_blank" style="color:var(--success);">${escHtml(h.link)}</a></div>`;
+  html += `<div><span class="dim">Score:</span> <span style="color:var(--success);">${score !== null ? score : '—'}</span></div>`;
+  html += `</div>`;
+
+  if (db.priorities.length) {
+    html += `<div class="section-title" style="font-size:0.9em;">PRIORITY SCORES</div>`;
+    html += `<table style="border-collapse:collapse;width:100%;font-size:0.85em;margin-bottom:8px;">`;
+    html += `<tr><th style="text-align:left;color:var(--dim);padding:2px 6px;">PRIORITY</th><th style="text-align:left;color:var(--dim);padding:2px 6px;">WEIGHT</th><th style="text-align:left;color:var(--dim);padding:2px 6px;">RATING</th></tr>`;
+    db.priorities.forEach(p => {
+      const v = h.scores?.[p.id] ?? 0;
+      html += `<tr>
+        <td style="padding:2px 6px;">${escHtml(p.name)}</td>
+        <td style="padding:2px 6px;color:var(--dim);">${Number(p.weight)||1}</td>
+        <td style="padding:2px 6px;">${scoreLabel(v)} ${scoreLabelText(v)}</td>
+      </tr>`;
+    });
+    html += `</table>`;
+  }
+
+  html += `<div class="section-title" style="font-size:0.9em;">NOTES</div>`;
+  html += `<div style="color:var(--fg);font-size:0.85em;white-space:pre-wrap;">${escHtml(h.notes || '(no notes)')} </div>`;
+  html += `<div style="margin-top:10px;color:var(--dim);font-size:0.8em;">
+    /score ${h.id} &lt;prioNum&gt; meets|partial|no  — set rating<br>
+    /note ${h.id} &lt;text&gt;  — append note<br>
+    /update ${h.id} field value  — update field
+  </div>`;
+  openOverlay(`◈ HOUSE #${h.id}`, html);
+}
+
+function showHelp() {
+  overlayMode = 'help';
+  openOverlay('◈ HOUSE FINDER — COMMANDS', `<pre style="white-space:pre;line-height:1.8;">── HOUSE ENTRIES ──────────────────────────────────────────
+/add address | price | sqft | mls | link
+                                add a house (use | to separate fields)
+/add address                    quick add (address only)
+/update &lt;n&gt; address|price|sqft|mls|link value
+                                update a field on house #n
+/delete &lt;n&gt;                     delete house #n
+/note &lt;n&gt; text                  append a note to house #n
+/view &lt;n&gt;                       view house #n detail
+
+── PRIORITY SETUP ─────────────────────────────────────────
+/prio add name [weight]         add a priority (weight default 1)
+/prio weight &lt;n&gt; value          update weight of priority #n
+/prio delete &lt;n&gt;               delete priority #n
+/prio list                      list priorities
+
+── SCORING ────────────────────────────────────────────────
+/score &lt;houseN&gt; &lt;prioN&gt; meets|partial|no
+                                rate house on a priority
+/score &lt;houseN&gt; clear           clear all scores for a house
+
+── TABLE VIEW ─────────────────────────────────────────────
+/table [score|price|sqft|addr]  show sortable table (click headers to re-sort)
+
+── STANDARD ───────────────────────────────────────────────
+/theme [name]                   switch theme (legacy/solar/monk/space/synth/dos/notebook/winter)
+/export [json|txt]              export data
+/import                         import data from .json file
+/help                           show this help</pre>`);
+}
+
+function openTableView(sortCol) {
+  if (sortCol) {
+    if (tableSort.col === sortCol) tableSort.dir *= -1;
+    else { tableSort.col = sortCol; tableSort.dir = -1; }
+  }
+  overlayMode = 'table';
+  const prios = db.priorities;
+  const houses = [...db.houses].map(h => ({ ...h, _score: calcScore(h) ?? -1 }));
+
+  // sort
+  houses.sort((a, b) => {
+    let va, vb;
+    if (tableSort.col === 'score') { va = a._score; vb = b._score; }
+    else if (tableSort.col === 'price') { va = Number(a.price)||0; vb = Number(b.price)||0; }
+    else if (tableSort.col === 'sqft') { va = Number(a.sqft)||0; vb = Number(b.sqft)||0; }
+    else if (tableSort.col === 'addr') { va = (a.address||'').toLowerCase(); vb = (b.address||'').toLowerCase(); }
+    else if (tableSort.col === 'mls') { va = (a.mls||'').toLowerCase(); vb = (b.mls||'').toLowerCase(); }
+    else { va = a._score; vb = b._score; }
+    if (va < vb) return tableSort.dir;
+    if (va > vb) return -tableSort.dir;
+    return 0;
+  });
+
+  const arrow = (col) => tableSort.col === col ? (tableSort.dir === -1 ? ' ▼' : ' ▲') : '';
+
+  let html = `<div class="ht-wrap"><table class="ht">`;
+  html += `<thead><tr>
+    <th data-col="addr">ADDRESS${arrow('addr')}</th>
+    <th data-col="price">PRICE${arrow('price')}</th>
+    <th data-col="sqft">SQFT${arrow('sqft')}</th>
+    <th data-col="mls">MLS#${arrow('mls')}</th>
+    <th data-col="score">SCORE${arrow('score')}</th>`;
+  prios.forEach(p => { html += `<th>${escHtml(p.name)} (w=${Number(p.weight)||1})</th>`; });
+  html += `<th>NOTES</th></tr></thead><tbody>`;
+
+  if (!houses.length) {
+    html += `<tr><td colspan="${5 + prios.length + 1}" style="color:var(--dim);">No houses yet.</td></tr>`;
+  }
+  houses.forEach(h => {
+    html += `<tr>
+      <td><a href="#" style="color:var(--fg);" data-house="${h.id}">${escHtml(h.address||'—')}</a></td>
+      <td>${fmtPrice(h.price)}</td>
+      <td>${fmtSqft(h.sqft)}</td>
+      <td>${escHtml(h.mls||'—')}</td>
+      <td style="color:var(--success);">${h._score >= 0 ? h._score : '—'}</td>`;
+    prios.forEach(p => {
+      const v = h.scores?.[p.id] ?? 0;
+      html += `<td>${scoreLabel(v)} ${scoreLabelText(v)}</td>`;
+    });
+    html += `<td style="max-width:200px;white-space:normal;font-size:0.8em;">${escHtml(h.notes||'')}</td>`;
+    html += `</tr>`;
+  });
+  html += `</tbody></table></div>`;
+  openOverlay('◈ HOUSE TABLE', html);
+
+  // attach sort listeners after render
+  setTimeout(() => {
+    document.querySelectorAll('table.ht th[data-col]').forEach(th =>
+      th.addEventListener('click', () => openTableView(th.dataset.col))
+    );
+    document.querySelectorAll('a[data-house]').forEach(a =>
+      a.addEventListener('click', e => { e.preventDefault(); openHouseView(Number(a.dataset.house)); })
+    );
+  }, 0);
+}
+
+// ── COMMANDS ──────────────────────────────────────────────────────────────
+function handleConsoleCmd(raw) {
+  const lower = raw.trimStart().toLowerCase();
+  const parts = raw.trim().split(/\s+/);
+  const cmd = parts[0].toLowerCase();
+  const rest = raw.trim().slice(cmd.length).trim();
+
+  if (cmd === '/help') return showHelp();
+  if (cmd === '/theme') return applyTheme(parts[1] || '');
+  if (cmd === '/table') return openTableView(parts[1] || '');
+  if (cmd === '/add') return cmdAdd(rest);
+  if (cmd === '/update') return cmdUpdate(parts[1], parts[2], rest.slice((parts[1]||'').length).trim().slice((parts[2]||'').length).trim());
+  if (cmd === '/delete') return cmdDelete(parts[1]);
+  if (cmd === '/view') return cmdView(parts[1]);
+  if (cmd === '/note') return cmdNote(parts[1], rest.slice((parts[1]||'').length).trim());
+  if (cmd === '/score') return cmdScore(parts[1], parts[2], parts[3]);
+  if (cmd === '/prio') return cmdPrio(rest);
+  if (cmd === '/export') return cmdExport(parts[1] || 'json');
+  if (cmd === '/import') return cmdImport();
+
+  statusMsg('Unknown command: ' + cmd + ' — /help for list');
+}
+
+function cmdAdd(rest) {
+  const fields = rest.split('|').map(s => s.trim());
+  const h = {
+    id: nextId(db.houses),
+    address: fields[0] || '',
+    price: fields[1] || '',
+    sqft: fields[2] || '',
+    mls: fields[3] || '',
+    link: fields[4] || '',
+    notes: '',
+    scores: {}
+  };
+  db.houses.push(h);
+  saveDB();
+  renderAll();
+  statusMsg(`Added house #${h.id}: ${h.address || '(no address)'}`);
+}
+
+function cmdUpdate(nStr, field, value) {
+  const n = Number(nStr);
+  const h = db.houses.find(x => x.id === n) || db.houses[n - 1];
+  if (!h) { statusMsg('House not found: ' + nStr); return; }
+  const f = (field || '').toLowerCase();
+  const allowed = ['address','price','sqft','mls','link'];
+  if (!allowed.includes(f)) { statusMsg('Field must be one of: ' + allowed.join(', ')); return; }
+  h[f] = value;
+  saveDB();
+  renderAll();
+  if (overlayMode === 'house' && viewHouseId === h.id) renderHouseOverlay(h);
+  statusMsg(`Updated house #${h.id} ${f}`);
+}
+
+function cmdDelete(nStr) {
+  const n = Number(nStr);
+  const idx = db.houses.findIndex(x => x.id === n);
+  const idxByPos = Number(nStr) - 1;
+  const realIdx = idx >= 0 ? idx : (idxByPos >= 0 && idxByPos < db.houses.length ? idxByPos : -1);
+  if (realIdx < 0) { statusMsg('House not found: ' + nStr); return; }
+  const h = db.houses.splice(realIdx, 1)[0];
+  saveDB();
+  renderAll();
+  closeOverlay();
+  statusMsg(`Deleted house #${h.id}`);
+}
+
+function cmdView(nStr) {
+  const n = Number(nStr);
+  const h = db.houses.find(x => x.id === n) || db.houses[n - 1];
+  if (!h) { statusMsg('House not found: ' + nStr); return; }
+  openHouseView(h.id);
+}
+
+function cmdNote(nStr, text) {
+  const n = Number(nStr);
+  const h = db.houses.find(x => x.id === n) || db.houses[n - 1];
+  if (!h) { statusMsg('House not found: ' + nStr); return; }
+  if (!text) { statusMsg('Usage: /note <n> <text>'); return; }
+  h.notes = (h.notes ? h.notes + '\n' : '') + text;
+  saveDB();
+  if (overlayMode === 'house' && viewHouseId === h.id) renderHouseOverlay(h);
+  statusMsg(`Note added to house #${h.id}`);
+}
+
+function cmdScore(hStr, pStr, rating) {
+  if (!hStr) { statusMsg('Usage: /score <houseN> <prioN> meets|partial|no'); return; }
+  const h = db.houses.find(x => x.id === Number(hStr)) || db.houses[Number(hStr) - 1];
+  if (!h) { statusMsg('House not found: ' + hStr); return; }
+  if ((pStr || '').toLowerCase() === 'clear') {
+    h.scores = {};
+    saveDB(); renderAll();
+    if (overlayMode === 'house' && viewHouseId === h.id) renderHouseOverlay(h);
+    statusMsg(`Cleared scores for house #${h.id}`);
+    return;
+  }
+  const p = db.priorities.find(x => x.id === Number(pStr)) || db.priorities[Number(pStr) - 1];
+  if (!p) { statusMsg('Priority not found: ' + pStr); return; }
+  const rLower = (rating || '').toLowerCase();
+  let val;
+  if (rLower === 'meets' || rLower === 'm' || rLower === '2') val = 2;
+  else if (rLower === 'partial' || rLower === 'p' || rLower === '1') val = 1;
+  else if (rLower === 'no' || rLower === 'n' || rLower === '0') val = 0;
+  else { statusMsg('Rating must be: meets, partial, or no'); return; }
+  if (!h.scores) h.scores = {};
+  h.scores[p.id] = val;
+  saveDB(); renderAll();
+  if (overlayMode === 'house' && viewHouseId === h.id) renderHouseOverlay(h);
+  if (overlayMode === 'table') openTableView();
+  statusMsg(`Scored house #${h.id} on "${p.name}": ${scoreLabelText(val)}`);
+}
+
+function cmdPrio(rest) {
+  const parts = rest.split(/\s+/);
+  const sub = (parts[0] || '').toLowerCase();
+  if (sub === 'add') {
+    const weight = Number(parts[parts.length - 1]);
+    const hasWeight = !isNaN(weight) && weight > 0 && parts.length > 2;
+    const nameParts = hasWeight ? parts.slice(1, -1) : parts.slice(1);
+    const name = nameParts.join(' ');
+    if (!name) { statusMsg('Usage: /prio add name [weight]'); return; }
+    const p = { id: nextId(db.priorities), name, weight: hasWeight ? weight : 1 };
+    db.priorities.push(p);
+    saveDB(); renderAll();
+    statusMsg(`Priority #${p.id} added: ${name} (w=${p.weight})`);
+  } else if (sub === 'weight') {
+    const p = db.priorities.find(x => x.id === Number(parts[1])) || db.priorities[Number(parts[1]) - 1];
+    if (!p) { statusMsg('Priority not found: ' + parts[1]); return; }
+    const w = Number(parts[2]);
+    if (isNaN(w) || w <= 0) { statusMsg('Weight must be a positive number'); return; }
+    p.weight = w;
+    saveDB(); renderAll();
+    statusMsg(`Updated priority #${p.id} weight to ${w}`);
+  } else if (sub === 'delete') {
+    const idx = db.priorities.findIndex(x => x.id === Number(parts[1]));
+    const idxByPos = Number(parts[1]) - 1;
+    const ri = idx >= 0 ? idx : (idxByPos >= 0 && idxByPos < db.priorities.length ? idxByPos : -1);
+    if (ri < 0) { statusMsg('Priority not found: ' + parts[1]); return; }
+    const removed = db.priorities.splice(ri, 1)[0];
+    // remove scores for this priority from all houses
+    db.houses.forEach(h => { if (h.scores) delete h.scores[removed.id]; });
+    saveDB(); renderAll();
+    statusMsg(`Deleted priority #${removed.id}: ${removed.name}`);
+  } else if (sub === 'list') {
+    if (!db.priorities.length) { statusMsg('No priorities yet.'); return; }
+    openOverlay('◈ PRIORITIES', '<pre style="white-space:pre;">' +
+      db.priorities.map((p, i) => `${i+1}. [id=${p.id}] ${p.name}  (weight=${Number(p.weight)||1})`).join('\n') +
+    '</pre>');
+  } else {
+    statusMsg('Usage: /prio add|weight|delete|list');
+  }
+}
+
+function cmdExport(fmt) {
+  const slug = EXPORT_SLUG + '-' + new Date().toISOString().slice(0,10);
+  if (fmt === 'txt') {
+    const lines = ['HOUSE FINDER EXPORT', '===================', ''];
+    lines.push('PRIORITIES:');
+    db.priorities.forEach((p,i) => lines.push(`  ${i+1}. ${p.name} (weight=${Number(p.weight)||1})`));
+    lines.push('');
+    lines.push('HOUSES:');
+    db.houses.forEach(h => {
+      const s = calcScore(h);
+      lines.push(`  #${h.id} ${h.address||'(no address)'}  Price:${fmtPrice(h.price)}  Sqft:${fmtSqft(h.sqft)}  MLS:${h.mls||'—'}  Score:${s !== null ? s : '—'}`);
+      if (h.link) lines.push(`    Link: ${h.link}`);
+      db.priorities.forEach(p => {
+        const v = h.scores?.[p.id] ?? 0;
+        lines.push(`    ${p.name}: ${scoreLabelText(v)}`);
+      });
+      if (h.notes) lines.push(`    Notes: ${h.notes}`);
+    });
+    downloadBlob(lines.join('\n'), slug + '.txt', 'text/plain');
+  } else {
+    downloadBlob(JSON.stringify(db, null, 2), slug + '.json', 'application/json');
+  }
+  statusMsg('Exported: ' + slug);
+}
+
+function cmdImport() {
+  const inp = document.createElement('input');
+  inp.type = 'file'; inp.accept = '.json';
+  inp.addEventListener('change', () => {
+    const f = inp.files[0];
+    if (!f) return;
+    const reader = new FileReader();
+    reader.onload = e => {
+      try {
+        const parsed = JSON.parse(e.target.result);
+        if (!Array.isArray(parsed.houses) || !Array.isArray(parsed.priorities))
+          throw new Error('Invalid format');
+        db = parsed;
+        saveDB(); renderAll();
+        statusMsg('Imported: ' + f.name);
+      } catch (err) { statusMsg('Import error: ' + err.message); }
+    };
+    reader.readAsText(f);
+  });
+  inp.click();
+}
+
+// ── INPUT ─────────────────────────────────────────────────────────────────
+const input = document.getElementById('console-input');
+input.addEventListener('keydown', e => {
+  if (e.key === 'Enter') {
+    const cmd = input.value.trim();
+    input.value = '';
+    if (cmd) handleConsoleCmd(cmd);
+  }
+});
+
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') closeOverlay();
+});
+document.getElementById('help-close').addEventListener('click', closeOverlay);
+
+// ── BOOT ──────────────────────────────────────────────────────────────────
+if (db.theme) applyTheme(db.theme);
+renderAll();
+</script>
+</body>
+</html>
