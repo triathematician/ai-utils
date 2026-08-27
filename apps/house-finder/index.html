@@ -79,7 +79,7 @@ html, body {
   caret-color: var(--accent);
 }
 #console-status { color: var(--dim); font-size: 0.8em; min-width: 180px; text-align: right; white-space: nowrap; }
-.summary-grid { display: grid; grid-template-columns: repeat(5, minmax(0,1fr)); gap: 6px; }
+.summary-grid { display: grid; grid-template-columns: repeat(6, minmax(0,1fr)); gap: 6px; }
 .metric { border: 1px solid var(--muted); padding: 6px 8px; }
 .metric-label { color: var(--dim); font-size: 0.7em; letter-spacing: 1px; }
 .metric-value { color: var(--accent); font-size: 1.1em; }
@@ -114,6 +114,7 @@ html, body {
   padding: 16px 20px; min-width: 640px; max-width: min(96vw,1100px);
   font-family: var(--font); color: var(--fg); max-height: 90vh; overflow-y: auto;
 }
+.overlay-box.table-mode { max-width: min(98vw,1600px); }
 #help-title { color: var(--accent); letter-spacing: 2px; margin-bottom: 8px; }
 #help-body { white-space: pre-wrap; line-height: 1.8; max-height: 70vh; overflow-y: auto; }
 #help-close { color: var(--dim); font-size: 0.82em; cursor: pointer; display: block; margin-top: 8px; }
@@ -140,6 +141,7 @@ table.ht tr:hover td { background: var(--muted); }
       <div class="metric"><div class="metric-label">TOP SCORE</div><div class="metric-value" id="m-top">—</div></div>
       <div class="metric"><div class="metric-label">AVG SCORE</div><div class="metric-value" id="m-avg">—</div></div>
       <div class="metric"><div class="metric-label">PRICE RANGE</div><div class="metric-value" id="m-price">—</div></div>
+      <div class="metric"><div class="metric-label">SQFT RANGE</div><div class="metric-value" id="m-sqft">—</div></div>
     </div>
     <div class="section-title">TOP RANKED</div>
     <div id="top-list" class="dim">No houses yet. Add one with /add.</div>
@@ -191,8 +193,10 @@ function loadDB() {
     const p = raw ? JSON.parse(raw) : {};
     p.houses = Array.isArray(p.houses) ? p.houses : [];
     p.priorities = Array.isArray(p.priorities) ? p.priorities : [];
+    p.backlog = Array.isArray(p.backlog) ? p.backlog : [];
+    p.backlogArchive = Array.isArray(p.backlogArchive) ? p.backlogArchive : [];
     return p;
-  } catch { return { houses: [], priorities: [] }; }
+  } catch { return { houses: [], priorities: [], backlog: [], backlogArchive: [] }; }
 }
 function saveDB() { localStorage.setItem(STORAGE_KEY, JSON.stringify(db)); }
 function nextId(arr) { return arr.length ? Math.max(...arr.map(x => x.id)) + 1 : 1; }
@@ -274,7 +278,8 @@ function renderSnapshot() {
   const scores = houses.map(h => calcScore(h)).filter(s => s !== null);
   if (scores.length) {
     document.getElementById('m-top').textContent = Math.max(...scores);
-    document.getElementById('m-avg').textContent = Math.round(scores.reduce((a,b)=>a+b,0)/scores.length);
+    const nonZero = scores.filter(s => s > 0);
+    document.getElementById('m-avg').textContent = nonZero.length ? Math.round(nonZero.reduce((a,b)=>a+b,0)/nonZero.length) : '—';
   } else {
     document.getElementById('m-top').textContent = '—';
     document.getElementById('m-avg').textContent = '—';
@@ -285,9 +290,15 @@ function renderSnapshot() {
   } else {
     document.getElementById('m-price').textContent = '—';
   }
+  const sqfts = houses.map(h => Number(h.sqft)).filter(v => !isNaN(v) && v > 0);
+  if (sqfts.length) {
+    document.getElementById('m-sqft').textContent = Math.min(...sqfts).toLocaleString() + '–' + Math.max(...sqfts).toLocaleString() + ' sf';
+  } else {
+    document.getElementById('m-sqft').textContent = '—';
+  }
 
-  // top 3 by score
-  const sorted = [...houses].map(h => ({ h, s: calcScore(h) ?? -1 })).sort((a,b) => b.s - a.s).slice(0, 3);
+  // top 6 by score
+  const sorted = [...houses].map(h => ({ h, s: calcScore(h) ?? -1 })).sort((a,b) => b.s - a.s).slice(0, 6);
   const el = document.getElementById('top-list');
   if (!sorted.length) { el.innerHTML = '<span class="dim">No houses yet. Add one with /add.</span>'; return; }
   el.innerHTML = sorted.map(({ h, s }, i) =>
@@ -336,6 +347,8 @@ function renderPrioList() {
 function openOverlay(title, bodyHtml) {
   document.getElementById('help-title').textContent = title;
   document.getElementById('help-body').innerHTML = bodyHtml;
+  const box = document.querySelector('.overlay-box');
+  box.classList.remove('table-mode');
   document.getElementById('help-overlay').classList.add('visible');
 }
 function closeOverlay() {
@@ -361,6 +374,23 @@ function renderHouseOverlay(h) {
   html += `<div><span class="dim">Score:</span> <span style="color:var(--success);">${score !== null ? score : '—'}</span></div>`;
   html += `</div>`;
 
+  // inline edit form
+  html += `<div style="margin-bottom:10px;border:1px solid var(--muted);padding:8px;">`;
+  html += `<div style="color:var(--accent);font-size:0.8em;margin-bottom:6px;">EDIT FIELDS</div>`;
+  const fields = ['address','price','sqft','mls','link'];
+  fields.forEach(f => {
+    html += `<div style="display:flex;gap:6px;align-items:center;margin-bottom:4px;">
+      <label style="color:var(--dim);font-size:0.75em;min-width:7ch;text-transform:uppercase;">${f}</label>
+      <input id="edit-${f}-${h.id}" type="text" value="${escHtml(h[f]||'')}"
+        style="flex:1;background:var(--muted);border:1px solid var(--dim);color:var(--fg);font-family:var(--font);font-size:0.85em;padding:2px 6px;outline:none;"
+        data-field="${f}" data-hid="${h.id}">
+    </div>`;
+  });
+  html += `<div style="margin-top:6px;">
+    <button id="edit-save-${h.id}" data-hid="${h.id}"
+      style="background:var(--muted);border:1px solid var(--border);color:var(--fg);font-family:var(--font);font-size:0.85em;padding:2px 10px;cursor:pointer;">SAVE</button>
+  </div></div>`;
+
   if (db.priorities.length) {
     html += `<div class="section-title" style="font-size:0.9em;">PRIORITY SCORES</div>`;
     html += `<table style="border-collapse:collapse;width:100%;font-size:0.85em;margin-bottom:8px;">`;
@@ -384,6 +414,24 @@ function renderHouseOverlay(h) {
     /update ${h.id} field value  — update field
   </div>`;
   openOverlay(`◈ HOUSE #${h.id}`, html);
+  // wire up save button
+  setTimeout(() => {
+    const saveBtn = document.getElementById(`edit-save-${h.id}`);
+    if (saveBtn) {
+      saveBtn.addEventListener('click', () => {
+        const hid = Number(saveBtn.dataset.hid);
+        const house = db.houses.find(x => x.id === hid);
+        if (!house) return;
+        ['address','price','sqft','mls','link'].forEach(f => {
+          const inp = document.getElementById(`edit-${f}-${hid}`);
+          if (inp) house[f] = inp.value;
+        });
+        saveDB(); renderAll();
+        renderHouseOverlay(house);
+        statusMsg(`Updated house #${house.id}`);
+      });
+    }
+  }, 0);
 }
 
 function showHelp() {
@@ -416,6 +464,13 @@ function showHelp() {
 /theme [name]                   switch theme (legacy/solar/monk/space/synth/dos/notebook/winter)
 /export [json|txt]              export data
 /import                         import data from .json file
+/backlog [text]                 add item to backlog
+/backlog list                   show backlog items
+/backlog done &lt;n&gt;              toggle item #n done/open
+/backlog delete &lt;n&gt;            remove item #n
+/backlog archive                move done items to archive
+/backlog archive list           show archived batches
+/backlog export                 download backlog as .txt
 /help                           show this help</pre>`);
 }
 
@@ -451,8 +506,8 @@ function openTableView(sortCol) {
     <th data-col="sqft">SQFT${arrow('sqft')}</th>
     <th data-col="mls">MLS#${arrow('mls')}</th>
     <th data-col="score">SCORE${arrow('score')}</th>`;
-  prios.forEach(p => { html += `<th>${escHtml(p.name)} (w=${Number(p.weight)||1})</th>`; });
-  html += `<th>NOTES</th></tr></thead><tbody>`;
+  prios.forEach(p => { html += `<th title="${escHtml(p.name)} (w=${Number(p.weight)||1})">${escHtml(p.name.length > 8 ? p.name.slice(0,8)+'…' : p.name)}</th>`; });
+  html += `<th>✎</th></tr></thead><tbody>`;
 
   if (!houses.length) {
     html += `<tr><td colspan="${5 + prios.length + 1}" style="color:var(--dim);">No houses yet.</td></tr>`;
@@ -468,11 +523,10 @@ function openTableView(sortCol) {
       const v = h.scores?.[p.id] ?? 0;
       html += `<td>${scoreLabel(v)} ${scoreLabelText(v)}</td>`;
     });
-    html += `<td style="max-width:200px;white-space:normal;font-size:0.8em;">${escHtml(h.notes||'')}</td>`;
-    html += `</tr>`;
-  });
+    html += `<td style="text-align:center;">${h.notes ? `<span title="${escHtml(h.notes)}" style="cursor:default;">✎</span>` : ''}</td>`;    html += `</tr>`;  });
   html += `</tbody></table></div>`;
   openOverlay('◈ HOUSE TABLE', html);
+  document.querySelector('.overlay-box').classList.add('table-mode');
 
   // attach sort listeners after render
   setTimeout(() => {
@@ -504,6 +558,7 @@ function handleConsoleCmd(raw) {
   if (cmd === '/prio') return cmdPrio(rest);
   if (cmd === '/export') return cmdExport(parts[1] || 'json');
   if (cmd === '/import') return cmdImport();
+  if (cmd === '/backlog') return handleBacklog(rest);
 
   statusMsg('Unknown command: ' + cmd + ' — /help for list');
 }
@@ -677,6 +732,8 @@ function cmdImport() {
         if (!Array.isArray(parsed.houses) || !Array.isArray(parsed.priorities))
           throw new Error('Invalid format');
         db = parsed;
+        db.backlog = Array.isArray(db.backlog) ? db.backlog : [];
+        db.backlogArchive = Array.isArray(db.backlogArchive) ? db.backlogArchive : [];
         saveDB(); renderAll();
         statusMsg('Imported: ' + f.name);
       } catch (err) { statusMsg('Import error: ' + err.message); }
@@ -684,6 +741,91 @@ function cmdImport() {
     reader.readAsText(f);
   });
   inp.click();
+}
+
+// ── BACKLOG ────────────────────────────────────────────────────────────────
+function handleBacklog(arg) {
+  const parts = (arg || '').trim().split(/\s+/);
+  const sub = parts[0].toLowerCase();
+
+  if (sub === 'list' || sub === '') {
+    if (!arg.trim() || sub === 'list') {
+      overlayMode = 'help';
+      const title = document.getElementById('help-title');
+      const body = document.getElementById('help-body');
+      title.textContent = 'BACKLOG';
+      body.innerHTML = (!db.backlog.length ? '<span class="dim">Backlog is empty.</span>' :
+        db.backlog.map((b, i) => {
+          const bracket = b.done ? '<span style="color:var(--success);">[x]</span>' : '<span style="color:var(--dim);">[ ]</span>';
+          return `<div style="padding:2px 0"><span data-backlog-idx="${i}" style="cursor:pointer;user-select:none;color:var(--accent)">${bracket}</span> ${i + 1}. ${escHtml(b.text)}</div>`;
+        }).join('')) + '<div style="margin-top:8px;border-top:1px solid var(--muted);padding-top:6px"><span class="backlog-copy-btn" style="cursor:pointer;color:var(--dim);font-size:0.82em;">[C] COPY TO CLIPBOARD</span></div>';
+      document.getElementById('help-overlay').classList.add('visible');
+      body.querySelectorAll('[data-backlog-idx]').forEach(el => {
+        el.addEventListener('click', () => {
+          const idx = parseInt(el.dataset.backlogIdx, 10);
+          db.backlog[idx].done = !db.backlog[idx].done;
+          saveDB(); handleBacklog('list');
+        });
+      });
+      const copyBtn = body.querySelector('.backlog-copy-btn');
+      if (copyBtn) {
+        copyBtn.addEventListener('click', () => {
+          const txt = '# BACKLOG — ' + new Date().toISOString().slice(0,10) + '\n\n'
+            + db.backlog.map(b => `- ${b.done ? '[x]' : '[ ]'} ${b.text}`).join('\n') + '\n';
+          navigator.clipboard.writeText(txt).then(() => statusMsg('Backlog copied to clipboard.'));
+        });
+      }
+      return;
+    }
+  }
+  if (sub === 'done') {
+    const n = parseInt(parts[1], 10);
+    if (!db.backlog.length) { statusMsg('Backlog is empty.'); return; }
+    const item = db.backlog[n - 1];
+    if (!item) { statusMsg(`No backlog item #${n}.`); return; }
+    item.done = !item.done;
+    saveDB(); handleBacklog('list');
+    statusMsg(`Backlog #${n} marked ${item.done ? 'done' : 'open'}.`);
+    return;
+  }
+  if (sub === 'delete') {
+    const n = parseInt(parts[1], 10);
+    const item = db.backlog[n - 1];
+    if (!item) { statusMsg(`No backlog item #${n}.`); return; }
+    db.backlog.splice(n - 1, 1);
+    saveDB(); statusMsg(`Deleted backlog #${n}.`);
+    return;
+  }
+  if (sub === 'archive') {
+    if ((parts[1] || '').toLowerCase() === 'list') {
+      if (!db.backlogArchive.length) { statusMsg('No archived batches.'); return; }
+      overlayMode = 'help';
+      openOverlay('BACKLOG ARCHIVE', '<pre style="white-space:pre;">' +
+        db.backlogArchive.flatMap(batch => [
+          `── ${batch.date} ──`,
+          ...batch.items.map(b => `  ${b.done ? '[x]' : '[ ]'} ${b.text}`)
+        ]).join('\n') + '</pre>');
+      return;
+    }
+    const done = db.backlog.filter(b => b.done);
+    if (!done.length) { statusMsg('No done items to archive.'); return; }
+    db.backlog = db.backlog.filter(b => !b.done);
+    db.backlogArchive.push({ date: new Date().toISOString().slice(0,10), items: done });
+    saveDB(); statusMsg(`Archived ${done.length} done item${done.length === 1 ? '' : 's'}.`);
+    return;
+  }
+  if (sub === 'export') {
+    if (!db.backlog.length) { statusMsg('Backlog is empty.'); return; }
+    const dt = new Date().toISOString().slice(0,10);
+    const txt = '# BACKLOG — ' + dt + '\n\n' + db.backlog.map(b => `- ${b.done ? '[x]' : '[ ]'} ${b.text}`).join('\n') + '\n';
+    downloadBlob(txt, `backlog-${dt}.txt`, 'text/plain');
+    statusMsg(`Exported ${db.backlog.length} backlog item${db.backlog.length === 1 ? '' : 's'}.`);
+    return;
+  }
+  // default: add item
+  if (!arg.trim()) { statusMsg('Usage: /backlog [text] | list | done N | delete N | archive | export'); return; }
+  db.backlog.push({ id: Date.now() + '_' + Math.random().toString(36).slice(2, 6), text: arg.trim(), done: false, createdAt: new Date().toISOString() });
+  saveDB(); statusMsg(`Backlog item added: ${arg.trim()}`);
 }
 
 // ── INPUT ─────────────────────────────────────────────────────────────────
