@@ -79,7 +79,7 @@ html, body {
   caret-color: var(--accent);
 }
 #console-status { color: var(--dim); font-size: 0.8em; min-width: 180px; text-align: right; white-space: nowrap; }
-.summary-grid { display: grid; grid-template-columns: repeat(6, minmax(0,1fr)); gap: 6px; }
+.summary-grid { display: grid; grid-template-columns: repeat(7, minmax(0,1fr)); gap: 6px; }
 .metric { border: 1px solid var(--muted); padding: 6px 8px; }
 .metric-label { color: var(--dim); font-size: 0.7em; letter-spacing: 1px; }
 .metric-value { color: var(--accent); font-size: 1.1em; }
@@ -142,6 +142,7 @@ table.ht tr:hover td { background: var(--muted); }
     <div class="row-header">◈ HOUSE FINDER — SNAPSHOT</div>
     <div class="summary-grid">
       <div class="metric"><div class="metric-label">HOUSES</div><div class="metric-value" id="m-houses">0</div></div>
+      <div class="metric"><div class="metric-label">ARCHIVED</div><div class="metric-value" id="m-archived">0</div></div>
       <div class="metric"><div class="metric-label">PRIORITIES</div><div class="metric-value" id="m-prios">0</div></div>
       <div class="metric"><div class="metric-label">TOP SCORE</div><div class="metric-value" id="m-top">—</div></div>
       <div class="metric"><div class="metric-label">AVG SCORE</div><div class="metric-value" id="m-avg">—</div></div>
@@ -182,10 +183,30 @@ const EXPORT_SLUG = 'house-finder';
 const THEMES = ['legacy','solar','monk','space','synth','dos','notebook','winter'];
 
 // ── DB SCHEMA ──────────────────────────────────────────────────────────────
-// db.houses   : [{ id, address, price, sqft, mls, link, notes, scores: {prioId: 0..4}, visits: [dateStr,...] }]
+// db.houses   : [{ id, address, price, sqft, mls, link, notes, scores: {prioId: 0..4}, visits: [dateStr,...], archived, tier }]
 // db.priorities : [{ id, name, weight }]  weight default 1
 // scores: 0=problematic, 1=no, 2=partial, 3=meets, 4=exceeds
+// tier: 'S'|'A'|'B'|'C'|'D'|'E'|null (null = unassigned, shown as "-")
 // ──────────────────────────────────────────────────────────────────────────
+
+const TIERS = ['S', 'A', 'B', 'C', 'D', 'E'];
+const TIER_COLOR = { S: '#ffd700', A: 'var(--success)', B: 'var(--fg)', C: 'var(--warn)', D: 'var(--warn)', E: 'var(--accent)' };
+
+function visibleHouses() { return db.houses.filter(h => !h.archived); }
+// resolve a /command reference against the visible (non-archived) list only —
+// by id if it matches a visible house, else by position in that list. Keeping
+// this scoped to visibleHouses() avoids an archived house's id colliding with
+// the on-screen position number of a different, currently-visible house.
+function resolveHouseRef(nStr) {
+  const n = Number(nStr);
+  const visible = visibleHouses();
+  return visible.find(x => x.id === n) || visible[n - 1];
+}
+// resolve by persistent id against ALL houses, including archived ones —
+// for commands (like /unarchive) whose target is never in the visible list
+function resolveAnyHouseById(nStr) {
+  return db.houses.find(x => x.id === Number(nStr));
+}
 
 // rating scale: 0=Problematic 1=No 2=Partial 3=Meets 4=Exceeds (unrated defaults to No)
 const RATING_MAX = 4;
@@ -234,6 +255,8 @@ function loadDB() {
       p.ratingScaleVersion = 2;
     }
     p.houses.forEach(h => { if (!Array.isArray(h.visits)) h.visits = []; });
+    p.houses.forEach(h => { if (h.archived == null) h.archived = false; });
+    p.houses.forEach(h => { if (h.tier === undefined) h.tier = null; });
     p.houses.forEach(h => backfillHouseScores(h, p.priorities));
     return p;
   } catch { return { houses: [], priorities: [], backlog: [], backlogArchive: [] }; }
@@ -252,6 +275,11 @@ function fmtPrice(n) {
   return '$' + v;
 }
 function fmtSqft(n) { return (n != null && n !== '') ? Number(n).toLocaleString() + ' sf' : '—'; }
+function calcPpsf(h) {
+  const price = Number(h.price), sqft = Number(h.sqft);
+  return (price > 0 && sqft > 0) ? price / sqft : null;
+}
+function fmtPpsf(v) { return v != null ? '$' + Math.round(v) : '—'; }
 function scoreLabel(v) {
   if (v === 4) return '<span class="badge-exceeds">★</span>';
   if (v === 3) return '<span class="badge-meets">●</span>';
@@ -321,8 +349,9 @@ function renderAll() {
 }
 
 function renderSnapshot() {
-  const houses = db.houses;
+  const houses = visibleHouses();
   document.getElementById('m-houses').textContent = houses.length;
+  document.getElementById('m-archived').textContent = db.houses.length - houses.length;
   document.getElementById('m-prios').textContent = db.priorities.length;
   const scores = houses.map(h => displayScore(h)).filter(s => s !== null);
   if (scores.length) {
@@ -365,8 +394,14 @@ function renderSnapshot() {
 
 function renderHouseList() {
   const el = document.getElementById('house-list');
-  if (!db.houses.length) { el.innerHTML = '<span class="dim">No houses yet. Add one with /add.</span>'; return; }
-  el.innerHTML = db.houses.map((h, i) => {
+  const houses = visibleHouses();
+  if (!houses.length) {
+    el.innerHTML = db.houses.length
+      ? '<span class="dim">All houses are archived. See /archive list.</span>'
+      : '<span class="dim">No houses yet. Add one with /add.</span>';
+    return;
+  }
+  el.innerHTML = houses.map((h, i) => {
     const s = displayScore(h);
     const visited = (h.visits || []).length > 0;
     return `<div class="house-row" data-id="${h.id}">
@@ -457,11 +492,16 @@ function openHouseView(id) {
 
 function renderHouseOverlay(h) {
   const score = displayScore(h);
-  let html = `<div style="margin-bottom:8px;">`;
+  let html = '';
+  if (h.archived) {
+    html += `<div style="border:1px solid var(--accent);color:var(--accent);padding:4px 8px;margin-bottom:8px;font-size:0.85em;">⚠ ARCHIVED — see NOTES below for reason</div>`;
+  }
+  html += `<div style="margin-bottom:8px;">`;
   html += `<div style="color:var(--accent);font-size:1.1em;">${escHtml(h.address || '(no address)')}</div>`;
   html += `<div><span class="dim">MLS:</span> ${escHtml(h.mls||'—')}  <span class="dim">Price:</span> ${fmtPrice(h.price)}  <span class="dim">Sqft:</span> ${fmtSqft(h.sqft)}</div>`;
   if (h.link) html += `<div><span class="dim">Link:</span> <a href="${escHtml(h.link)}" target="_blank" style="color:var(--success);">${escHtml(h.link)}</a></div>`;
-  html += `<div><span class="dim">Score:</span> <span style="color:var(--success);">${score !== null ? score : '—'}</span></div>`;
+  html += `<div><span class="dim">Score:</span> <span style="color:var(--success);">${score !== null ? score : '—'}</span>` +
+    `  <span class="dim">Tier:</span> <span class="tier-cycle" data-hid="${h.id}" title="Click to change tier" style="cursor:pointer;user-select:none;font-weight:bold;color:${TIER_COLOR[h.tier] || 'var(--dim)'};">${h.tier || '-'}</span></div>`;
   html += `</div>`;
 
   // inline edit form (collapsed by default)
@@ -518,6 +558,21 @@ function renderHouseOverlay(h) {
 
   html += `<div class="section-title" style="font-size:0.9em;">NOTES</div>`;
   html += `<div style="color:var(--fg);font-size:0.85em;white-space:pre-wrap;">${escHtml(h.notes || '(no notes)')} </div>`;
+
+  html += `<div style="margin-top:10px;border-top:1px solid var(--muted);padding-top:8px;">`;
+  if (h.archived) {
+    html += `<button id="unarchive-btn-${h.id}" data-hid="${h.id}"
+      style="background:var(--muted);border:1px solid var(--border);color:var(--fg);font-family:var(--font);font-size:0.85em;padding:2px 10px;cursor:pointer;">UNARCHIVE</button>`;
+  } else {
+    html += `<div style="display:flex;gap:6px;align-items:center;">
+      <input id="archive-reason-${h.id}" type="text" placeholder="reason for archiving (required)"
+        style="flex:1;background:var(--muted);border:1px solid var(--dim);color:var(--fg);font-family:var(--font);font-size:0.85em;padding:2px 6px;outline:none;">
+      <button id="archive-btn-${h.id}" data-hid="${h.id}"
+        style="background:var(--muted);border:1px solid var(--accent);color:var(--accent);font-family:var(--font);font-size:0.85em;padding:2px 10px;cursor:pointer;">ARCHIVE</button>
+    </div>`;
+  }
+  html += `</div>`;
+
   openOverlay(`◈ HOUSE #${h.id}`, html);
   // wire up save button
   setTimeout(() => {
@@ -546,6 +601,8 @@ function renderHouseOverlay(h) {
     document.querySelectorAll('.score-cycle').forEach(cell => {
       cell.addEventListener('click', () => cycleScore(Number(cell.dataset.hid), Number(cell.dataset.pid)));
     });
+    const tierCycle = document.querySelector('.tier-cycle');
+    if (tierCycle) tierCycle.addEventListener('click', () => cycleTier(Number(tierCycle.dataset.hid)));
     const addVisitBtn = document.getElementById(`visit-add-${h.id}`);
     if (addVisitBtn) {
       addVisitBtn.addEventListener('click', () => {
@@ -557,6 +614,18 @@ function renderHouseOverlay(h) {
     document.querySelectorAll('.visit-remove').forEach(el => {
       el.addEventListener('click', () => removeVisit(Number(el.dataset.hid), el.dataset.date));
     });
+    const archiveBtn = document.getElementById(`archive-btn-${h.id}`);
+    if (archiveBtn) {
+      archiveBtn.addEventListener('click', () => {
+        const hid = Number(archiveBtn.dataset.hid);
+        const reasonInp = document.getElementById(`archive-reason-${hid}`);
+        archiveHouse(hid, reasonInp ? reasonInp.value : '');
+      });
+    }
+    const unarchiveBtn = document.getElementById(`unarchive-btn-${h.id}`);
+    if (unarchiveBtn) {
+      unarchiveBtn.addEventListener('click', () => unarchiveHouse(Number(unarchiveBtn.dataset.hid)));
+    }
   }, 0);
 }
 
@@ -592,6 +661,17 @@ function cycleScore(hid, pid) {
   if (overlayMode === 'house' && viewHouseId === hid) renderHouseOverlay(house);
 }
 
+// cycles null (unassigned) -> S -> A -> B -> C -> D -> E -> null
+function cycleTier(hid) {
+  const house = db.houses.find(x => x.id === hid);
+  if (!house) return;
+  const idx = TIERS.indexOf(house.tier);
+  const nextIdx = idx + 1;
+  house.tier = nextIdx < TIERS.length ? TIERS[nextIdx] : null;
+  saveDB(); renderAll();
+  if (overlayMode === 'house' && viewHouseId === hid) renderHouseOverlay(house);
+}
+
 function showHelp() {
   overlayMode = 'help';
   openOverlay('◈ HOUSE FINDER — COMMANDS', `<pre style="white-space:pre;line-height:1.8;">── HOUSE ENTRIES ──────────────────────────────────────────
@@ -606,6 +686,9 @@ function showHelp() {
 /visit &lt;n&gt; [date]               add a visit date to house #n (default today)
 /visit &lt;n&gt; clear                clear all visits for house #n
 /view &lt;n&gt;                       view house #n detail
+/archive &lt;n&gt; reason             archive house #n (reason required, appended to notes)
+/archive list                   list archived houses
+/unarchive &lt;n&gt;                  restore an archived house (use its #id)
 
 ── PRIORITY SETUP ─────────────────────────────────────────
 /prio add name [weight]         add a priority (weight default 1)
@@ -620,6 +703,7 @@ function showHelp() {
 
 ── TABLE VIEW ─────────────────────────────────────────────
 /table [score|price|sqft|addr]  show sortable table (click headers to re-sort)
+/tiers                          show tier list (S/A/B/C/D/E + unassigned)
 
 ── STANDARD ───────────────────────────────────────────────
 /theme [name]                   switch theme (legacy/solar/monk/space/synth/dos/notebook/winter)
@@ -642,10 +726,11 @@ function openTableView(sortCol) {
   }
   overlayMode = 'table';
   const prios = db.priorities;
-  const houses = [...db.houses].map(h => ({
+  const houses = visibleHouses().map(h => ({
     ...h,
     _score: isHouseScored(h) ? (calcScore(h) ?? -1) : -1,
-    _dispScore: displayScore(h)
+    _dispScore: displayScore(h),
+    _ppsf: calcPpsf(h)
   }));
 
   // sort
@@ -654,6 +739,7 @@ function openTableView(sortCol) {
     if (tableSort.col === 'score') { va = a._score; vb = b._score; }
     else if (tableSort.col === 'price') { va = Number(a.price)||0; vb = Number(b.price)||0; }
     else if (tableSort.col === 'sqft') { va = Number(a.sqft)||0; vb = Number(b.sqft)||0; }
+    else if (tableSort.col === 'ppsf') { va = a._ppsf ?? -1; vb = b._ppsf ?? -1; }
     else if (tableSort.col === 'addr') { va = (a.address||'').toLowerCase(); vb = (b.address||'').toLowerCase(); }
     else if (tableSort.col === 'mls') { va = (a.mls||'').toLowerCase(); vb = (b.mls||'').toLowerCase(); }
     else { va = a._score; vb = b._score; }
@@ -669,19 +755,21 @@ function openTableView(sortCol) {
     <th data-col="addr">ADDRESS${arrow('addr')}</th>
     <th data-col="price">PRICE${arrow('price')}</th>
     <th data-col="sqft">SQFT${arrow('sqft')}</th>
+    <th data-col="ppsf">$/SQFT${arrow('ppsf')}</th>
     <th data-col="mls">MLS#${arrow('mls')}</th>
     <th data-col="score">SCORE${arrow('score')}</th>`;
   prios.forEach(p => { html += `<th title="${escHtml(p.name)} (w=${Number(p.weight)||1})">${escHtml(p.name.length > 8 ? p.name.slice(0,8)+'…' : p.name)}</th>`; });
   html += `<th>✎</th></tr></thead><tbody>`;
 
   if (!houses.length) {
-    html += `<tr><td colspan="${5 + prios.length + 1}" style="color:var(--dim);">No houses yet.</td></tr>`;
+    html += `<tr><td colspan="${6 + prios.length + 1}" style="color:var(--dim);">No houses yet.</td></tr>`;
   }
   houses.forEach(h => {
     html += `<tr>
       <td><a href="#" style="color:var(--fg);" data-house="${h.id}">${escHtml(h.address||'—')}</a></td>
       <td>${fmtPrice(h.price)}</td>
       <td>${fmtSqft(h.sqft)}</td>
+      <td>${fmtPpsf(h._ppsf)}</td>
       <td>${escHtml(h.mls||'—')}</td>
       <td style="color:var(--success);">${h._dispScore !== null ? h._dispScore : '—'}</td>`;
     prios.forEach(p => {
@@ -714,6 +802,7 @@ function handleConsoleCmd(raw) {
   if (cmd === '/help') return showHelp();
   if (cmd === '/theme') return applyTheme(parts[1] || '');
   if (cmd === '/table') return openTableView(parts[1] || '');
+  if (cmd === '/tiers') return openTiersOverlay();
   if (cmd === '/add') return cmdAdd(rest);
   if (cmd === '/paste') return openPasteOverlay();
   if (cmd === '/update') return cmdUpdate(parts[1], parts[2], rest.slice((parts[1]||'').length).trim().slice((parts[2]||'').length).trim());
@@ -722,6 +811,8 @@ function handleConsoleCmd(raw) {
   if (cmd === '/note') return cmdNote(parts[1], rest.slice((parts[1]||'').length).trim());
   if (cmd === '/score') return cmdScore(parts[1], parts[2], parts[3]);
   if (cmd === '/visit') return cmdVisit(parts[1], parts[2]);
+  if (cmd === '/archive') return cmdArchive(parts[1], rest.slice((parts[1]||'').length).trim());
+  if (cmd === '/unarchive') return cmdUnarchive(parts[1]);
   if (cmd === '/prio') return cmdPrio(rest);
   if (cmd === '/export') return cmdExport(parts[1] || 'json');
   if (cmd === '/import') return cmdImport();
@@ -745,13 +836,128 @@ function addHouse({ address, price, sqft, mls, link }) {
     link: link || '',
     notes: '',
     scores: {},
-    visits: []
+    visits: [],
+    archived: false,
+    tier: null
   };
   db.houses.push(h);
   saveDB();
   renderAll();
   statusMsg(`Added house #${h.id}: ${h.address || '(no address)'}`);
   return h;
+}
+
+function archiveHouse(hid, reason) {
+  const h = db.houses.find(x => x.id === hid);
+  if (!h) return;
+  const trimmed = (reason || '').trim();
+  if (!trimmed) { statusMsg('Archiving requires a reason — usage: /archive <n> <reason>'); return; }
+  h.archived = true;
+  h.notes = (h.notes ? h.notes + '\n' : '') + `ARCHIVED (${new Date().toISOString().slice(0,10)}): ${trimmed}`;
+  saveDB(); renderAll();
+  closeOverlay();
+  statusMsg(`Archived house #${h.id}`);
+}
+
+function unarchiveHouse(hid) {
+  const h = db.houses.find(x => x.id === hid);
+  if (!h) return;
+  h.archived = false;
+  h.notes = (h.notes ? h.notes + '\n' : '') + `UNARCHIVED (${new Date().toISOString().slice(0,10)})`;
+  saveDB(); renderAll();
+  if (overlayMode === 'house' && viewHouseId === hid) renderHouseOverlay(h);
+  statusMsg(`Unarchived house #${h.id}`);
+}
+
+function cmdArchive(nStr, reason) {
+  if ((nStr || '').toLowerCase() === 'list') return openArchivedListOverlay();
+  const h = resolveHouseRef(nStr);
+  if (!h) { statusMsg('House not found: ' + nStr); return; }
+  archiveHouse(h.id, reason);
+}
+
+function cmdUnarchive(nStr) {
+  const h = resolveAnyHouseById(nStr);
+  if (!h) { statusMsg('House not found — use its #id from /archive list: ' + nStr); return; }
+  unarchiveHouse(h.id);
+}
+
+function openArchivedListOverlay() {
+  overlayMode = 'help';
+  const archived = db.houses.filter(h => h.archived);
+  const html = `<div style="white-space:normal;">` + (
+    archived.length
+      ? archived.map(h => `
+        <div style="display:flex;align-items:center;gap:8px;padding:3px 0;border-bottom:1px solid var(--muted);">
+          <span style="color:var(--dim);">#${h.id}</span>
+          <a href="#" class="archived-house-link" data-hid="${h.id}" style="flex:1;color:var(--fg);">${escHtml(h.address || '(no address)')}</a>
+        </div>`).join('')
+      : `<span class="dim">No archived houses.</span>`
+  ) + `</div>`;
+  openOverlay('◈ ARCHIVED HOUSES', html);
+  setTimeout(() => {
+    document.querySelectorAll('.archived-house-link').forEach(a =>
+      a.addEventListener('click', e => { e.preventDefault(); openHouseView(Number(a.dataset.hid)); })
+    );
+  }, 0);
+}
+
+function openTiersOverlay() {
+  overlayMode = 'help';
+  const houses = visibleHouses();
+  const rows = [...TIERS, null]; // null row = unassigned, shown last
+  let html = `<div style="white-space:normal;">`;
+  rows.forEach(t => {
+    const inTier = houses.filter(h => (h.tier || null) === t);
+    const label = t || '-';
+    const color = TIER_COLOR[t] || 'var(--dim)';
+    html += `<div style="display:flex;align-items:stretch;border:1px solid var(--muted);margin-bottom:6px;min-height:112px;">`;
+    html += `<div style="width:56px;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:1.5em;font-weight:bold;color:${color};border-right:1px solid var(--muted);background:var(--muted);">${label}</div>`;
+    html += `<div class="tier-dropzone" data-tier="${t || ''}" style="flex:1;display:flex;flex-wrap:wrap;gap:6px;padding:6px;align-content:flex-start;min-height:100px;">`;
+    if (!inTier.length) {
+      html += `<span class="dim" style="font-size:0.8em;align-self:center;">(none)</span>`;
+    } else {
+      inTier.forEach(h => {
+        const s = displayScore(h);
+        html += `<div class="tier-house-box" draggable="true" data-hid="${h.id}" title="${escHtml(h.address || '(no address)')}"
+          style="width:100px;height:100px;border:1px solid var(--border);background:var(--muted);display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;font-size:0.72em;line-height:1.35;padding:4px;cursor:grab;overflow:hidden;">
+          <div style="font-weight:bold;">${escHtml(h.address || '(no address)')}</div>
+          <div class="dim" style="margin-top:3px;">${fmtPrice(h.price)}</div>
+          <div class="dim">Score: ${s !== null ? s : '—'}</div>
+        </div>`;
+      });
+    }
+    html += `</div></div>`;
+  });
+  html += `</div>`;
+  openOverlay('◈ TIER LIST', html);
+  setTimeout(() => {
+    document.querySelectorAll('.tier-house-box').forEach(box => {
+      box.addEventListener('click', () => openHouseView(Number(box.dataset.hid)));
+      box.addEventListener('dragstart', e => {
+        e.dataTransfer.setData('text/plain', box.dataset.hid);
+        e.dataTransfer.effectAllowed = 'move';
+      });
+    });
+    document.querySelectorAll('.tier-dropzone').forEach(zone => {
+      zone.addEventListener('dragover', e => {
+        e.preventDefault();
+        e.dataTransfer.dropEffect = 'move';
+        zone.style.background = 'var(--dim)';
+      });
+      zone.addEventListener('dragleave', () => { zone.style.background = ''; });
+      zone.addEventListener('drop', e => {
+        e.preventDefault();
+        zone.style.background = '';
+        const hid = Number(e.dataTransfer.getData('text/plain'));
+        const house = db.houses.find(x => x.id === hid);
+        if (!house) return;
+        house.tier = zone.dataset.tier || null;
+        saveDB(); renderAll();
+        openTiersOverlay();
+      });
+    });
+  }, 0);
 }
 
 // heuristic extraction of address/price/sqft/mls/link from pasted listing text
@@ -826,8 +1032,7 @@ function renderPasteFields(parsed) {
 }
 
 function cmdUpdate(nStr, field, value) {
-  const n = Number(nStr);
-  const h = db.houses.find(x => x.id === n) || db.houses[n - 1];
+  const h = resolveHouseRef(nStr);
   if (!h) { statusMsg('House not found: ' + nStr); return; }
   const f = (field || '').toLowerCase();
   const allowed = ['address','price','sqft','mls','link'];
@@ -840,12 +1045,10 @@ function cmdUpdate(nStr, field, value) {
 }
 
 function cmdDelete(nStr) {
-  const n = Number(nStr);
-  const idx = db.houses.findIndex(x => x.id === n);
-  const idxByPos = Number(nStr) - 1;
-  const realIdx = idx >= 0 ? idx : (idxByPos >= 0 && idxByPos < db.houses.length ? idxByPos : -1);
-  if (realIdx < 0) { statusMsg('House not found: ' + nStr); return; }
-  const h = db.houses.splice(realIdx, 1)[0];
+  const h = resolveHouseRef(nStr);
+  if (!h) { statusMsg('House not found: ' + nStr); return; }
+  const realIdx = db.houses.findIndex(x => x.id === h.id);
+  db.houses.splice(realIdx, 1);
   saveDB();
   renderAll();
   closeOverlay();
@@ -853,15 +1056,13 @@ function cmdDelete(nStr) {
 }
 
 function cmdView(nStr) {
-  const n = Number(nStr);
-  const h = db.houses.find(x => x.id === n) || db.houses[n - 1];
+  const h = resolveHouseRef(nStr);
   if (!h) { statusMsg('House not found: ' + nStr); return; }
   openHouseView(h.id);
 }
 
 function cmdNote(nStr, text) {
-  const n = Number(nStr);
-  const h = db.houses.find(x => x.id === n) || db.houses[n - 1];
+  const h = resolveHouseRef(nStr);
   if (!h) { statusMsg('House not found: ' + nStr); return; }
   if (!text) { statusMsg('Usage: /note <n> <text>'); return; }
   h.notes = (h.notes ? h.notes + '\n' : '') + text;
@@ -871,8 +1072,7 @@ function cmdNote(nStr, text) {
 }
 
 function cmdVisit(nStr, arg) {
-  const n = Number(nStr);
-  const h = db.houses.find(x => x.id === n) || db.houses[n - 1];
+  const h = resolveHouseRef(nStr);
   if (!h) { statusMsg('House not found: ' + nStr); return; }
   if (!Array.isArray(h.visits)) h.visits = [];
   const a = (arg || '').toLowerCase();
@@ -893,7 +1093,7 @@ function cmdVisit(nStr, arg) {
 
 function cmdScore(hStr, pStr, rating) {
   if (!hStr) { statusMsg('Usage: /score <houseN> <prioN> problematic|no|partial|meets|exceeds'); return; }
-  const h = db.houses.find(x => x.id === Number(hStr)) || db.houses[Number(hStr) - 1];
+  const h = resolveHouseRef(hStr);
   if (!h) { statusMsg('House not found: ' + hStr); return; }
   if ((pStr || '').toLowerCase() === 'clear') {
     h.scores = {};
