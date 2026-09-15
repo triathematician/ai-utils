@@ -35,6 +35,7 @@ ai-utils/
     vault-terminal/               ← VAULT TERMINAL: monthly budget tracker — income, expenses, investments
     gear-terminal/                ← GEAR TERMINAL: gear tracker — bikes, cars, shoes, service dates, repairs
     ski-tracker/                  ← SKI TRACKER: ski trip tracker — dates, places, stats, and rollups
+    house-finder/                 ← HOUSE FINDER: house search tracker — listings, priorities, weighted scoring, notes
   common/                       ← shared assets (if any)
     yahoo-finance-proxy/          ← Java proxy service for Yahoo Finance data
   apps-data/
@@ -65,6 +66,7 @@ Monospace, dark-first, single-file apps with a command-line interaction model. L
 - `gear-terminal/index.html` — GEAR TERMINAL
 - `ski-tracker/index.html` — SKI TRACKER
 - `life-line/index.html` — LIFE LINE
+- `house-finder/index.html` — HOUSE FINDER
 
 **To start a new terminal-web app:** copy `docs/terminal-web-template.html` to a new subdirectory, rename the `STORAGE_KEY`, and build on top of the stubs.
 

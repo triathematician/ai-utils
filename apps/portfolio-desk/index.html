@@ -602,12 +602,7 @@ input[type=range]::-webkit-slider-thumb {
     <div class="header-time" id="headerTime"></div>
   </div>
   <div id="headerTicker">
-    <div class="ht-dots">
-      <div class="ht-dot active" id="htDot0"></div>
-      <div class="ht-dot" id="htDot1"></div>
-      <div class="ht-dot" id="htDot2"></div>
-      <div class="ht-dot" id="htDot3"></div>
-    </div>
+    <div class="ht-dots" id="htDots"></div>
     <span class="ht-label" id="htLabel">SPY</span>
     <span class="ht-price" id="htPrice">—</span>
     <span class="ht-chg"   id="htChg"></span>
@@ -634,10 +629,12 @@ input[type=range]::-webkit-slider-thumb {
   <button class="tab" onclick="switchTab('sales')">GAINS</button>
   <button class="tab" onclick="switchTab('monthly')">Monthly</button>
   <button class="tab" onclick="switchTab('transactions')">Transactions</button>
+  <button class="tab" onclick="switchTab('alerts')">Alerts</button>
   <button class="tab" onclick="switchTab('summary')">Summary</button>
   <button class="tab" onclick="switchTab('research')">Research</button>
   <button class="tab" onclick="switchTab('powder')">Dry Powder</button>
   <button class="tab" onclick="switchTab('hypothesis')">Hypothesis</button>
+  <button class="tab" onclick="switchTab('frozen')">Frozen Basket</button>
 </div>
 
 <!-- ============ DASHBOARD VIEW ============ -->
@@ -739,6 +736,7 @@ input[type=range]::-webkit-slider-thumb {
           <th onclick="sortMonthlyBy('pnl')">Gain / Loss</th>
           <th onclick="sortMonthlyBy('pnlPct')">Return %</th>
           <th onclick="sortMonthlyBy('annualized')">Annualized</th>
+          <th onclick="sortMonthlyBy('spyPct')">SPY Return %</th>
           <th onclick="sortMonthlyBy('spy')">SPY Equiv.</th>
           <th onclick="sortMonthlyBy('buyCount')"># Buys</th>
           <th onclick="sortMonthlyBy('buyShares')"># Shares Bought</th>
@@ -751,12 +749,44 @@ input[type=range]::-webkit-slider-thumb {
       No dated sales recorded yet.
     </div>
   </div>
+  <div class="table-wrap" style="margin-top:24px">
+    <div style="font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--dim);margin-bottom:8px">Yearly Rollup</div>
+    <table id="yearlyTable">
+      <thead>
+        <tr>
+          <th onclick="sortYearlyBy('year')">Year</th>
+          <th onclick="sortYearlyBy('txCount')"># Sales</th>
+          <th onclick="sortYearlyBy('winRate')">W / L</th>
+          <th onclick="sortYearlyBy('shares')"># Shares Sold</th>
+          <th onclick="sortYearlyBy('sellTotal')">Total $ Sell</th>
+          <th onclick="sortYearlyBy('hold')">Avg Hold</th>
+          <th onclick="sortYearlyBy('pnl')">Gain / Loss</th>
+          <th onclick="sortYearlyBy('pnlPct')">Return %</th>
+          <th onclick="sortYearlyBy('annualized')">Annualized</th>
+          <th onclick="sortYearlyBy('spyPct')">SPY Return %</th>
+          <th onclick="sortYearlyBy('spy')">SPY Equiv.</th>
+          <th onclick="sortYearlyBy('buyCount')"># Buys</th>
+          <th onclick="sortYearlyBy('buyShares')"># Shares Bought</th>
+          <th onclick="sortYearlyBy('buyTotal')">Total $ Buy</th>
+        </tr>
+      </thead>
+      <tbody id="yearlyBody"></tbody>
+    </table>
+    <div class="no-data" id="yearlyEmpty" style="display:none">
+      No dated sales recorded yet.
+    </div>
+  </div>
 </div>
 
 <!-- ============ TRANSACTIONS VIEW ============ -->
 <div class="view" id="view-transactions">
-  <div style="margin-bottom:10px">
+  <div style="margin-bottom:10px;display:flex;align-items:center;gap:10px">
     <button class="btn btn-green" onclick="openAddTxModal(null)">+ Transaction</button>
+    <select id="txTypeFilter" onchange="state.txTypeFilter=this.value;renderTransactions()" style="width:110px">
+      <option value="ALL">All Types</option>
+      <option value="BUY">Buy</option>
+      <option value="SELL">Sell</option>
+    </select>
   </div>
   <div class="table-wrap">
     <table id="txTable">
@@ -776,6 +806,38 @@ input[type=range]::-webkit-slider-thumb {
     </table>
     <div class="no-data" id="txEmpty" style="display:none">
       No transactions yet. Add positions with entry or exit points.
+    </div>
+  </div>
+</div>
+
+<!-- ============ ALERTS VIEW ============ -->
+<div class="view" id="view-alerts">
+  <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
+    <div class="section-label" style="margin-bottom:0">Buy / Sell Target Alerts</div>
+  </div>
+  <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
+    <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:0.1em">
+      <input type="checkbox" id="alertsIncludeClosed" checked onchange="renderAlerts()" style="width:auto;accent-color:var(--cyan)">
+      Include closed/exited tickers
+    </label>
+  </div>
+  <div class="table-wrap">
+    <table id="alertsTable">
+      <thead>
+        <tr>
+          <th>Ticker</th>
+          <th>Price</th>
+          <th>Buy Target</th>
+          <th>Dist</th>
+          <th>Sell Target</th>
+          <th>Dist</th>
+          <th>Status</th>
+        </tr>
+      </thead>
+      <tbody id="alertsBody"></tbody>
+    </table>
+    <div class="no-data" id="alertsEmpty" style="display:none">
+      No buy/sell targets set. Add targets from a position's Deep Dive tab.
     </div>
   </div>
 </div>
@@ -953,6 +1015,78 @@ input[type=range]::-webkit-slider-thumb {
   </div>
 </div>
 
+<!-- ============ FROZEN BASKET VIEW ============ -->
+<div class="view" id="view-frozen">
+  <div style="font-size:11px;color:var(--muted);line-height:1.5;margin-bottom:14px;max-width:960px">
+    Would you have done as well or better by picking the same stocks and never trading them? For each freeze date, the basket is rebuilt exactly as held on that date from lot history only — losers and names you've since exited are included. It's held frozen to today and compared against what your trading actually did with that same basket.
+  </div>
+
+  <div class="hyp-card" id="frozenPrecommitPanel" style="max-width:960px;margin-bottom:16px"></div>
+
+  <div class="hyp-card" style="max-width:960px;margin-bottom:16px">
+    <div style="display:flex;flex-wrap:wrap;gap:16px;align-items:flex-end">
+      <div class="hyp-field" style="margin-bottom:0">
+        <label>Category</label>
+        <select class="input" id="frozenCategory" onchange="renderFrozenBasket()">
+          <option value="all">All</option>
+          <option value="long">Long-Term Hold</option>
+          <option value="spec">Speculative</option>
+          <option value="bullish">Bullish</option>
+          <option value="watch">Watchlist</option>
+        </select>
+      </div>
+      <div class="hyp-field" style="margin-bottom:0">
+        <label>Sweep granularity</label>
+        <select class="input" id="frozenGranularity" onchange="renderFrozenBasket()">
+          <option value="daily" selected>Daily</option>
+          <option value="weekly">Weekly</option>
+        </select>
+      </div>
+      <div class="hyp-field" style="margin-bottom:0">
+        <label>Benchmark overlay</label>
+        <select class="input" id="frozenBenchmark" onchange="renderFrozenBasket()">
+          <option value="none">None</option>
+          <option value="smh">SMH</option>
+          <option value="qqq">QQQ</option>
+          <option value="voo">VOO</option>
+          <option value="blend">50/50 QQQ + SMH</option>
+        </select>
+      </div>
+      <div class="hyp-field" style="margin-bottom:0">
+        <label>Money-fund rate (%)</label>
+        <input type="number" class="input" id="frozenMoneyFundRate" value="4.3" min="0" max="15" step="0.1" style="width:70px" onchange="renderFrozenBasket()">
+      </div>
+      <div class="hyp-field" style="margin-bottom:0;display:flex;align-items:center;gap:6px">
+        <input type="checkbox" id="frozenExcludeMarch" onchange="renderFrozenBasket()" style="width:auto;accent-color:var(--cyan)">
+        <label style="margin-bottom:0;text-transform:none;font-size:11px;color:var(--text)">Exclude March 2026</label>
+      </div>
+      <div class="hyp-field" style="margin-bottom:0">
+        <label>Assumed total capital ($)</label>
+        <input type="number" class="input" id="frozenTotalCapital" value="20000" min="0" step="1000" style="width:90px" onchange="renderFrozenBasket()">
+      </div>
+      <div class="hyp-field" style="margin-bottom:0">
+        <label>Inspect freeze date</label>
+        <div style="display:flex;gap:6px;align-items:center">
+          <input type="date" class="input" id="frozenInspectDate" onchange="this.dataset.userTouched='1';renderFrozenBasket()" style="width:140px">
+          <button class="btn btn-dim" style="font-size:9px;padding:4px 8px" onclick="const el=document.getElementById('frozenInspectDate');el.value='';el.dataset.userTouched='1';renderFrozenBasket()">Clear</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="frozenHeadline" style="max-width:960px;margin-bottom:14px"></div>
+
+  <div class="table-wrap" style="max-width:960px">
+    <div id="frozenChartWrap" style="background:var(--bg1);border:1px solid var(--border);border-radius:3px;padding:10px"></div>
+  </div>
+
+  <div class="table-wrap" id="frozenValueChartOuter" style="max-width:960px;margin-top:12px;display:none">
+    <div id="frozenValueChartWrap" style="background:var(--bg1);border:1px solid var(--border);border-radius:3px;padding:10px"></div>
+  </div>
+
+  <div id="frozenSnapshotWrap" style="max-width:960px;margin-top:16px"></div>
+</div>
+
 <!-- ============ DETAIL PANEL ============ -->
 <div class="detail-panel" id="detailPanel">
   <div id="detailContent"></div>
@@ -1067,6 +1201,7 @@ input[type=range]::-webkit-slider-thumb {
 
 const STORE_KEY = 'signaldesk_v1';
 const POWDER_KEY = 'signaldesk_powder_v1';
+const FROZEN_KEY = 'signaldesk_frozen_precommit_v1';
 
 let state = {
   positions: [],
@@ -1079,8 +1214,11 @@ let state = {
   salesSortDir: -1,
   txSortCol: 'date',
   txSortDir: -1,
+  txTypeFilter: 'ALL',
   monthlySortCol: 'month',
   monthlySortDir: -1,
+  yearlySortCol: 'year',
+  yearlySortDir: -1,
   hypScale: 'log',
   hypStrategies: null
 };
@@ -1602,6 +1740,8 @@ let powderConfig = {
   ]
 };
 
+let frozenPrecommit = { text: '', timestamp: null };
+
 function load() {
   const raw = localStorage.getItem(STORE_KEY);
   if (raw) {
@@ -1615,6 +1755,10 @@ function load() {
   const pr = localStorage.getItem(POWDER_KEY);
   if (pr) {
     try { powderConfig = { ...powderConfig, ...JSON.parse(pr) }; } catch(e) {}
+  }
+  const fr = localStorage.getItem(FROZEN_KEY);
+  if (fr) {
+    try { frozenPrecommit = { ...frozenPrecommit, ...JSON.parse(fr) }; } catch(e) {}
   }
 }
 
@@ -1650,6 +1794,9 @@ const SP_TICKER  = 'SPY';
 const VIX_TICKER = '^VIX';
 const TNX_TICKER = '^TNX';
 const OIL_TICKER = 'CL=F';
+const QQQ_TICKER = 'QQQ';
+const SMH_TICKER = 'SMH';
+const VOO_TICKER = 'VOO';
 
 const PINNED_INFO = [
   { key: '__SPY__', label: 'SPY', color: 'var(--amber)', desc: 'S&P 500',       fmt: p => '$' + fmt2(p) },
@@ -1734,11 +1881,11 @@ async function refreshPrices() {
   const tickers = [...new Set(state.positions.map(p => p.ticker))];
 
   // always fetch market tickers (header ticker needs them even with no positions)
-  const allTickers = [...tickers, SP_TICKER, VIX_TICKER, TNX_TICKER, OIL_TICKER];
+  const allTickers = [...tickers, SP_TICKER, VIX_TICKER, TNX_TICKER, OIL_TICKER, QQQ_TICKER, SMH_TICKER, VOO_TICKER];
 
   const results = await Promise.allSettled(allTickers.map(t => fetchQuote(t)));
 
-  let spyData = null, vixData = null, tnxData = null, oilData = null;
+  let spyData = null, vixData = null, tnxData = null, oilData = null, qqqData = null, smhData = null, vooData = null;
   results.forEach((r, i) => {
     if (r.status === 'fulfilled' && r.value.ok) {
       const data = r.value;
@@ -1747,6 +1894,9 @@ async function refreshPrices() {
       if (ticker === VIX_TICKER) { vixData = data; return; }
       if (ticker === TNX_TICKER) { tnxData = data; return; }
       if (ticker === OIL_TICKER) { oilData = data; return; }
+      if (ticker === QQQ_TICKER) { qqqData = data; return; }
+      if (ticker === SMH_TICKER) { smhData = data; return; }
+      if (ticker === VOO_TICKER) { vooData = data; return; }
       // merge with manual highs if set
       const pos = state.positions.find(p => p.ticker === ticker);
       const manualHighs = parseManualHighs(pos?.manualHighs);
@@ -1831,6 +1981,36 @@ async function refreshPrices() {
       atl: oilData.atl, yr5l: oilData.yr5l, yr2l: oilData.yr2l, yr1l: oilData.yr1l,
       mo6l: oilData.mo6l, mo3l: oilData.mo3l, mo1l: oilData.mo1l, wk1l: oilData.wk1l,
       mo1Open: oilData.mo1Open, raw: oilData
+    };
+  }
+  if (qqqData) {
+    state.prices['__QQQ__'] = {
+      price: qqqData.price, ath: qqqData.ath, yr5: qqqData.yr5, yr2: qqqData.yr2,
+      yr1: qqqData.yr1, mo6: qqqData.mo6, mo3: qqqData.mo3, mo1: qqqData.mo1,
+      wk1: qqqData.wk1,
+      atl: qqqData.atl, yr5l: qqqData.yr5l, yr2l: qqqData.yr2l, yr1l: qqqData.yr1l,
+      mo6l: qqqData.mo6l, mo3l: qqqData.mo3l, mo1l: qqqData.mo1l, wk1l: qqqData.wk1l,
+      mo1Open: qqqData.mo1Open, history: qqqData.history, raw: qqqData
+    };
+  }
+  if (smhData) {
+    state.prices['__SMH__'] = {
+      price: smhData.price, ath: smhData.ath, yr5: smhData.yr5, yr2: smhData.yr2,
+      yr1: smhData.yr1, mo6: smhData.mo6, mo3: smhData.mo3, mo1: smhData.mo1,
+      wk1: smhData.wk1,
+      atl: smhData.atl, yr5l: smhData.yr5l, yr2l: smhData.yr2l, yr1l: smhData.yr1l,
+      mo6l: smhData.mo6l, mo3l: smhData.mo3l, mo1l: smhData.mo1l, wk1l: smhData.wk1l,
+      mo1Open: smhData.mo1Open, history: smhData.history, raw: smhData
+    };
+  }
+  if (vooData) {
+    state.prices['__VOO__'] = {
+      price: vooData.price, ath: vooData.ath, yr5: vooData.yr5, yr2: vooData.yr2,
+      yr1: vooData.yr1, mo6: vooData.mo6, mo3: vooData.mo3, mo1: vooData.mo1,
+      wk1: vooData.wk1,
+      atl: vooData.atl, yr5l: vooData.yr5l, yr2l: vooData.yr2l, yr1l: vooData.yr1l,
+      mo6l: vooData.mo6l, mo3l: vooData.mo3l, mo1l: vooData.mo1l, wk1l: vooData.wk1l,
+      mo1Open: vooData.mo1Open, history: vooData.history, raw: vooData
     };
   }
 
@@ -2208,8 +2388,10 @@ function buildChart(pos, price, entries, exits, range = '1Y') {
   const visibleTrades = trades.filter(e => e.date >= rangeStart);
   const tradePrices = visibleTrades.map(e => e.price);
   const priceVals = pts.map(([,v]) => v);
-  const minP = Math.min(...priceVals, ...tradePrices);
-  const maxP = Math.max(...priceVals, ...tradePrices);
+  const avg = avgCost(entries);
+  const refVals = [avg, pos.buyTarget, pos.sellTarget].filter(v => v);
+  const minP = Math.min(...priceVals, ...tradePrices, ...refVals);
+  const maxP = Math.max(...priceVals, ...tradePrices, ...refVals);
   const pRange = maxP - minP || 1;
 
   const t0 = new Date(rangeStart+'T12:00:00Z').getTime();
@@ -2220,12 +2402,16 @@ function buildChart(pos, price, entries, exits, range = '1Y') {
   const yOf = v => (PT + (1 - (v - minP) / pRange) * (CHART_H - PT - PB)).toFixed(1);
 
   const polyline = pts.map(([d,v]) => `${xOf(d)},${yOf(v)}`).join(' ');
-  const avg = avgCost(entries);
   const lineColor = '#5b8db8'; // neutral blue — not profit/loss coded
 
-  const avgLine = avg && avg >= minP && avg <= maxP
-    ? `<line x1="${PX}" y1="${yOf(avg)}" x2="${W-PX}" y2="${yOf(avg)}" stroke="#4a6070" stroke-width="1" stroke-dasharray="4,3"/>`
+  const refLine = (value, color, label, dotted) => value
+    ? `<line x1="${PX}" y1="${yOf(value)}" x2="${W-PX}" y2="${yOf(value)}" stroke="${color}" stroke-width="0.5" ${dotted ? 'stroke-linecap="round" stroke-dasharray="0.1,3"' : 'stroke-dasharray="4,3"'} opacity="0.85"/>
+       <text x="${W-PX-2}" y="${yOf(value)-2}" text-anchor="end" font-size="6" fill="${color}">${label} $${fmt2(value)}</text>`
     : '';
+
+  const avgLine = refLine(avg, '#7a95a8', 'avg', false);
+  const buyTargetLine = refLine(pos.buyTarget, '#00e5a0', 'buy', true);
+  const sellTargetLine = refLine(pos.sellTarget, '#20d0e0', 'sell', true);
 
   // buy = amber; sell = green if profit, red if loss
   const tradeColor = e => {
@@ -2253,6 +2439,8 @@ function buildChart(pos, price, entries, exits, range = '1Y') {
   return `<svg viewBox="0 0 ${W} ${H}" style="width:100%;height:auto;display:block">
     <rect width="${W}" height="${H}" fill="#080c10" rx="3"/>
     ${avgLine}
+    ${buyTargetLine}
+    ${sellTargetLine}
     <polyline points="${polyline}" fill="none" stroke="${lineColor}" stroke-width="1.5"/>
     ${lineDots}
     <line x1="${PX}" y1="${axisY}" x2="${W-PX}" y2="${axisY}" stroke="#1e3040" stroke-width="0.75"/>
@@ -2408,6 +2596,8 @@ function renderDeepDive(ticker) {
 
   const chartHtml = buildChart(pos, price, entries, exits, ddChartRange);
 
+  const targetsHtml = buildTargetsSection(pos, price, avg, p);
+
   document.getElementById('ddCatBadge').innerHTML = `<span class="cat-badge ${ddCatClass}" title="${thesisTip}" style="cursor:${thesisTip ? 'help' : 'default'}">${ddCatLabel}</span>`;
 
   document.getElementById('deepDiveContent').innerHTML = `
@@ -2458,6 +2648,9 @@ function renderDeepDive(ticker) {
     <div class="entry-chips">${tradeChips || '<span style="color:var(--muted)">None recorded</span>'}</div>
     ${(entries.length || exits.length) ? `<div style="font-size:10px;color:var(--muted);margin-top:6px">${totalShares(entries)} bought${activeShares > 0 ? ' · '+activeShares+' active' : ''}${exits.length ? ' · '+totalShares(exits)+' sold' : ''}${exits.length ? ' · $'+fmt2(totalCost(exits))+' returned' : ''} · $${fmt2(totalCost(entries))} deployed</div>` : ''}
 
+    <div class="section-label">Buy / Sell Targets</div>
+    ${targetsHtml}
+
     <div class="section-label">High-Water Marks</div>
     <div class="windows-grid" style="grid-template-columns:repeat(${windows.length},1fr)">${windowCells}</div>
 
@@ -2480,6 +2673,98 @@ function renderDeepDive(ticker) {
       <button class="btn btn-green" onclick="openAddTxModal('${pos.id}')">+ Transaction</button>
     </div>
   `;
+}
+
+const TARGET_BASIS_LABELS = { cost: 'Cost', price: 'Price', mo1l: '1mo Low', mo1: '1mo High', yr1l: '1yr Low', yr1: '1yr High', ath: 'ATH', atl: 'ATL', rct: 'RCT', rctLow: 'RCT' };
+const TARGET_BUY_PRESETS = [
+  { basis: 'cost', pct: -10 }, { basis: 'cost', pct: -20 },
+  { basis: 'rctLow', pct: -10 }, { basis: 'rctLow', pct: -20 },
+  { basis: 'mo1l', pct: 0 }, { basis: 'mo1l', pct: -5 }, { basis: 'mo1l', pct: 5 },
+  { basis: 'yr1l', pct: 10 }
+];
+const TARGET_SELL_PRESETS = [
+  { basis: 'cost', pct: 10 }, { basis: 'cost', pct: 25 }, { basis: 'cost', pct: 50 },
+  { basis: 'rct', pct: 10 }, { basis: 'rct', pct: 20 },
+  { basis: 'mo1', pct: 0 }, { basis: 'mo1', pct: 5 }, { basis: 'ath', pct: -5 }
+];
+
+// Highest (or lowest) entry price in the last 30 days, or the most recent entry if none fall in that window
+function calcRCT(entries, mode = 'max') {
+  const dated = [...entries.filter(e => e.date)].sort((a, b) => a.date < b.date ? -1 : 1);
+  if (!dated.length) return null;
+  const cutoff = new Date();
+  cutoff.setDate(cutoff.getDate() - 30);
+  const cutoffStr = cutoff.toISOString().split('T')[0];
+  const recent = dated.filter(e => e.date >= cutoffStr);
+  if (!recent.length) return dated[dated.length - 1].price;
+  return mode === 'min' ? Math.min(...recent.map(e => e.price)) : Math.max(...recent.map(e => e.price));
+}
+
+function targetBasisMap(pos, avg, p) {
+  const price = pos.manualPrice || p.price;
+  const entries = parseEntries(pos.entries);
+  const rct = calcRCT(entries, 'max');
+  const rctLow = calcRCT(entries, 'min');
+  return { cost: avg, price, mo1l: p.mo1l, mo1: p.mo1, yr1l: p.yr1l, yr1: p.yr1, ath: p.ath, atl: p.atl, rct, rctLow };
+}
+
+function buildTargetsSection(pos, price, avg, p) {
+  const basisMap = targetBasisMap(pos, avg, p);
+
+  const renderPresetBtn = (field, preset) => {
+    const basisVal = basisMap[preset.basis];
+    const disabled = !basisVal;
+    const label = preset.pct === 0 ? TARGET_BASIS_LABELS[preset.basis] : `${TARGET_BASIS_LABELS[preset.basis]} ${preset.pct >= 0 ? '+' : ''}${preset.pct}%`;
+    const title = basisVal ? '$' + fmt2(basisVal * (1 + preset.pct / 100)) : 'Unavailable';
+    return `<button ${disabled ? 'disabled' : ''} onclick="setTarget('${field}','${pos.id}','${preset.basis}',${preset.pct})" style="font-size:9px;padding:3px 7px;border-radius:3px;border:1px solid var(--border2);background:transparent;color:${disabled ? 'var(--dim)' : 'var(--muted)'};cursor:${disabled ? 'not-allowed' : 'pointer'};font-family:inherit" title="${title}">${label}</button>`;
+  };
+
+  const renderTargetBox = (field, label, presets, color) => {
+    const val = pos[field];
+    const dist = (price && val) ? ((val - price) / price) * 100 : null;
+    const reached = dist !== null && (field === 'buyTarget' ? dist >= 0 : dist <= 0);
+    return `<div style="padding:10px;background:var(--bg2);border:1px solid ${reached ? color : 'var(--border)'};border-radius:4px">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+        <span style="font-size:10px;text-transform:uppercase;letter-spacing:0.08em;color:var(--muted)">${label}</span>
+        ${reached ? `<span style="font-size:9px;font-weight:700;color:${color}">TARGET HIT</span>` : ''}
+      </div>
+      <div style="display:flex;align-items:center;gap:6px;margin-bottom:8px">
+        <span style="color:var(--muted);font-size:13px">$</span>
+        <input type="number" step="0.01" value="${val || ''}" placeholder="—" onchange="updateTarget('${field}','${pos.id}',this.value)" style="width:90px;font-size:13px">
+        ${dist !== null ? `<span style="font-size:10px;color:${reached ? color : 'var(--muted)'}">${dist >= 0 ? '+' : ''}${fmt1(dist)}% vs price</span>` : ''}
+      </div>
+      <div style="display:flex;flex-wrap:wrap;gap:4px">${presets.map(pr => renderPresetBtn(field, pr)).join('')}</div>
+    </div>`;
+  };
+
+  return `<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px">
+    ${renderTargetBox('buyTarget', 'Buy Target', TARGET_BUY_PRESETS, 'var(--green)')}
+    ${renderTargetBox('sellTarget', 'Sell Target', TARGET_SELL_PRESETS, 'var(--cyan)')}
+  </div>`;
+}
+
+function setTarget(field, posId, basisKey, pct) {
+  const pos = state.positions.find(x => x.id === posId);
+  if (!pos) return;
+  const p = state.prices[pos.ticker] || {};
+  const entries = parseEntries(pos.entries);
+  const avg = avgCost(entries);
+  const basisVal = targetBasisMap(pos, avg, p)[basisKey];
+  if (!basisVal) { showAlert('Basis value not available for this ticker', 'error'); return; }
+  pos[field] = Math.round(basisVal * (1 + pct / 100) * 100) / 100;
+  pos.updatedAt = new Date().toISOString();
+  save();
+  renderDeepDive();
+}
+
+function updateTarget(field, posId, value) {
+  const pos = state.positions.find(x => x.id === posId);
+  if (!pos) return;
+  const v = parseFloat(value);
+  pos[field] = (!isNaN(v) && v > 0) ? v : null;
+  pos.updatedAt = new Date().toISOString();
+  save();
+  renderDeepDive();
 }
 
 function renderPinnedDeepDive(pin) {
@@ -3621,7 +3906,13 @@ function saveTx() {
   save();
   closeTxModal();
   renderAll();
-  if (document.getElementById('view-deepdive')?.classList.contains('active')) renderDeepDive();
+  if (document.getElementById('view-deepdive')?.classList.contains('active')) {
+    if (isExited(pos)) {
+      const closedCb = document.getElementById('deepDiveShowClosed');
+      if (closedCb) closedCb.checked = true;
+    }
+    renderDeepDive(pos.ticker);
+  }
   showAlert(`${_txType} recorded for ${pos.ticker}`, 'success');
 }
 
@@ -3697,6 +3988,10 @@ function selectPosition(id) {
   if (row) row.classList.add('selected');
   const pos = state.positions.find(p => p.id === id);
   if (pos) {
+    if (isExited(pos)) {
+      const closedCb = document.getElementById('deepDiveShowClosed');
+      if (closedCb) closedCb.checked = true;
+    }
     switchTab('deepdive');
     renderDeepDive(pos.ticker);
   }
@@ -3852,6 +4147,8 @@ function switchTab(name) {
   if (name === 'sales') renderSalesHistory();
   if (name === 'monthly') renderMonthlySummary();
   if (name === 'transactions') renderTransactions();
+  if (name === 'alerts') renderAlerts();
+  if (name === 'frozen') renderFrozenBasket();
 }
 
 function populateDeepDiveSelect(preferredId) {
@@ -3959,6 +4256,7 @@ function renderSalesHistory() {
       rows.push({
         date: sell.date,
         ticker: pos.ticker,
+        posId: pos.id,
         shares: sell.shares,
         sellPrice: sell.price,
         currentPrice,
@@ -4009,13 +4307,13 @@ function renderSalesHistory() {
   empty.style.display = 'none';
   tbody.innerHTML = rows.map(r => {
     const currentVsSaleHtml = r.currentVsSale !== null
-      ? `<span style="color:${gradeColor(r.currentVsSale)}" aria-label="${r.currentVsSale >= 0 ? 'increase' : 'decrease'} ${fmt1(Math.abs(r.currentVsSale))} percent">${r.currentVsSale >= 0 ? '▲ +' : '▼ '}${fmt1(Math.abs(r.currentVsSale))}%</span>`
+      ? `<span style="color:${gradeColor(-r.currentVsSale)}" aria-label="${r.currentVsSale >= 0 ? 'increase' : 'decrease'} ${fmt1(Math.abs(r.currentVsSale))} percent">${r.currentVsSale >= 0 ? '▲ +' : '▼ '}${fmt1(Math.abs(r.currentVsSale))}%</span>`
       : '<span style="color:var(--muted)">—</span>';
     const pnlHtml = r.matchedShares
       ? `<span style="color:${gradeColor(r.pnl)};font-weight:500">${r.pnl >= 0 ? '+' : '-'}$${fmt2(Math.abs(r.pnl))}</span>${r.unmatchedShares ? `<span style="color:var(--muted)"> (unmatched ${r.unmatchedShares})</span>` : ''}`
       : '<span style="color:var(--muted)">—</span>';
     return `
-    <tr>
+    <tr onclick="selectPosition('${r.posId}')" style="cursor:pointer">
       <td>${r.date || '<span style="color:var(--muted)">—</span>'}</td>
       <td><span class="ticker">${r.ticker}</span>${r.washSale ? ' <span title="Loss within 30 days of a buy — may trigger wash sale rule" style="font-size:9px;font-weight:700;color:#f5a623;border:1px solid #f5a623;border-radius:3px;padding:1px 4px;letter-spacing:0.06em;cursor:help">⚠ WASH?</span>' : ''}${r.noBuy ? ' <span title="Loss sale within last 30 days — buying now would trigger wash sale rule" style="font-size:9px;font-weight:700;color:#e05c5c;border:1px solid #e05c5c;border-radius:3px;padding:1px 4px;letter-spacing:0.06em;cursor:help">🚫 NO BUY</span>' : ''}</td>
       <td>${pnlHtml}</td>
@@ -4146,6 +4444,7 @@ function renderMonthlySummary() {
       case 'pnl':        return r.pnl;
       case 'pnlPct':     return r.pnlPct ?? -Infinity;
       case 'annualized': return r.annualized ?? -Infinity;
+      case 'spyPct':     return r.spyPct ?? -Infinity;
       case 'spy':        return r.spyAnnualized ?? -Infinity;
       case 'buyCount':   return r.buyTxCount;
       case 'buyShares':  return r.buySharesCount;
@@ -4159,7 +4458,7 @@ function renderMonthlySummary() {
   });
 
   document.querySelectorAll('#monthlyTable thead th').forEach(th => th.classList.remove('sort-asc', 'sort-desc'));
-  const thMap = { month: 0, txCount: 1, winRate: 2, shares: 3, sellTotal: 4, hold: 5, pnl: 6, pnlPct: 7, annualized: 8, spy: 9, buyCount: 10, buyShares: 11, buyTotal: 12 };
+  const thMap = { month: 0, txCount: 1, winRate: 2, shares: 3, sellTotal: 4, hold: 5, pnl: 6, pnlPct: 7, annualized: 8, spyPct: 9, spy: 10, buyCount: 11, buyShares: 12, buyTotal: 13 };
   const activeTh = document.querySelectorAll('#monthlyTable thead th')[thMap[state.monthlySortCol]];
   if (activeTh) activeTh.classList.add(state.monthlySortDir === 1 ? 'sort-asc' : 'sort-desc');
 
@@ -4178,6 +4477,9 @@ function renderMonthlySummary() {
       ? `<span style="color:${gradeColor(r.spyAnnualized)}">${r.spyAnnualized >= 0 ? '+' : ''}${fmt1(r.spyAnnualized)}%</span>`
         + `<span style="color:var(--dim);font-size:9px;margin-left:4px">${annLabel}</span>`
       : '<span style="color:var(--muted)">—</span>';
+    const spyPctHtml = r.spyPct !== null
+      ? `<span style="color:${gradeColor(r.spyPct)}">${r.spyPct >= 0 ? '+' : ''}${fmt1(r.spyPct)}%</span>`
+      : '<span style="color:var(--muted)">—</span>';
     const sellTotalHtml = r.totalProceeds > 0
       ? `<span style="color:var(--muted)">$${fmt0(r.totalProceeds)}</span>` : '<span style="color:var(--dim)">—</span>';
     const buyTotalHtml  = r.buyTotalDollar > 0
@@ -4192,12 +4494,15 @@ function renderMonthlySummary() {
       <td>${r.totalCost > 0 ? `<span style="color:${gradeColor(r.pnl)};font-weight:500">${r.pnl >= 0 ? '+' : '-'}$${fmt2(Math.abs(r.pnl))}</span>` : '<span style="color:var(--dim)">—</span>'}</td>
       <td>${r.pnlPct !== null ? `<span style="color:${gradeColor(r.pnlPct)};font-weight:500">${r.pnlPct >= 0 ? '+' : ''}${fmt1(r.pnlPct)}%</span>` : '<span style="color:var(--muted)">—</span>'}</td>
       <td>${annHtml}</td>
+      <td>${spyPctHtml}</td>
       <td>${spyHtml}</td>
       <td style="color:var(--muted)">${r.buyTxCount || '<span style="color:var(--dim)">—</span>'}</td>
       <td style="color:var(--muted)">${r.buySharesCount || '<span style="color:var(--dim)">—</span>'}</td>
       <td>${buyTotalHtml}</td>
     </tr>`;
   }).join('');
+
+  renderYearlySummary(byMonth);
 }
 
 function sortMonthlyBy(col) {
@@ -4206,17 +4511,1004 @@ function sortMonthlyBy(col) {
   renderMonthlySummary();
 }
 
+function renderYearlySummary(byMonth) {
+  const tbody = document.getElementById('yearlyBody');
+  const empty = document.getElementById('yearlyEmpty');
+  if (!tbody || !empty) return;
+
+  const byYear = {};
+  const ensureYear = year => byYear[year] || (byYear[year] = {
+    year,
+    txCount: 0, wins: 0, losses: 0, sharesCount: 0, totalProceeds: 0, totalCost: 0,
+    weightedHoldDays: 0, holdShares: 0,
+    spyPnlDollar: 0, spyCostBasis: 0,
+    buyTxCount: 0, buySharesCount: 0, buyTotalDollar: 0
+  });
+
+  Object.values(byMonth).forEach(m => {
+    const y = ensureYear(m.month.slice(0, 4));
+    y.txCount += m.txCount; y.wins += m.wins; y.losses += m.losses;
+    y.sharesCount += m.sharesCount; y.totalProceeds += m.totalProceeds; y.totalCost += m.totalCost;
+    y.weightedHoldDays += m.weightedHoldDays; y.holdShares += m.holdShares;
+    y.spyPnlDollar += m.spyPnlDollar; y.spyCostBasis += m.spyCostBasis;
+    y.buyTxCount += m.buyTxCount; y.buySharesCount += m.buySharesCount; y.buyTotalDollar += m.buyTotalDollar;
+  });
+
+  const rows = Object.values(byYear).map(y => {
+    const pnl          = y.totalProceeds - y.totalCost;
+    const pnlPct       = y.totalCost > 0 ? pnl / y.totalCost * 100 : null;
+    const avgHoldDays  = y.holdShares > 0 ? y.weightedHoldDays / y.holdShares : null;
+    const annualized   = (pnlPct !== null && avgHoldDays > 0)
+      ? (Math.pow(1 + pnlPct / 100, 365 / avgHoldDays) - 1) * 100 : null;
+    const spyPct       = y.spyCostBasis > 0 ? y.spyPnlDollar / y.spyCostBasis * 100 : null;
+    const spyAnnualized = (spyPct !== null && avgHoldDays > 0)
+      ? (Math.pow(1 + spyPct / 100, 365 / avgHoldDays) - 1) * 100 : null;
+    return { ...y, pnl, pnlPct, avgHoldDays, annualized, spyPct, spyAnnualized };
+  });
+
+  const getVal = r => {
+    switch (state.yearlySortCol) {
+      case 'year':       return r.year;
+      case 'txCount':    return r.txCount;
+      case 'winRate':    return r.txCount > 0 ? r.wins / r.txCount : -Infinity;
+      case 'shares':     return r.sharesCount;
+      case 'sellTotal':  return r.totalProceeds;
+      case 'hold':       return r.avgHoldDays ?? -Infinity;
+      case 'pnl':        return r.pnl;
+      case 'pnlPct':     return r.pnlPct ?? -Infinity;
+      case 'annualized': return r.annualized ?? -Infinity;
+      case 'spyPct':     return r.spyPct ?? -Infinity;
+      case 'spy':        return r.spyAnnualized ?? -Infinity;
+      case 'buyCount':   return r.buyTxCount;
+      case 'buyShares':  return r.buySharesCount;
+      case 'buyTotal':   return r.buyTotalDollar;
+      default:           return 0;
+    }
+  };
+  rows.sort((a, b) => {
+    const av = getVal(a), bv = getVal(b);
+    return (av < bv ? -1 : av > bv ? 1 : 0) * state.yearlySortDir;
+  });
+
+  document.querySelectorAll('#yearlyTable thead th').forEach(th => th.classList.remove('sort-asc', 'sort-desc'));
+  const thMap = { year: 0, txCount: 1, winRate: 2, shares: 3, sellTotal: 4, hold: 5, pnl: 6, pnlPct: 7, annualized: 8, spyPct: 9, spy: 10, buyCount: 11, buyShares: 12, buyTotal: 13 };
+  const activeTh = document.querySelectorAll('#yearlyTable thead th')[thMap[state.yearlySortCol]];
+  if (activeTh) activeTh.classList.add(state.yearlySortDir === 1 ? 'sort-asc' : 'sort-desc');
+
+  if (!rows.length) { tbody.innerHTML = ''; empty.style.display = 'block'; return; }
+  empty.style.display = 'none';
+
+  tbody.innerHTML = rows.map(r => {
+    const holdStr  = r.avgHoldDays !== null ? `${Math.round(r.avgHoldDays)}d` : '—';
+    const annLabel = r.avgHoldDays !== null
+      ? (r.avgHoldDays >= 365 ? 'CAGR' : r.avgHoldDays < 14 ? '~annlzd' : 'annualized') : '';
+    const annHtml = r.annualized !== null
+      ? `<span style="color:${gradeColor(r.annualized)};font-weight:500">${r.annualized >= 0 ? '+' : ''}${fmt1(r.annualized)}%</span>`
+        + `<span style="color:var(--dim);font-size:9px;margin-left:4px">${annLabel} · ${holdStr}</span>`
+      : '<span style="color:var(--muted)">—</span>';
+    const spyHtml = r.spyAnnualized !== null
+      ? `<span style="color:${gradeColor(r.spyAnnualized)}">${r.spyAnnualized >= 0 ? '+' : ''}${fmt1(r.spyAnnualized)}%</span>`
+        + `<span style="color:var(--dim);font-size:9px;margin-left:4px">${annLabel}</span>`
+      : '<span style="color:var(--muted)">—</span>';
+    const spyPctHtml = r.spyPct !== null
+      ? `<span style="color:${gradeColor(r.spyPct)}">${r.spyPct >= 0 ? '+' : ''}${fmt1(r.spyPct)}%</span>`
+      : '<span style="color:var(--muted)">—</span>';
+    const sellTotalHtml = r.totalProceeds > 0
+      ? `<span style="color:var(--muted)">$${fmt0(r.totalProceeds)}</span>` : '<span style="color:var(--dim)">—</span>';
+    const buyTotalHtml  = r.buyTotalDollar > 0
+      ? `<span style="color:var(--muted)">$${fmt0(r.buyTotalDollar)}</span>` : '<span style="color:var(--dim)">—</span>';
+    return `<tr>
+      <td style="font-weight:500;color:var(--text)">${r.year}</td>
+      <td style="color:var(--muted)">${r.txCount || '<span style="color:var(--dim)">—</span>'}</td>
+      <td>${r.txCount ? `<span style="color:var(--green)">${r.wins}</span><span style="color:var(--dim)"> / </span><span style="color:${r.losses > 0 ? 'var(--red)' : 'var(--dim)'}">${r.losses}</span>` : '<span style="color:var(--dim)">—</span>'}</td>
+      <td style="color:var(--muted)">${r.sharesCount || '<span style="color:var(--dim)">—</span>'}</td>
+      <td>${sellTotalHtml}</td>
+      <td style="color:var(--muted)">${holdStr}</td>
+      <td>${r.totalCost > 0 ? `<span style="color:${gradeColor(r.pnl)};font-weight:500">${r.pnl >= 0 ? '+' : '-'}$${fmt2(Math.abs(r.pnl))}</span>` : '<span style="color:var(--dim)">—</span>'}</td>
+      <td>${r.pnlPct !== null ? `<span style="color:${gradeColor(r.pnlPct)};font-weight:500">${r.pnlPct >= 0 ? '+' : ''}${fmt1(r.pnlPct)}%</span>` : '<span style="color:var(--muted)">—</span>'}</td>
+      <td>${annHtml}</td>
+      <td>${spyPctHtml}</td>
+      <td>${spyHtml}</td>
+      <td style="color:var(--muted)">${r.buyTxCount || '<span style="color:var(--dim)">—</span>'}</td>
+      <td style="color:var(--muted)">${r.buySharesCount || '<span style="color:var(--dim)">—</span>'}</td>
+      <td>${buyTotalHtml}</td>
+    </tr>`;
+  }).join('');
+}
+
+function sortYearlyBy(col) {
+  if (state.yearlySortCol === col) state.yearlySortDir *= -1;
+  else { state.yearlySortCol = col; state.yearlySortDir = col === 'year' ? -1 : 1; }
+  renderMonthlySummary();
+}
+
+// ═══════════════════════════════════════════
+// FROZEN BASKET
+// ═══════════════════════════════════════════
+
+function getTickerHistory(ticker) {
+  if (ticker.startsWith('__')) return state.prices[ticker]?.history || null;
+  return state.prices[ticker]?.raw?.history || null;
+}
+
+function nearestPrice(ticker, date) {
+  const h = getTickerHistory(ticker);
+  if (!h) return null;
+  if (h[date]) return h[date];
+  const d = new Date(date + 'T12:00:00');
+  for (let i = 1; i <= 7; i++) {
+    const fwd = new Date(d); fwd.setDate(fwd.getDate() + i);
+    const bck = new Date(d); bck.setDate(bck.getDate() - i);
+    const fk = fwd.toISOString().split('T')[0];
+    const bk = bck.toISOString().split('T')[0];
+    if (h[fk]) return h[fk];
+    if (h[bk]) return h[bk];
+  }
+  return null;
+}
+
+// Rebuild the basket exactly as held on dateStr, using only entries/exits dated on
+// or before dateStr — never today's holdings. Returns per-ticker remaining lots plus
+// the real exits that happened *after* dateStr, needed to replay actual trading forward.
+function basketAsOf(dateStr, categoryFilter) {
+  const result = [];
+  state.positions.forEach(pos => {
+    if (categoryFilter !== 'all' && pos.category !== categoryFilter) return;
+    const allEntries = parseEntries(pos.entries);
+    const allExits = parseEntries(pos.exits);
+    const entriesToDate = allEntries.filter(e => e.date && e.date <= dateStr);
+    if (!entriesToDate.length) return;
+
+    const chronoAsc = (a, b) => (a.date || '9999-99-99').localeCompare(b.date || '9999-99-99');
+    const lots = [...entriesToDate].sort(chronoAsc).map(e => ({ buyDate: e.date, buyPrice: e.price, remaining: e.shares }));
+    const exitsToDate = allExits.filter(e => e.date && e.date <= dateStr).sort(chronoAsc);
+
+    exitsToDate.forEach(sell => {
+      let toSell = sell.shares;
+      for (const lot of lots) {
+        if (lot.remaining <= 0 || toSell <= 0) continue;
+        const matched = Math.min(lot.remaining, toSell);
+        lot.remaining -= matched;
+        toSell -= matched;
+      }
+    });
+
+    const openLots = lots.filter(l => l.remaining > 0);
+    const sharesAtT = openLots.reduce((s, l) => s + l.remaining, 0);
+    if (sharesAtT <= 0) return;
+
+    const exitsAfterT = allExits.filter(e => e.date && e.date > dateStr).sort(chronoAsc);
+    result.push({ ticker: pos.ticker, category: pos.category, lots: openLots, sharesAtT, exitsAfterT });
+  });
+  return result;
+}
+
+// For one ticker's t-snapshot: frozen = shares × today's price, untouched.
+// Traded = replay the real sells that happened after t against those exact lots
+// (oldest-first, same FIFO convention used everywhere else in this app); each real
+// sale converts that chunk into cash compounding at the money-fund rate from its
+// actual sale date to today. Shares never resold stay marked to today's price.
+// No new tickers bought after t are introduced — this isolates what happened to
+// the t-basket itself, not the whole account.
+function frozenAndTradedValue(entry, freezeDate, todayStr, moneyFundRatePct) {
+  const startPrice = nearestPrice(entry.ticker, freezeDate);
+  const todayPrice = nearestPrice(entry.ticker, todayStr);
+  if (startPrice == null || todayPrice == null) return null;
+
+  const startValue = entry.sharesAtT * startPrice;
+  const frozenEndValue = entry.sharesAtT * todayPrice;
+
+  const lots = entry.lots.map(l => ({ ...l }));
+  let cash = 0;
+  let soldShares = 0;
+  let realizedGainVsFreeze = 0;
+  entry.exitsAfterT.forEach(sell => {
+    let toSell = sell.shares;
+    const daysToToday = (new Date(todayStr) - new Date(sell.date)) / 86400000;
+    for (const lot of lots) {
+      if (lot.remaining <= 0 || toSell <= 0) continue;
+      const matched = Math.min(lot.remaining, toSell);
+      lot.remaining -= matched;
+      toSell -= matched;
+      const proceeds = matched * sell.price;
+      cash += proceeds * Math.pow(1 + moneyFundRatePct / 100, Math.max(daysToToday, 0) / 365);
+      soldShares += matched;
+      realizedGainVsFreeze += matched * (sell.price - startPrice);
+    }
+  });
+  const remainingShares = lots.reduce((s, l) => s + l.remaining, 0);
+  const tradedEndValue = remainingShares * todayPrice + cash;
+  const realizedGainVsFreezeBasis = soldShares * startPrice;
+
+  return {
+    startValue, frozenEndValue, tradedEndValue, remainingShares, cash,
+    soldShares, realizedGainVsFreeze, realizedGainVsFreezeBasis
+  };
+}
+
+function benchmarkReturnPct(ticker, freezeDate, todayStr) {
+  const p0 = nearestPrice(ticker, freezeDate);
+  const p1 = nearestPrice(ticker, todayStr);
+  if (p0 == null || p1 == null) return null;
+  return (p1 / p0 - 1) * 100;
+}
+
+function computeFrozenBasketSweep(opts) {
+  const todayStr = new Date().toISOString().split('T')[0];
+  const cutoff = new Date();
+  cutoff.setDate(cutoff.getDate() - 30);
+  const cutoffStr = cutoff.toISOString().split('T')[0];
+
+  let firstBuy = null;
+  state.positions.forEach(pos => {
+    if (opts.categoryFilter !== 'all' && pos.category !== opts.categoryFilter) return;
+    parseEntries(pos.entries).forEach(e => {
+      if (e.date && (!firstBuy || e.date < firstBuy)) firstBuy = e.date;
+    });
+  });
+  if (!firstBuy || firstBuy > cutoffStr) return { points: [], todayStr };
+
+  const sweepStart = (opts.excludeMarch2026 && firstBuy < '2026-04-01') ? '2026-04-01' : firstBuy;
+  if (sweepStart > cutoffStr) return { points: [], todayStr };
+
+  const stepDays = opts.granularity === 'daily' ? 1 : 7;
+  const points = [];
+  const d = new Date(sweepStart + 'T12:00:00');
+  const endD = new Date(cutoffStr + 'T12:00:00');
+
+  while (d <= endD) {
+    const dateStr = d.toISOString().split('T')[0];
+    const basket = basketAsOf(dateStr, opts.categoryFilter);
+    if (basket.length) {
+      const totals = computeOptionTotals(dateStr, opts.categoryFilter, opts.moneyFundRate, opts.totalCapital, todayStr, basket);
+      if (totals) {
+        points.push({
+          date: dateStr,
+          diff: (totals.totalValueB - totals.totalValueA) / opts.totalCapital * 100,
+          valueA: totals.totalValueA,
+          valueB: totals.totalValueB,
+          sumStart: totals.sumStart,
+          cashA: totals.cashA
+        });
+      }
+    }
+    d.setDate(d.getDate() + stepDays);
+  }
+  return { points, todayStr };
+}
+
+// Full-reality Option A / Option B total portfolio+cash value as of todayStr, for a
+// basket frozen at dateStr. Shared by the sweep (per freeze-date value chart) and the
+// single-date snapshot table so both use the identical definition.
+function computeOptionTotals(dateStr, category, moneyFundRate, totalCapital, todayStr, basketArg) {
+  const basket = basketArg || basketAsOf(dateStr, category);
+  if (!basket.length) return null;
+  const heldAtT = new Set(basket.map(e => e.ticker));
+
+  let sumStart = 0, sumFrozen = 0;
+  const group1Info = [];
+  basket.forEach(entry => {
+    const startPrice = nearestPrice(entry.ticker, dateStr);
+    const todayPrice = nearestPrice(entry.ticker, todayStr);
+    if (startPrice == null || todayPrice == null) return;
+    sumStart += entry.sharesAtT * startPrice;
+    sumFrozen += entry.sharesAtT * todayPrice;
+    const pos = state.positions.find(p => p.ticker === entry.ticker);
+    const priorLotsB = entry.lots.map(l => ({ ...l, buyPrice: startPrice }));
+    group1Info.push({ pos, priorLotsB });
+  });
+  if (sumStart <= 0) return null;
+
+  const group23 = [];
+  const cashEvents = [];
+  state.positions.forEach(pos => {
+    if (category !== 'all' && pos.category !== category) return;
+    parseEntries(pos.exits).forEach(e => {
+      if (e.date && e.date > dateStr) cashEvents.push({ date: e.date, amount: e.shares * e.price });
+    });
+    parseEntries(pos.entries).forEach(e => {
+      if (e.date && e.date > dateStr) cashEvents.push({ date: e.date, amount: -(e.shares * e.price) });
+    });
+    if (heldAtT.has(pos.ticker)) return;
+    const entries = parseEntries(pos.entries);
+    if (!entries.some(e => e.date && e.date > dateStr)) return;
+    group23.push(pos);
+  });
+  cashEvents.sort((a, b) => a.date.localeCompare(b.date));
+
+  let sumPositionsToday = 0;
+  group1Info.forEach(info => {
+    const b = sinceTPosition(info.pos, dateStr, todayStr, info.priorLotsB);
+    if (b.valueToday != null) sumPositionsToday += b.valueToday;
+  });
+  group23.forEach(pos => {
+    const b = sinceTPosition(pos, dateStr, todayStr, []);
+    if (b.valueToday != null) sumPositionsToday += b.valueToday;
+  });
+
+  const cashOnHandStart = totalCapital - sumStart;
+  const daysToToday = Math.max((new Date(todayStr) - new Date(dateStr)) / 86400000, 0);
+  const cashA = cashOnHandStart * Math.pow(1 + moneyFundRate / 100, daysToToday / 365);
+
+  let cashRunning = cashOnHandStart, prevDate = dateStr;
+  cashEvents.forEach(ev => {
+    const gapDays = Math.max((new Date(ev.date) - new Date(prevDate)) / 86400000, 0);
+    cashRunning *= Math.pow(1 + moneyFundRate / 100, gapDays / 365);
+    cashRunning += ev.amount;
+    prevDate = ev.date;
+  });
+  const tailDays = Math.max((new Date(todayStr) - new Date(prevDate)) / 86400000, 0);
+  cashRunning *= Math.pow(1 + moneyFundRate / 100, tailDays / 365);
+  const cashB = cashRunning;
+
+  return {
+    sumStart, sumFrozen, sumPositionsToday, cashOnHandStart, cashA, cashB,
+    totalValueA: sumFrozen + cashA,
+    totalValueB: sumPositionsToday + cashB
+  };
+}
+
+function summarizeFrozenSweep(points) {
+  const diffs = points.map(p => p.diff);
+  const n = diffs.length;
+  const wins = diffs.filter(v => v > 0).length;
+  const losses = diffs.filter(v => v < 0).length;
+  const winPct = n ? wins / n * 100 : 0;
+  const inconclusive = wins > 0 && losses > 0;
+  return { n, wins, losses, winPct, inconclusive };
+}
+
+// Same allocation split as Option A: only the amount actually invested at T tracks the
+// benchmark's return; the rest of totalCapital sits in the money fund (cashA), exactly
+// as Option A's own cash component does. Without this, the benchmark line would assume
+// 100% invested — a different, more aggressive allocation than A or B represent.
+const BENCHMARK_TICKERS = { smh: '__SMH__', qqq: '__QQQ__', voo: '__VOO__' };
+
+function buildBenchmarkOverlay(points, mode, todayStr) {
+  if (mode === 'none') return null;
+  const bpts = points.map(p => {
+    if (p.sumStart == null || p.cashA == null) return null;
+    let benchPct;
+    if (mode === 'blend') {
+      const q = benchmarkReturnPct('__QQQ__', p.date, todayStr);
+      const s = benchmarkReturnPct('__SMH__', p.date, todayStr);
+      benchPct = (q == null || s == null) ? null : (q + s) / 2;
+    } else {
+      benchPct = benchmarkReturnPct(BENCHMARK_TICKERS[mode], p.date, todayStr);
+    }
+    return benchPct == null ? null : { date: p.date, value: p.sumStart * (1 + benchPct / 100) + p.cashA };
+  }).filter(Boolean);
+  return bpts.length > 1 ? bpts : null;
+}
+
+function buildFrozenChart(points, benchPoints, markerDate, todayStr, totalCapital, moneyFundRate, benchLabel) {
+  const valid = points.filter(p => p.valueA != null && p.valueB != null);
+  if (valid.length < 2) {
+    return '<div style="color:var(--muted);font-size:11px;padding:24px 0;text-align:center">Not enough freeze dates in this sweep to chart.</div>';
+  }
+  const W = 700, H = 220, PX = 10, PT = 14, PB = 20;
+  // Extend the axis end to today (not just the last freeze date, which stops 30 days
+  // early) so the value-over-time chart below can share this exact same x-domain.
+  const domainEnd = todayStr || valid[valid.length - 1].date;
+  const t0 = new Date(valid[0].date + 'T12:00:00').getTime();
+  const t1 = new Date(domainEnd + 'T12:00:00').getTime();
+  const tRange = (t1 - t0) || 1;
+
+  // Money-fund reference: what totalCapital placed in a money fund AT that freeze date
+  // would be worth TODAY — same convention as Option A/B (always evaluated at today).
+  // Earlier freeze dates (further left) have longer to compound by today, so this line
+  // slopes down left-to-right, reaching totalCapital itself at today (the right edge).
+  const capValueAt = ms => totalCapital * Math.pow(1 + moneyFundRate / 100, Math.max((t1 - ms) / 86400000, 0) / 365);
+  const capPoints = valid.map(p => ({ date: p.date, value: capValueAt(new Date(p.date + 'T12:00:00').getTime()) }));
+  const capStartValue = capValueAt(t0);
+
+  const allVals = valid.flatMap(p => [p.valueA, p.valueB])
+    .concat(benchPoints ? benchPoints.map(p => p.value) : [])
+    .concat(capPoints.map(p => p.value));
+  const minV = Math.min(...allVals), maxV = Math.max(...allVals);
+  const vRange = (maxV - minV) || 1;
+
+  const xOf = d => ((new Date(d + 'T12:00:00').getTime() - t0) / tRange * (W - 2 * PX) + PX).toFixed(1);
+  const yOf = v => (PT + (1 - (v - minV) / vRange) * (H - PT - PB)).toFixed(1);
+  const capPoly = capPoints.map(p => `${xOf(p.date)},${yOf(p.value)}`).join(' ');
+  const capStartY = yOf(capStartValue);
+
+  const polyA = valid.map(p => `${xOf(p.date)},${yOf(p.valueA)}`).join(' ');
+  const polyB = valid.map(p => `${xOf(p.date)},${yOf(p.valueB)}`).join(' ');
+  let benchSvg = '';
+  if (benchPoints) {
+    const bpoly = benchPoints.map(p => `${xOf(p.date)},${yOf(p.value)}`).join(' ');
+    benchSvg = `<polyline points="${bpoly}" fill="none" stroke="#9a7bd0" stroke-width="1.2" stroke-dasharray="4,3" opacity="0.85"/>`;
+  }
+
+  let markerSvg = '';
+  if (markerDate && markerDate >= valid[0].date && markerDate <= domainEnd) {
+    const mx = xOf(markerDate);
+    markerSvg = `<line class="frozen-marker-line" x1="${mx}" y1="${PT}" x2="${mx}" y2="${H - PB}" stroke="#f0a040" stroke-width="1.2" stroke-dasharray="2,2"/>
+      <text class="frozen-marker-label" x="${mx}" y="${PT - 3}" text-anchor="middle" font-size="8" fill="#f0a040">${markerDate}</text>`;
+  }
+
+  const legend = [
+    { label: 'Option A (freeze)', color: '#5b8db8', dash: false },
+    { label: 'Option B (reality)', color: '#00cc88', dash: false }
+  ];
+  if (benchPoints) legend.push({ label: benchLabel || 'Benchmark', color: '#9a7bd0', dash: true });
+  legend.push({ label: `$${fmt0(totalCapital)} @ money fund`, color: 'var(--dim)', dash: true });
+  const legendSvg = legend.map((item, i) =>
+    `<text x="${W - PX}" y="${PT + i * 10}" text-anchor="end" font-size="9" fill="${item.color}">${item.dash ? '- - -' : '—'} ${item.label}</text>`
+  ).join('');
+
+  return `<svg viewBox="0 0 ${W} ${H}" style="width:100%;height:auto;display:block;cursor:ew-resize" data-domain-start="${valid[0].date}" data-domain-end="${domainEnd}">
+    <polyline points="${capPoly}" fill="none" stroke="var(--border2)" stroke-width="1" stroke-dasharray="3,3"/>
+    <text x="${PX}" y="${capStartY - 4}" font-size="9" fill="var(--dim)">$${fmt0(capStartValue)}</text>
+    ${benchSvg}
+    <polyline points="${polyA}" fill="none" stroke="#5b8db8" stroke-width="1.6"/>
+    <polyline points="${polyB}" fill="none" stroke="#00cc88" stroke-width="1.6"/>
+    ${markerSvg}
+    ${legendSvg}
+    <text x="${PX}" y="${H - 4}" font-size="9" fill="var(--dim)">${valid[0].date}</text>
+    <text x="${W - PX}" y="${H - 4}" text-anchor="end" font-size="9" fill="var(--dim)">${domainEnd}</text>
+  </svg>`;
+}
+
+// Replays only the transactions after dateStr: starts from priorLots (the T-basket's
+// actual lots for a ticker held at T, or [] for a ticker not held at T), adds any buys
+// after T as new lots, then FIFO-matches any sells after T against that combined pool.
+// Sells/buys at or before T are not replayed — they're already baked into priorLots.
+function sinceTPosition(pos, dateStr, todayStr, priorLots, asOfDate) {
+  const asOf = asOfDate || todayStr;
+  const chronoAsc = (a, b) => (a.date || '9999-99-99').localeCompare(b.date || '9999-99-99');
+  const newLots = parseEntries(pos.entries)
+    .filter(e => e.date && e.date > dateStr && e.date <= asOf)
+    .sort(chronoAsc)
+    .map(e => ({ buyDate: e.date, buyPrice: e.price, remaining: e.shares }));
+  const lots = [...priorLots.map(l => ({ ...l })), ...newLots];
+
+  const exitsAfterT = parseEntries(pos.exits).filter(e => e.date && e.date > dateStr && e.date <= asOf).sort(chronoAsc);
+
+  let realizedPnl = 0, soldCostBasis = 0;
+  exitsAfterT.forEach(sell => {
+    let toSell = sell.shares;
+    for (const lot of lots) {
+      if (lot.remaining <= 0 || toSell <= 0) continue;
+      const matched = Math.min(lot.remaining, toSell);
+      lot.remaining -= matched;
+      toSell -= matched;
+      realizedPnl += matched * (sell.price - lot.buyPrice);
+      soldCostBasis += matched * lot.buyPrice;
+    }
+  });
+
+  const activeShares = lots.reduce((s, l) => s + l.remaining, 0);
+  const activeCostBasis = lots.reduce((s, l) => s + l.remaining * l.buyPrice, 0);
+  const price = nearestPrice(pos.ticker, asOf);
+  const valueToday = activeShares === 0 ? 0 : (price != null ? activeShares * price : null);
+  const gain = valueToday !== null ? valueToday - activeCostBasis : null;
+  const gainPct = (gain !== null && activeCostBasis > 0) ? gain / activeCostBasis * 100 : null;
+  const realizedPct = soldCostBasis > 0 ? realizedPnl / soldCostBasis * 100 : null;
+  const saleCount = exitsAfterT.length;
+  return { activeShares, valueToday, activeCostBasis, gain, gainPct, realizedPnl, realizedPct, saleCount };
+}
+
+// Cash balance as of asOf: walks the same chronological event list used for the "today"
+// figure, but stops compounding/applying events once past asOf.
+function cashRunningAsOf(cashEventsSorted, cashOnHandStart, dateStr, asOf, moneyFundRate) {
+  let cashRunning = cashOnHandStart;
+  let prevDate = dateStr;
+  for (const ev of cashEventsSorted) {
+    if (ev.date > asOf) break;
+    const gapDays = Math.max((new Date(ev.date) - new Date(prevDate)) / 86400000, 0);
+    cashRunning *= Math.pow(1 + moneyFundRate / 100, gapDays / 365);
+    cashRunning += ev.amount;
+    prevDate = ev.date;
+  }
+  const tailDays = Math.max((new Date(asOf) - new Date(prevDate)) / 86400000, 0);
+  cashRunning *= Math.pow(1 + moneyFundRate / 100, tailDays / 365);
+  return cashRunning;
+}
+
+// Builds the day-by-day (or week-by-week) trajectory of Option A (frozen) and Option B
+// (reality) total portfolio+cash value, from the freeze date forward to today.
+function buildOptionsTimeSeries(dateStr, category, moneyFundRate, totalCapital, todayStr, granularity) {
+  const basket = basketAsOf(dateStr, category);
+  if (!basket.length) return null;
+  const heldAtT = new Set(basket.map(e => e.ticker));
+
+  let sumStart = 0;
+  const group1Info = [];
+  basket.forEach(entry => {
+    const startPrice = nearestPrice(entry.ticker, dateStr);
+    if (startPrice == null) return;
+    sumStart += entry.sharesAtT * startPrice;
+    const pos = state.positions.find(p => p.ticker === entry.ticker);
+    const priorLotsB = entry.lots.map(l => ({ ...l, buyPrice: startPrice }));
+    group1Info.push({ ticker: entry.ticker, sharesAtT: entry.sharesAtT, pos, priorLotsB });
+  });
+
+  const group23Info = [];
+  const cashEvents = [];
+  state.positions.forEach(pos => {
+    if (category !== 'all' && pos.category !== category) return;
+    parseEntries(pos.exits).forEach(e => {
+      if (e.date && e.date > dateStr) cashEvents.push({ date: e.date, amount: e.shares * e.price });
+    });
+    parseEntries(pos.entries).forEach(e => {
+      if (e.date && e.date > dateStr) cashEvents.push({ date: e.date, amount: -(e.shares * e.price) });
+    });
+    if (heldAtT.has(pos.ticker)) return;
+    const entries = parseEntries(pos.entries);
+    if (!entries.some(e => e.date && e.date > dateStr)) return;
+    group23Info.push({ ticker: pos.ticker, pos });
+  });
+  cashEvents.sort((a, b) => a.date.localeCompare(b.date));
+
+  const cashOnHandStart = totalCapital - sumStart;
+  const stepDays = granularity === 'daily' ? 1 : 7;
+  const points = [];
+  const d = new Date(dateStr + 'T12:00:00');
+  const endD = new Date(todayStr + 'T12:00:00');
+  let reachedEnd = false;
+
+  while (!reachedEnd) {
+    let s = d.toISOString().split('T')[0];
+    if (d >= endD) { s = todayStr; reachedEnd = true; }
+
+    let valueA = 0, valueB = 0;
+    group1Info.forEach(info => {
+      const price = nearestPrice(info.ticker, s);
+      if (price == null) return;
+      valueA += info.sharesAtT * price;
+      const b = sinceTPosition(info.pos, dateStr, todayStr, info.priorLotsB, s);
+      if (b.valueToday != null) valueB += b.valueToday;
+    });
+    group23Info.forEach(info => {
+      const b = sinceTPosition(info.pos, dateStr, todayStr, [], s);
+      if (b.valueToday != null) valueB += b.valueToday;
+    });
+
+    const daysFromT = Math.max((new Date(s) - new Date(dateStr)) / 86400000, 0);
+    const cashA_s = cashOnHandStart * Math.pow(1 + moneyFundRate / 100, daysFromT / 365);
+    const cashB_s = cashRunningAsOf(cashEvents, cashOnHandStart, dateStr, s, moneyFundRate);
+
+    points.push({ date: s, valueA: valueA + cashA_s, valueB: valueB + cashB_s });
+    d.setDate(d.getDate() + stepDays);
+  }
+  return points;
+}
+
+function buildOptionsChart(points, dateStr, sweepPoints, todayStr) {
+  if (!points || points.length < 2) {
+    return '<div style="color:var(--muted);font-size:11px;padding:24px 0;text-align:center">Not enough price history to chart this freeze date.</div>';
+  }
+  const W = 700, H = 220, PX = 10, PT = 14, PB = 20;
+  const allVals = points.flatMap(p => [p.valueA, p.valueB]);
+  const minV = Math.min(...allVals), maxV = Math.max(...allVals);
+  const vRange = (maxV - minV) || 1;
+  // Share the exact same x-domain as the sweep chart above (same start date, same end
+  // date) so the two charts' vertical freeze-date markers line up pixel-for-pixel.
+  const domainStart = (sweepPoints && sweepPoints.length) ? sweepPoints[0].date : points[0].date;
+  const domainEnd = todayStr || points[points.length - 1].date;
+  const t0 = new Date(domainStart + 'T12:00:00').getTime();
+  const t1 = new Date(domainEnd + 'T12:00:00').getTime();
+  const tRange = (t1 - t0) || 1;
+
+  const xOf = d => ((new Date(d + 'T12:00:00').getTime() - t0) / tRange * (W - 2 * PX) + PX).toFixed(1);
+  const yOf = v => (PT + (1 - (v - minV) / vRange) * (H - PT - PB)).toFixed(1);
+
+  const polyA = points.map(p => `${xOf(p.date)},${yOf(p.valueA)}`).join(' ');
+  const polyB = points.map(p => `${xOf(p.date)},${yOf(p.valueB)}`).join(' ');
+  const markerX = xOf(dateStr);
+
+  return `<svg viewBox="0 0 ${W} ${H}" style="width:100%;height:auto;display:block;cursor:ew-resize" data-domain-start="${domainStart}" data-domain-end="${domainEnd}">
+    <line class="frozen-marker-line" x1="${markerX}" y1="${PT}" x2="${markerX}" y2="${H - PB}" stroke="#f0a040" stroke-width="1.2" stroke-dasharray="2,2"/>
+    <polyline points="${polyA}" fill="none" stroke="#5b8db8" stroke-width="1.6"/>
+    <polyline points="${polyB}" fill="none" stroke="#00cc88" stroke-width="1.6"/>
+    <text x="${W - PX}" y="${PT}" text-anchor="end" font-size="9" fill="#5b8db8">— Option A (freeze)</text>
+    <text x="${W - PX}" y="${PT + 11}" text-anchor="end" font-size="9" fill="#00cc88">— Option B (reality)</text>
+    <text x="${PX}" y="${H - 4}" font-size="9" fill="var(--dim)">${domainStart}</text>
+    <text x="${W - PX}" y="${H - 4}" text-anchor="end" font-size="9" fill="var(--dim)">${domainEnd}</text>
+  </svg>`;
+}
+
+function buildFrozenSnapshotTable(dateStr, category, moneyFundRate, totalCapital, todayStr) {
+  const basket = basketAsOf(dateStr, category);
+  if (!basket.length) {
+    return `<div class="hyp-card" style="font-size:11px;color:var(--muted)">No basket held under this filter as of ${dateStr}.</div>`;
+  }
+  const heldAtT = new Set(basket.map(e => e.ticker));
+
+  let sumStart = 0, sumFrozen = 0;
+  const group1 = basket.map(entry => {
+    const r = frozenAndTradedValue(entry, dateStr, todayStr, moneyFundRate);
+    if (!r) return null;
+    sumStart += r.startValue;
+    sumFrozen += r.frozenEndValue;
+    const gainA = r.frozenEndValue - r.startValue;
+    const gainAPct = r.startValue > 0 ? gainA / r.startValue * 100 : null;
+    const pos = state.positions.find(p => p.ticker === entry.ticker);
+    // Cost basis for shares already held at T is re-based to their value at T (not their
+    // original purchase price), so Option A and Option B measure gain from the same
+    // starting point. Shares bought after T keep their real purchase cost.
+    const startPrice = nearestPrice(entry.ticker, dateStr);
+    const priorLots = entry.lots.map(l => ({ ...l, buyPrice: startPrice != null ? startPrice : l.buyPrice }));
+    return { ticker: entry.ticker, shares: entry.sharesAtT, startValue: r.startValue, frozenEndValue: r.frozenEndValue, gainA, gainAPct, b: sinceTPosition(pos, dateStr, todayStr, priorLots) };
+  }).filter(Boolean).sort((a, b) => b.startValue - a.startValue);
+
+  const group2 = [], group3 = [];
+  const cashEvents = [];
+  state.positions.forEach(pos => {
+    if (category !== 'all' && pos.category !== category) return;
+    parseEntries(pos.exits).forEach(e => {
+      if (!e.date || e.date <= dateStr) return;
+      cashEvents.push({ date: e.date, amount: e.shares * e.price });
+    });
+    parseEntries(pos.entries).forEach(e => {
+      if (!e.date || e.date <= dateStr) return;
+      cashEvents.push({ date: e.date, amount: -(e.shares * e.price) });
+    });
+    if (heldAtT.has(pos.ticker)) return;
+    const entries = parseEntries(pos.entries);
+    if (!entries.some(e => e.date && e.date > dateStr)) return;
+    const b = sinceTPosition(pos, dateStr, todayStr, []);
+    (b.activeShares > 0 ? group2 : group3).push({ ticker: pos.ticker, b });
+  });
+  group2.sort((a, b) => (b.b.activeCostBasis || 0) - (a.b.activeCostBasis || 0));
+  group3.sort((a, b) => (b.b.activeCostBasis || 0) - (a.b.activeCostBasis || 0));
+
+  let sumPositionsToday = 0, sumCostBasisOpen = 0, sumRealizedTotal = 0;
+  [...group1, ...group2, ...group3].forEach(r => {
+    sumPositionsToday += r.b.valueToday || 0;
+    sumCostBasisOpen += r.b.activeCostBasis || 0;
+    sumRealizedTotal += r.b.realizedPnl || 0;
+  });
+
+  const cashOnHandStart = totalCapital - sumStart;
+  const daysToToday = Math.max((new Date(todayStr) - new Date(dateStr)) / 86400000, 0);
+  const cashGrown = cashOnHandStart * Math.pow(1 + moneyFundRate / 100, daysToToday / 365);
+  const cashA = cashGrown;
+
+  // Option B cash: walk the actual chronological sequence of buys/sells, compounding the
+  // running balance between events — not growing each cash flow in isolation, which would
+  // double-count growth on money that hadn't arrived yet or was already spent.
+  cashEvents.sort((a, b) => a.date.localeCompare(b.date));
+  let cashRunning = cashOnHandStart;
+  let prevDate = dateStr;
+  cashEvents.forEach(ev => {
+    const gapDays = Math.max((new Date(ev.date) - new Date(prevDate)) / 86400000, 0);
+    cashRunning *= Math.pow(1 + moneyFundRate / 100, gapDays / 365);
+    cashRunning += ev.amount;
+    prevDate = ev.date;
+  });
+  const tailDays = Math.max((new Date(todayStr) - new Date(prevDate)) / 86400000, 0);
+  cashRunning *= Math.pow(1 + moneyFundRate / 100, tailDays / 365);
+  const cashB = cashRunning;
+
+  const td = 'style="padding:4px 6px"';
+  const dash = '<span style="color:var(--muted)">—</span>';
+  const moneyOrDash = v => (v === null || v === undefined) ? dash : `$${fmt0(v)}`;
+  const gainCell = (gain, pct) => (gain === null || gain === undefined)
+    ? dash
+    : `<span style="color:${gradeColor(pct)};font-weight:500">${gain >= 0 ? '+' : '-'}$${fmt0(Math.abs(gain))}</span>`;
+  const pctCell = pct => (pct === null || pct === undefined)
+    ? dash
+    : `<span style="color:${gradeColor(pct)}">${pct >= 0 ? '+' : ''}${fmt1(pct)}%</span>`;
+
+  const optionBCells = b => `
+      <td style="padding:4px 6px;border-left:1px solid var(--border2)">${b.activeShares > 0 ? `$${fmt0(b.activeCostBasis)}` : dash}</td>
+      <td ${td}>${b.valueToday === null ? dash : `$${fmt0(b.valueToday)}${b.activeShares > 0 ? ` <span style="color:var(--dim)">(${b.activeShares})</span>` : ''}`}</td>
+      <td ${td}>${gainCell(b.gain, b.gainPct)}</td>
+      <td ${td}>${b.saleCount > 0 ? `${gainCell(b.realizedPnl, b.realizedPct)} <span style="color:var(--dim)">(${b.saleCount})</span>` : dash}</td>`;
+
+  const group1RowHtml = group1.map(r => `
+    <tr>
+      <td style="padding:4px 6px;font-weight:500;color:var(--text)"><span class="ticker">${r.ticker}</span></td>
+      <td style="padding:4px 6px;color:var(--muted)">${r.shares}</td>
+      <td ${td}>$${fmt0(r.startValue)}</td>
+      <td style="padding:4px 6px;border-left:1px solid var(--border2)">$${fmt0(r.frozenEndValue)}</td>
+      <td ${td}>${gainCell(r.gainA, r.gainAPct)}</td>
+      <td ${td}>${pctCell(r.gainAPct)}</td>
+      ${optionBCells(r.b)}
+    </tr>`).join('');
+
+  const otherRowHtml = (rows) => rows.map(r => `
+    <tr>
+      <td style="padding:4px 6px;font-weight:500;color:var(--text)"><span class="ticker">${r.ticker}</span></td>
+      <td ${td}>${dash}</td>
+      <td ${td}>${dash}</td>
+      <td style="padding:4px 6px;border-left:1px solid var(--border2)">${dash}</td>
+      <td ${td}>${dash}</td>
+      <td ${td}>${dash}</td>
+      ${optionBCells(r.b)}
+    </tr>`).join('');
+
+  const sectionLabel = text => `<tr><td colspan="10" style="padding:8px 6px 4px;color:var(--dim);font-size:9px;text-transform:uppercase;letter-spacing:0.05em;border-top:1px solid var(--border2)">${text}</td></tr>`;
+
+  let bodyHtml = group1RowHtml;
+  if (group2.length) bodyHtml += sectionLabel(`Opened after ${dateStr}, still held`) + otherRowHtml(group2);
+  if (group3.length) bodyHtml += sectionLabel(`Opened and closed after ${dateStr}`) + otherRowHtml(group3);
+
+  const summaryRow = (label, historical, aCells = {}, bCells = {}) => `
+    <tr style="background:var(--bg2);border-top:1px solid var(--border2)">
+      <td colspan="2" style="padding:4px 6px;font-weight:600;color:var(--text)">${label}</td>
+      <td style="padding:4px 6px;font-weight:600">${moneyOrDash(historical)}</td>
+      <td style="padding:4px 6px;font-weight:600;border-left:1px solid var(--border2)">${moneyOrDash(aCells.valueToday)}</td>
+      <td style="padding:4px 6px;font-weight:600">${aCells.gain !== undefined ? gainCell(aCells.gain, aCells.pct) : dash}</td>
+      <td style="padding:4px 6px;font-weight:600">${aCells.pct !== undefined ? pctCell(aCells.pct) : dash}</td>
+      <td style="padding:4px 6px;font-weight:600;border-left:1px solid var(--border2)">${moneyOrDash(bCells.costBasis)}</td>
+      <td style="padding:4px 6px;font-weight:600">${moneyOrDash(bCells.valueToday)}</td>
+      <td style="padding:4px 6px;font-weight:600">${bCells.gain !== undefined ? gainCell(bCells.gain, bCells.gainPct) : dash}</td>
+      <td style="padding:4px 6px;font-weight:600">${bCells.realized !== undefined ? gainCell(bCells.realized, bCells.realizedPct) : dash}</td>
+    </tr>`;
+
+  return `
+  <div class="hyp-card">
+    <div style="font-size:11px;color:var(--muted);margin-bottom:8px">Basket as of <span style="color:var(--text);font-weight:600">${dateStr}</span> vs. today (<span style="color:var(--text)">${todayStr}</span>)</div>
+    <div class="table-wrap">
+    <table style="width:100%;font-size:11px;border-collapse:collapse;min-width:840px">
+      <thead>
+        <tr style="color:var(--dim);text-align:left">
+          <th style="border-bottom:1px solid var(--border2)"></th>
+          <th colspan="2" style="padding:4px 6px;border-bottom:1px solid var(--border2)">Historical</th>
+          <th colspan="3" style="padding:4px 6px;border-bottom:1px solid var(--border2);border-left:1px solid var(--border2)">Option A - Freeze</th>
+          <th colspan="4" style="padding:4px 6px;border-bottom:1px solid var(--border2);border-left:1px solid var(--border2)">Option B - Reality</th>
+        </tr>
+        <tr style="color:var(--dim);text-align:left;border-bottom:1px solid var(--border2)">
+          <th style="padding:4px 6px 4px 0">Ticker</th>
+          <th style="padding:4px 6px">Shares</th>
+          <th style="padding:4px 6px">Value</th>
+          <th style="padding:4px 6px;border-left:1px solid var(--border2)">Value Today</th>
+          <th style="padding:4px 6px">Gain</th>
+          <th style="padding:4px 6px">%</th>
+          <th style="padding:4px 6px;border-left:1px solid var(--border2)" title="Cost basis of shares still held">Cost Basis</th>
+          <th style="padding:4px 6px" title="Current value; shares held in parentheses">Value Today</th>
+          <th style="padding:4px 6px" title="Unrealized gain on shares still held (current value minus cost basis)">Gain</th>
+          <th style="padding:4px 6px" title="Realized gain/loss on all shares ever sold for this ticker (sale value minus cost basis); number of sales in parentheses">Realized</th>
+        </tr>
+      </thead>
+      <tbody>${bodyHtml}</tbody>
+      <tfoot>
+        ${summaryRow('Cash-on-hand', cashOnHandStart, { valueToday: cashA }, { valueToday: cashB })}
+        ${summaryRow('Portfolio value', sumStart,
+          { valueToday: sumFrozen, gain: sumFrozen - sumStart, pct: sumStart > 0 ? (sumFrozen - sumStart) / sumStart * 100 : null },
+          { costBasis: sumCostBasisOpen, valueToday: sumPositionsToday })}
+        ${(() => {
+          const totalHistorical = sumStart + cashOnHandStart;
+          const totalA = sumFrozen + cashA;
+          const totalB = sumPositionsToday + cashB;
+          const gainA = totalA - totalHistorical;
+          const gainB = totalB - totalHistorical;
+          const delta = totalB - totalA;
+          const deltaPct = totalHistorical > 0 ? delta / totalHistorical * 100 : null;
+          return summaryRow('Total value', totalHistorical,
+            { valueToday: totalA, gain: gainA, pct: totalHistorical > 0 ? gainA / totalHistorical * 100 : null },
+            { valueToday: totalB, gain: gainB, gainPct: totalHistorical > 0 ? gainB / totalHistorical * 100 : null, realized: sumRealizedTotal, realizedPct: totalHistorical > 0 ? sumRealizedTotal / totalHistorical * 100 : null }
+          ) + `
+          <tr style="background:var(--bg2);border-top:1px solid var(--border2)">
+            <td colspan="2" style="padding:4px 6px;font-weight:600;color:var(--text)">Delta (B − A)</td>
+            <td style="padding:4px 6px">${dash}</td>
+            <td style="padding:4px 6px;border-left:1px solid var(--border2)">${dash}</td>
+            <td style="padding:4px 6px">${dash}</td>
+            <td style="padding:4px 6px">${dash}</td>
+            <td style="padding:4px 6px;border-left:1px solid var(--border2)">${dash}</td>
+            <td style="padding:4px 6px;font-weight:600">${gainCell(delta, deltaPct)}</td>
+            <td style="padding:4px 6px">${dash}</td>
+            <td style="padding:4px 6px">${dash}</td>
+          </tr>`;
+        })()}
+      </tfoot>
+    </table>
+    </div>
+    <div style="font-size:9px;color:var(--dim);margin-top:8px;line-height:1.5">
+      Cash-on-hand assumes $${fmt0(totalCapital)} in total starting capital, with the rest already committed to this basket on the freeze date. It sits in a money fund at ${moneyFundRate}%; Option B's cash walks the actual chronological sequence of real buys/sells since the freeze date, compounding the running balance between each event (not growing each cash flow in isolation). Option B's per-ticker figures replay only transactions after the freeze date — starting from the T-basket's actual shares (or from zero for tickers not held at T) — so any buys/sells at or before the freeze date are not reflected here. This snapshot is independent of the chart above — the chart's sweep does not use this cash assumption.
+    </div>
+  </div>`;
+}
+
+function renderFrozenPrecommit() {
+  const el = document.getElementById('frozenPrecommitPanel');
+  if (!el) return;
+  if (frozenPrecommit.timestamp) {
+    el.innerHTML = `
+      <div style="font-size:9px;color:var(--muted);letter-spacing:0.1em;text-transform:uppercase;margin-bottom:4px">Pre-committed threshold — locked ${new Date(frozenPrecommit.timestamp).toLocaleString()}</div>
+      <div style="font-size:12px;color:var(--text);margin-bottom:8px;white-space:pre-wrap">${frozenPrecommit.text}</div>
+      <button class="btn btn-dim" style="font-size:9px" onclick="resetFrozenPrecommit()">Reset commitment</button>`;
+  } else {
+    el.innerHTML = `
+      <div style="font-size:9px;color:var(--muted);letter-spacing:0.1em;text-transform:uppercase;margin-bottom:4px">Pre-commit your threshold before reading results below</div>
+      <textarea id="frozenPrecommitInput" class="input" rows="2" placeholder='e.g. "Trading beats frozen at >70% of freeze dates, with the curve staying positive when March is excluded."' style="width:100%;resize:vertical;margin-bottom:6px"></textarea>
+      <button class="btn" onclick="saveFrozenPrecommit()">Lock in threshold</button>`;
+  }
+}
+
+function saveFrozenPrecommit() {
+  const input = document.getElementById('frozenPrecommitInput');
+  const val = input?.value.trim();
+  if (!val) return;
+  frozenPrecommit = { text: val, timestamp: new Date().toISOString() };
+  localStorage.setItem(FROZEN_KEY, JSON.stringify(frozenPrecommit));
+  renderFrozenPrecommit();
+}
+
+function resetFrozenPrecommit() {
+  if (!confirm('Clear your pre-committed threshold? This cannot be undone.')) return;
+  frozenPrecommit = { text: '', timestamp: null };
+  localStorage.setItem(FROZEN_KEY, JSON.stringify(frozenPrecommit));
+  renderFrozenPrecommit();
+}
+
+// ── Drag-to-set freeze date on either chart ──
+function frozenXOfDate(svg, dateStr) {
+  const W = 700, PX = 10;
+  const t0 = new Date(svg.dataset.domainStart + 'T12:00:00').getTime();
+  const t1 = new Date(svg.dataset.domainEnd + 'T12:00:00').getTime();
+  const t = new Date(dateStr + 'T12:00:00').getTime();
+  const frac = Math.min(Math.max((t - t0) / ((t1 - t0) || 1), 0), 1);
+  return (PX + frac * (W - 2 * PX)).toFixed(1);
+}
+
+function frozenDateOfX(svg, clientX) {
+  const rect = svg.getBoundingClientRect();
+  const W = 700, PX = 10;
+  const svgX = rect.width ? (clientX - rect.left) / rect.width * W : PX;
+  const frac = Math.min(Math.max((svgX - PX) / (W - 2 * PX), 0), 1);
+  const t0 = new Date(svg.dataset.domainStart + 'T12:00:00').getTime();
+  const t1 = new Date(svg.dataset.domainEnd + 'T12:00:00').getTime();
+  return new Date(t0 + frac * (t1 - t0)).toISOString().split('T')[0];
+}
+
+function frozenDragPreview(clientX) {
+  const svg1 = document.querySelector('#frozenChartWrap svg');
+  const svg2 = document.querySelector('#frozenValueChartWrap svg');
+  const refSvg = [svg1, svg2].find(s => s && s.dataset.domainStart);
+  if (!refSvg) return;
+  const dateStr = frozenDateOfX(refSvg, clientX);
+  [svg1, svg2].forEach(svg => {
+    if (!svg || !svg.dataset.domainStart) return;
+    const x = frozenXOfDate(svg, dateStr);
+    svg.querySelectorAll('.frozen-marker-line').forEach(el => { el.setAttribute('x1', x); el.setAttribute('x2', x); });
+    svg.querySelectorAll('.frozen-marker-label').forEach(el => { el.setAttribute('x', x); el.textContent = dateStr; });
+  });
+  return dateStr;
+}
+
+function onFrozenChartPointerDown(e) {
+  const svg = e.currentTarget.querySelector('svg');
+  if (!svg || !svg.dataset.domainStart) return;
+  e.preventDefault();
+  const move = ev => frozenDragPreview(ev.clientX);
+  const up = ev => {
+    document.removeEventListener('pointermove', move);
+    document.removeEventListener('pointerup', up);
+    const finalDate = frozenDragPreview(ev.clientX);
+    if (!finalDate) return;
+    const input = document.getElementById('frozenInspectDate');
+    if (input) {
+      const clamped = (input.min && finalDate < input.min) ? input.min : (input.max && finalDate > input.max) ? input.max : finalDate;
+      input.value = clamped;
+      input.dataset.userTouched = '1';
+      renderFrozenBasket();
+    }
+  };
+  document.addEventListener('pointermove', move);
+  document.addEventListener('pointerup', up);
+  frozenDragPreview(e.clientX);
+}
+
+function setupFrozenChartDrag() {
+  [document.getElementById('frozenChartWrap'), document.getElementById('frozenValueChartWrap')].forEach(el => {
+    if (!el || el.dataset.dragBound) return;
+    el.dataset.dragBound = '1';
+    el.style.touchAction = 'none';
+    el.addEventListener('pointerdown', onFrozenChartPointerDown);
+  });
+}
+
+function renderFrozenBasket() {
+  renderFrozenPrecommit();
+  setupFrozenChartDrag();
+
+  const category = document.getElementById('frozenCategory')?.value || 'all';
+  const granularity = document.getElementById('frozenGranularity')?.value || 'weekly';
+  const benchmark = document.getElementById('frozenBenchmark')?.value || 'none';
+  const moneyFundRate = parseFloat(document.getElementById('frozenMoneyFundRate')?.value);
+  const totalCapital = parseFloat(document.getElementById('frozenTotalCapital')?.value);
+  const excludeMarch2026 = document.getElementById('frozenExcludeMarch')?.checked || false;
+
+  const headlineEl = document.getElementById('frozenHeadline');
+  const chartEl = document.getElementById('frozenChartWrap');
+  const snapshotEl = document.getElementById('frozenSnapshotWrap');
+  if (!headlineEl || !chartEl) return;
+
+  const moneyFundRateVal = isNaN(moneyFundRate) ? 4.3 : moneyFundRate;
+  const totalCapitalVal = isNaN(totalCapital) ? 20000 : totalCapital;
+  const { points, todayStr } = computeFrozenBasketSweep({
+    categoryFilter: category,
+    granularity,
+    excludeMarch2026,
+    moneyFundRate: moneyFundRateVal,
+    totalCapital: totalCapitalVal
+  });
+
+  const dateInput = document.getElementById('frozenInspectDate');
+  if (dateInput) {
+    dateInput.max = todayStr;
+    let globalFirstBuy = null;
+    state.positions.forEach(pos => parseEntries(pos.entries).forEach(e => {
+      if (e.date && (!globalFirstBuy || e.date < globalFirstBuy)) globalFirstBuy = e.date;
+    }));
+    if (globalFirstBuy) dateInput.min = globalFirstBuy;
+    if (!dateInput.value && !dateInput.dataset.userTouched) {
+      const threeMoAgo = new Date();
+      threeMoAgo.setMonth(threeMoAgo.getMonth() - 3);
+      const defaultDate = threeMoAgo.toISOString().split('T')[0];
+      dateInput.value = (globalFirstBuy && defaultDate < globalFirstBuy) ? globalFirstBuy : defaultDate;
+    }
+  }
+  const inspectDate = dateInput?.value || null;
+  if (snapshotEl) {
+    snapshotEl.innerHTML = inspectDate ? buildFrozenSnapshotTable(inspectDate, category, moneyFundRateVal, totalCapitalVal, todayStr) : '';
+  }
+  const valueChartOuter = document.getElementById('frozenValueChartOuter');
+  const valueChartEl = document.getElementById('frozenValueChartWrap');
+  if (valueChartOuter && valueChartEl) {
+    if (inspectDate) {
+      valueChartOuter.style.display = '';
+      const seriesPoints = buildOptionsTimeSeries(inspectDate, category, moneyFundRateVal, totalCapitalVal, todayStr, granularity);
+      valueChartEl.innerHTML = buildOptionsChart(seriesPoints, inspectDate, points, todayStr);
+    } else {
+      valueChartOuter.style.display = 'none';
+      valueChartEl.innerHTML = '';
+    }
+  }
+
+  if (!points.length) {
+    headlineEl.innerHTML = '<div style="color:var(--muted);font-size:12px">Not enough dated trade history to run this sweep — need at least one dated buy more than 30 days old.</div>';
+    chartEl.innerHTML = '';
+    return;
+  }
+
+  const { n, wins, losses, winPct, inconclusive } = summarizeFrozenSweep(points);
+  const countLine = `Trading beats frozen at ${wins} of ${n} freeze dates (${winPct.toFixed(0)}%).`;
+
+  let verdictLine, verdictColor;
+  if (inconclusive) {
+    verdictColor = 'var(--muted)';
+    verdictLine = 'Inconclusive — the sign flips across the sweep. This does not support a directional read either way.';
+  } else if (wins === n) {
+    verdictColor = 'var(--green)';
+    verdictLine = 'Trading beat the frozen basket at every freeze date in this sweep.';
+  } else {
+    verdictColor = 'var(--red)';
+    verdictLine = 'The frozen basket beat trading at every freeze date in this sweep — no edge detected.';
+  }
+
+  headlineEl.innerHTML = `
+    <div style="font-size:14px;color:var(--text);margin-bottom:4px">${countLine}</div>
+    <div style="font-size:13px;font-weight:600;color:${verdictColor};margin-bottom:10px">${verdictLine}</div>
+    <div style="font-size:10px;color:var(--dim);line-height:1.6">
+      ${n} freeze dates, but ~1 independent path — this measures robustness to date choice, not statistical significance. No p-values or confidence intervals are computed across freeze dates; they would be badly overstated here.<br>
+      The win/loss count above and the chart below use the same "Option A / Option B" total portfolio + cash value comparison — the same definition as the snapshot table further down.
+    </div>`;
+
+  const benchPoints = buildBenchmarkOverlay(points, benchmark, todayStr);
+  const benchLabel = document.getElementById('frozenBenchmark')?.selectedOptions[0]?.textContent;
+  chartEl.innerHTML = buildFrozenChart(points, benchPoints, inspectDate, todayStr, totalCapitalVal, moneyFundRateVal, benchLabel);
+}
+
 function renderTransactions() {
   const tbody = document.getElementById('txBody');
   const empty = document.getElementById('txEmpty');
   if (!tbody || !empty) return;
+
+  const filterSel = document.getElementById('txTypeFilter');
+  if (filterSel && filterSel.value !== state.txTypeFilter) filterSel.value = state.txTypeFilter;
 
   const rows = [];
   state.positions.forEach(pos => {
     const currentPrice = pos.manualPrice || state.prices[pos.ticker]?.price || null;
     parseEntries(pos.entries).forEach(e => {
       rows.push({
-        date: e.date, ticker: pos.ticker, type: 'BUY',
+        date: e.date, ticker: pos.ticker, type: 'BUY', posId: pos.id,
         shares: e.shares, price: e.price, value: e.price * e.shares,
         currentPrice,
         pctSince: currentPrice ? (currentPrice - e.price) / e.price * 100 : null
@@ -4224,13 +5516,15 @@ function renderTransactions() {
     });
     parseEntries(pos.exits).forEach(e => {
       rows.push({
-        date: e.date, ticker: pos.ticker, type: 'SELL',
+        date: e.date, ticker: pos.ticker, type: 'SELL', posId: pos.id,
         shares: e.shares, price: e.price, value: e.price * e.shares,
         currentPrice,
         pctSince: currentPrice ? (currentPrice - e.price) / e.price * 100 : null
       });
     });
   });
+
+  const filteredRows = state.txTypeFilter === 'ALL' ? rows : rows.filter(r => r.type === state.txTypeFilter);
 
   const getTxVal = r => {
     switch (state.txSortCol) {
@@ -4245,7 +5539,7 @@ function renderTransactions() {
       default:        return 0;
     }
   };
-  rows.sort((a, b) => {
+  filteredRows.sort((a, b) => {
     const av = getTxVal(a), bv = getTxVal(b);
     return (av < bv ? -1 : av > bv ? 1 : 0) * state.txSortDir;
   });
@@ -4255,18 +5549,18 @@ function renderTransactions() {
   const activeTh = document.querySelectorAll('#txTable thead th')[thMap[state.txSortCol]];
   if (activeTh) activeTh.classList.add(state.txSortDir === 1 ? 'sort-asc' : 'sort-desc');
 
-  if (!rows.length) { tbody.innerHTML = ''; empty.style.display = 'block'; return; }
+  if (!filteredRows.length) { tbody.innerHTML = ''; empty.style.display = 'block'; return; }
   empty.style.display = 'none';
 
-  tbody.innerHTML = rows.map(r => {
+  tbody.innerHTML = filteredRows.map(r => {
     const isBuy = r.type === 'BUY';
     const typeHtml = isBuy
       ? `<span style="color:var(--green);font-weight:600;font-size:10px;padding:2px 6px;border:1px solid var(--green2);border-radius:2px;background:rgba(0,229,160,0.08)">BUY</span>`
       : `<span style="color:var(--red);font-weight:600;font-size:10px;padding:2px 6px;border:1px solid var(--red2);border-radius:2px;background:rgba(255,68,85,0.08)">SELL</span>`;
     const pctHtml = r.pctSince !== null
-      ? `<span style="color:${gradeColor(r.pctSince)}">${r.pctSince >= 0 ? '+' : ''}${fmt1(r.pctSince)}%</span>`
+      ? `<span style="color:${gradeColor(isBuy ? r.pctSince : -r.pctSince)}">${r.pctSince >= 0 ? '+' : ''}${fmt1(r.pctSince)}%</span>`
       : '<span style="color:var(--muted)">—</span>';
-    return `<tr>
+    return `<tr onclick="selectPosition('${r.posId}')" style="cursor:pointer">
       <td>${r.date || '<span style="color:var(--muted)">—</span>'}</td>
       <td><span class="ticker">${r.ticker}</span></td>
       <td>${typeHtml}</td>
@@ -4285,6 +5579,59 @@ function sortTxBy(col) {
   renderTransactions();
 }
 
+function renderAlerts() {
+  const tbody = document.getElementById('alertsBody');
+  const empty = document.getElementById('alertsEmpty');
+  if (!tbody || !empty) return;
+
+  const includeClosed = document.getElementById('alertsIncludeClosed')?.checked ?? true;
+
+  const rows = state.positions
+    .filter(pos => (includeClosed || !isExited(pos)) && (pos.buyTarget || pos.sellTarget))
+    .map(pos => {
+      const p = state.prices[pos.ticker] || {};
+      const price = pos.manualPrice || p.price;
+      const buyDist = (price && pos.buyTarget) ? ((pos.buyTarget - price) / price) * 100 : null;
+      const sellDist = (price && pos.sellTarget) ? ((pos.sellTarget - price) / price) * 100 : null;
+      const buyHit = buyDist !== null && buyDist >= 0;
+      const sellHit = sellDist !== null && sellDist <= 0;
+      const closest = [buyDist, sellDist].filter(d => d !== null).map(Math.abs).sort((a, b) => a - b)[0] ?? Infinity;
+      return { pos, price, buyDist, sellDist, buyHit, sellHit, closest };
+    })
+    .sort((a, b) => {
+      const aHit = a.buyHit || a.sellHit, bHit = b.buyHit || b.sellHit;
+      if (aHit !== bHit) return aHit ? -1 : 1;
+      return a.closest - b.closest;
+    });
+
+  if (!rows.length) { tbody.innerHTML = ''; empty.style.display = 'block'; return; }
+  empty.style.display = 'none';
+
+  tbody.innerHTML = rows.map(({ pos, price, buyDist, sellDist, buyHit, sellHit }) => {
+    const buyAbs = buyDist === null ? Infinity : Math.abs(buyDist);
+    const sellAbs = sellDist === null ? Infinity : Math.abs(sellDist);
+    const buyIsClosest = buyDist !== null && buyAbs <= sellAbs;
+    const sellIsClosest = sellDist !== null && sellAbs < buyAbs;
+    const distHtml = (dist, hit, color, isClosest) => dist === null
+      ? '<span style="color:var(--dim)">—</span>'
+      : `<span style="color:${isClosest ? 'var(--blue)' : (hit ? color : 'var(--muted)')};${isClosest ? 'font-weight:700;background:rgba(60,140,255,0.18);padding:2px 6px;border-radius:2px' : ''}">${dist >= 0 ? '+' : ''}${fmt1(dist)}%</span>`;
+    const statusHtml = [
+      buyHit ? `<span style="color:var(--green);font-weight:600;font-size:10px;padding:2px 6px;border:1px solid var(--green2);border-radius:2px;background:rgba(0,229,160,0.08)">BUY HIT</span>` : '',
+      sellHit ? `<span style="color:var(--cyan);font-weight:600;font-size:10px;padding:2px 6px;border:1px solid var(--cyan);border-radius:2px;background:rgba(32,208,224,0.08)">SELL HIT</span>` : ''
+    ].filter(Boolean).join(' ') || '<span style="color:var(--dim)">—</span>';
+    const exited = isExited(pos);
+    return `<tr onclick="selectPosition('${pos.id}')" ${exited ? 'style="opacity:0.55"' : ''}>
+      <td><span class="ticker" ${exited ? 'style="color:var(--muted)"' : ''}>${pos.ticker}</span></td>
+      <td class="price">${price ? '$' + fmt2(price) : '<span style="color:var(--muted)">—</span>'}</td>
+      <td>${pos.buyTarget ? '$' + fmt2(pos.buyTarget) : '<span style="color:var(--dim)">—</span>'}</td>
+      <td>${distHtml(buyDist, buyHit, 'var(--green)', buyIsClosest)}</td>
+      <td>${pos.sellTarget ? '$' + fmt2(pos.sellTarget) : '<span style="color:var(--dim)">—</span>'}</td>
+      <td>${distHtml(sellDist, sellHit, 'var(--cyan)', sellIsClosest)}</td>
+      <td>${statusHtml}</td>
+    </tr>`;
+  }).join('');
+}
+
 function showAlert(msg, type) {
   const el = document.getElementById('alertBar');
   el.textContent = msg;
@@ -4300,6 +5647,8 @@ function updateClock() {
 // ── Rotating header ticker ──
 const _HT_TICKERS = [
   { key: '__SPY__', label: 'SPY',  fmt: p => '$' + p.toFixed(2),        invert: false },
+  { key: '__QQQ__', label: 'QQQ',  fmt: p => '$' + p.toFixed(2),        invert: false },
+  { key: '__SMH__', label: 'SMH',  fmt: p => '$' + p.toFixed(2),        invert: false },
   { key: '__VIX__', label: 'VIX',  fmt: p => p.toFixed(2),              invert: true  },
   { key: '__TNX__', label: 'TNX',  fmt: p => p.toFixed(2) + '%',        invert: true  },
   { key: '__OIL__', label: 'OIL',  fmt: p => '$' + p.toFixed(2),        invert: false },
@@ -4312,7 +5661,12 @@ function renderHeaderTicker() {
   const labelEl = document.getElementById('htLabel');
   const priceEl = document.getElementById('htPrice');
   const chgEl   = document.getElementById('htChg');
+  const dotsEl  = document.getElementById('htDots');
   if (!labelEl) return;
+
+  if (dotsEl && dotsEl.children.length !== _HT_TICKERS.length) {
+    dotsEl.innerHTML = _HT_TICKERS.map((_, i) => `<div class="ht-dot" id="htDot${i}" title="${_HT_TICKERS[i].label}"></div>`).join('');
+  }
 
   labelEl.textContent = t.label;
 
@@ -4362,6 +5716,7 @@ function renderAll() {
   renderSalesHistory();
   renderMonthlySummary();
   renderTransactions();
+  renderAlerts();
   if (document.getElementById('view-hypothesis')?.classList.contains('active')) renderHypothesis();
 }
 

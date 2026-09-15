@@ -92,11 +92,18 @@ html, body {
 ::-webkit-scrollbar { width: 6px; }
 ::-webkit-scrollbar-track { background: var(--muted); }
 ::-webkit-scrollbar-thumb { background: var(--dim); }
-#app { display: grid; grid-template-rows: 30vh 60vh 10vh; height: 100vh; width: 100vw; }
+#app { display: grid; grid-template-rows: 40vh 1fr 40px; height: 100vh; width: 100vw; }
 #top-row { border-bottom: 1px solid var(--border); padding: 10px 12px; overflow-y: auto; }
 #main-row { display: grid; grid-template-columns: 1.1fr 0.9fr; overflow: hidden; }
 #main-panel { border-right: 1px solid var(--border); padding: 10px 12px; overflow-y: auto; }
-#side-panel { padding: 10px 12px; overflow-y: auto; }
+#side-panel { padding: 10px 12px; overflow: hidden; display: flex; flex-direction: column; }
+.tab-bar { display: flex; border-bottom: 1px solid var(--muted); margin-bottom: 8px; flex-shrink: 0; overflow-x: auto; }
+.tab, .ctab-main, .ctab-sub { padding: 3px 10px; cursor: pointer; color: var(--dim); font-size: 0.76em; letter-spacing: 1px; white-space: nowrap; flex-shrink: 0; }
+.tab.active, .ctab-main.active, .ctab-sub.active { color: var(--accent); border-bottom: 2px solid var(--accent); margin-bottom: -1px; }
+.tab:hover:not(.active), .ctab-main:hover:not(.active), .ctab-sub:hover:not(.active) { color: var(--fg); }
+.tab-pane, .ctab-pane, .ctab-sub-pane { flex: 1; overflow-y: auto; }
+.ctab-pane { display: flex; flex-direction: column; }
+.sub-tab-bar { margin-top: 6px; }
 #console-row {
   background: var(--muted); border-top: 1px solid var(--border);
   display: flex; align-items: center; padding: 0 12px; gap: 8px;
@@ -112,13 +119,29 @@ html, body {
   caret-color: var(--accent);
 }
 #console-status { color: var(--dim); font-size: 0.8em; min-width: 180px; text-align: right; white-space: nowrap; }
-.summary-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; margin-bottom: 8px; }
-.metric { border: 1px solid var(--muted); padding: 6px 8px; min-height: 54px; }
-.metric-label { color: var(--dim); font-size: 0.72em; letter-spacing: 1px; }
-.metric-value { color: var(--accent); font-size: 1.2em; }
-.top-panels { display: grid; grid-template-columns: 1.2fr 0.8fr; gap: 10px; min-height: 0; }
+.filter-bar { display: flex; gap: 6px; margin-bottom: 8px; flex-wrap: wrap; }
+.filter-input, .filter-select {
+  background: transparent; border: 1px solid var(--muted); color: var(--fg);
+  font-family: var(--font); font-size: 0.85em; padding: 3px 6px; outline: none;
+}
+.filter-input { flex: 1; min-width: 120px; }
+.filter-input:focus, .filter-select:focus { border-color: var(--accent); }
+.filter-select { cursor: pointer; }
+.lifespan-toggle-row { margin-bottom: 6px; flex-shrink: 0; }
+.lifespan-toggle {
+  display: inline-block; border: 1px solid var(--dim); color: var(--dim);
+  padding: 1px 8px; font-size: 0.74em; letter-spacing: 1px; cursor: pointer; user-select: none;
+}
+.lifespan-toggle:hover { color: var(--fg); }
+.lifespan-toggle.active { border-color: var(--accent); color: var(--accent); }
+.top-panels { display: grid; grid-template-columns: 1.1fr 0.9fr; gap: 10px; min-height: 0; }
+.rel-row { display: flex; gap: 10px; padding: 2px 0; align-items: baseline; }
+.rel-label { color: var(--dim); font-size: 0.76em; letter-spacing: 1px; text-transform: uppercase; min-width: 72px; flex-shrink: 0; }
+.rel-person { color: var(--fg); }
+.rel-date { color: var(--dim); font-size: 0.84em; }
+.focus-divider { border: none; border-top: 1px solid var(--muted); margin: 6px 0; }
 .mini-panel { border: 1px solid var(--muted); padding: 8px; min-height: 120px; }
-.section-title { color: var(--accent); margin-bottom: 4px; letter-spacing: 1px; font-size: 0.8em; }
+.section-title { color: var(--dim); margin-bottom: 4px; letter-spacing: 1px; font-size: 0.8em; }
 .focus-name { color: var(--accent); font-size: 1.1em; }
 .focus-meta, .dim { color: var(--dim); font-size: 0.84em; }
 .chip-row, .attr-row { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; }
@@ -140,7 +163,11 @@ html, body {
   white-space: nowrap; font-size: 0.82em;
 }
 .action-link:hover { background: var(--success); color: var(--bg); }
-.split-section { margin-top: 10px; }
+.nav-arrow { color: var(--dim); padding: 0 4px; font-size: 0.8em; user-select: none; }
+.nav-arrow.enabled { color: var(--fg); cursor: pointer; }
+.nav-arrow.enabled:hover { color: var(--accent); }
+.name-link { cursor: pointer; }
+.name-link:hover { text-decoration: underline; }
 #help-overlay {
   display: none; position: fixed; inset: 0;
   background: rgba(0,0,0,0.7); z-index: 150;
@@ -155,6 +182,29 @@ html, body {
 #help-title { color: var(--accent); letter-spacing: 2px; margin-bottom: 8px; }
 #help-body { white-space: pre; line-height: 1.8; max-height: 60vh; overflow-y: auto; }
 #help-close { color: var(--dim); font-size: 0.82em; cursor: pointer; display: block; margin-top: 8px; }
+#household-overlay {
+  display: none; position: fixed; inset: 0;
+  background: rgba(0,0,0,0.7); z-index: 160;
+  align-items: center; justify-content: center;
+}
+#household-overlay.visible { display: flex; }
+.hh-dialog-box { max-width: min(95vw, 900px); max-height: 85vh; overflow-y: auto; }
+.hh-dialog-title { color: var(--accent); letter-spacing: 2px; margin-bottom: 10px; }
+.hh-field-row { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
+.hh-field-row label { color: var(--dim); font-size: 0.82em; width: 70px; flex-shrink: 0; }
+.hh-field-row .filter-input { flex: 1; }
+.hh-member-row { display: flex; gap: 6px; margin-bottom: 4px; align-items: center; }
+.hh-member-row .filter-input { flex: 1; min-width: 0; }
+.hh-member-row .hh-m-age { flex: 0 0 55px; }
+.hh-member-row .hh-m-gender { flex: 0 0 70px; }
+.hh-m-extended { display: none; gap: 6px; margin: 0 0 8px 0; padding-left: 4px; }
+.hh-m-extended.visible { display: flex; }
+.hh-m-extended .filter-input { flex: 1; min-width: 0; }
+.hh-m-extended .hh-m-birth-y { flex: 0 0 50px; }
+.hh-m-extended .hh-m-birth-m { flex: 0 0 40px; }
+.hh-m-extended .hh-m-birth-d { flex: 0 0 40px; }
+.hh-m-extended .hh-m-immig, .hh-m-extended .hh-m-natur { flex: 0 0 60px; }
+.hh-dialog-actions { margin-top: 14px; display: flex; gap: 14px; }
 </style>
 </head>
 <body>
@@ -165,44 +215,55 @@ html, body {
 
 <div id="app">
   <div id="top-row">
-    <div class="row-header">◈ FAMILY SNAPSHOT</div>
-    <div class="summary-grid">
-      <div class="metric"><div class="metric-label">PEOPLE</div><div class="metric-value" id="metric-people">0</div></div>
-      <div class="metric"><div class="metric-label">RELATIONSHIPS</div><div class="metric-value" id="metric-relationships">0</div></div>
-      <div class="metric"><div class="metric-label">EVENTS</div><div class="metric-value" id="metric-events">0</div></div>
-      <div class="metric"><div class="metric-label">KNOWN DATES</div><div class="metric-value" id="metric-dates">0</div></div>
-    </div>
     <div class="top-panels">
       <div class="mini-panel">
-        <div class="section-title">FOCUS PERSON</div>
-        <div id="focus-card" class="dim">No people yet. Use /person add to start the tree.</div>
+        <div id="focus-card" class="dim">No people yet. Use /add to start the tree.</div>
       </div>
       <div class="mini-panel">
-        <div class="section-title">DATE LEDGER</div>
-        <div id="date-ledger" class="dim">No dated records yet.</div>
+        <div id="nuclear-family" class="dim">No people yet.</div>
       </div>
     </div>
   </div>
   <div id="main-row">
     <div id="main-panel">
       <div class="row-header">◈ PEOPLE DIRECTORY</div>
+      <div class="filter-bar">
+        <input type="text" id="people-filter" class="filter-input" placeholder="filter by name, branch, gender, notes, or a year (alive then)..." autocomplete="off" spellcheck="false">
+        <select id="people-sort" class="filter-select">
+          <option value="birth">Sort: Birth date</option>
+          <option value="name">Sort: Name</option>
+          <option value="branch">Sort: Branch</option>
+        </select>
+      </div>
       <div id="people-list" class="dim">No people yet. Add one with /person add Name | birth | death | branch | gender | notes</div>
     </div>
     <div id="side-panel">
-      <div class="row-header">◈ LINKS + EVENTS</div>
-      <div class="section-title">COMMON RELATIONSHIPS</div>
-      <div id="relationship-mix" class="dim">No relationships logged yet. Use /rel add.</div>
-      <div class="split-section">
-        <div class="section-title">RELATIONSHIP LEDGER</div>
+      <div class="tab-bar">
+        <span class="tab active" data-tab="rel">RELATIONSHIPS</span>
+        <span class="tab" data-tab="evt">EVENTS</span>
+        <span class="tab" data-tab="led">DATE LEDGER</span>
+        <span class="tab" data-tab="loc">LOCATIONS</span>
+      </div>
+      <div class="lifespan-toggle-row">
+        <span id="lifespan-toggle" class="lifespan-toggle" title="Restrict relationships/events/date ledger/locations to the focus person's lifetime">⧗ LIFESPAN ONLY</span>
+      </div>
+      <div id="tab-rel" class="tab-pane">
         <div id="relationship-list" class="dim">No family links recorded yet.</div>
       </div>
-      <div class="split-section">
-        <div class="section-title">EVENT LOG</div>
+      <div id="tab-evt" class="tab-pane" style="display:none">
         <div id="event-list" class="dim">No events logged yet. Use /event add.</div>
+      </div>
+      <div id="tab-led" class="tab-pane" style="display:none">
+        <div id="date-ledger" class="dim">No dated records yet.</div>
+      </div>
+      <div id="tab-loc" class="tab-pane" style="display:none">
+        <div id="location-list" class="dim">No locations recorded yet. Use /location add.</div>
       </div>
     </div>
   </div>
   <div id="console-row">
+    <span id="nav-back" class="nav-arrow" title="Go back (Alt+←)">◄</span>
+    <span id="nav-fwd" class="nav-arrow" title="Go forward (Alt+→)">►</span>
     <span id="console-prompt">LIFELINE&gt;</span>
     <input type="text" id="console-input" autocomplete="off" spellcheck="false">
     <span id="console-status">READY</span>
@@ -217,20 +278,90 @@ html, body {
   </div>
 </div>
 
+<div id="household-overlay">
+  <div class="overlay-box hh-dialog-box">
+    <div id="household-dialog-title" class="hh-dialog-title"></div>
+    <div class="hh-field-row"><label>Year</label><input type="text" id="hh-year" class="filter-input" placeholder="1900"></div>
+    <div class="hh-field-row"><label>Location</label><input type="text" id="hh-location" class="filter-input" placeholder="Springfield, IL"></div>
+    <div class="hh-field-row"><label>Source</label><input type="text" id="hh-source" class="filter-input" placeholder="1900 US Census, ED 5, p.12"></div>
+    <div class="hh-field-row"><label>Notes</label><input type="text" id="hh-notes" class="filter-input"></div>
+    <div class="section-title" style="margin-top:10px">MEMBERS</div>
+    <div id="household-members"></div>
+    <span class="action-link" id="household-add-member">[+ add member]</span>
+    <span class="action-link" id="household-fill" title="Fill in missing last names (from the first member) and missing relation-to-head guesses">[fill]</span>
+    <span class="action-link" id="household-toggle-extended" title="Show mother's/father's birthplace, birthdate, and immigration/naturalization years">[+ extended]</span>
+    <div class="hh-dialog-actions">
+      <span class="action-link" id="household-save">[SAVE]</span>
+      <span class="action-link" id="household-cancel">[CANCEL / ESC]</span>
+    </div>
+  </div>
+</div>
+
 <script>
+// ══════════════════════════════════════════════════════════════════════════
+// TABLE OF CONTENTS -- section banners below use the same "── Name ──" style;
+// search for the title text to jump straight there. Line numbers are
+// approximate and drift as the file grows.
+// ══════════════════════════════════════════════════════════════════════════
+//   Constants & theme list ............................................ L327
+//   Data model sanitizers (person/relationship/event/location/...) .... L402
+//   loadDB / saveDB .................................................... L530
+//   Utility helpers (cleanText, escHtml, splitPipe, nextId, findX) ..... L586
+//   Wizard (guided /add flow) .......................................... L666
+//   Relationship helpers ............................................... L729
+//   /set command ........................................................ L814
+//   /add command ......................................................... L894
+//   Lifespan filter ...................................................... L1256
+//   Ancestor / descendant trees .......................................... L1451
+//   Lifespan timeline ..................................................... L1506
+//   Census workspace rendering ............................................ L1699
+//   render() -- central re-render dispatcher .............................. L1903
+//   Duplicate detection / merge ............................................ L2222
+//   Household bulk-add/edit dialog ......................................... L2407
+//   Candidate household links (family across census years) ................ L2562
+//   Person identity links (same person across census years) ................ L2735
+//   Tree links (census identities <-> family-tree people) .................. L2956
+//   exportDataJson / importData ............................................. L3500
+//   exportGedcom .............................................................. L3551
+//   /export, /import commands ................................................. L3675
+//   Theme switching ............................................................ L3712
+//   Census workspace mode toggle (life-line <-> census swap) .................. L3725
+//   handleConsoleCmd -- top-level command dispatch ............................. L3896
+//   Tab bar / people filter-sort bar init ....................................... L3960
+//   init() / DOMContentLoaded .................................................... L4003
+// ══════════════════════════════════════════════════════════════════════════
+
 const STORAGE_KEY = 'life_line_db';
 const EXPORT_SLUG = 'life-line';
 const THEMES = ['legacy','solar','monk','space','synth','dos','notebook','engineering','winter'];
 const RELATIONSHIP_TYPES = ['parent', 'child', 'spouse', 'partner', 'sibling'];
-let db = { people: [], relationships: [], events: [], backlog: [], backlogArchive: [], theme: 'legacy', focusPersonId: '' };
+let db = { people: [], relationships: [], events: [], locations: [], households: [], householdLinks: [], personIdentities: [], dismissedHouseholdLinks: [], dismissedPersonLinks: [], dismissedTreeLinks: [], backlog: [], backlogArchive: [], theme: 'legacy', focusPersonId: '', focusHouseholdId: '', lifespanFilter: false, viewMode: 'life' };
+let wizard = null;
+let relFill = null; // { candidates: [...], index: 0, added: 0, focusId }
+let lifespanFilterEnabled = false;
+let timelineShowHouseholds = false;
+let viewMode = 'life';
+let lifeTopPanelsHtml = '';
+let lifeMainPanelHtml = '';
+let lifeSidePanelHtml = '';
+let focusHistory = [];
+let historyPos = -1;
+let navigating = false;
 
 function normalizeDate(value) {
   const raw = String(value || '').trim();
   if (!raw) return '';
-  const match = raw.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  const yearOnly = raw.match(/^(\d{4})$/);
+  if (yearOnly) {
+    const year = parseInt(yearOnly[1], 10);
+    return year >= 1 && year <= 9999 ? yearOnly[1] : '';
+  }
+  const match = raw.match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/);
   if (!match) return '';
-  const iso = new Date(raw + 'T00:00:00Z');
-  return Number.isNaN(iso.getTime()) || iso.toISOString().slice(0, 10) !== raw ? '' : raw;
+  const [, y, mo, d] = match;
+  const padded = `${y}-${mo.padStart(2, '0')}-${d.padStart(2, '0')}`;
+  const iso = new Date(padded + 'T00:00:00Z');
+  return Number.isNaN(iso.getTime()) || iso.toISOString().slice(0, 10) !== padded ? '' : padded;
 }
 
 function cleanText(value) {
@@ -285,6 +416,8 @@ function sanitizePerson(raw) {
     name: cleanText(source.name) || 'UNNAMED PERSON',
     birthDate: normalizeDate(source.birthDate),
     deathDate: normalizeDate(source.deathDate),
+    birthLocationId: cleanText(source.birthLocationId),
+    deathLocationId: cleanText(source.deathLocationId),
     branch: cleanText(source.branch),
     gender: cleanText(source.gender),
     notes: cleanText(source.notes),
@@ -303,6 +436,8 @@ function sanitizeRelationship(raw) {
     toId: canonical.toId,
     type: canonical.type,
     date: normalizeDate(source.date),
+    endDate: normalizeDate(source.endDate),
+    locationId: cleanText(source.locationId),
     note: cleanText(source.note),
     createdAt: cleanText(source.createdAt) || new Date().toISOString()
   };
@@ -324,6 +459,91 @@ function sanitizeEvent(raw) {
   };
 }
 
+function sanitizeLocation(raw) {
+  const source = raw && typeof raw === 'object' ? raw : {};
+  return {
+    id: cleanText(source.id) || nextId('L', db.locations || []),
+    name: cleanText(source.name) || 'UNNAMED LOCATION',
+    notes: cleanText(source.notes),
+    createdAt: cleanText(source.createdAt) || new Date().toISOString()
+  };
+}
+
+function sanitizeHouseholdMember(raw) {
+  const source = raw && typeof raw === 'object' ? raw : {};
+  return {
+    name: cleanText(source.name),
+    age: cleanText(source.age),
+    relation: cleanText(source.relation),
+    gender: cleanText(source.gender),
+    birthplace: cleanText(source.birthplace),
+    occupation: cleanText(source.occupation),
+    birthYear: cleanText(source.birthYear),
+    birthMonth: cleanText(source.birthMonth),
+    birthDay: cleanText(source.birthDay),
+    motherBirthplace: cleanText(source.motherBirthplace),
+    fatherBirthplace: cleanText(source.fatherBirthplace),
+    immigrationYear: cleanText(source.immigrationYear),
+    naturalizationYear: cleanText(source.naturalizationYear)
+  };
+}
+
+function sanitizeHousehold(raw) {
+  const source = raw && typeof raw === 'object' ? raw : {};
+  const members = Array.isArray(source.members) ? source.members.map(sanitizeHouseholdMember).filter(m => m.name) : [];
+  const year = cleanText(source.year).match(/^\d{4}$/) ? cleanText(source.year) : '';
+  return {
+    id: cleanText(source.id) || nextId('H', db.households || []),
+    year,
+    locationId: cleanText(source.locationId),
+    source: cleanText(source.source),
+    notes: cleanText(source.notes),
+    members,
+    createdAt: cleanText(source.createdAt) || new Date().toISOString()
+  };
+}
+
+function sanitizeHouseholdLink(raw) {
+  const source = raw && typeof raw === 'object' ? raw : {};
+  const fromId = cleanText(source.fromId);
+  const toId = cleanText(source.toId);
+  if (!fromId || !toId || fromId === toId) return null;
+  return {
+    id: cleanText(source.id) || nextId('HL', db.householdLinks || []),
+    fromId,
+    toId,
+    note: cleanText(source.note),
+    createdAt: cleanText(source.createdAt) || new Date().toISOString()
+  };
+}
+
+function sanitizePersonIdentityMember(raw) {
+  const source = raw && typeof raw === 'object' ? raw : {};
+  const householdId = cleanText(source.householdId);
+  const memberIndex = parseInt(source.memberIndex, 10);
+  if (!householdId || Number.isNaN(memberIndex) || memberIndex < 0) return null;
+  return { householdId, memberIndex };
+}
+
+function sanitizePersonIdentity(raw) {
+  const source = raw && typeof raw === 'object' ? raw : {};
+  const seen = new Set();
+  const members = (Array.isArray(source.members) ? source.members.map(sanitizePersonIdentityMember).filter(Boolean) : [])
+    .filter(m => {
+      const key = m.householdId + ':' + m.memberIndex;
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
+  if (members.length < 1) return null;
+  return {
+    id: cleanText(source.id) || nextId('PI', db.personIdentities || []),
+    members,
+    personId: cleanText(source.personId),
+    createdAt: cleanText(source.createdAt) || new Date().toISOString()
+  };
+}
+
 function loadDB() {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
@@ -332,27 +552,60 @@ function loadDB() {
       people: Array.isArray(parsed.people) ? parsed.people : [],
       relationships: Array.isArray(parsed.relationships) ? parsed.relationships : [],
       events: Array.isArray(parsed.events) ? parsed.events : [],
+      locations: Array.isArray(parsed.locations) ? parsed.locations : [],
+      households: Array.isArray(parsed.households) ? parsed.households : [],
+      householdLinks: Array.isArray(parsed.householdLinks) ? parsed.householdLinks : [],
+      personIdentities: Array.isArray(parsed.personIdentities) ? parsed.personIdentities : [],
+      dismissedHouseholdLinks: Array.isArray(parsed.dismissedHouseholdLinks) ? parsed.dismissedHouseholdLinks.filter(s => typeof s === 'string') : [],
+      dismissedPersonLinks: Array.isArray(parsed.dismissedPersonLinks) ? parsed.dismissedPersonLinks.filter(s => typeof s === 'string') : [],
+      dismissedTreeLinks: Array.isArray(parsed.dismissedTreeLinks) ? parsed.dismissedTreeLinks.filter(s => typeof s === 'string') : [],
       backlog: Array.isArray(parsed.backlog) ? parsed.backlog : [],
       backlogArchive: Array.isArray(parsed.backlogArchive) ? parsed.backlogArchive : [],
       theme: cleanText(parsed.theme) || 'legacy',
-      focusPersonId: cleanText(parsed.focusPersonId)
+      focusPersonId: cleanText(parsed.focusPersonId),
+      focusHouseholdId: cleanText(parsed.focusHouseholdId),
+      lifespanFilter: parsed.lifespanFilter === true,
+      viewMode: parsed.viewMode === 'census' ? 'census' : 'life'
     };
-    db = { people: [], relationships: [], events: [] };
+    db = { people: [], relationships: [], events: [], locations: [], households: [], householdLinks: [], personIdentities: [], dismissedHouseholdLinks: [], dismissedPersonLinks: [], dismissedTreeLinks: [] };
     base.people = base.people.map(sanitizePerson);
     db.people = base.people;
     base.relationships = base.relationships.map(sanitizeRelationship).filter(Boolean);
     db.relationships = base.relationships;
     base.events = base.events.map(sanitizeEvent);
     db.events = base.events;
+    base.locations = base.locations.map(sanitizeLocation);
+    db.locations = base.locations;
+    base.households = base.households.map(sanitizeHousehold);
+    db.households = base.households;
+    base.householdLinks = base.householdLinks.map(sanitizeHouseholdLink).filter(Boolean);
+    db.householdLinks = base.householdLinks;
+    base.personIdentities = base.personIdentities.map(sanitizePersonIdentity).filter(Boolean);
+    db.personIdentities = base.personIdentities;
+    db.dismissedHouseholdLinks = base.dismissedHouseholdLinks;
+    db.dismissedPersonLinks = base.dismissedPersonLinks;
+    db.dismissedTreeLinks = base.dismissedTreeLinks;
     if (!base.people.some(person => person.id === base.focusPersonId)) base.focusPersonId = base.people[0] ? base.people[0].id : '';
+    if (!base.households.some(h => h.id === base.focusHouseholdId)) base.focusHouseholdId = base.households[0] ? base.households[0].id : '';
     return base;
   } catch {
-    return { people: [], relationships: [], events: [], backlog: [], backlogArchive: [], theme: 'legacy', focusPersonId: '' };
+    return { people: [], relationships: [], events: [], locations: [], households: [], householdLinks: [], personIdentities: [], dismissedHouseholdLinks: [], dismissedPersonLinks: [], dismissedTreeLinks: [], backlog: [], backlogArchive: [], theme: 'legacy', focusPersonId: '', focusHouseholdId: '', lifespanFilter: false, viewMode: 'life' };
   }
 }
 
 function saveDB() {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(db));
+}
+
+function nameLink(person) {
+  return `<span class="name-link person-name" data-person-focus="${escHtml(person.id)}">${escHtml(person.name)}</span>`;
+}
+
+// Small ⌗ marker shown next to a name wherever it has at least one confirmed census
+// record linked to it (via db.personIdentities) -- a quick visual cue, not interactive.
+function censusBadgeHtml(personId) {
+  const hasCensusLinks = db.personIdentities.some(pi => pi.personId === personId);
+  return hasCensusLinks ? ' <span title="Linked census records" style="color:var(--accent)">⌗</span>' : '';
 }
 
 function escHtml(str) {
@@ -375,15 +628,30 @@ function downloadBlob(content, filename, type) {
   URL.revokeObjectURL(a.href);
 }
 
+let statusTimeout = null;
+
 function statusMsg(msg) {
+  if (statusTimeout) clearTimeout(statusTimeout);
   document.getElementById('console-status').textContent = msg;
-  setTimeout(updateStatus, 3000);
+  statusTimeout = setTimeout(updateStatus, 3000);
+}
+
+function statusMsgPersistent(msg) {
+  if (statusTimeout) clearTimeout(statusTimeout);
+  statusTimeout = null;
+  document.getElementById('console-status').textContent = msg;
 }
 
 function updateStatus() {
+  if (viewMode === 'census') {
+    const focus = db.households.find(h => h.id === db.focusHouseholdId);
+    const suffix = focus ? ' · ' + focus.id : '';
+    document.getElementById('console-status').textContent = `${db.households.length} HOUSEHOLDS · ${db.householdLinks.length} LINKS${suffix}`;
+    return;
+  }
   const focus = getFocusPerson();
-  const suffix = focus ? ' · FOCUS ' + focus.id : '';
-  document.getElementById('console-status').textContent = `${db.people.length} PEOPLE · ${db.relationships.length} LINKS${suffix}`;
+  const suffix = focus ? ' · ' + focus.name : '';
+  document.getElementById('console-status').textContent = `${db.people.length} PEOPLE · ${db.relationships.length} LINKS · ${db.events.length} EVENTS${suffix}`;
 }
 
 function peopleMap() {
@@ -420,12 +688,257 @@ function getFocusPerson() {
   return db.people.find(person => person.id === db.focusPersonId) || db.people[0] || null;
 }
 
+// ── Wizard ──────────────────────────────────────────────────────────────────
+const WIZARD_STEPS = [
+  { key: 'name',   label: 'NAME',   hint: '(required)' },
+  { key: 'birth',  label: 'BIRTH',  hint: '(YYYY or YYYY-MM-DD, or Enter to skip)' },
+  { key: 'death',  label: 'DEATH',  hint: '(YYYY or YYYY-MM-DD, or Enter to skip)' },
+  { key: 'branch', label: 'BRANCH', hint: '(family branch or Enter to skip)' },
+  { key: 'gender', label: 'GENDER', hint: '(or Enter to skip)' },
+  { key: 'notes',  label: 'NOTES',  hint: '(or Enter to skip)' },
+];
+
+const REL_KEYWORD_GENDER = {
+  father: 'male', son: 'male', brother: 'male', husband: 'male',
+  mother: 'female', daughter: 'female', sister: 'female', wife: 'female'
+};
+
+function startWizard(relKeyword, relTargetId, prefillName) {
+  const inferredGender = relKeyword ? REL_KEYWORD_GENDER[relKeyword.toLowerCase()] : undefined;
+  const steps = relKeyword ? WIZARD_STEPS.filter(s => s.key !== 'gender') : WIZARD_STEPS;
+  wizard = {
+    step: prefillName ? 1 : 0,
+    data: prefillName ? { name: prefillName } : {},
+    relKeyword, relTargetId, steps,
+    inferredGender
+  };
+  wizardPrompt();
+}
+
+function wizardPrompt() {
+  const step = wizard.steps[wizard.step];
+  document.getElementById('console-prompt').textContent = step.label + '>';
+  statusMsg(step.label + ' ' + step.hint);
+}
+
+function wizardHandleInput(value) {
+  const step = wizard.steps[wizard.step];
+  const trimmed = value.trim();
+  if (step.key === 'name' && !trimmed) { statusMsg('Name is required. Enter a name:'); return; }
+  if ((step.key === 'birth' || step.key === 'death') && trimmed && !normalizeDate(trimmed)) {
+    statusMsg('Date must be YYYY or YYYY-MM-DD. Try again:'); return;
+  }
+  if (trimmed) wizard.data[step.key] = trimmed;
+  wizard.step++;
+  if (wizard.step >= wizard.steps.length) wizardFinish();
+  else wizardPrompt();
+}
+
+function wizardFinish() {
+  const { data, relKeyword, relTargetId, inferredGender } = wizard;
+  wizard = null;
+  document.getElementById('console-prompt').textContent = 'LIFELINE>';
+  if (!data.name) { statusMsg('Add cancelled.'); return; }
+  const person = sanitizePerson({
+    id: nextId('P', db.people), name: data.name,
+    birthDate: normalizeDate(data.birth || ''), deathDate: normalizeDate(data.death || ''),
+    branch: data.branch || '', gender: data.gender || inferredGender || '', notes: data.notes || ''
+  });
+  db.people.push(person);
+  if (!db.focusPersonId) db.focusPersonId = person.id;
+  if (relKeyword && relTargetId) addRelForFocus(relTargetId, relKeyword, person.id);
+  saveDB(); render();
+  statusMsg('Added ' + person.name + ' (' + person.id + ').' + (relKeyword ? ' Linked as ' + relKeyword + '.' : ''));
+}
+
+// ── Relationship helpers ─────────────────────────────────────────────────────
+const REL_KEYWORDS = new Set(['brother','sister','sibling','father','mother','parent','guardian','son','daughter','child','husband','wife','spouse','partner']);
+
+const RELFILL_LABELS = {
+  'parent-of-focus': 'PARENT',
+  'child-of-focus': 'CHILD',
+  'spouse-of-focus': 'SPOUSE'
+};
+
+function relFillPromptText() {
+  const map = peopleMap();
+  const focus = map.get(relFill.focusId);
+  const candidate = relFill.candidates[relFill.index];
+  const other = map.get(candidate.otherId);
+  return `Add ${other.name} as ${focus.name}'s ${RELFILL_LABELS[candidate.relType]}? (${candidate.reason}) y/n`;
+}
+
+function relFillCurrentPrompt() {
+  document.getElementById('console-prompt').textContent = 'ADD?>';
+  statusMsgPersistent(relFillPromptText());
+}
+
+function startRelFill() {
+  const focus = getFocusPerson();
+  if (!focus) return statusMsg('No focus person set.');
+  const candidates = buildRelFillCandidates(focus.id);
+  if (!candidates.length) return statusMsg('No plausible missing relationships found.');
+  relFill = { candidates, index: 0, added: 0, focusId: focus.id };
+  relFillCurrentPrompt();
+}
+
+function relFillApplyCurrent() {
+  const candidate = relFill.candidates[relFill.index];
+  let canonical;
+  if (candidate.relType === 'parent-of-focus') canonical = canonicalizeRelationship(candidate.otherId, 'parent', relFill.focusId);
+  if (candidate.relType === 'child-of-focus') canonical = canonicalizeRelationship(relFill.focusId, 'parent', candidate.otherId);
+  if (candidate.relType === 'spouse-of-focus') canonical = canonicalizeRelationship(relFill.focusId, 'spouse', candidate.otherId);
+  if (!canonical) return false;
+  const dup = db.relationships.find(r => r.type === canonical.type && r.fromId === canonical.fromId && r.toId === canonical.toId);
+  if (dup) return false;
+  const rel = sanitizeRelationship({ id: nextId('R', db.relationships), ...canonical });
+  db.relationships.push(rel);
+  return true;
+}
+
+function relFillAdvance(accepted) {
+  if (accepted && relFillApplyCurrent()) {
+    relFill.added++;
+    saveDB();
+    render();
+  }
+  relFill.index++;
+  if (relFill.index >= relFill.candidates.length) {
+    const total = relFill.candidates.length;
+    const added = relFill.added;
+    document.getElementById('console-prompt').textContent = 'LIFELINE>';
+    relFill = null;
+    statusMsg(`Added ${added} of ${total} suggestion${total === 1 ? '' : 's'}.`);
+    return;
+  }
+  relFillCurrentPrompt();
+}
+
+function addRelForFocus(focusId, keyword, otherId) {
+  const kw = cleanText(keyword).toLowerCase();
+  let canonical;
+  if (['father','mother','parent','guardian'].includes(kw)) {
+    canonical = canonicalizeRelationship(otherId, 'parent', focusId);
+  } else if (['son','daughter','child'].includes(kw)) {
+    canonical = canonicalizeRelationship(focusId, 'parent', otherId);
+  } else if (['brother','sister','sibling'].includes(kw)) {
+    canonical = canonicalizeRelationship(focusId, 'sibling', otherId);
+  } else if (['husband','wife','spouse','partner'].includes(kw)) {
+    canonical = canonicalizeRelationship(focusId, 'spouse', otherId);
+  }
+  if (!canonical) return { error: 'Unknown relationship keyword: ' + keyword };
+  const dup = db.relationships.find(r => r.type === canonical.type && r.fromId === canonical.fromId && r.toId === canonical.toId);
+  if (dup) return { error: 'Relationship already exists (' + dup.id + ').' };
+  const rel = sanitizeRelationship({ id: nextId('R', db.relationships), ...canonical });
+  if (!rel) return { error: 'Could not create relationship.' };
+  db.relationships.push(rel);
+  return { ok: true };
+}
+
+
+// ── /set command ─────────────────────────────────────────────────────────────
+const SET_FIELD_MAP = { name:'name', birth:'birthDate', birthdate:'birthDate', death:'deathDate', deathdate:'deathDate', branch:'branch', gender:'gender', notes:'notes' };
+
+function handleSetCommand(arg) {
+  const spaceIdx = arg.trim().indexOf(' ');
+  const field = spaceIdx === -1 ? arg.trim() : arg.trim().slice(0, spaceIdx);
+  const value = spaceIdx === -1 ? '' : arg.trim().slice(spaceIdx + 1).trim();
+  const focus = getFocusPerson();
+  if (!focus) return statusMsg('No focus person. Set focus with /focus <name>.');
+
+  if (field === 'marriage' || field === 'divorce') {
+    if (!value) return statusMsg('Usage: /set ' + field + (field === 'marriage' ? ' <date> [location]' : ' YYYY-MM-DD'));
+    const spouseRels = db.relationships.filter(r => r.type === 'spouse' && (r.fromId === focus.id || r.toId === focus.id));
+    if (!spouseRels.length) return statusMsg('No spouse recorded. Use /rel set spouse <name> first.');
+    if (spouseRels.length > 1) {
+      const map = peopleMap();
+      const list = spouseRels.map(r => {
+        const other = map.get(r.fromId === focus.id ? r.toId : r.fromId);
+        return r.id + ' (' + (other ? other.name : '?') + ')';
+      }).join(', ');
+      return statusMsg('Multiple spouses — use /rel update <id> ' + field + ' ' + value + '  [' + list + ']');
+    }
+
+    if (field === 'divorce') {
+      if (!normalizeDate(value)) return statusMsg('Date must be YYYY-MM-DD.');
+      spouseRels[0].endDate = normalizeDate(value);
+      saveDB(); render();
+      return statusMsg(focus.name + ': divorce → ' + value);
+    }
+
+    const spaceIdx = value.indexOf(' ');
+    const datePart = spaceIdx === -1 ? value : value.slice(0, spaceIdx);
+    const locationPart = spaceIdx === -1 ? '' : value.slice(spaceIdx + 1).trim();
+    const normalized = normalizeDate(datePart);
+    if (!normalized) return statusMsg('Date must be YYYY or YYYY-MM-DD.');
+    spouseRels[0].date = normalized;
+    let locationName = '';
+    if (locationPart) {
+      const location = resolveOrCreateLocation(locationPart);
+      spouseRels[0].locationId = location.id;
+      locationName = location.name;
+    }
+    saveDB(); render();
+    return statusMsg(focus.name + ': marriage → ' + normalized + (locationName ? ' @ ' + locationName : ''));
+  }
+
+  if (field === 'birthplace' || field === 'deathplace') {
+    if (!value) return statusMsg('Usage: /set ' + field + ' <location name>');
+    const location = resolveOrCreateLocation(value);
+    focus[field === 'birthplace' ? 'birthLocationId' : 'deathLocationId'] = location.id;
+    saveDB(); render();
+    return statusMsg(focus.name + ': ' + field + ' → ' + location.name);
+  }
+
+  const key = SET_FIELD_MAP[field.toLowerCase()];
+  if (!key) return statusMsg('Field must be: name, birth, death, branch, gender, notes, birthplace, deathplace, marriage, divorce.');
+  if (!value) return statusMsg('Usage: /set ' + field + ' <value>');
+
+  if (key === 'birthDate' || key === 'deathDate') {
+    const spaceIdx = value.indexOf(' ');
+    const datePart = spaceIdx === -1 ? value : value.slice(0, spaceIdx);
+    const locationPart = spaceIdx === -1 ? '' : value.slice(spaceIdx + 1).trim();
+    const normalized = normalizeDate(datePart);
+    if (!normalized) return statusMsg('Date must be YYYY or YYYY-MM-DD.');
+    focus[key] = normalized;
+    let locationName = '';
+    if (locationPart) {
+      const location = resolveOrCreateLocation(locationPart);
+      focus[key === 'birthDate' ? 'birthLocationId' : 'deathLocationId'] = location.id;
+      locationName = location.name;
+    }
+    saveDB(); render();
+    return statusMsg(focus.name + ': ' + field.toLowerCase() + ' → ' + normalized + (locationName ? ' @ ' + locationName : ''));
+  }
+
+  focus[key] = value;
+  saveDB(); render();
+  statusMsg(focus.name + ': ' + field.toLowerCase() + ' → ' + value);
+}
+
+// ── /add command ─────────────────────────────────────────────────────────────
+function handleAddCommand(arg) {
+  const trimmed = cleanText(arg);
+  if (!trimmed) { startWizard(null, null, null); return; }
+  const parts = trimmed.split(/\s+/);
+  const firstWord = parts[0].toLowerCase();
+  if (REL_KEYWORDS.has(firstWord)) {
+    const name = parts.slice(1).join(' ');
+    if (!name) { startWizard(firstWord, (getFocusPerson() || {}).id || null, null); return; }
+    const focus = getFocusPerson();
+    if (!focus) return statusMsg('No focus person. Add someone first with /person add.');
+    startWizard(firstWord, focus.id, name);
+  } else {
+    startWizard(null, null, trimmed);
+  }
+}
+
 function relationSummary(personId) {
   const parents = [];
   const children = [];
   const spouses = [];
-  const siblings = [];
   const map = peopleMap();
+
   db.relationships.forEach(rel => {
     if (rel.type === 'parent') {
       if (rel.toId === personId && map.has(rel.fromId)) parents.push(map.get(rel.fromId));
@@ -435,12 +948,112 @@ function relationSummary(personId) {
       const otherId = rel.fromId === personId ? rel.toId : rel.fromId;
       if (map.has(otherId)) spouses.push(map.get(otherId));
     }
+  });
+
+  // Infer siblings from shared parents
+  const myParentIds = new Set(parents.map(p => p.id));
+  const siblingIds = new Set();
+  const siblings = []; // { person, half }
+
+  if (myParentIds.size > 0) {
+    // Group other children by which of my parents they share
+    const sharedParentCount = new Map(); // otherChildId -> count of shared parents
+    db.relationships.forEach(rel => {
+      if (rel.type === 'parent' && myParentIds.has(rel.fromId) && rel.toId !== personId) {
+        sharedParentCount.set(rel.toId, (sharedParentCount.get(rel.toId) || 0) + 1);
+      }
+    });
+    sharedParentCount.forEach((count, sibId) => {
+      if (map.has(sibId)) {
+        siblingIds.add(sibId);
+        siblings.push({ person: map.get(sibId), half: count < myParentIds.size });
+      }
+    });
+  }
+
+  // Also include any explicit sibling records (manual override when parents aren't in tree)
+  db.relationships.forEach(rel => {
     if (rel.type === 'sibling' && (rel.fromId === personId || rel.toId === personId)) {
       const otherId = rel.fromId === personId ? rel.toId : rel.fromId;
-      if (map.has(otherId)) siblings.push(map.get(otherId));
+      if (!siblingIds.has(otherId) && map.has(otherId)) {
+        siblingIds.add(otherId);
+        siblings.push({ person: map.get(otherId), half: false });
+      }
     }
   });
+
+  siblings.sort((a, b) => (a.person.birthDate || '9999').localeCompare(b.person.birthDate || '9999'));
   return { parents, children, spouses, siblings };
+}
+
+function sortedSpouses(personId, spouses) {
+  return spouses.slice().sort((a, b) => {
+    const ra = db.relationships.find(r => r.type === 'spouse' && ((r.fromId === personId && r.toId === a.id) || (r.toId === personId && r.fromId === a.id)));
+    const rb = db.relationships.find(r => r.type === 'spouse' && ((r.fromId === personId && r.toId === b.id) || (r.toId === personId && r.fromId === b.id)));
+    return ((ra && ra.date) || '9999').localeCompare((rb && rb.date) || '9999');
+  });
+}
+
+function isDirectlyRelated(idA, idB) {
+  if (idA === idB) return true;
+  return db.relationships.some(r =>
+    (r.fromId === idA && r.toId === idB) || (r.fromId === idB && r.toId === idA)
+  );
+}
+
+function buildRelFillCandidates(focusId) {
+  const map = peopleMap();
+  const summary = relationSummary(focusId);
+  const seen = new Set(); // dedupe by `otherId:relType`
+  const candidates = []; // { otherId, relType, reason }
+
+  function add(otherId, relType, reason) {
+    if (otherId === focusId || isDirectlyRelated(focusId, otherId)) return;
+    const key = otherId + ':' + relType;
+    if (seen.has(key)) return;
+    seen.add(key);
+    candidates.push({ otherId, relType, reason });
+  }
+
+  // Rule 1: parent's spouse -> missing other parent (only when exactly one parent is linked)
+  if (summary.parents.length === 1) {
+    const parent = summary.parents[0];
+    db.relationships.forEach(r => {
+      if (r.type !== 'spouse') return;
+      if (r.fromId !== parent.id && r.toId !== parent.id) return;
+      const spouseId = r.fromId === parent.id ? r.toId : r.fromId;
+      if (map.has(spouseId)) add(spouseId, 'parent-of-focus', "parent's spouse");
+    });
+  }
+
+  // Rule 4: sibling's parents -> focus's parents (explicit sibling records only)
+  db.relationships.forEach(r => {
+    if (r.type !== 'sibling') return;
+    if (r.fromId !== focusId && r.toId !== focusId) return;
+    const sibId = r.fromId === focusId ? r.toId : r.fromId;
+    db.relationships.forEach(pr => {
+      if (pr.type !== 'parent' || pr.toId !== sibId) return;
+      if (map.has(pr.fromId)) add(pr.fromId, 'parent-of-focus', "sibling's parent");
+    });
+  });
+
+  // Rule 3: spouse's children -> step-children of focus (focus becomes their parent)
+  summary.spouses.forEach(spouse => {
+    db.relationships.forEach(r => {
+      if (r.type !== 'parent' || r.fromId !== spouse.id) return;
+      if (map.has(r.toId)) add(r.toId, 'child-of-focus', "spouse's child");
+    });
+  });
+
+  // Rule 5: shared child's other parent -> spouse of focus
+  summary.children.forEach(child => {
+    db.relationships.forEach(r => {
+      if (r.type !== 'parent' || r.toId !== child.id || r.fromId === focusId) return;
+      if (map.has(r.fromId)) add(r.fromId, 'spouse-of-focus', "child's other parent");
+    });
+  });
+
+  return candidates;
 }
 
 function formatLife(person) {
@@ -449,35 +1062,167 @@ function formatLife(person) {
   return `${birth} → ${death}`;
 }
 
+function ageLabel(person) {
+  if (!person.birthDate) return '';
+  const pad = d => /^\d{4}$/.test(d) ? d + '-01-01' : d; // year-only dates assume Jan 1 for age math
+  const birth = new Date(pad(person.birthDate) + 'T00:00:00Z');
+  const end = person.deathDate ? new Date(pad(person.deathDate) + 'T00:00:00Z') : new Date();
+  let years = end.getUTCFullYear() - birth.getUTCFullYear();
+  const dm = end.getUTCMonth() - birth.getUTCMonth();
+  if (dm < 0 || (dm === 0 && end.getUTCDate() < birth.getUTCDate())) years--;
+  if (years < 0) return '';
+  return person.deathDate ? `${years}y` : `${years}y now`;
+}
+
 function relationshipLabel(rel, map) {
   const from = map.get(rel.fromId);
   const to = map.get(rel.toId);
   if (!from || !to) return '';
-  const date = rel.date ? ` · ${rel.date}` : '';
+  const datePart = rel.date && rel.endDate
+    ? ` · ${rel.date} → ${rel.endDate}`
+    : rel.date ? ` · ${rel.date}` : rel.endDate ? ` · ? → ${rel.endDate}` : '';
   const note = rel.note ? ` · ${escHtml(rel.note)}` : '';
-  if (rel.type === 'parent') return `${escHtml(from.name)} → parent of → ${escHtml(to.name)}${date}${note}`;
-  if (rel.type === 'spouse') return `${escHtml(from.name)} ↔ spouse ↔ ${escHtml(to.name)}${date}${note}`;
-  return `${escHtml(from.name)} ↔ sibling ↔ ${escHtml(to.name)}${date}${note}`;
+  if (rel.type === 'parent') return `${nameLink(from)} → parent of → ${nameLink(to)}${datePart}${note}`;
+  if (rel.type === 'spouse') {
+    const ended = rel.endDate ? ' [divorced]' : '';
+    const location = db.locations.find(l => l.id === rel.locationId);
+    const locationPart = location ? ` · ${escHtml(location.name)}` : '';
+    return `${nameLink(from)} ↔ spouse ↔ ${nameLink(to)}${datePart}${locationPart}${ended}${note}`;
+  }
+  return `${nameLink(from)} ↔ sibling ↔ ${nameLink(to)}${datePart}${note}`;
 }
 
 function buildDateLedger() {
   const entries = [];
   db.people.forEach(person => {
-    if (person.birthDate) entries.push({ date: person.birthDate, label: 'BIRTH', text: person.name });
-    if (person.deathDate) entries.push({ date: person.deathDate, label: 'DEATH', text: person.name });
+    if (person.birthDate) entries.push({ date: person.birthDate, label: 'BIRTH', text: person.name, personId: person.id });
+    if (person.deathDate) entries.push({ date: person.deathDate, label: 'DEATH', text: person.name, personId: person.id });
+  });
+  const pmap = peopleMap();
+  db.relationships.forEach(rel => {
+    if (rel.type !== 'spouse') return;
+    const from = pmap.get(rel.fromId);
+    const to = pmap.get(rel.toId);
+    if (!from || !to) return;
+    const couple = from.name + ' & ' + to.name;
+    if (rel.date) entries.push({ date: rel.date, label: 'MARR', text: couple });
+    if (rel.endDate) entries.push({ date: rel.endDate, label: 'DIV', text: couple });
   });
   db.events.forEach(event => {
     if (event.date) entries.push({ date: event.date, label: event.type.toUpperCase(), text: event.title });
   });
-  return entries.sort((a, b) => a.date.localeCompare(b.date)).slice(-8);
+  return entries.sort((a, b) => a.date.localeCompare(b.date));
 }
 
-function renderMetrics() {
-  const knownDates = db.people.reduce((count, person) => count + (person.birthDate ? 1 : 0) + (person.deathDate ? 1 : 0), 0) + db.events.filter(event => event.date).length;
-  document.getElementById('metric-people').textContent = String(db.people.length);
-  document.getElementById('metric-relationships').textContent = String(db.relationships.length);
-  document.getElementById('metric-events').textContent = String(db.events.length);
-  document.getElementById('metric-dates').textContent = String(knownDates);
+function renderNuclearFamily() {
+  const el = document.getElementById('nuclear-family');
+  const focus = getFocusPerson();
+  if (!focus) { el.className = 'dim'; el.innerHTML = 'No people yet.'; return; }
+  const summary = relationSummary(focus.id);
+
+  if (!summary.spouses.length && !summary.children.length) {
+    el.className = 'dim';
+    el.innerHTML = 'No spouse or children recorded.';
+    return;
+  }
+
+  // Build child→parents map for grouping
+  const childParents = new Map();
+  db.relationships.forEach(r => {
+    if (r.type === 'parent') {
+      if (!childParents.has(r.toId)) childParents.set(r.toId, new Set());
+      childParents.get(r.toId).add(r.fromId);
+    }
+  });
+
+  function childRow(c) {
+    const age = ageLabel(c);
+    const yr = c.birthDate ? ' <span class="rel-date">· ' + c.birthDate.slice(0, 4) + '</span>' : '';
+    const ageHtml = age ? ' <span class="rel-date">· ' + age + (c.deathDate ? '<span style="color:var(--warn)">/d</span>' : '') + '</span>' : '';
+    return `<div class="rel-row" style="padding-left:14px">${nameLink(c)}${censusBadgeHtml(c.id)}${yr}${ageHtml}</div>`;
+  }
+
+  const assigned = new Set();
+  let html = '';
+
+  // Sort spouses by marriage date
+  const spousesSorted = sortedSpouses(focus.id, summary.spouses);
+
+  for (const s of spousesSorted) {
+    const rel = db.relationships.find(r => r.type === 'spouse' && ((r.fromId === focus.id && r.toId === s.id) || (r.toId === focus.id && r.fromId === s.id)));
+    const marriageLoc = rel && db.locations.find(l => l.id === rel.locationId);
+    const marriagePart = rel && rel.date ? ' <span class="rel-date">· m.' + rel.date.slice(0, 4) + (rel.endDate ? ' → ' + rel.endDate.slice(0, 4) : '') + (marriageLoc ? ' · ' + escHtml(marriageLoc.name) : '') + '</span>' : '';
+    const divTag = rel && rel.endDate ? ' <span class="dim">[div]</span>' : '';
+    const birthPart = s.birthDate ? ' <span class="rel-date">· ' + s.birthDate.slice(0, 4) + '</span>' : '';
+    const age = ageLabel(s);
+    const agePart = age ? ' <span class="rel-date">· ' + age + (s.deathDate ? '<span style="color:var(--warn)">/d</span>' : '') + '</span>' : '';
+    html += `<div class="rel-row"><span class="rel-label">Spouse</span>${nameLink(s)}${censusBadgeHtml(s.id)}${birthPart}${agePart}${marriagePart}${divTag}</div>`;
+
+    const shared = summary.children
+      .filter(c => { const p = childParents.get(c.id); return p && p.has(focus.id) && p.has(s.id); })
+      .sort((a, b) => (a.birthDate || '9999').localeCompare(b.birthDate || '9999'));
+    shared.forEach(c => { assigned.add(c.id); html += childRow(c); });
+  }
+
+  const unassigned = summary.children
+    .filter(c => !assigned.has(c.id))
+    .sort((a, b) => (a.birthDate || '9999').localeCompare(b.birthDate || '9999'));
+  if (unassigned.length) {
+    html += `<div class="section-title" style="margin-top:6px">OTHER CHILDREN</div>`;
+    unassigned.forEach(c => { html += childRow(c); });
+  }
+
+  el.className = '';
+  el.innerHTML = html;
+}
+
+
+function focusAgeHtml(person) {
+  const age = ageLabel(person);
+  if (!age) return '<span style="color:var(--dim)">birth unknown</span>';
+  if (person.deathDate) return '<span style="color:var(--warn)">deceased · ' + escHtml(age.replace(' now', '')) + ' at death</span>';
+  return '<span style="color:var(--success)">' + escHtml(age) + '</span>';
+}
+
+// Known (date, place) facts for a person -- birth, death, marriages, and every census
+// year reachable through their tree-linked identities. Only facts with both a date and
+// a resolvable location are kept; no transition dates between facts are inferred.
+function personLocationFacts(person) {
+  const locMap = new Map(db.locations.map(loc => [loc.id, loc]));
+  const facts = [];
+  const addFact = (date, label, locationId) => {
+    const loc = locMap.get(locationId);
+    if (date && loc) facts.push({ date, label, place: loc.name });
+  };
+  addFact(person.birthDate, 'Born', person.birthLocationId);
+  db.relationships
+    .filter(r => r.type === 'spouse' && (r.fromId === person.id || r.toId === person.id))
+    .forEach(r => addFact(r.date, 'Married', r.locationId));
+  db.personIdentities
+    .filter(pi => pi.personId === person.id)
+    .forEach(identity => {
+      resolvedMembersForIdentity(identity).forEach(({ household }) => addFact(household.year, 'Census', household.locationId));
+    });
+  addFact(person.deathDate, 'Died', person.deathLocationId);
+
+  const seen = new Set();
+  return facts
+    .filter(f => {
+      const key = f.date + '|' + f.label + '|' + f.place;
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    })
+    .sort((a, b) => a.date.localeCompare(b.date));
+}
+
+function renderLocationFactsHtml(person) {
+  const facts = personLocationFacts(person);
+  if (!facts.length) return '';
+  const rows = facts
+    .map(f => `<div class="rel-row"><span class="rel-label">${escHtml(f.date)}</span><span class="rel-person">${escHtml(f.label)} · ${escHtml(f.place)}</span></div>`)
+    .join('');
+  return `<div class="loc-fact-list">${rows}</div>`;
 }
 
 function renderFocus() {
@@ -485,42 +1230,181 @@ function renderFocus() {
   const el = document.getElementById('focus-card');
   if (!focus) {
     el.className = 'dim';
-    el.innerHTML = 'No people yet. Use /person add to start the tree.';
+    el.innerHTML = 'No people yet. Use /add to start the tree.';
     return;
   }
   const summary = relationSummary(focus.id);
   const attrs = Object.entries(focus.attributes);
+
+  // relationship rows with natural labels
+  const parentRows = [];
+  for (const p of summary.parents) {
+    const g = (p.gender || '').toLowerCase();
+    const lbl = (g === 'male' || g === 'm') ? 'Father' : (g === 'female' || g === 'f') ? 'Mother' : 'Parent';
+    parentRows.push(`<div class="rel-row"><span class="rel-label">${lbl}</span>${nameLink(p)}${censusBadgeHtml(p.id)}${p.birthDate ? '<span class="rel-date"> · ' + escHtml(p.birthDate.slice(0,4)) + '</span>' : ''}</div>`);
+  }
+  const siblingRows = [];
+  if (summary.siblings.length) {
+    const full = summary.siblings.filter(s => !s.half);
+    const half = summary.siblings.filter(s => s.half);
+    if (full.length) siblingRows.push(`<div class="rel-row"><span class="rel-label">Siblings</span><span class="rel-person">${full.map(s => nameLink(s.person) + censusBadgeHtml(s.person.id)).join(' · ')}</span></div>`);
+    if (half.length) siblingRows.push(`<div class="rel-row"><span class="rel-label">Half-sib</span><span class="rel-person">${half.map(s => nameLink(s.person) + censusBadgeHtml(s.person.id)).join(' · ')}</span></div>`);
+  }
+
   const chips = [
     focus.branch && `<span class="chip chip-accent">${escHtml(focus.branch)}</span>`,
-    focus.gender && `<span class="chip">${escHtml(focus.gender)}</span>`,
-    `<span class="chip chip-good">${summary.parents.length} parent${summary.parents.length === 1 ? '' : 's'}</span>`,
-    `<span class="chip chip-good">${summary.children.length} child${summary.children.length === 1 ? '' : 'ren'}</span>`,
-    `<span class="chip">${summary.spouses.length} spouse${summary.spouses.length === 1 ? '' : 's'}</span>`,
-    `<span class="chip">${summary.siblings.length} sibling${summary.siblings.length === 1 ? '' : 's'}</span>`
   ].filter(Boolean).join('');
   const attrHtml = attrs.length
-    ? attrs.map(([key, value]) => `<span class="chip">${escHtml(key)}: ${escHtml(value)}</span>`).join('')
-    : '<span class="dim">No custom attributes yet. Use /attr set.</span>';
+    ? attrs.map(([k, v]) => `<span class="chip">${escHtml(k)}: ${escHtml(v)}</span>`).join('')
+    : '<span class="dim">No attributes. Use /attr set.</span>';
+
+  const locMap = new Map(db.locations.map(loc => [loc.id, loc]));
+  const birthLoc = locMap.get(focus.birthLocationId);
+  const deathLoc = locMap.get(focus.deathLocationId);
+  const placePart = [birthLoc && ('b. ' + birthLoc.name), deathLoc && ('d. ' + deathLoc.name)].filter(Boolean).join(' · ');
+  const censusMatchCount = db.personIdentities.filter(pi => pi.personId === focus.id).reduce((sum, pi) => sum + pi.members.length, 0);
+  const censusBadge = censusMatchCount
+    ? ` <span class="action-link" data-census-matches-view="${escHtml(focus.id)}" title="Linked census appearances">⌗ ${censusMatchCount} census record${censusMatchCount === 1 ? '' : 's'}</span>`
+    : '';
+
   el.className = '';
   el.innerHTML = `
-    <div class="focus-name">${escHtml(focus.name)} <span class="focus-meta">(${escHtml(focus.id)})</span></div>
-    <div class="focus-meta">${escHtml(formatLife(focus))}</div>
-    <div class="chip-row">${chips}</div>
+    <div class="focus-name">${escHtml(focus.name)} <span class="focus-meta">(${escHtml(focus.id)})</span>${focus.gender ? ' <span class="dim" style="font-size:0.82em">' + escHtml(focus.gender) + '</span>' : ''}${censusBadge}</div>
+    <div class="focus-meta">${escHtml(formatLife(focus))} · ${focusAgeHtml(focus)}${placePart ? ' · ' + escHtml(placePart) : ''}</div>
+    ${parentRows.join('')}
+    ${renderLocationFactsHtml(focus)}
+    ${siblingRows.join('')}
+    ${!parentRows.length && !siblingRows.length ? '<div class="dim">No parents or siblings recorded.</div>' : ''}
+    <hr class="focus-divider">
+    <div class="chip-row">${chips || '<span class="dim">No branch set.</span>'}</div>
     <div class="attr-row">${attrHtml}</div>
-    <div class="person-notes dim">${focus.notes ? escHtml(focus.notes) : 'No notes yet.'}</div>
+    <div class="person-notes dim">${focus.notes ? escHtml(focus.notes) : 'No notes.'}</div>
   `;
 }
 
 function renderDateLedger() {
-  const entries = buildDateLedger();
+  const allEntries = buildDateLedger();
   const el = document.getElementById('date-ledger');
-  if (!entries.length) {
+  if (!allEntries.length) {
     el.className = 'dim';
     el.textContent = 'No dated records yet.';
     return;
   }
+  const entries = allEntries.filter(entry => yearInLifespan(entry.date));
+  if (!entries.length) {
+    el.className = 'dim';
+    el.textContent = 'No dated records within the lifespan filter.';
+    return;
+  }
   el.className = '';
-  el.innerHTML = entries.map(entry => `<div class="line"><span class="focus-meta">${escHtml(entry.date)}</span> · <span class="person-name">${escHtml(entry.label)}</span> · ${escHtml(entry.text)}</div>`).join('');
+  el.innerHTML = entries.map(entry => {
+    const nameHtml = entry.personId
+      ? `<span class="name-link person-name" data-person-focus="${escHtml(entry.personId)}">${escHtml(entry.text)}</span>`
+      : escHtml(entry.text);
+    return `<div class="line"><span class="focus-meta">${escHtml(entry.date)}</span> · <span class="person-name">${escHtml(entry.label)}</span> · ${nameHtml}</div>`;
+  }).join('');
+}
+
+let peopleFilterText = '';
+let peopleSortKey = 'birth';
+
+function personTextMatch(p, q) {
+  return p.name.toLowerCase().includes(q) ||
+    p.id.toLowerCase().includes(q) ||
+    (p.branch || '').toLowerCase().includes(q) ||
+    (p.gender || '').toLowerCase().includes(q) ||
+    (p.notes || '').toLowerCase().includes(q);
+}
+
+function wasAliveInYear(person, year) {
+  const birthYear = person.birthDate ? parseInt(person.birthDate.slice(0, 4), 10) : null;
+  if (birthYear === null) return false;
+  const deathYear = person.deathDate ? parseInt(person.deathDate.slice(0, 4), 10) : null;
+  return birthYear <= year && (deathYear === null || deathYear >= year);
+}
+
+// ── Lifespan filter (restrict RELATIONSHIPS/EVENTS/DATE LEDGER/LOCATIONS to the focus person's lifetime) ──
+function focusLifespanRange() {
+  const focus = getFocusPerson();
+  if (!focus || !focus.birthDate) return null;
+  const startYear = parseInt(focus.birthDate.slice(0, 4), 10);
+  const endYear = focus.deathDate ? parseInt(focus.deathDate.slice(0, 4), 10) : new Date().getFullYear();
+  return { startYear, endYear };
+}
+
+function yearInLifespan(dateStr) {
+  if (!lifespanFilterEnabled) return true;
+  const range = focusLifespanRange();
+  if (!range) return true;
+  if (!dateStr) return false;
+  const year = parseInt(dateStr.slice(0, 4), 10);
+  return year >= range.startYear && year <= range.endYear;
+}
+
+function relInLifespan(rel) {
+  if (!lifespanFilterEnabled) return true;
+  if (!focusLifespanRange()) return true;
+  return (!!rel.date && yearInLifespan(rel.date)) || (!!rel.endDate && yearInLifespan(rel.endDate));
+}
+
+function locationInLifespan(locId) {
+  if (!lifespanFilterEnabled) return true;
+  if (!focusLifespanRange()) return true;
+  const usedByPerson = db.people.some(p =>
+    (p.birthLocationId === locId && yearInLifespan(p.birthDate)) ||
+    (p.deathLocationId === locId && yearInLifespan(p.deathDate))
+  );
+  if (usedByPerson) return true;
+  if (db.relationships.some(r => r.locationId === locId && yearInLifespan(r.date))) return true;
+  return db.households.some(h => h.locationId === locId && yearInLifespan(h.year));
+}
+
+function toggleLifespanFilter() {
+  lifespanFilterEnabled = !lifespanFilterEnabled;
+  db.lifespanFilter = lifespanFilterEnabled;
+  saveDB();
+  updateLifespanToggleUI();
+  render();
+  statusMsg('Lifespan filter: ' + (lifespanFilterEnabled ? 'ON' : 'OFF'));
+}
+
+function updateLifespanToggleUI() {
+  const el = document.getElementById('lifespan-toggle');
+  if (el) el.classList.toggle('active', lifespanFilterEnabled);
+}
+
+function cmdLifespan(arg) {
+  const value = cleanText(arg).toLowerCase();
+  if (!value) return toggleLifespanFilter();
+  if (value === 'on') {
+    if (!lifespanFilterEnabled) toggleLifespanFilter();
+    return;
+  }
+  if (value === 'off') {
+    if (lifespanFilterEnabled) toggleLifespanFilter();
+    return;
+  }
+  statusMsg('Usage: /lifespan [on|off]');
+}
+
+function filterPeopleList(people, query) {
+  const raw = query.trim();
+  if (!raw) return people;
+  const q = raw.toLowerCase();
+  const yearMatch = raw.match(/^(\d{4})(-\d{1,2}(-\d{1,2})?)?$/);
+  if (yearMatch) {
+    const year = parseInt(yearMatch[1], 10);
+    return people.filter(p => wasAliveInYear(p, year) || personTextMatch(p, q));
+  }
+  return people.filter(p => personTextMatch(p, q));
+}
+
+function sortPeopleList(people, sortKey) {
+  const sorted = people.slice();
+  if (sortKey === 'name') sorted.sort((a, b) => a.name.localeCompare(b.name));
+  else if (sortKey === 'branch') sorted.sort((a, b) => (a.branch || '').localeCompare(b.branch || '') || a.name.localeCompare(b.name));
+  else sorted.sort((a, b) => (a.birthDate || '9999-99-99').localeCompare(b.birthDate || '9999-99-99') || a.name.localeCompare(b.name));
+  return sorted;
 }
 
 function renderPeople() {
@@ -530,7 +1414,14 @@ function renderPeople() {
     el.textContent = 'No people yet. Add one with /person add Name | birth | death | branch | gender | notes';
     return;
   }
-  const people = db.people.slice().sort((a, b) => (a.birthDate || '9999-99-99').localeCompare(b.birthDate || '9999-99-99') || a.name.localeCompare(b.name));
+  const filtered = filterPeopleList(db.people, peopleFilterText);
+  if (!filtered.length) {
+    el.className = 'dim';
+    el.textContent = 'No matching people.';
+    return;
+  }
+  const people = sortPeopleList(filtered, peopleSortKey);
+  const locMap = new Map(db.locations.map(loc => [loc.id, loc]));
   el.className = '';
   el.innerHTML = people.map(person => {
     const summary = relationSummary(person.id);
@@ -539,48 +1430,38 @@ function renderPeople() {
       person.branch && `branch: ${escHtml(person.branch)}`,
       person.gender && `gender: ${escHtml(person.gender)}`,
       attrs,
-      `parents:${summary.parents.length} children:${summary.children.length} spouses:${summary.spouses.length} siblings:${summary.siblings.length}`
+      `parents:${summary.parents.length} children:${summary.children.length} spouses:${summary.spouses.length} siblings:${summary.siblings.length}`,
+      locMap.get(person.birthLocationId) && `born: ${escHtml(locMap.get(person.birthLocationId).name)}`,
+      locMap.get(person.deathLocationId) && `died: ${escHtml(locMap.get(person.deathLocationId).name)}`,
     ].filter(Boolean).join(' · ');
     return `
       <div class="person-card">
         <div class="person-head">
-          <span class="action-link" data-person-focus="${escHtml(person.id)}">[FOCUS]</span>
-          <span class="person-name">${escHtml(person.name)}</span>
-          <span class="person-life">${escHtml(person.id)} · ${escHtml(formatLife(person))}</span>
+          ${nameLink(person)}${censusBadgeHtml(person.id)}
+          <span class="person-life">${escHtml(person.id)} · ${escHtml(formatLife(person))}${ageLabel(person) ? ' · ' + escHtml(ageLabel(person)) : ''}</span>
         </div>
         <div class="dim">${secondary}</div>
-        <div class="person-notes dim">${person.notes ? escHtml(person.notes) : 'No notes.'}</div>
       </div>
     `;
   }).join('');
-  el.querySelectorAll('[data-person-focus]').forEach(node => {
-    node.addEventListener('click', () => setFocus(node.dataset.personFocus, true));
-  });
 }
 
 function renderRelationships() {
   const map = peopleMap();
   const relList = document.getElementById('relationship-list');
-  const relMix = document.getElementById('relationship-mix');
   if (!db.relationships.length) {
     relList.className = 'dim';
     relList.textContent = 'No family links recorded yet.';
-    relMix.className = 'dim';
-    relMix.textContent = 'No relationships logged yet. Use /rel add.';
     return;
   }
-  const counts = db.relationships.reduce((acc, rel) => {
-    acc[rel.type] = (acc[rel.type] || 0) + 1;
-    return acc;
-  }, {});
-  relMix.className = '';
-  relMix.innerHTML = [
-    `<span class="chip chip-good">parent ${counts.parent || 0}</span>`,
-    `<span class="chip">spouse ${counts.spouse || 0}</span>`,
-    `<span class="chip">sibling ${counts.sibling || 0}</span>`
-  ].join(' ');
+  const filtered = db.relationships.filter(relInLifespan);
+  if (!filtered.length) {
+    relList.className = 'dim';
+    relList.textContent = 'No relationships within the lifespan filter.';
+    return;
+  }
   relList.className = '';
-  relList.innerHTML = db.relationships
+  relList.innerHTML = filtered
     .slice()
     .sort((a, b) => (a.date || '9999-99-99').localeCompare(b.date || '9999-99-99') || a.id.localeCompare(b.id))
     .map(rel => `<div class="line"><span class="focus-meta">${escHtml(rel.id)}</span> · ${relationshipLabel(rel, map)}</div>`)
@@ -595,24 +1476,625 @@ function renderEvents() {
     el.textContent = 'No events logged yet. Use /event add.';
     return;
   }
+  const filtered = db.events.filter(event => yearInLifespan(event.date));
+  if (!filtered.length) {
+    el.className = 'dim';
+    el.textContent = 'No events within the lifespan filter.';
+    return;
+  }
   el.className = '';
-  el.innerHTML = db.events
+  el.innerHTML = filtered
     .slice()
     .sort((a, b) => (a.date || '9999-99-99').localeCompare(b.date || '9999-99-99') || a.id.localeCompare(b.id))
     .map(event => {
-      const people = event.personIds.map(id => map.get(id)).filter(Boolean).map(person => person.name).join(', ');
+      const people = event.personIds.map(id => map.get(id)).filter(Boolean).map(p => nameLink(p)).join(', ');
       return `<div class="line"><span class="focus-meta">${escHtml(event.id)}</span> · <span class="person-name">${escHtml(event.type.toUpperCase())}</span> · ${event.date ? escHtml(event.date) + ' · ' : ''}${escHtml(event.title)}${people ? ' · ' + escHtml(people) : ''}${event.note ? ' · ' + escHtml(event.note) : ''}</div>`;
     })
     .join('');
 }
 
+// Every place a location is referenced: births/deaths, marriages, and census households.
+function locationUsageRows(loc) {
+  const map = peopleMap();
+  const rows = [];
+  db.people.forEach(p => {
+    if (p.birthLocationId === loc.id) rows.push(`<div class="line">Born · ${nameLink(p)}${p.birthDate ? ' · ' + escHtml(p.birthDate.slice(0, 4)) : ''}</div>`);
+    if (p.deathLocationId === loc.id) rows.push(`<div class="line">Died · ${nameLink(p)}${p.deathDate ? ' · ' + escHtml(p.deathDate.slice(0, 4)) : ''}</div>`);
+  });
+  db.relationships.forEach(r => {
+    if (r.locationId === loc.id) rows.push(`<div class="line">Married · ${relationshipLabel(r, map)}</div>`);
+  });
+  db.households.forEach(h => {
+    if (h.locationId === loc.id) {
+      rows.push(`<div class="line">Census · <span class="action-link" data-census-household-jump="${escHtml(h.id)}">${escHtml(h.id)} (${escHtml(h.year)})</span> · ${h.members.length} member${h.members.length === 1 ? '' : 's'}</div>`);
+    }
+  });
+  return rows;
+}
+
+function locationUsageCount(loc) {
+  return db.people.filter(p => p.birthLocationId === loc.id || p.deathLocationId === loc.id).length
+    + db.relationships.filter(r => r.locationId === loc.id).length
+    + db.households.filter(h => h.locationId === loc.id).length;
+}
+
+function showLocationUsages(locId) {
+  const loc = db.locations.find(l => l.id === locId);
+  if (!loc) return;
+  const rows = locationUsageRows(loc);
+  const body = rows.length ? rows.join('') : '<div class="dim">Not used yet.</div>';
+  openOverlay(`◈ LOCATION — ${loc.name}`, body, true);
+}
+
+function renderLocations() {
+  const el = document.getElementById('location-list');
+  if (!db.locations.length) {
+    el.className = 'dim';
+    el.textContent = 'No locations recorded yet. Use /location add.';
+    return;
+  }
+  const filtered = db.locations.filter(loc => locationInLifespan(loc.id));
+  if (!filtered.length) {
+    el.className = 'dim';
+    el.textContent = 'No locations within the lifespan filter.';
+    return;
+  }
+  el.className = '';
+  el.innerHTML = filtered
+    .slice()
+    .sort((a, b) => a.name.localeCompare(b.name))
+    .map(loc => {
+      const uses = locationUsageCount(loc);
+      const usePart = uses ? ` · used by ${uses}` : ' · unused';
+      const mergeFill = `/location merge ${loc.id} | `;
+      return `<div class="line"><span class="focus-meta">${escHtml(loc.id)}</span> · <span class="action-link person-name" data-location-view="${escHtml(loc.id)}">${escHtml(loc.name)}</span>${loc.notes ? ' · ' + escHtml(loc.notes) : ''}${usePart} <span class="action-link" data-location-merge-fill="${escHtml(mergeFill)}" title="Keep this location -- fill in which duplicate to merge into it">[merge]</span></div>`;
+    })
+    .join('');
+}
+
+// ── Ancestor / Descendant trees ───────────────────────────────────────────────
+function buildAncestorNode(personId, depth, visited = new Set()) {
+  if (visited.has(personId) || depth < 0) return null;
+  visited.add(personId);
+  const pmap = peopleMap();
+  const person = pmap.get(personId);
+  if (!person) return null;
+  const parents = db.relationships
+    .filter(r => r.type === 'parent' && r.toId === personId)
+    .map(r => pmap.get(r.fromId)).filter(Boolean);
+  return { person, children: parents.map(p => buildAncestorNode(p.id, depth - 1, visited)).filter(Boolean) };
+}
+
+function buildDescendantNode(personId, depth, visited = new Set()) {
+  if (visited.has(personId) || depth < 0) return null;
+  visited.add(personId);
+  const pmap = peopleMap();
+  const person = pmap.get(personId);
+  if (!person) return null;
+  const children = [...new Set(
+    db.relationships.filter(r => r.type === 'parent' && r.fromId === personId).map(r => r.toId)
+  )].map(id => pmap.get(id)).filter(Boolean)
+    .sort((a, b) => (a.birthDate || '9999').localeCompare(b.birthDate || '9999'));
+  return { person, children: children.map(c => buildDescendantNode(c.id, depth - 1, visited)).filter(Boolean) };
+}
+
+// The state/place abbreviation shown next to each person in the ancestor/descendant
+// trees: the last word of the birthplace if it's already a two-letter code (e.g. "UT"),
+// otherwise the first five characters of that last word as a compact stand-in.
+function birthplaceAbbrev(name) {
+  const words = cleanText(name).split(/\s+/).filter(Boolean);
+  if (!words.length) return '';
+  const last = words[words.length - 1].replace(/[^A-Za-z]/g, '');
+  if (!last) return '';
+  return /^[A-Za-z]{2}$/.test(last) ? last.toUpperCase() : last.slice(0, 5);
+}
+
+function renderTreeHtml(node, prefix, isLast) {
+  const connector = prefix !== null ? (isLast ? '└─ ' : '├─ ') : '';
+  const childPrefix = (prefix || '') + (prefix === null ? '' : isLast ? '   ' : '│  ');
+  const age = ageLabel(node.person);
+  const meta = formatLife(node.person) + (age ? '  ' + age : '');
+  const birthLoc = db.locations.find(l => l.id === node.person.birthLocationId);
+  const abbrev = birthLoc ? birthplaceAbbrev(birthLoc.name) : '';
+  const abbrevPart = abbrev ? ` <span style="color:var(--dim);font-size:0.84em">[${escHtml(abbrev)}]</span>` : '';
+  const censusBadge = censusBadgeHtml(node.person.id);
+  const line = `<div style="white-space:pre;line-height:1.7">${escHtml((prefix || '') + connector)}${nameLink(node.person)}${censusBadge}  <span style="color:var(--dim);font-size:0.84em">${escHtml(meta)}</span>${abbrevPart}</div>`;
+  return line + node.children.map((child, i) => renderTreeHtml(child, childPrefix, i === node.children.length - 1)).join('');
+}
+
+function showAncestors(depthArg) {
+  const focus = getFocusPerson();
+  if (!focus) return statusMsg('No focus person set.');
+  const depth = Math.max(1, Math.min(8, parseInt(depthArg, 10) || 4));
+  const root = buildAncestorNode(focus.id, depth);
+  if (!root) return statusMsg('Could not build ancestor tree.');
+  const html = renderTreeHtml(root, null, true);
+  openOverlay(`◈ ANCESTORS — ${focus.name}  (${depth} generation${depth === 1 ? '' : 's'})`, html, true);
+}
+
+function showDescendants(depthArg) {
+  const focus = getFocusPerson();
+  if (!focus) return statusMsg('No focus person set.');
+  const depth = Math.max(1, Math.min(8, parseInt(depthArg, 10) || 4));
+  const root = buildDescendantNode(focus.id, depth);
+  if (!root) return statusMsg('Could not build descendant tree.');
+  const html = renderTreeHtml(root, null, true);
+  openOverlay(`◈ DESCENDANTS — ${focus.name}  (${depth} generation${depth === 1 ? '' : 's'})`, html, true);
+}
+
+// ── Lifespan timeline ─────────────────────────────────────────────────────────
+function computeTimelinePopulation(focusId, depth) {
+  const pmap = peopleMap();
+  const gen = new Map(); // personId -> generation offset relative to focus (0 = focus's generation)
+  const blood = new Set(); // personIds who are blood relatives (focus, ancestors, descendants, siblings)
+
+  function addBlood(id, g) {
+    if (!gen.has(id)) gen.set(id, g);
+    blood.add(id);
+  }
+  function addSpouse(id, g) {
+    if (!gen.has(id)) gen.set(id, g);
+  }
+  function visit(id, g) {
+    addBlood(id, g);
+    const summary = relationSummary(id);
+    summary.spouses.forEach(s => addSpouse(s.id, g));
+    summary.siblings.forEach(s => {
+      addBlood(s.person.id, g);
+      relationSummary(s.person.id).spouses.forEach(sp => addSpouse(sp.id, g));
+    });
+  }
+
+  function walkAncestors(id, d, g, visited) {
+    if (d < 0 || visited.has(id)) return;
+    visited.add(id);
+    visit(id, g);
+    db.relationships.filter(r => r.type === 'parent' && r.toId === id)
+      .forEach(r => walkAncestors(r.fromId, d - 1, g - 1, visited));
+  }
+
+  function walkDescendants(id, d, g, visited) {
+    if (d < 0 || visited.has(id)) return;
+    visited.add(id);
+    visit(id, g);
+    db.relationships.filter(r => r.type === 'parent' && r.fromId === id)
+      .forEach(r => walkDescendants(r.toId, d - 1, g + 1, visited));
+  }
+
+  walkAncestors(focusId, depth, 0, new Set());
+  walkDescendants(focusId, depth, 0, new Set());
+
+  const all = [...gen.entries()].map(([id, g]) => ({ person: pmap.get(id), gen: g, marriedIn: !blood.has(id) })).filter(r => r.person);
+  const rows = all.filter(r => r.person.birthDate)
+    .sort((a, b) => a.gen - b.gen || a.person.birthDate.localeCompare(b.person.birthDate));
+  const undated = all.filter(r => !r.person.birthDate).map(r => r.person);
+  return { rows, undated };
+}
+
+function buildTimelineSvg(rows, undated, focusId, showHouseholds) {
+  const currentYear = new Date().getFullYear();
+  const years = [];
+  rows.forEach(r => {
+    years.push(parseInt(r.person.birthDate.slice(0, 4), 10));
+    years.push(r.person.deathDate ? parseInt(r.person.deathDate.slice(0, 4), 10) : currentYear);
+  });
+  const minYear = Math.min(...years) - 2;
+  const maxYear = Math.max(...years, currentYear) + 2;
+  const yearToX = year => leftW + (year - minYear) / (maxYear - minYear) * chartW;
+
+  const leftW = 190;
+  const chartW = 640;
+  const rightW = 50;
+  const rowH = 24;
+  const topM = 34;
+  const totalW = leftW + chartW + rightW;
+  const totalH = topM + rows.length * rowH + 16;
+
+  const range = maxYear - minYear;
+  const steps = [5, 10, 20, 25, 50, 100, 200];
+  const step = steps.find(s => range / s <= 7) || steps[steps.length - 1];
+  const firstGrid = Math.ceil(minYear / step) * step;
+  let gridlines = '';
+  for (let y = firstGrid; y <= maxYear; y += step) {
+    const x = yearToX(y);
+    gridlines += `<line x1="${x}" y1="${topM - 8}" x2="${x}" y2="${totalH - 8}" style="stroke:var(--muted)" stroke-width="1"/>`;
+    gridlines += `<text x="${x}" y="${topM - 14}" font-size="10" style="fill:var(--dim)" text-anchor="middle">${y}</text>`;
+  }
+
+  let nowLine = '';
+  if (currentYear >= minYear && currentYear <= maxYear) {
+    const x = yearToX(currentYear);
+    nowLine = `<line x1="${x}" y1="${topM - 8}" x2="${x}" y2="${totalH - 8}" style="stroke:var(--warn)" stroke-width="1" stroke-dasharray="3,3"/>` +
+      `<text x="${x + 4}" y="${topM - 14}" font-size="10" style="fill:var(--warn)">now</text>`;
+  }
+
+  const idToRowIndex = new Map();
+  rows.forEach((r, i) => idToRowIndex.set(r.person.id, i));
+  let markers = '';
+  db.relationships.forEach(rel => {
+    if (rel.type !== 'spouse' || !rel.date) return;
+    const iA = idToRowIndex.get(rel.fromId);
+    const iB = idToRowIndex.get(rel.toId);
+    if (iA === undefined || iB === undefined) return;
+    const year = parseInt(rel.date.slice(0, 4), 10);
+    if (year < minYear || year > maxYear) return;
+    const x = yearToX(year);
+    const yA = topM + iA * rowH + rowH / 2;
+    const yB = topM + iB * rowH + rowH / 2;
+    markers += `<line x1="${x}" y1="${yA}" x2="${x}" y2="${yB}" style="stroke:var(--success)" stroke-width="1" stroke-dasharray="2,2"/>`;
+    [yA, yB].forEach(y => {
+      markers += `<polygon points="${x - 4},${y} ${x},${y - 4} ${x + 4},${y} ${x},${y + 4}" style="fill:var(--success)"/>`;
+    });
+
+    if (rel.endDate) {
+      const divorceYear = parseInt(rel.endDate.slice(0, 4), 10);
+      if (divorceYear >= minYear && divorceYear <= maxYear) {
+        const dx = yearToX(divorceYear);
+        markers += `<line x1="${dx}" y1="${yA}" x2="${dx}" y2="${yB}" style="stroke:var(--warn)" stroke-width="1" stroke-dasharray="2,2"/>`;
+        [yA, yB].forEach(y => {
+          markers += `<line x1="${dx - 4}" y1="${y - 4}" x2="${dx + 4}" y2="${y + 4}" style="stroke:var(--warn)" stroke-width="1.5"/>`;
+          markers += `<line x1="${dx - 4}" y1="${y + 4}" x2="${dx + 4}" y2="${y - 4}" style="stroke:var(--warn)" stroke-width="1.5"/>`;
+        });
+      }
+    }
+  });
+
+  let parentChildLines = '';
+  const drawnConnectors = new Set();
+  function addParentChildConnector(parentId, childId) {
+    const key = parentId + '>' + childId;
+    if (drawnConnectors.has(key)) return;
+    drawnConnectors.add(key);
+    const parentIdx = idToRowIndex.get(parentId);
+    const childIdx = idToRowIndex.get(childId);
+    if (parentIdx === undefined || childIdx === undefined) return;
+    const childBirthYear = parseInt(rows[childIdx].person.birthDate.slice(0, 4), 10);
+    const x = yearToX(childBirthYear);
+    const yTop = topM + Math.min(parentIdx, childIdx) * rowH + rowH / 2;
+    const yBottom = topM + Math.max(parentIdx, childIdx) * rowH + rowH / 2;
+    parentChildLines += `<line x1="${x}" y1="${yTop}" x2="${x}" y2="${yBottom}" style="stroke:var(--dim)" stroke-width="1"/>`;
+    parentChildLines += `<circle cx="${x}" cy="${yTop}" r="3" style="fill:var(--dim)"/>`;
+    parentChildLines += `<circle cx="${x}" cy="${yBottom}" r="3" style="fill:var(--dim)"/>`;
+  }
+  db.relationships.forEach(rel => {
+    if (rel.type !== 'parent') return;
+    if (rel.toId === focusId) {
+      // rel.fromId is a parent of the focus person
+      addParentChildConnector(rel.fromId, rel.toId);
+    } else if (rel.fromId === focusId) {
+      // rel.toId is a child of the focus person; also connect the child's other parent (focus's spouse)
+      addParentChildConnector(rel.fromId, rel.toId);
+      db.relationships.forEach(other => {
+        if (other.type === 'parent' && other.toId === rel.toId && other.fromId !== focusId) {
+          addParentChildConnector(other.fromId, other.toId);
+        }
+      });
+    }
+  });
+
+  // Census markers: the focus person's own census years always get a small square.
+  // With the household toggle on, every co-resident who also has a row in this chart
+  // gets a square too, joined by a vertical connector for that census year.
+  const locMap = new Map(db.locations.map(loc => [loc.id, loc]));
+  let censusMarkers = '';
+  const seenHouseholds = new Set();
+  db.personIdentities
+    .filter(pi => pi.personId === focusId)
+    .forEach(identity => {
+      resolvedMembersForIdentity(identity).forEach(({ household }) => {
+        if (seenHouseholds.has(household.id)) return;
+        seenHouseholds.add(household.id);
+        const year = parseInt(household.year, 10);
+        if (Number.isNaN(year) || year < minYear || year > maxYear) return;
+        const loc = locMap.get(household.locationId);
+        const tooltip = escHtml(household.year + ' · census · ' + (loc ? loc.name : 'unknown place') + ' -- click to view household');
+        const x = yearToX(year);
+
+        let residentIds = [focusId];
+        if (showHouseholds) {
+          residentIds = [...new Set(household.members
+            .map((m, mi) => {
+              const memberIdentity = findIdentityForMember(household.id, mi);
+              return memberIdentity && memberIdentity.personId;
+            })
+            .filter(Boolean)
+            .concat(focusId))];
+        }
+        const residentRowIdx = residentIds
+          .filter(id => idToRowIndex.has(id))
+          .map(id => idToRowIndex.get(id))
+          .sort((a, b) => a - b);
+        if (!residentRowIdx.length) return;
+
+        if (residentRowIdx.length > 1) {
+          const yTop = topM + residentRowIdx[0] * rowH + rowH / 2;
+          const yBottom = topM + residentRowIdx[residentRowIdx.length - 1] * rowH + rowH / 2;
+          censusMarkers += `<line x1="${x}" y1="${yTop}" x2="${x}" y2="${yBottom}" style="stroke:var(--accent);stroke-width:1;stroke-dasharray:1,2"/>`;
+        }
+        residentRowIdx.forEach(rowIdx => {
+          const y = topM + rowIdx * rowH + rowH / 2;
+          censusMarkers += `<rect x="${x - 3}" y="${y - 3}" width="6" height="6" style="fill:var(--accent);cursor:pointer" data-census-household-jump="${escHtml(household.id)}"><title>${tooltip}</title></rect>`;
+        });
+      });
+    });
+
+  const bars = rows.map((r, i) => {
+    const p = r.person;
+    const y = topM + i * rowH;
+    const birthYear = parseInt(p.birthDate.slice(0, 4), 10);
+    const deathYear = p.deathDate ? parseInt(p.deathDate.slice(0, 4), 10) : currentYear;
+    const x1 = yearToX(birthYear);
+    const x2 = yearToX(deathYear);
+    const colorIdx = ((r.gen % 10) + 10) % 10 + 1;
+    const isFocus = p.id === focusId;
+    const nameStyle = isFocus ? 'fill:var(--accent);font-weight:bold' : 'fill:var(--fg)';
+    let barStyle;
+    if (isFocus) {
+      barStyle = `fill:var(--cat-${colorIdx});fill-opacity:0.75;stroke:var(--accent);stroke-width:1.5`;
+    } else if (r.marriedIn) {
+      barStyle = `fill:var(--cat-${colorIdx});fill-opacity:0.18;stroke:var(--cat-${colorIdx});stroke-width:1;stroke-dasharray:3,2`;
+    } else {
+      barStyle = `fill:var(--cat-${colorIdx});fill-opacity:0.55`;
+    }
+    const age = ageLabel(p).replace(' now', '+');
+    return `
+      <text x="4" y="${y + rowH / 2 + 4}" font-size="12" font-family="monospace" style="${nameStyle};cursor:pointer" data-person-focus="${escHtml(p.id)}">${escHtml(p.name)}${isFocus ? ' ★' : ''}</text>
+      <rect x="${x1}" y="${y + 4}" width="${Math.max(2, x2 - x1)}" height="${rowH - 10}" rx="2" style="${barStyle}"/>
+      <text x="${x2 + 6}" y="${y + rowH / 2 + 4}" font-size="11" font-family="monospace" style="fill:var(--dim)">${escHtml(age)}</text>
+    `;
+  }).join('');
+
+  const undatedNote = undated.length
+    ? `<div class="dim" style="margin-top:8px;font-size:0.82em">No birth date (not shown): ${undated.map(p => escHtml(p.name)).join(', ')}</div>`
+    : '';
+
+  return `<div style="overflow-x:auto"><svg width="${totalW}" height="${totalH}" viewBox="0 0 ${totalW} ${totalH}" style="display:block">${gridlines}${nowLine}${markers}${parentChildLines}${bars}${censusMarkers}</svg></div>${undatedNote}`;
+}
+
+function showTimeline(depthArg) {
+  const focus = getFocusPerson();
+  if (!focus) return statusMsg('No focus person set.');
+  const depth = Math.max(1, Math.min(8, parseInt(depthArg, 10) || 4));
+  const { rows, undated } = computeTimelinePopulation(focus.id, depth);
+  if (!rows.length) return statusMsg('No dated relatives found to chart.');
+  const toggleHtml = `<div class="lifespan-toggle-row"><span class="lifespan-toggle${timelineShowHouseholds ? ' active' : ''}" data-timeline-household-toggle title="Connect everyone from the same census household who appears in this chart">⌗ SHOW HOUSEHOLDS</span></div>`;
+  const html = `<div data-timeline-depth="${depth}">${toggleHtml}${buildTimelineSvg(rows, undated, focus.id, timelineShowHouseholds)}</div>`;
+  openOverlay(`◈ LIFESPAN TIMELINE — ${focus.name}  (${depth} generation${depth === 1 ? '' : 's'})`, html, true);
+}
+
+// ── Census workspace rendering ───────────────────────────────────────────────
+function renderCensusFocusCard() {
+  const el = document.getElementById('census-focus-card');
+  if (!el) return;
+  const h = db.households.find(x => x.id === db.focusHouseholdId) || db.households[0];
+  if (!h) {
+    el.className = 'dim';
+    el.innerHTML = 'No households yet. Use /household add to start.';
+    return;
+  }
+  const locMap = new Map(db.locations.map(l => [l.id, l]));
+  const loc = locMap.get(h.locationId);
+  const membersHtml = h.members.map((m, mi) => {
+    const yearNum = parseInt(h.year, 10);
+    const ageNum = parseInt(m.age, 10);
+    const approxYear = !Number.isNaN(yearNum) && !Number.isNaN(ageNum) ? yearNum - ageNum : null;
+    const identity = findIdentityForMember(h.id, mi);
+    let approxHtml = '';
+    if (approxYear !== null) {
+      let years = [approxYear];
+      if (identity) {
+        years = identity.members
+          .map(im => {
+            const ih = db.households.find(x => x.id === im.householdId);
+            const imem = ih ? ih.members[im.memberIndex] : null;
+            return ih && imem ? memberApproxBirthYear(ih, imem) : null;
+          })
+          .filter(y => y !== null);
+        if (!years.length) years = [approxYear];
+      }
+      const rangeMin = Math.min(...years), rangeMax = Math.max(...years);
+      const rangeText = rangeMin !== rangeMax ? ` [${rangeMin}-${rangeMax}]` : '';
+      approxHtml = `<span style="margin-left:auto;color:var(--warn);font-size:0.8em" title="Approximate birth year, derived from census year minus age">~${approxYear}${rangeText}</span>`;
+    }
+    const treePerson = identity && identity.personId ? db.people.find(p => p.id === identity.personId) : null;
+    let combinedBadge = '';
+    if (identity && (identity.members.length > 1 || treePerson)) {
+      const countPart = identity.members.length > 1 ? `⛓${identity.members.length}` : '';
+      const personPart = treePerson ? `${countPart ? ' ' : ''}→ ${escHtml(treePerson.name)}` : '';
+      const titleParts = [
+        identity.members.length > 1 ? `Linked across ${identity.members.length} household records` : '',
+        treePerson ? 'Linked to family tree person' : ''
+      ].filter(Boolean).join(' · ');
+      combinedBadge = ` <span class="action-link" data-identity-view="${identity.id}" title="${escHtml(titleParts)}">${countPart}${personPart}</span>`;
+    }
+    const nameHtml = `<span title="${escHtml(memberToken(h.id, mi))}">${escHtml(m.name)}</span>`;
+    return `<div class="rel-row"><span class="rel-label">${escHtml(m.relation || '—')}</span>${nameHtml}${m.gender ? ' <span class="rel-date">· ' + escHtml(m.gender) + '</span>' : ''}${m.age ? ' <span class="rel-date">· age ' + escHtml(m.age) + '</span>' : ''}${m.birthplace ? ' <span class="rel-date">· b. ' + escHtml(m.birthplace) + '</span>' : ''}${m.occupation ? ' <span class="rel-date">· ' + escHtml(m.occupation) + '</span>' : ''}${combinedBadge}${approxHtml}</div>`;
+  }).join('');
+  const group = householdLinkedGroup(h.id);
+  const seriesHtml = group.length > 1
+    ? `<div class="focus-meta">${group.map(g => g.id === h.id
+        ? `<strong>${escHtml(g.id)} (${escHtml(g.year)})</strong>`
+        : `<span class="action-link" data-household-focus="${escHtml(g.id)}">${escHtml(g.id)} (${escHtml(g.year)})</span>`
+      ).join(' → ')}</div>`
+    : '';
+  el.className = '';
+  el.innerHTML = `
+    <div class="focus-name">${escHtml(h.id)} <span class="focus-meta">(${escHtml(h.year)})</span> <span class="action-link" data-household-edit="${escHtml(h.id)}">[edit]</span></div>
+    <div class="focus-meta">${loc ? escHtml(loc.name) : 'No location set'}${h.source ? ' · ' + escHtml(h.source) : ''}</div>
+    ${seriesHtml}
+    <hr class="focus-divider">
+    ${membersHtml || '<div class="dim">No members recorded.</div>'}
+    <div class="person-notes dim">${h.notes ? escHtml(h.notes) : 'No notes.'}</div>
+  `;
+}
+
+function renderCensusStats() {
+  const el = document.getElementById('census-stats');
+  if (!el) return;
+  const candidates = findCandidateHouseholdLinks();
+  el.className = '';
+  el.innerHTML = `${db.households.length} household${db.households.length === 1 ? '' : 's'} · ${db.householdLinks.length} confirmed link${db.householdLinks.length === 1 ? '' : 's'} · ${candidates.length} candidate link${candidates.length === 1 ? '' : 's'}`;
+}
+
+let householdFilterText = '';
+
+function renderHouseholdDirectory() {
+  const el = document.getElementById('household-list');
+  if (!el) return;
+  if (!db.households.length) {
+    el.className = 'dim';
+    el.textContent = 'No households yet. Use /household add to start.';
+    return;
+  }
+  const filtered = filterHouseholdList(db.households, householdFilterText);
+  if (!filtered.length) {
+    el.className = 'dim';
+    el.textContent = 'No matching households.';
+    return;
+  }
+  const locMap = new Map(db.locations.map(l => [l.id, l]));
+  el.className = '';
+  el.innerHTML = filtered
+    .slice()
+    .sort((a, b) => a.year.localeCompare(b.year) || a.id.localeCompare(b.id))
+    .map(h => {
+      const loc = locMap.get(h.locationId);
+      const memberNames = h.members.map((m, mi) => `<span title="${escHtml(memberToken(h.id, mi))}">${escHtml(m.name)}</span>`).join(', ');
+      return `
+        <div class="person-card" data-household-focus="${escHtml(h.id)}" style="cursor:pointer">
+          <div class="person-head">
+            <span class="person-name">${escHtml(h.id)} · ${escHtml(h.year)}</span>
+            <span class="person-life">${loc ? escHtml(loc.name) : 'no location'} · ${h.members.length} member${h.members.length === 1 ? '' : 's'}</span>
+          </div>
+          <div class="dim">${memberNames || 'No members'}</div>
+        </div>
+      `;
+    })
+    .join('');
+}
+
+function renderCandidateLinksPanel() {
+  const el = document.getElementById('candidate-links-panel');
+  if (!el) return;
+  const candidates = findCandidateHouseholdLinks();
+  if (!candidates.length) {
+    el.className = 'dim';
+    el.textContent = 'No candidate links. Run /link for details.';
+    return;
+  }
+  el.className = '';
+  el.innerHTML = candidates.map(c => `<div class="line">${escHtml(householdSummary(c.earlier))}<br>↔ ${escHtml(householdSummary(c.later))}<br><span class="dim" title="${escHtml(sharedNamesPreview(c.earlier, c.later))}">${c.overlap} shared name${c.overlap === 1 ? '' : 's'} · ${escHtml(c.confidence)}</span></div>`).join('');
+}
+
+function renderConfirmedLinksPanel() {
+  const el = document.getElementById('confirmed-links-panel');
+  if (!el) return;
+  if (!db.householdLinks.length) {
+    el.className = 'dim';
+    el.textContent = 'No confirmed links.';
+    return;
+  }
+  const hMap = new Map(db.households.map(h => [h.id, h]));
+  el.className = '';
+  el.innerHTML = db.householdLinks.map(l => {
+    const a = hMap.get(l.fromId), b = hMap.get(l.toId);
+    return `<div class="line"><span class="focus-meta">${escHtml(l.id)}</span> · ${a ? escHtml(householdSummary(a)) : l.fromId}<br>↔ ${b ? escHtml(householdSummary(b)) : l.toId}</div>`;
+  }).join('');
+}
+
+function renderCandidateMatchesPanel() {
+  const el = document.getElementById('candidate-matches-panel');
+  if (!el) return;
+  const candidates = findCandidatePersonLinks();
+  if (!candidates.length) {
+    el.className = 'dim';
+    el.textContent = 'No candidate person links. Run /match for details.';
+    return;
+  }
+  el.className = '';
+  el.innerHTML = candidates.map(c => `<div class="line">${escHtml(c.aMember.name)} · ${escHtml(c.aHousehold.id)} (${escHtml(c.aHousehold.year)})<br>↔ ${escHtml(c.bMember.name)} · ${escHtml(c.bHousehold.id)} (${escHtml(c.bHousehold.year)})<br><span class="dim">${escHtml(c.confidence)}</span></div>`).join('');
+}
+
+function renderConfirmedMatchesPanel() {
+  const el = document.getElementById('confirmed-matches-panel');
+  if (!el) return;
+  if (!db.personIdentities.length) {
+    el.className = 'dim';
+    el.textContent = 'No confirmed person links.';
+    return;
+  }
+  const hMap = new Map(db.households.map(h => [h.id, h]));
+  el.className = '';
+  el.innerHTML = db.personIdentities.map(pi => {
+    const rows = pi.members.map(m => {
+      const h = hMap.get(m.householdId);
+      const member = h ? h.members[m.memberIndex] : null;
+      return `${escHtml(member ? member.name : '?')} · ${escHtml(m.householdId)}${h ? ' (' + escHtml(h.year) + ')' : ''}`;
+    }).join('<br>↔ ');
+    return `<div class="line"><span class="focus-meta">${escHtml(pi.id)}</span> · ${rows}</div>`;
+  }).join('');
+}
+
+function renderCandidateTreeLinksPanel() {
+  const el = document.getElementById('candidate-treelinks-panel');
+  if (!el) return;
+  const candidates = findCandidateTreeLinks();
+  if (!candidates.length) {
+    el.className = 'dim';
+    el.textContent = 'No candidate tree links. Run /treelink for details.';
+    return;
+  }
+  el.className = '';
+  el.innerHTML = candidates.map(c => `<div class="line">${escHtml(c.rep.member.name)} · ${escHtml(c.rep.household.id)} (${escHtml(c.rep.household.year)})<br>↔ ${escHtml(c.person.name)} · ${escHtml(c.person.id)}<br><span class="dim">${escHtml(c.confidence)}</span></div>`).join('');
+}
+
+function renderConfirmedTreeLinksPanel() {
+  const el = document.getElementById('confirmed-treelinks-panel');
+  if (!el) return;
+  const linked = db.personIdentities.filter(pi => pi.personId);
+  if (!linked.length) {
+    el.className = 'dim';
+    el.textContent = 'No confirmed tree links.';
+    return;
+  }
+  const pMap = new Map(db.people.map(p => [p.id, p]));
+  el.className = '';
+  el.innerHTML = linked.map(identity => {
+    const rep = representativeMemberForIdentity(identity);
+    const person = pMap.get(identity.personId);
+    const range = identityYearRange(identity);
+    const rangeText = range.min !== null ? (range.min === range.max ? '~' + range.min : `~${range.min}-${range.max}`) : '';
+    const recordsText = `${identity.members.length} linked record${identity.members.length === 1 ? '' : 's'}`;
+    const detail = [rangeText, recordsText].filter(Boolean).join(' · ');
+    return `<div class="line"><span class="focus-meta">${escHtml(identity.id)}</span> · ${rep ? escHtml(rep.member.name) : '?'}${detail ? ' · ' + escHtml(detail) : ''}<br>↔ ${person ? escHtml(person.name) : identity.personId}</div>`;
+  }).join('');
+}
+
+function renderCensusMode() {
+  renderCensusFocusCard();
+  renderCensusStats();
+  renderHouseholdDirectory();
+  renderCandidateLinksPanel();
+  renderConfirmedLinksPanel();
+  renderCandidateMatchesPanel();
+  renderConfirmedMatchesPanel();
+  renderCandidateTreeLinksPanel();
+  renderConfirmedTreeLinksPanel();
+}
+
 function render() {
-  renderMetrics();
+  if (viewMode === 'census') {
+    renderCensusMode();
+    updateStatus();
+    return;
+  }
   renderFocus();
+  renderNuclearFamily();
   renderDateLedger();
   renderPeople();
   renderRelationships();
   renderEvents();
+  renderLocations();
   updateStatus();
 }
 
@@ -629,30 +2111,98 @@ function openOverlay(title, body, useHtml) {
 
 function showHelp() {
   openOverlay('◈ LIFE LINE — COMMANDS', [
+    '── QUICK ADD ──────────────────────────────────────────',
+    '/ancestors [n]           show ancestor tree for focus person (default 4 generations)',
+    '/desc [n]                show descendant tree for focus person (default 4 generations)',
+    '/timeline [n]  /tl [n]   lifespan Gantt chart for focus person\'s line (default 4 gens)',
+    '',
+    '/add                     wizard: step-by-step add person',
+    '/add Name                wizard starting with name pre-filled',
+    '/add brother|sister|father|mother|son|daughter|spouse Name',
+    '                         add person + link to focus person',
+    '',
+    '── NAVIGATION ─────────────────────────────────────────',
+    '/focus [person]          jump focus to person (or show current focus)',
+    '/f  /m  /s  /c           jump focus to father / mother / spouse / child',
+    '/s2  /c3  ...            jump to the Nth spouse / child (1 = default)',
+    '',
+    '── SET FOCUS FIELDS ───────────────────────────────────',
+    '/set name|birth|death|branch|gender|notes <value>',
+    '                         update field on focus person',
+    '/set birth|death <date> <location>',
+    '                         set date + place in one go, e.g. /set birth 1925 PA',
+    '/set birthplace|deathplace <name>   (creates location if new)',
+    '/set marriage <date> [location]     (requires exactly one spouse)',
+    '/set divorce <date>                 (requires exactly one spouse)',
+    '/note <text>             append text to focus person\'s notes (shorthand for /set notes)',
+    '',
     '── PEOPLE ─────────────────────────────────────────────',
     '/person add Name | birth | death | branch | gender | notes',
     '/person update person | field | value',
     '/person remove person',
     '/person list [query]',
     '/person focus [person]',
+    '/person dupes            list groups of people with matching names (possible duplicates)',
+    '/person merge keep | remove   merge remove into keep (keep\'s fields win on conflict)',
     '',
     '── ATTRIBUTES ─────────────────────────────────────────',
     '/attr set person | key | value',
     '/attr clear person | key',
     '/attr list person',
     '',
+    '── LOCATIONS ──────────────────────────────────────────',
+    '/location add Name | notes',
+    '/location update location | field | value',
+    '/location remove location',
+    '/location merge keep | remove | [preferred name]',
+    '                         repoints every use of "remove" to "keep" and deletes it',
+    '/location list [query]',
+    '',
     '── RELATIONSHIPS ──────────────────────────────────────',
-    '/rel add from | parent|child|spouse|partner|sibling | to | date | note',
+    '/rel set father|mother|son|daughter|brother|sister|spouse <person>',
+    '                         link focus person by keyword',
+    '/rel add from | parent|child|spouse | to | date | note',
+    '/rel add from | sibling | to          (manual override — only when parents not in tree)',
+    '/rel update <id> date <YYYY-MM-DD>',
+    '/rel update <id> endDate <YYYY-MM-DD>   (divorce date for spouse)',
+    '/rel update <id> marriage <date> [location]   (spouse only)',
+    '/rel update <id> location <name>        (clears if no value given)',
+    '/rel update <id> note <text>',
     '/rel remove relationship-id',
-    '/rel list',
+    '/rel fill               walk plausible missing relationships, y/n to add each',
     '',
     '── EVENTS ─────────────────────────────────────────────',
     '/event add type | date | title | person1, person2 | note',
     '/event remove event-id',
     '/event list',
     '',
+    '── CENSUS ─────────────────────────────────────────────',
+    '/census                  swap to/from the census workspace',
+    '/household add           open the bulk-entry dialog for a new household',
+    '/household update [household]   open the dialog pre-filled to edit (defaults to focus household)',
+    '/household remove household',
+    '/household split household.index   move that member and everyone after them',
+    '                         (by list position) into a new household',
+    '/household list [query]',
+    '/link [list]             show candidate household links across years,',
+    '                         [link]/[dismiss] each one',
+    '/link confirm household-a | household-b',
+    '/link remove link-id',
+    '/match [list]             show candidate links between the same person across',
+    '                         households (name + approximate birth year), [match]/[dismiss] each',
+    '/match confirm household.index | household.index',
+    '/match remove household.index-or-identity-id',
+    '/treelink [list]          show candidate links between a census identity (PI#, or a',
+    '                         household.index if not yet cross-census matched) and a',
+    '                         family-tree person, [link]/[dismiss] each',
+    '/treelink confirm identity-id-or-household.index | person',
+    '/treelink remove identity-id-or-household.index',
+    '',
     '── STANDARD ───────────────────────────────────────────',
     '/theme [name]            switch theme',
+    '/lifespan [on|off]       toggle restricting relationships/events/date ledger/',
+    '                         locations to the focus person\'s lifetime',
+    '                         (also toggleable via the ⧗ LIFESPAN ONLY chip in the side panel)',
     '/backlog [text]          add item to backlog',
     '/backlog list            show all backlog items',
     '/backlog done [n]        toggle item #n as done/open',
@@ -660,7 +2210,7 @@ function showHelp() {
     '/backlog archive         move done items to archive',
     '/backlog archive list    show archived batches',
     '/backlog export          download backlog as .txt',
-    '/export [txt|json]       export app data',
+    '/export [txt|json|ged]   export app data (ged = GEDCOM for Ancestry etc.)',
     '/import                  import app data from .json',
     '/help                    show this help'
   ].join('\n'), false);
@@ -741,13 +2291,44 @@ function exportBacklog() {
   statusMsg(`Exported ${db.backlog.length} backlog item${db.backlog.length === 1 ? '' : 's'}.`);
 }
 
+function updateNavArrows() {
+  const back = document.getElementById('nav-back');
+  const fwd = document.getElementById('nav-fwd');
+  back.classList.toggle('enabled', historyPos > 0);
+  fwd.classList.toggle('enabled', historyPos < focusHistory.length - 1);
+}
+
 function setFocus(personId, silent) {
   const match = db.people.find(person => person.id === personId);
   if (!match) return statusMsg('Focus person not found.');
   db.focusPersonId = match.id;
   saveDB();
+  if (!navigating) {
+    focusHistory = focusHistory.slice(0, historyPos + 1);
+    if (focusHistory[focusHistory.length - 1] !== personId) {
+      focusHistory.push(personId);
+      historyPos = focusHistory.length - 1;
+    }
+  }
+  updateNavArrows();
   render();
   if (!silent) statusMsg('Focus: ' + match.name);
+}
+
+function goBack() {
+  if (historyPos <= 0) return;
+  navigating = true;
+  historyPos--;
+  setFocus(focusHistory[historyPos], true);
+  navigating = false;
+}
+
+function goForward() {
+  if (historyPos >= focusHistory.length - 1) return;
+  navigating = true;
+  historyPos++;
+  setFocus(focusHistory[historyPos], true);
+  navigating = false;
 }
 
 function personListText(query) {
@@ -767,8 +2348,8 @@ function cmdPersonAdd(raw) {
   if (!name) return statusMsg('Usage: /person add Name | birth | death | branch | gender | notes');
   const normalizedBirth = birthDate ? normalizeDate(birthDate) : '';
   const normalizedDeath = deathDate ? normalizeDate(deathDate) : '';
-  if (birthDate && !normalizedBirth) return statusMsg('Birth date must be YYYY-MM-DD.');
-  if (deathDate && !normalizedDeath) return statusMsg('Death date must be YYYY-MM-DD.');
+  if (birthDate && !normalizedBirth) return statusMsg('Birth date must be YYYY or YYYY-MM-DD.');
+  if (deathDate && !normalizedDeath) return statusMsg('Death date must be YYYY or YYYY-MM-DD.');
   const person = sanitizePerson({
     id: nextId('P', db.people),
     name,
@@ -802,7 +2383,7 @@ function cmdPersonUpdate(raw) {
   };
   const key = updates[field];
   if (!key) return statusMsg('Field must be name, birthDate, deathDate, branch, gender, or notes.');
-  if ((key === 'birthDate' || key === 'deathDate') && value && !normalizeDate(value)) return statusMsg('Dates must be YYYY-MM-DD.');
+  if ((key === 'birthDate' || key === 'deathDate') && value && !normalizeDate(value)) return statusMsg('Dates must be YYYY or YYYY-MM-DD.');
   match.person[key] = key === 'birthDate' || key === 'deathDate' ? normalizeDate(value) : cleanText(value);
   saveDB();
   render();
@@ -817,10 +2398,107 @@ function cmdPersonRemove(raw) {
   db.people = db.people.filter(person => person.id !== removedId);
   db.relationships = db.relationships.filter(rel => rel.fromId !== removedId && rel.toId !== removedId);
   db.events = db.events.map(event => ({ ...event, personIds: event.personIds.filter(id => id !== removedId) }));
+  db.personIdentities.forEach(pi => { if (pi.personId === removedId) pi.personId = ''; });
   if (db.focusPersonId === removedId) db.focusPersonId = db.people[0] ? db.people[0].id : '';
   saveDB();
   render();
   statusMsg(`Removed ${match.person.name} and ${removedLinks} linked relationship${removedLinks === 1 ? '' : 's'}.`);
+}
+
+// ── Duplicate detection / merge ────────────────────────────────────────────
+function normalizeNameForDupeCheck(name) {
+  return cleanText(name).toLowerCase().replace(/\s+/g, ' ');
+}
+
+function findDuplicateClusters() {
+  const groups = new Map();
+  db.people.forEach(p => {
+    const key = normalizeNameForDupeCheck(p.name);
+    if (!key) return;
+    if (!groups.has(key)) groups.set(key, []);
+    groups.get(key).push(p);
+  });
+  return [...groups.values()].filter(g => g.length > 1);
+}
+
+function dupeClusterConfidence(cluster) {
+  const years = cluster.map(p => p.birthDate ? parseInt(p.birthDate.slice(0, 4), 10) : null);
+  if (years.some(y => y === null)) return 'check dates (missing birth date)';
+  const span = Math.max(...years) - Math.min(...years);
+  if (span <= 5) return 'likely';
+  return `unlikely — birth years ${span} years apart`;
+}
+
+function cmdPersonDupes() {
+  const clusters = findDuplicateClusters();
+  if (!clusters.length) return statusMsg('No likely duplicate names found.');
+  const html = clusters.map(cluster => {
+    const confidence = dupeClusterConfidence(cluster);
+    const lines = cluster.map(p => {
+      const removeId = cluster.find(o => o.id !== p.id).id;
+      const fillCmd = `/person merge ${p.id} | ${removeId}`;
+      return `<div class="line">${nameLink(p)} <span class="focus-meta">${escHtml(p.id)}</span> · ${escHtml(formatLife(p))}${p.branch ? ' · [' + escHtml(p.branch) + ']' : ''} <span class="action-link" data-merge-fill="${escHtml(fillCmd)}">[keep]</span></div>`;
+    }).join('');
+    return `<div style="margin-bottom:10px"><div class="section-title">${escHtml(cluster[0].name)} (${escHtml(confidence)})</div>${lines}</div>`;
+  }).join('');
+  openOverlay('POSSIBLE DUPLICATES', html, true);
+  document.querySelectorAll('[data-merge-fill]').forEach(node => {
+    node.addEventListener('click', () => {
+      input.value = node.dataset.mergeFill;
+      document.getElementById('help-overlay').classList.remove('visible');
+      input.focus();
+    });
+  });
+}
+
+function cmdPersonMerge(raw) {
+  const [keepToken, removeToken] = splitPipe(raw);
+  if (!keepToken || !removeToken) return statusMsg('Usage: /person merge keep | remove');
+  const keepMatch = findPerson(keepToken);
+  if (keepMatch.error) return statusMsg(keepMatch.error);
+  const removeMatch = findPerson(removeToken);
+  if (removeMatch.error) return statusMsg(removeMatch.error);
+  const keep = keepMatch.person;
+  const remove = removeMatch.person;
+  if (keep.id === remove.id) return statusMsg('Cannot merge a person into themselves.');
+
+  ['birthDate', 'deathDate', 'birthLocationId', 'deathLocationId', 'branch', 'gender'].forEach(f => {
+    if (!keep[f] && remove[f]) keep[f] = remove[f];
+  });
+  if (remove.notes) keep.notes = keep.notes ? keep.notes + '; ' + remove.notes : remove.notes;
+  keep.attributes = { ...remove.attributes, ...keep.attributes };
+
+  db.relationships = db.relationships
+    .map(rel => {
+      if (rel.fromId !== remove.id && rel.toId !== remove.id) return rel;
+      const newFromId = rel.fromId === remove.id ? keep.id : rel.fromId;
+      const newToId = rel.toId === remove.id ? keep.id : rel.toId;
+      const canonical = canonicalizeRelationship(newFromId, rel.type, newToId);
+      if (!canonical) return null;
+      return { ...rel, fromId: canonical.fromId, toId: canonical.toId };
+    })
+    .filter(Boolean);
+
+  const mergedRels = new Map();
+  db.relationships.forEach(rel => {
+    const key = rel.type + ':' + rel.fromId + ':' + rel.toId;
+    if (!mergedRels.has(key)) { mergedRels.set(key, rel); return; }
+    const existing = mergedRels.get(key);
+    ['date', 'endDate', 'locationId', 'note'].forEach(f => { if (!existing[f] && rel[f]) existing[f] = rel[f]; });
+  });
+  db.relationships = [...mergedRels.values()];
+
+  db.events.forEach(ev => {
+    ev.personIds = Array.from(new Set(ev.personIds.map(id => id === remove.id ? keep.id : id)));
+  });
+
+  db.people = db.people.filter(p => p.id !== remove.id);
+  db.personIdentities.forEach(pi => { if (pi.personId === remove.id) pi.personId = keep.id; });
+  if (db.focusPersonId === remove.id) db.focusPersonId = keep.id;
+
+  saveDB();
+  render();
+  statusMsg(`Merged ${remove.name} (${remove.id}) into ${keep.name} (${keep.id}).`);
 }
 
 function cmdPersonFocus(raw) {
@@ -833,6 +2511,39 @@ function cmdPersonFocus(raw) {
   setFocus(match.person.id);
 }
 
+function cmdNote(raw) {
+  const trimmed = cleanText(raw);
+  if (!trimmed) return statusMsg('Usage: /note <text>');
+  const focus = getFocusPerson();
+  if (!focus) return statusMsg('No focus person. Set focus with /focus <name>.');
+  focus.notes = focus.notes ? focus.notes + '; ' + trimmed : trimmed;
+  saveDB(); render();
+  statusMsg(focus.name + ': note added.');
+}
+
+const FOCUS_SHORTCUT_LABELS = {
+  father: { singular: 'father', plural: 'fathers' },
+  mother: { singular: 'mother', plural: 'mothers' },
+  spouse: { singular: 'spouse', plural: 'spouses' },
+  child: { singular: 'child', plural: 'children' }
+};
+
+function cmdFocusRelative(kind, index) {
+  const focus = getFocusPerson();
+  if (!focus) return statusMsg('No focus person set.');
+  const summary = relationSummary(focus.id);
+  let list;
+  if (kind === 'father') list = summary.parents.filter(p => ['male', 'm'].includes((p.gender || '').toLowerCase()));
+  else if (kind === 'mother') list = summary.parents.filter(p => ['female', 'f'].includes((p.gender || '').toLowerCase()));
+  else if (kind === 'spouse') list = sortedSpouses(focus.id, summary.spouses);
+  else if (kind === 'child') list = summary.children.slice().sort((a, b) => (a.birthDate || '9999').localeCompare(b.birthDate || '9999'));
+  const label = FOCUS_SHORTCUT_LABELS[kind];
+  if (!list.length) return statusMsg(`No ${label.singular} recorded for ${focus.name}.`);
+  const target = list[index - 1];
+  if (!target) return statusMsg(`${focus.name} has only ${list.length} ${list.length === 1 ? label.singular : label.plural} recorded.`);
+  setFocus(target.id);
+}
+
 function handlePersonCommand(arg) {
   const trimmed = cleanText(arg);
   if (!trimmed || trimmed === 'list') return openOverlay('PEOPLE DIRECTORY', personListText(''), false);
@@ -841,7 +2552,1171 @@ function handlePersonCommand(arg) {
   if (trimmed.startsWith('update ')) return cmdPersonUpdate(trimmed.slice(7));
   if (trimmed.startsWith('remove ')) return cmdPersonRemove(trimmed.slice(7));
   if (trimmed.startsWith('focus ')) return cmdPersonFocus(trimmed.slice(6));
-  statusMsg('Usage: /person add|update|remove|list|focus');
+  if (trimmed === 'dupes') return cmdPersonDupes();
+  if (trimmed.startsWith('merge ')) return cmdPersonMerge(trimmed.slice(6));
+  statusMsg('Usage: /person add|update|remove|list|focus|dupes|merge');
+}
+
+function findLocation(token) {
+  const query = cleanText(token);
+  if (!query) return { error: 'Location required.' };
+  const byId = db.locations.find(loc => loc.id.toLowerCase() === query.toLowerCase());
+  if (byId) return { location: byId };
+  const exactName = db.locations.find(loc => loc.name.toLowerCase() === query.toLowerCase());
+  if (exactName) return { location: exactName };
+  const partial = db.locations.filter(loc => loc.name.toLowerCase().includes(query.toLowerCase()));
+  if (partial.length === 1) return { location: partial[0] };
+  if (partial.length > 1) return { error: 'Ambiguous location: ' + query };
+  return { error: 'Location not found: ' + query };
+}
+
+function cmdLocationAdd(raw) {
+  const [name, notes] = splitPipe(raw);
+  if (!name) return statusMsg('Usage: /location add Name | notes');
+  const location = sanitizeLocation({ id: nextId('L', db.locations), name, notes });
+  db.locations.push(location);
+  saveDB();
+  render();
+  statusMsg(`Added location ${location.name} (${location.id}).`);
+}
+
+function resolveOrCreateLocation(name) {
+  const clean = cleanText(name);
+  if (!clean) return null;
+  const existing = db.locations.find(loc => loc.name.toLowerCase() === clean.toLowerCase());
+  if (existing) return existing;
+  const created = sanitizeLocation({ id: nextId('L', db.locations), name: clean });
+  db.locations.push(created);
+  return created;
+}
+
+// ── Household bulk-add/edit dialog ──────────────────────────────────────────
+let householdDialogEditId = null;
+// Extended per-member fields (mother's/father's birthplace, birthdate, immigration/
+// naturalization years) are rare enough to stay hidden by default; this remembers the
+// toggle state across dialog open/close within the session.
+let householdExtendedVisible = false;
+
+function addHouseholdMemberRow(member, memberIndex) {
+  const container = document.getElementById('household-members');
+  const row = document.createElement('div');
+  row.className = 'hh-member-row';
+  // Split only makes sense for a member that's actually saved to a household (memberIndex
+  // set) and isn't the first person -- that's the "second head" case /household split fixes.
+  const canSplit = typeof memberIndex === 'number' && memberIndex > 0;
+  row.innerHTML = `
+    <input type="text" class="filter-input hh-m-name" placeholder="Name" value="${escHtml((member && member.name) || '')}">
+    <input type="text" class="filter-input hh-m-age" placeholder="Age" value="${escHtml((member && member.age) || '')}">
+    <input type="text" class="filter-input hh-m-relation" placeholder="Relation to head" value="${escHtml((member && member.relation) || '')}">
+    <input type="text" class="filter-input hh-m-gender" placeholder="Gender" value="${escHtml((member && member.gender) || '')}">
+    <input type="text" class="filter-input hh-m-birthplace" placeholder="Birthplace" value="${escHtml((member && member.birthplace) || '')}">
+    <input type="text" class="filter-input hh-m-occupation" placeholder="Occupation" value="${escHtml((member && member.occupation) || '')}">
+    ${canSplit ? '<span class="action-link hh-m-split" style="display:none" title="Split this member and everyone after them into a new household">[split]</span>' : ''}
+    <span class="action-link hh-m-remove">[x]</span>
+  `;
+  row.querySelector('.hh-m-remove').addEventListener('click', () => { extRow.remove(); row.remove(); });
+
+  const splitBtn = row.querySelector('.hh-m-split');
+  if (splitBtn) {
+    const relationInput = row.querySelector('.hh-m-relation');
+    const updateSplitVisibility = () => {
+      splitBtn.style.display = cleanText(relationInput.value).toLowerCase() === 'head' ? '' : 'none';
+    };
+    relationInput.addEventListener('input', updateSplitVisibility);
+    updateSplitVisibility();
+    splitBtn.addEventListener('click', () => {
+      if (!householdDialogEditId) return;
+      const token = `${householdDialogEditId}.${memberIndex}`;
+      closeHouseholdDialog();
+      cmdHouseholdSplit(token);
+    });
+  }
+
+  container.appendChild(row);
+
+  const extRow = document.createElement('div');
+  extRow.className = 'hh-m-extended' + (householdExtendedVisible ? ' visible' : '');
+  extRow.innerHTML = `
+    <input type="text" class="filter-input hh-m-birth-y" placeholder="Birth yr" value="${escHtml((member && member.birthYear) || '')}">
+    <input type="text" class="filter-input hh-m-birth-m" placeholder="Mo" value="${escHtml((member && member.birthMonth) || '')}">
+    <input type="text" class="filter-input hh-m-birth-d" placeholder="Day" value="${escHtml((member && member.birthDay) || '')}">
+    <input type="text" class="filter-input hh-m-father-bp" placeholder="Father's birthplace" value="${escHtml((member && member.fatherBirthplace) || '')}">
+    <input type="text" class="filter-input hh-m-mother-bp" placeholder="Mother's birthplace" value="${escHtml((member && member.motherBirthplace) || '')}">
+    <input type="text" class="filter-input hh-m-immig" placeholder="Immig. yr" value="${escHtml((member && member.immigrationYear) || '')}">
+    <input type="text" class="filter-input hh-m-natur" placeholder="Natur. yr" value="${escHtml((member && member.naturalizationYear) || '')}">
+  `;
+  container.appendChild(extRow);
+}
+
+function openHouseholdDialog(household) {
+  householdDialogEditId = household ? household.id : null;
+  document.getElementById('household-dialog-title').textContent = household ? 'EDIT HOUSEHOLD ' + household.id : 'ADD HOUSEHOLD';
+  document.getElementById('hh-year').value = household ? household.year : '';
+  const loc = household ? db.locations.find(l => l.id === household.locationId) : null;
+  document.getElementById('hh-location').value = loc ? loc.name : '';
+  document.getElementById('hh-source').value = household ? household.source : '';
+  document.getElementById('hh-notes').value = household ? household.notes : '';
+  const container = document.getElementById('household-members');
+  container.innerHTML = '';
+  const members = household && household.members.length ? household.members : [{}];
+  members.forEach((m, i) => addHouseholdMemberRow(m, household ? i : undefined));
+  document.getElementById('household-overlay').classList.add('visible');
+  document.getElementById('hh-year').focus();
+}
+
+function closeHouseholdDialog() {
+  householdDialogEditId = null;
+  document.getElementById('household-overlay').classList.remove('visible');
+  input.focus();
+}
+
+function saveHouseholdDialog() {
+  const year = document.getElementById('hh-year').value;
+  const locationName = document.getElementById('hh-location').value;
+  const source = document.getElementById('hh-source').value;
+  const notes = document.getElementById('hh-notes').value;
+  if (!/^\d{4}$/.test(cleanText(year))) return statusMsg('Year must be a 4-digit year, e.g. 1900.');
+  // Each .hh-member-row is immediately followed by its .hh-m-extended sibling
+  // (added together in addHouseholdMemberRow), so pair them up by DOM position.
+  const members = [...document.querySelectorAll('#household-members .hh-member-row')].map(row => {
+    const extRow = row.nextElementSibling;
+    return {
+      name: row.querySelector('.hh-m-name').value,
+      age: row.querySelector('.hh-m-age').value,
+      relation: row.querySelector('.hh-m-relation').value,
+      gender: row.querySelector('.hh-m-gender').value,
+      birthplace: row.querySelector('.hh-m-birthplace').value,
+      occupation: row.querySelector('.hh-m-occupation').value,
+      birthYear: extRow.querySelector('.hh-m-birth-y').value,
+      birthMonth: extRow.querySelector('.hh-m-birth-m').value,
+      birthDay: extRow.querySelector('.hh-m-birth-d').value,
+      motherBirthplace: extRow.querySelector('.hh-m-mother-bp').value,
+      fatherBirthplace: extRow.querySelector('.hh-m-father-bp').value,
+      immigrationYear: extRow.querySelector('.hh-m-immig').value,
+      naturalizationYear: extRow.querySelector('.hh-m-natur').value
+    };
+  });
+  const namedMembers = members.filter(m => cleanText(m.name));
+  if (!namedMembers.length) return statusMsg('At least one member needs a name.');
+  const locationId = cleanText(locationName) ? resolveOrCreateLocation(locationName).id : '';
+  const household = sanitizeHousehold({
+    id: householdDialogEditId || nextId('H', db.households),
+    year, locationId, source, notes, members
+  });
+  if (householdDialogEditId) {
+    const idx = db.households.findIndex(h => h.id === householdDialogEditId);
+    db.households[idx] = household;
+  } else {
+    db.households.push(household);
+  }
+  db.focusHouseholdId = household.id;
+  saveDB();
+  render();
+  closeHouseholdDialog();
+  statusMsg(`${householdDialogEditId ? 'Updated' : 'Added'} household ${household.id} (${household.year}, ${household.members.length} member${household.members.length === 1 ? '' : 's'}).`);
+}
+
+// Fills gaps in the dialog's in-progress rows -- never overwrites something already
+// typed in. Last names come from the first member (first word = given name, the rest =
+// surname); relation-to-head is head/spouse/child, only guessing spouse when the age gap
+// is small enough to be plausible and the member's gender is known.
+const SPOUSE_AGE_GAP_MAX = 15;
+
+function fillHouseholdMembers() {
+  const rows = [...document.querySelectorAll('#household-members .hh-member-row')];
+  if (!rows.length) return;
+  const nameInputs = rows.map(r => r.querySelector('.hh-m-name'));
+  const ageInputs = rows.map(r => r.querySelector('.hh-m-age'));
+  const relationInputs = rows.map(r => r.querySelector('.hh-m-relation'));
+  const genderInputs = rows.map(r => r.querySelector('.hh-m-gender'));
+
+  const firstNameParts = cleanText(nameInputs[0].value).split(/\s+/).filter(Boolean);
+  // Everything after the given name is the surname -- except a bare middle initial
+  // ("William H Ausherman"), which isn't part of it.
+  let lastNameParts = firstNameParts.slice(1);
+  if (lastNameParts.length > 1 && /^[A-Za-z]\.?$/.test(lastNameParts[0])) lastNameParts = lastNameParts.slice(1);
+  const lastName = lastNameParts.join(' ');
+  if (lastName) {
+    // A single token ("Jenny") or a given name plus a bare middle initial ("Jenny S"/"Jenny S.")
+    // has no real surname yet; anything else (2+ full words) is assumed to already have one.
+    const missingLastName = value => {
+      const parts = value.split(/\s+/).filter(Boolean);
+      return parts.length === 1 || (parts.length === 2 && /^[A-Za-z]\.?$/.test(parts[1]));
+    };
+    nameInputs.forEach(input => {
+      const value = cleanText(input.value);
+      if (value && missingLastName(value)) input.value = value + ' ' + lastName;
+    });
+  }
+
+  const genderOf = i => cleanText(genderInputs[i].value).toLowerCase();
+  const isFemale = g => g === 'female' || g === 'f';
+  const isMale = g => g === 'male' || g === 'm';
+
+  rows.forEach((row, i) => {
+    if (cleanText(relationInputs[i].value)) return;
+    if (i === 0) { relationInputs[0].value = 'head'; return; }
+    if (i === 1) {
+      const ageHead = parseInt(ageInputs[0].value, 10);
+      const ageSpouse = parseInt(ageInputs[1].value, 10);
+      if (Number.isNaN(ageHead) || Number.isNaN(ageSpouse) || Math.abs(ageHead - ageSpouse) > SPOUSE_AGE_GAP_MAX) return;
+      const g = genderOf(1);
+      if (isFemale(g)) relationInputs[1].value = 'wife';
+      else if (isMale(g)) relationInputs[1].value = 'husband';
+      return;
+    }
+    const g = genderOf(i);
+    if (isFemale(g)) relationInputs[i].value = 'daughter';
+    else if (isMale(g)) relationInputs[i].value = 'son';
+  });
+}
+
+document.getElementById('household-add-member').addEventListener('click', () => addHouseholdMemberRow(null));
+document.getElementById('household-fill').addEventListener('click', fillHouseholdMembers);
+document.getElementById('household-toggle-extended').addEventListener('click', () => {
+  householdExtendedVisible = !householdExtendedVisible;
+  document.getElementById('household-toggle-extended').textContent = householdExtendedVisible ? '[- extended]' : '[+ extended]';
+  document.querySelectorAll('#household-members .hh-m-extended').forEach(el => el.classList.toggle('visible', householdExtendedVisible));
+});
+document.getElementById('household-save').addEventListener('click', saveHouseholdDialog);
+document.getElementById('household-cancel').addEventListener('click', closeHouseholdDialog);
+
+function findHousehold(token) {
+  const query = cleanText(token);
+  if (!query) return { error: 'Household required.' };
+  const byId = db.households.find(h => h.id.toLowerCase() === query.toLowerCase());
+  if (byId) return { household: byId };
+  const locMap = new Map(db.locations.map(l => [l.id, l]));
+  const q = query.toLowerCase();
+  const matches = db.households.filter(h => {
+    const loc = locMap.get(h.locationId);
+    return h.year === query ||
+      (loc && loc.name.toLowerCase().includes(q)) ||
+      h.members.some(m => m.name.toLowerCase().includes(q));
+  });
+  if (matches.length === 1) return { household: matches[0] };
+  if (matches.length > 1) return { error: 'Ambiguous household: ' + query };
+  return { error: 'Household not found: ' + query };
+}
+
+// Matches a household against a free-text query: household id, year, location name, or
+// any member's name -- shared by the /household list command and the live directory filter.
+function householdMatchesQuery(h, q, locMap) {
+  const loc = locMap.get(h.locationId);
+  return h.id.toLowerCase() === q || h.year.includes(q) ||
+    (loc && loc.name.toLowerCase().includes(q)) ||
+    h.members.some(m => m.name.toLowerCase().includes(q));
+}
+
+function filterHouseholdList(households, query) {
+  const q = cleanText(query).toLowerCase();
+  if (!q) return households;
+  const locMap = new Map(db.locations.map(l => [l.id, l]));
+  return households.filter(h => householdMatchesQuery(h, q, locMap));
+}
+
+function householdListText(query) {
+  const locMap = new Map(db.locations.map(l => [l.id, l]));
+  const q = cleanText(query).toLowerCase();
+  const filtered = q
+    ? db.households.filter(h => householdMatchesQuery(h, q, locMap))
+    : db.households.slice();
+  if (!filtered.length) return 'No matching households.';
+  return filtered
+    .slice()
+    .sort((a, b) => a.year.localeCompare(b.year) || a.id.localeCompare(b.id))
+    .map(h => {
+      const loc = locMap.get(h.locationId);
+      const head = h.members[0] ? h.members[0].name : '(no members)';
+      return `${h.id}  ${h.year}  ${head}${loc ? ' · ' + loc.name : ''} · ${h.members.length} member${h.members.length === 1 ? '' : 's'}`;
+    })
+    .join('\n');
+}
+
+function cmdHouseholdRemove(raw) {
+  const match = findHousehold(raw);
+  if (match.error) return statusMsg(match.error);
+  const removedId = match.household.id;
+  db.households = db.households.filter(h => h.id !== removedId);
+  db.householdLinks = db.householdLinks.filter(l => l.fromId !== removedId && l.toId !== removedId);
+  db.personIdentities = db.personIdentities
+    .map(pi => sanitizePersonIdentity({ ...pi, members: pi.members.filter(m => m.householdId !== removedId) }))
+    .filter(Boolean);
+  if (db.focusHouseholdId === removedId) db.focusHouseholdId = db.households[0] ? db.households[0].id : '';
+  saveDB();
+  render();
+  statusMsg(`Removed household ${removedId}.`);
+}
+
+// Splits a household in two at a given member: the member at `splitIndex` and everyone
+// listed after them move into a brand-new household record (same year/location/source),
+// leaving everyone before them in the original. Fixes entries that accidentally combined
+// two families (two heads) into one census record. Tree-linked identities for the moved
+// members are repointed to the new household; existing household-links stay on the
+// original record since we can't tell which side they actually belonged to.
+function cmdHouseholdSplit(token) {
+  const clean = cleanText(token);
+  const dot = clean.lastIndexOf('.');
+  if (dot === -1) return statusMsg('Usage: /household split <household>.<index>, e.g. H1.2');
+  const householdToken = clean.slice(0, dot);
+  const splitIndex = parseInt(clean.slice(dot + 1), 10);
+  const household = db.households.find(h => h.id.toLowerCase() === householdToken.toLowerCase());
+  if (!household) return statusMsg('Household not found: ' + householdToken);
+  if (Number.isNaN(splitIndex) || splitIndex <= 0 || splitIndex >= household.members.length) {
+    return statusMsg(`Split index must be between 1 and ${household.members.length - 1}.`);
+  }
+
+  const movedMembers = household.members.slice(splitIndex);
+  const newHousehold = sanitizeHousehold({
+    year: household.year,
+    locationId: household.locationId,
+    source: household.source,
+    notes: (household.notes ? household.notes + ' · ' : '') + `Split from ${household.id}`,
+    members: movedMembers
+  });
+  db.households.push(newHousehold);
+
+  db.personIdentities = db.personIdentities
+    .map(pi => sanitizePersonIdentity({
+      ...pi,
+      members: pi.members.map(m => {
+        if (m.householdId !== household.id || m.memberIndex < splitIndex) return m;
+        return { householdId: newHousehold.id, memberIndex: m.memberIndex - splitIndex };
+      })
+    }))
+    .filter(Boolean);
+
+  household.members = household.members.slice(0, splitIndex);
+  db.focusHouseholdId = newHousehold.id;
+  saveDB();
+  render();
+  statusMsg(`Split ${movedMembers.length} member${movedMembers.length === 1 ? '' : 's'} into new household ${newHousehold.id}.`);
+}
+
+function handleHouseholdCommand(arg) {
+  const trimmed = cleanText(arg);
+  if (!trimmed || trimmed === 'add') return openHouseholdDialog(null);
+  if (trimmed === 'list') return openOverlay('HOUSEHOLDS', householdListText(''), false);
+  if (trimmed.startsWith('list ')) return openOverlay('HOUSEHOLDS', householdListText(trimmed.slice(5)), false);
+  if (trimmed === 'update') {
+    const current = db.households.find(h => h.id === db.focusHouseholdId);
+    if (!current) return statusMsg('No focus household set. Use /household update <household>.');
+    return openHouseholdDialog(current);
+  }
+  if (trimmed.startsWith('update ')) {
+    const match = findHousehold(trimmed.slice(7));
+    if (match.error) return statusMsg(match.error);
+    return openHouseholdDialog(match.household);
+  }
+  if (trimmed.startsWith('remove ')) return cmdHouseholdRemove(trimmed.slice(7));
+  if (trimmed.startsWith('split ')) return cmdHouseholdSplit(trimmed.slice(6));
+  statusMsg('Usage: /household add|update|remove|split|list');
+}
+
+// ── Candidate household links (same family across census years) ────────────
+// Members of `a` and `b` known to be the same person, either because their names match
+// or because an existing personIdentity already links them (e.g. a maiden/married name
+// change caught by a prior tree link or cross-census person match).
+function householdMatchedPairs(a, b) {
+  const bByName = new Map();
+  b.members.forEach((m, bi) => {
+    const key = cleanText(m.name).toLowerCase();
+    if (key && !bByName.has(key)) bByName.set(key, bi);
+  });
+  const pairs = [];
+  a.members.forEach((m, ai) => {
+    const key = cleanText(m.name).toLowerCase();
+    let bi = key ? bByName.get(key) : undefined;
+    if (bi === undefined) {
+      const identity = findIdentityForMember(a.id, ai);
+      const match = identity && identity.members.find(im => im.householdId === b.id);
+      if (match) bi = match.memberIndex;
+    }
+    if (bi !== undefined) pairs.push({ aMember: m, bMember: b.members[bi] });
+  });
+  return pairs;
+}
+
+function householdOverlap(a, b) {
+  return householdMatchedPairs(a, b).length;
+}
+
+// Preview text for the shared-names tooltip -- shows the matched name on each side, or
+// "nameA ↔ nameB" when the pair was matched via an existing identity link rather than
+// an exact name match (e.g. a recorded maiden/married name change).
+function sharedNamesPreview(a, b) {
+  return householdMatchedPairs(a, b)
+    .map(({ aMember, bMember }) => aMember.name === bMember.name ? aMember.name : `${aMember.name} ↔ ${bMember.name}`)
+    .join(', ');
+}
+
+function householdLinkConfidence(earlier, later) {
+  const yearGap = parseInt(later.year, 10) - parseInt(earlier.year, 10);
+  let ageChecks = 0, ageOk = 0;
+  householdMatchedPairs(earlier, later).forEach(({ aMember, bMember }) => {
+    const ageA = parseInt(aMember.age, 10);
+    const ageB = parseInt(bMember.age, 10);
+    if (Number.isNaN(ageA) || Number.isNaN(ageB)) return;
+    ageChecks++;
+    if (Math.abs((ageA + yearGap) - ageB) <= 2) ageOk++;
+  });
+  if (ageChecks === 0) return 'check ages (insufficient data)';
+  if (ageOk === ageChecks) return 'likely';
+  if (ageOk >= ageChecks / 2) return 'possible';
+  return "unlikely — ages don't align";
+}
+
+function householdComponentMap() {
+  const adj = new Map();
+  db.households.forEach(h => adj.set(h.id, new Set()));
+  db.householdLinks.forEach(l => {
+    if (adj.has(l.fromId) && adj.has(l.toId)) {
+      adj.get(l.fromId).add(l.toId);
+      adj.get(l.toId).add(l.fromId);
+    }
+  });
+  const componentOf = new Map();
+  let compId = 0;
+  db.households.forEach(h => {
+    if (componentOf.has(h.id)) return;
+    const queue = [h.id];
+    componentOf.set(h.id, compId);
+    while (queue.length) {
+      const cur = queue.shift();
+      adj.get(cur).forEach(n => {
+        if (!componentOf.has(n)) { componentOf.set(n, compId); queue.push(n); }
+      });
+    }
+    compId++;
+  });
+  return componentOf;
+}
+
+function findCandidateHouseholdLinks() {
+  const dismissed = new Set(db.dismissedHouseholdLinks);
+  const componentOf = householdComponentMap();
+  const candidates = [];
+  for (let i = 0; i < db.households.length; i++) {
+    for (let j = i + 1; j < db.households.length; j++) {
+      const a = db.households[i], b = db.households[j];
+      if (!a.year || !b.year || a.year === b.year) continue;
+      if (componentOf.get(a.id) === componentOf.get(b.id)) continue;
+      const key = [a.id, b.id].sort().join(':');
+      if (dismissed.has(key)) continue;
+      const overlap = householdOverlap(a, b);
+      const threshold = Math.min(2, Math.min(a.members.length, b.members.length));
+      if (overlap < threshold || overlap === 0) continue;
+      const [earlier, later] = a.year < b.year ? [a, b] : [b, a];
+      candidates.push({ earlier, later, overlap, confidence: householdLinkConfidence(earlier, later) });
+    }
+  }
+  candidates.sort((x, y) => y.overlap - x.overlap);
+  return candidates;
+}
+
+function householdSummary(h) {
+  const locMap = new Map(db.locations.map(l => [l.id, l]));
+  const loc = locMap.get(h.locationId);
+  const head = h.members[0] ? h.members[0].name : '(no members)';
+  return `${h.id} · ${h.year} · ${head}${loc ? ' · ' + loc.name : ''} · ${h.members.length} member${h.members.length === 1 ? '' : 's'}`;
+}
+
+function householdLinkedGroup(householdId) {
+  const adj = new Map();
+  db.householdLinks.forEach(l => {
+    if (!adj.has(l.fromId)) adj.set(l.fromId, new Set());
+    if (!adj.has(l.toId)) adj.set(l.toId, new Set());
+    adj.get(l.fromId).add(l.toId);
+    adj.get(l.toId).add(l.fromId);
+  });
+  const visited = new Set([householdId]);
+  const queue = [householdId];
+  while (queue.length) {
+    const cur = queue.shift();
+    (adj.get(cur) || new Set()).forEach(n => {
+      if (!visited.has(n)) { visited.add(n); queue.push(n); }
+    });
+  }
+  return Array.from(visited)
+    .map(id => db.households.find(h => h.id === id))
+    .filter(Boolean)
+    .sort((a, b) => a.year.localeCompare(b.year) || a.id.localeCompare(b.id));
+}
+
+function cmdCensusLinkList() {
+  const candidates = findCandidateHouseholdLinks();
+  if (!candidates.length) {
+    document.getElementById('help-overlay').classList.remove('visible');
+    return statusMsg('No candidate household links found.');
+  }
+  const html = candidates.map((c, i) => {
+    const fillCmd = `/link confirm ${c.earlier.id} | ${c.later.id}`;
+    return `<div class="line">
+      <div>${escHtml(householdSummary(c.earlier))}</div>
+      <div>${escHtml(householdSummary(c.later))}</div>
+      <div class="dim" title="${escHtml(sharedNamesPreview(c.earlier, c.later))}">${c.overlap} shared name${c.overlap === 1 ? '' : 's'} · ${escHtml(c.confidence)}</div>
+      <span class="action-link" data-link-fill="${escHtml(fillCmd)}">[link]</span>
+      <span class="action-link" data-link-dismiss="${escHtml([c.earlier.id, c.later.id].sort().join(':'))}">[dismiss]</span>
+    </div>`;
+  }).join('');
+  openOverlay('CANDIDATE HOUSEHOLD LINKS', html, true);
+  document.querySelectorAll('[data-link-fill]').forEach(node => {
+    node.addEventListener('click', () => {
+      input.value = node.dataset.linkFill;
+      document.getElementById('help-overlay').classList.remove('visible');
+      input.focus();
+    });
+  });
+  document.querySelectorAll('[data-link-dismiss]').forEach(node => {
+    node.addEventListener('click', () => {
+      db.dismissedHouseholdLinks.push(node.dataset.linkDismiss);
+      saveDB();
+      cmdCensusLinkList();
+    });
+  });
+}
+
+function cmdLinkConfirm(raw) {
+  const [aToken, bToken] = splitPipe(raw);
+  if (!aToken || !bToken) return statusMsg('Usage: /link confirm household-a | household-b');
+  const aMatch = findHousehold(aToken);
+  if (aMatch.error) return statusMsg(aMatch.error);
+  const bMatch = findHousehold(bToken);
+  if (bMatch.error) return statusMsg(bMatch.error);
+  const link = sanitizeHouseholdLink({ fromId: aMatch.household.id, toId: bMatch.household.id });
+  if (!link) return statusMsg('Cannot link a household to itself.');
+  const dup = db.householdLinks.find(l => [l.fromId, l.toId].sort().join(':') === [link.fromId, link.toId].sort().join(':'));
+  if (dup) return statusMsg('Households already linked (' + dup.id + ').');
+  db.householdLinks.push(link);
+  saveDB();
+  render();
+  statusMsg(`Linked ${aMatch.household.id} ↔ ${bMatch.household.id}.`);
+}
+
+function cmdLinkRemove(raw) {
+  const id = cleanText(raw);
+  const before = db.householdLinks.length;
+  db.householdLinks = db.householdLinks.filter(l => l.id.toLowerCase() !== id.toLowerCase());
+  if (db.householdLinks.length === before) return statusMsg('Household link not found: ' + id);
+  saveDB();
+  render();
+  statusMsg('Household link removed: ' + id);
+}
+
+function handleLinkCommand(arg) {
+  const trimmed = cleanText(arg);
+  if (!trimmed || trimmed === 'list') return cmdCensusLinkList();
+  if (trimmed.startsWith('confirm ')) return cmdLinkConfirm(trimmed.slice(8));
+  if (trimmed.startsWith('remove ')) return cmdLinkRemove(trimmed.slice(7));
+  statusMsg('Usage: /link [list]|confirm household-a | household-b|remove link-id');
+}
+
+// ── Person identity links (same individual across census years) ───────────
+function memberToken(householdId, memberIndex) {
+  return householdId + '.' + memberIndex;
+}
+
+function findIdentityForMember(householdId, memberIndex) {
+  return db.personIdentities.find(pi => pi.members.some(m => m.householdId === householdId && m.memberIndex === memberIndex)) || null;
+}
+
+function identityForToken(token) {
+  return db.personIdentities.find(pi => pi.id.toLowerCase() === cleanText(token).toLowerCase()) || null;
+}
+
+function parseMemberToken(token) {
+  const clean = cleanText(token);
+  const dot = clean.lastIndexOf('.');
+  if (dot === -1) return { error: 'Use household.index format, e.g. H1.0' };
+  const householdId = clean.slice(0, dot);
+  const memberIndex = parseInt(clean.slice(dot + 1), 10);
+  const household = db.households.find(h => h.id.toLowerCase() === householdId.toLowerCase());
+  if (!household) return { error: 'Household not found: ' + householdId };
+  if (Number.isNaN(memberIndex) || !household.members[memberIndex]) return { error: 'Member not found: ' + token };
+  return { household, memberIndex, member: household.members[memberIndex] };
+}
+
+function memberApproxBirthYear(household, member) {
+  const yearNum = parseInt(household.year, 10);
+  const ageNum = parseInt(member.age, 10);
+  if (Number.isNaN(yearNum) || Number.isNaN(ageNum)) return null;
+  return yearNum - ageNum;
+}
+
+function nameTokens(name) {
+  return cleanText(name).toLowerCase().replace(/[.,]/g, '').split(/\s+/).filter(Boolean);
+}
+
+// Matches names that share a first and last name but differ in middle names/initials,
+// e.g. "Emil J Staheli" ↔ "Emil Staheli".
+function namesLikelyMatch(a, b) {
+  const ta = nameTokens(a), tb = nameTokens(b);
+  if (!ta.length || !tb.length) return false;
+  if (ta.join(' ') === tb.join(' ')) return true;
+  return ta[0] === tb[0] && ta[ta.length - 1] === tb[tb.length - 1];
+}
+
+function personLinkConfidence(yearA, yearB) {
+  if (yearA === null || yearB === null) return 'check ages (insufficient data)';
+  const diff = Math.abs(yearA - yearB);
+  if (diff <= 1) return 'likely';
+  if (diff <= 3) return 'possible';
+  return `unlikely — birth years ${diff} yrs apart`;
+}
+
+const MAX_PERSON_LINK_YEAR_GAP = 15;
+
+function findCandidatePersonLinks() {
+  const dismissed = new Set(db.dismissedPersonLinks);
+  const candidates = [];
+  for (let i = 0; i < db.households.length; i++) {
+    for (let j = i + 1; j < db.households.length; j++) {
+      const a = db.households[i], b = db.households[j];
+      if (a.year && b.year && a.year === b.year) continue;
+      a.members.forEach((ma, mi) => {
+        if (!ma.name) return;
+        b.members.forEach((mb, mj) => {
+          if (!mb.name || !namesLikelyMatch(ma.name, mb.name)) return;
+          const identityA = findIdentityForMember(a.id, mi);
+          const identityB = findIdentityForMember(b.id, mj);
+          if (identityA && identityA === identityB) return;
+          const key = [memberToken(a.id, mi), memberToken(b.id, mj)].sort().join('|');
+          if (dismissed.has(key)) return;
+          const yearA = memberApproxBirthYear(a, ma), yearB = memberApproxBirthYear(b, mb);
+          if (yearA !== null && yearB !== null && Math.abs(yearA - yearB) > MAX_PERSON_LINK_YEAR_GAP) return;
+          candidates.push({
+            aHousehold: a, aIndex: mi, aMember: ma,
+            bHousehold: b, bIndex: mj, bMember: mb,
+            confidence: personLinkConfidence(yearA, yearB)
+          });
+        });
+      });
+    }
+  }
+  const rank = c => c.confidence === 'likely' ? 0 : c.confidence === 'possible' ? 1 : c.confidence.startsWith('check') ? 2 : 3;
+  candidates.sort((x, y) => rank(x) - rank(y));
+  return candidates;
+}
+
+function cmdMatchList() {
+  const candidates = findCandidatePersonLinks();
+  if (!candidates.length) {
+    document.getElementById('help-overlay').classList.remove('visible');
+    return statusMsg('No candidate person links found.');
+  }
+  const html = candidates.map(c => {
+    const aTok = memberToken(c.aHousehold.id, c.aIndex);
+    const bTok = memberToken(c.bHousehold.id, c.bIndex);
+    const fillCmd = `/match confirm ${aTok} | ${bTok}`;
+    const dismissKey = [aTok, bTok].sort().join('|');
+    return `<div class="line">
+      <div>${escHtml(c.aMember.name)} · ${escHtml(aTok)} · ${escHtml(c.aHousehold.year)}${c.aMember.age ? ' · age ' + escHtml(c.aMember.age) : ''}</div>
+      <div>${escHtml(c.bMember.name)} · ${escHtml(bTok)} · ${escHtml(c.bHousehold.year)}${c.bMember.age ? ' · age ' + escHtml(c.bMember.age) : ''}</div>
+      <div class="dim">${escHtml(c.confidence)}</div>
+      <span class="action-link" data-match-fill="${escHtml(fillCmd)}">[match]</span>
+      <span class="action-link" data-match-dismiss="${escHtml(dismissKey)}">[dismiss]</span>
+    </div>`;
+  }).join('');
+  openOverlay('CANDIDATE PERSON LINKS', html, true);
+  document.querySelectorAll('[data-match-fill]').forEach(node => {
+    node.addEventListener('click', () => {
+      input.value = node.dataset.matchFill;
+      document.getElementById('help-overlay').classList.remove('visible');
+      input.focus();
+    });
+  });
+  document.querySelectorAll('[data-match-dismiss]').forEach(node => {
+    node.addEventListener('click', () => {
+      db.dismissedPersonLinks.push(node.dataset.matchDismiss);
+      saveDB();
+      cmdMatchList();
+    });
+  });
+}
+
+function cmdMatchConfirm(raw) {
+  const [aToken, bToken] = splitPipe(raw);
+  if (!aToken || !bToken) return statusMsg('Usage: /match confirm household.index | household.index');
+  const a = parseMemberToken(aToken);
+  if (a.error) return statusMsg(a.error);
+  const b = parseMemberToken(bToken);
+  if (b.error) return statusMsg(b.error);
+  if (a.household.id === b.household.id && a.memberIndex === b.memberIndex) return statusMsg('Cannot link a person to themself.');
+  const identityA = findIdentityForMember(a.household.id, a.memberIndex);
+  const identityB = findIdentityForMember(b.household.id, b.memberIndex);
+  const members = [
+    ...(identityA ? identityA.members : [{ householdId: a.household.id, memberIndex: a.memberIndex }]),
+    ...(identityB ? identityB.members : [{ householdId: b.household.id, memberIndex: b.memberIndex }])
+  ];
+  const personId = (identityA && identityA.personId) || (identityB && identityB.personId) || '';
+  const keepId = identityA ? identityA.id : (identityB ? identityB.id : undefined);
+  const merged = sanitizePersonIdentity({ id: keepId, members, personId });
+  if (!merged) return statusMsg('Could not link those members.');
+  db.personIdentities = db.personIdentities.filter(pi => pi !== identityA && pi !== identityB);
+  db.personIdentities.push(merged);
+  saveDB();
+  render();
+  statusMsg(`Linked ${a.member.name} (${a.household.id}) ↔ ${b.member.name} (${b.household.id}).`);
+}
+
+function cmdMatchRemove(raw) {
+  const token = cleanText(raw);
+  if (!token) return statusMsg('Usage: /match remove household.index or identity-id');
+  const byId = identityForToken(token);
+  if (byId) {
+    db.personIdentities = db.personIdentities.filter(pi => pi !== byId);
+    saveDB();
+    render();
+    return statusMsg('Person link removed: ' + byId.id);
+  }
+  const parsed = parseMemberToken(token);
+  if (parsed.error) return statusMsg(parsed.error);
+  const identity = findIdentityForMember(parsed.household.id, parsed.memberIndex);
+  if (!identity) return statusMsg('That member is not linked to anyone.');
+  const remainingMembers = identity.members.filter(m => !(m.householdId === parsed.household.id && m.memberIndex === parsed.memberIndex));
+  db.personIdentities = db.personIdentities.filter(pi => pi !== identity);
+  const rebuilt = sanitizePersonIdentity({ id: identity.id, members: remainingMembers, personId: identity.personId });
+  if (rebuilt) db.personIdentities.push(rebuilt);
+  saveDB();
+  render();
+  statusMsg(`Unlinked ${parsed.member.name} (${parsed.household.id}).`);
+}
+
+function handleMatchCommand(arg) {
+  const trimmed = cleanText(arg);
+  if (!trimmed || trimmed === 'list') return cmdMatchList();
+  if (trimmed.startsWith('confirm ')) return cmdMatchConfirm(trimmed.slice(8));
+  if (trimmed.startsWith('remove ')) return cmdMatchRemove(trimmed.slice(7));
+  statusMsg('Usage: /match [list]|confirm household.index | household.index|remove household.index-or-identity-id');
+}
+
+// Unified appearances dialog: pass an identity id (from the household-side badge) or a
+// person id (from the tree-side reverse badge) -- either way, every underlying census
+// household record shows up as its own row, not just one per identity.
+function showLinkedAppearances(opts) {
+  let identities = [];
+  let person = null;
+  if (opts.identityId) {
+    const identity = identityForToken(opts.identityId);
+    if (!identity) return;
+    identities = [identity];
+    person = identity.personId ? db.people.find(p => p.id === identity.personId) : null;
+  } else if (opts.personId) {
+    person = db.people.find(p => p.id === opts.personId);
+    identities = db.personIdentities.filter(pi => pi.personId === opts.personId);
+    if (!person || !identities.length) return;
+  } else {
+    return;
+  }
+  const hMap = new Map(db.households.map(h => [h.id, h]));
+  const locMap = new Map(db.locations.map(l => [l.id, l]));
+  const allMembers = [];
+  identities.forEach(identity => {
+    identity.members.forEach(im => {
+      const ih = hMap.get(im.householdId);
+      const imem = ih ? ih.members[im.memberIndex] : null;
+      if (ih && imem) allMembers.push({ household: ih, member: imem });
+    });
+  });
+  allMembers.sort((a, b) => a.household.year.localeCompare(b.household.year));
+  const rows = allMembers.map(({ household, member }) => {
+    const loc = locMap.get(household.locationId);
+    return `<div class="line">
+      <span class="action-link" data-census-household-jump="${escHtml(household.id)}">${escHtml(household.id)} (${escHtml(household.year)})</span>
+      · ${escHtml(member.name)}${member.age ? ' · age ' + escHtml(member.age) : ''}${loc ? ' · ' + escHtml(loc.name) : ''}
+    </div>`;
+  }).join('');
+  let header = '';
+  if (person) {
+    const birthYear = person.birthDate ? person.birthDate.slice(0, 4) : '';
+    const deathYear = person.deathDate ? person.deathDate.slice(0, 4) : '';
+    const birthLoc = locMap.get(person.birthLocationId);
+    const deathLoc = locMap.get(person.deathLocationId);
+    const birthPart = birthYear || birthLoc ? 'b. ' + [birthYear, birthLoc && birthLoc.name].filter(Boolean).join(', ') : '';
+    const deathPart = deathYear || deathLoc ? 'd. ' + [deathYear, deathLoc && deathLoc.name].filter(Boolean).join(', ') : '';
+    const lifePart = [birthPart, deathPart].filter(Boolean).join(' · ');
+    header = `<div class="line"><span class="action-link" data-tree-person-focus="${escHtml(person.id)}">${escHtml(person.name)} (${escHtml(person.id)})</span>${lifePart ? '<div class="focus-meta">' + escHtml(lifePart) + '</div>' : ''}</div><hr class="focus-divider">`;
+  }
+  openOverlay('LINKED APPEARANCES', header + rows, true);
+}
+
+// ── Tree links (census identities ↔ family-tree people) ────────────────────
+const MAX_TREE_LINK_YEAR_GAP = 15;
+
+function personBirthYear(p) {
+  return p.birthDate ? parseInt(p.birthDate.slice(0, 4), 10) : null;
+}
+
+// First household+member a census identity actually resolves to (identities are id lists;
+// this is the display-friendly anchor used for names/years/locations).
+function resolvedMembersForIdentity(identity) {
+  const hMap = new Map(db.households.map(h => [h.id, h]));
+  return identity.members
+    .map(im => {
+      const ih = hMap.get(im.householdId);
+      const imem = ih ? ih.members[im.memberIndex] : null;
+      return ih && imem ? { household: ih, memberIndex: im.memberIndex, member: imem } : null;
+    })
+    .filter(Boolean);
+}
+
+function representativeMemberForIdentity(identity) {
+  return resolvedMembersForIdentity(identity)[0] || null;
+}
+
+function identityYearRange(identity) {
+  const years = [];
+  const places = new Set();
+  resolvedMembersForIdentity(identity).forEach(({ household, member }) => {
+    const y = memberApproxBirthYear(household, member);
+    if (y !== null) years.push(y);
+    if (member.birthplace) places.add(member.birthplace);
+  });
+  return { min: years.length ? Math.min(...years) : null, max: years.length ? Math.max(...years) : null, places: [...places] };
+}
+
+// Every household member already gets folded into SOME identity once tree-linked (a
+// singleton identity if it wasn't already part of a confirmed cross-census match) so a
+// tree link always resolves to a PI id, never a bare household.index token.
+function getOrCreateIdentityForMember(householdId, memberIndex) {
+  const existing = findIdentityForMember(householdId, memberIndex);
+  if (existing) return existing;
+  const identity = sanitizePersonIdentity({ members: [{ householdId, memberIndex }] });
+  db.personIdentities.push(identity);
+  return identity;
+}
+
+function resolveCensusUnitToken(token, create) {
+  const clean = cleanText(token);
+  const asIdentity = identityForToken(clean);
+  if (asIdentity) return { identity: asIdentity };
+  const parsed = parseMemberToken(clean);
+  if (parsed.error) return { error: parsed.error };
+  const identity = create
+    ? getOrCreateIdentityForMember(parsed.household.id, parsed.memberIndex)
+    : findIdentityForMember(parsed.household.id, parsed.memberIndex);
+  if (!identity) return { error: 'That census record is not linked to anyone.' };
+  return { identity };
+}
+
+function treeLinkConfidence(yearMin, yearMax, personYear) {
+  if (yearMin === null || personYear === null) return 'check ages (insufficient data)';
+  const dist = personYear < yearMin ? yearMin - personYear : personYear > yearMax ? personYear - yearMax : 0;
+  if (dist <= 2) return 'likely';
+  if (dist <= 5) return 'possible';
+  return `unlikely — birth years ${dist} yrs apart`;
+}
+
+const SPOUSAL_RELATIONS = new Set(['wife']);
+
+function isSpousalRelation(relation) {
+  return SPOUSAL_RELATIONS.has(cleanText(relation).toLowerCase());
+}
+
+function isFemale(person) {
+  const g = cleanText(person.gender).toLowerCase();
+  return !g || g === 'female' || g === 'f';
+}
+
+// First-token-only comparison -- deliberately ignores the surname so a maiden/married
+// mismatch doesn't block the match, while still requiring the given name to line up.
+function firstNameMatches(a, b) {
+  const ta = nameTokens(a), tb = nameTokens(b);
+  return ta.length > 0 && tb.length > 0 && ta[0] === tb[0];
+}
+
+function findCandidateTreeLinks() {
+  const dismissed = new Set(db.dismissedTreeLinks);
+  const covered = new Set();
+  const candidates = [];
+
+  db.personIdentities.forEach(identity => {
+    identity.members.forEach(m => covered.add(memberToken(m.householdId, m.memberIndex)));
+    if (identity.personId) return;
+    const resolved = resolvedMembersForIdentity(identity);
+    const rep = resolved[0];
+    if (!rep) return;
+    const range = identityYearRange(identity);
+    db.people.forEach(p => {
+      if (!resolved.some(rm => namesLikelyMatch(rm.member.name, p.name))) return;
+      const key = [identity.id, p.id].sort().join('|');
+      if (dismissed.has(key)) return;
+      const personYear = personBirthYear(p);
+      if (range.min !== null && personYear !== null) {
+        const dist = personYear < range.min ? range.min - personYear : personYear > range.max ? personYear - range.max : 0;
+        if (dist > MAX_TREE_LINK_YEAR_GAP) return;
+      }
+      candidates.push({ token: identity.id, rep, range, recordCount: identity.members.length, person: p, confidence: treeLinkConfidence(range.min, range.max, personYear) });
+    });
+  });
+
+  db.households.forEach(h => {
+    h.members.forEach((m, mi) => {
+      if (!m.name || covered.has(memberToken(h.id, mi))) return;
+      const memberYear = memberApproxBirthYear(h, m);
+      db.people.forEach(p => {
+        if (!namesLikelyMatch(m.name, p.name)) return;
+        const tok = memberToken(h.id, mi);
+        const key = [tok, p.id].sort().join('|');
+        if (dismissed.has(key)) return;
+        const personYear = personBirthYear(p);
+        if (memberYear !== null && personYear !== null && Math.abs(memberYear - personYear) > MAX_TREE_LINK_YEAR_GAP) return;
+        candidates.push({
+          token: tok,
+          rep: { household: h, memberIndex: mi, member: m },
+          range: { min: memberYear, max: memberYear, places: m.birthplace ? [m.birthplace] : [] },
+          recordCount: 1,
+          person: p,
+          confidence: treeLinkConfidence(memberYear, memberYear, personYear)
+        });
+      });
+    });
+  });
+
+  // Pass 3: spouse inference. If a household member is already tree-linked, any other
+  // member in the SAME census household whose relation reads as spousal gets checked
+  // against that linked person's tree spouses directly -- maiden/married surnames often
+  // don't overlap at all, so this bypasses namesLikelyMatch entirely and trusts the
+  // household structure instead.
+  const suggested = new Set(candidates.map(c => c.token + '|' + c.person.id));
+  db.households.forEach(h => {
+    h.members.forEach((anchorMember, anchorIdx) => {
+      const anchorIdentity = findIdentityForMember(h.id, anchorIdx);
+      if (!anchorIdentity || !anchorIdentity.personId) return;
+      const anchorPerson = db.people.find(p => p.id === anchorIdentity.personId);
+      if (!anchorPerson) return;
+      const spouses = relationSummary(anchorPerson.id).spouses;
+      if (!spouses.length) return;
+      h.members.forEach((m, mi) => {
+        if (mi === anchorIdx || !m.name || !isSpousalRelation(m.relation)) return;
+        const memberIdentity = findIdentityForMember(h.id, mi);
+        if (memberIdentity && memberIdentity.personId) return;
+        const token = memberIdentity ? memberIdentity.id : memberToken(h.id, mi);
+        const rep = memberIdentity ? representativeMemberForIdentity(memberIdentity) : { household: h, memberIndex: mi, member: m };
+        const range = memberIdentity ? identityYearRange(memberIdentity) : { min: memberApproxBirthYear(h, m), max: memberApproxBirthYear(h, m), places: m.birthplace ? [m.birthplace] : [] };
+        const recordCount = memberIdentity ? memberIdentity.members.length : 1;
+        const resolved = memberIdentity ? resolvedMembersForIdentity(memberIdentity) : [{ household: h, memberIndex: mi, member: m }];
+        spouses.forEach(sp => {
+          if (!isFemale(sp)) return;
+          if (!resolved.some(rm => firstNameMatches(rm.member.name, sp.name))) return;
+          const personYear = personBirthYear(sp);
+          if (range.min !== null && personYear !== null) {
+            const dist = personYear < range.min ? range.min - personYear : personYear > range.max ? personYear - range.max : 0;
+            if (dist > MAX_TREE_LINK_YEAR_GAP) return;
+          }
+          const key = [token, sp.id].sort().join('|');
+          if (dismissed.has(key) || suggested.has(token + '|' + sp.id)) return;
+          candidates.push({ token, rep, range, recordCount, person: sp, confidence: `likely — spouse of linked ${anchorPerson.name}` });
+          suggested.add(token + '|' + sp.id);
+        });
+      });
+    });
+  });
+
+  const rank = c => c.confidence.startsWith('likely') ? 0 : c.confidence === 'possible' ? 1 : c.confidence.startsWith('check') ? 2 : 3;
+  candidates.sort((x, y) => rank(x) - rank(y));
+  return candidates;
+}
+
+// Birth-year range + every distinct birthplace across the candidate's census records.
+function censusUnitDetailsHtml(c) {
+  const parts = [];
+  if (c.range.min !== null) parts.push(c.range.min === c.range.max ? '~' + c.range.min : `~${c.range.min}-${c.range.max}`);
+  if (c.range.places.length) parts.push(c.range.places.join(', '));
+  if (c.recordCount > 1) parts.push(`${c.recordCount} linked census records`);
+  return parts.join(' · ');
+}
+
+function personTreeDetailsHtml(person) {
+  const locMap = new Map(db.locations.map(l => [l.id, l]));
+  const birthLoc = locMap.get(person.birthLocationId);
+  const summary = relationSummary(person.id);
+  const parts = [];
+  if (person.birthDate) parts.push('b. ' + person.birthDate);
+  if (birthLoc) parts.push(birthLoc.name);
+  if (summary.spouses.length) parts.push('sp. ' + summary.spouses.map(s => s.name).join(', '));
+  if (summary.parents.length) parts.push('parents: ' + summary.parents.map(p => p.name).join(', '));
+  return parts.join(' · ');
+}
+
+function cmdTreeLinkList() {
+  const candidates = findCandidateTreeLinks();
+  if (!candidates.length) {
+    document.getElementById('help-overlay').classList.remove('visible');
+    return statusMsg('No candidate tree links found.');
+  }
+  const html = candidates.map(c => {
+    const fillCmd = `/treelink confirm ${c.token} | ${c.person.id}`;
+    const dismissKey = [c.token, c.person.id].sort().join('|');
+    const censusDetail = censusUnitDetailsHtml(c);
+    const treeDetail = personTreeDetailsHtml(c.person);
+    return `<div class="line">
+      <div>${escHtml(c.rep.member.name)} · ${escHtml(c.token)}</div>
+      ${censusDetail ? `<div class="dim">${escHtml(censusDetail)}</div>` : ''}
+      <div>${escHtml(c.person.name)} · ${escHtml(c.person.id)}</div>
+      ${treeDetail ? `<div class="dim">${escHtml(treeDetail)}</div>` : ''}
+      <div class="dim">${escHtml(c.confidence)}</div>
+      <span class="action-link" data-treelink-fill="${escHtml(fillCmd)}">[link]</span>
+      <span class="action-link" data-treelink-dismiss="${escHtml(dismissKey)}">[dismiss]</span>
+    </div>`;
+  }).join('');
+  openOverlay('CANDIDATE TREE LINKS', html, true);
+  document.querySelectorAll('[data-treelink-fill]').forEach(node => {
+    node.addEventListener('click', () => {
+      input.value = node.dataset.treelinkFill;
+      document.getElementById('help-overlay').classList.remove('visible');
+      input.focus();
+    });
+  });
+  document.querySelectorAll('[data-treelink-dismiss]').forEach(node => {
+    node.addEventListener('click', () => {
+      db.dismissedTreeLinks.push(node.dataset.treelinkDismiss);
+      saveDB();
+      cmdTreeLinkList();
+    });
+  });
+}
+
+function cmdTreeLinkConfirm(raw) {
+  const [unitTok, personTok] = splitPipe(raw);
+  if (!unitTok || !personTok) return statusMsg('Usage: /treelink confirm identity-id-or-household.index | person');
+  const resolved = resolveCensusUnitToken(unitTok, true);
+  if (resolved.error) return statusMsg(resolved.error);
+  const personMatch = findPerson(personTok);
+  if (personMatch.error) return statusMsg(personMatch.error);
+  const identity = resolved.identity;
+  if (identity.personId) return statusMsg('That census identity is already linked to a person. Remove it first.');
+  identity.personId = personMatch.person.id;
+  saveDB();
+  render();
+  const rep = representativeMemberForIdentity(identity);
+  statusMsg(`Linked ${identity.id}${rep ? ' (' + rep.member.name + ')' : ''} → ${personMatch.person.name}.`);
+}
+
+function cmdTreeLinkRemove(raw) {
+  const token = cleanText(raw);
+  if (!token) return statusMsg('Usage: /treelink remove identity-id-or-household.index');
+  const resolved = resolveCensusUnitToken(token, false);
+  if (resolved.error) return statusMsg(resolved.error);
+  const identity = resolved.identity;
+  if (!identity.personId) return statusMsg('That census identity is not linked to a person.');
+  identity.personId = '';
+  saveDB();
+  render();
+  statusMsg(`Unlinked ${identity.id}.`);
+}
+
+function handleTreeLinkCommand(arg) {
+  const trimmed = cleanText(arg);
+  if (!trimmed || trimmed === 'list') return cmdTreeLinkList();
+  if (trimmed.startsWith('confirm ')) return cmdTreeLinkConfirm(trimmed.slice(8));
+  if (trimmed.startsWith('remove ')) return cmdTreeLinkRemove(trimmed.slice(7));
+  statusMsg('Usage: /treelink [list]|confirm identity-id-or-household.index | person|remove identity-id-or-household.index');
+}
+
+function focusTreeLinkedPerson(personId) {
+  if (viewMode === 'census') toggleCensusMode();
+  setFocus(personId, true);
+  document.getElementById('help-overlay').classList.remove('visible');
+}
+
+function jumpToCensusHousehold(householdId) {
+  if (viewMode !== 'census') toggleCensusMode();
+  db.focusHouseholdId = householdId;
+  saveDB();
+  renderCensusFocusCard();
+  document.getElementById('help-overlay').classList.remove('visible');
+}
+
+function cmdLocationUpdate(raw) {
+  const [token, fieldRaw, value] = splitPipe(raw);
+  const match = findLocation(token);
+  if (match.error) return statusMsg(match.error);
+  const field = cleanText(fieldRaw).toLowerCase();
+  const updates = { name: 'name', notes: 'notes' };
+  const key = updates[field];
+  if (!key) return statusMsg('Field must be name or notes.');
+  match.location[key] = cleanText(value);
+  saveDB();
+  render();
+  statusMsg(`Updated location ${match.location.name}: ${key}.`);
+}
+
+function cmdLocationRemove(raw) {
+  const match = findLocation(raw);
+  if (match.error) return statusMsg(match.error);
+  const removedId = match.location.id;
+  db.locations = db.locations.filter(loc => loc.id !== removedId);
+  db.people.forEach(person => {
+    if (person.birthLocationId === removedId) person.birthLocationId = '';
+    if (person.deathLocationId === removedId) person.deathLocationId = '';
+  });
+  db.relationships.forEach(rel => {
+    if (rel.locationId === removedId) rel.locationId = '';
+  });
+  db.households.forEach(h => {
+    if (h.locationId === removedId) h.locationId = '';
+  });
+  saveDB();
+  render();
+  statusMsg(`Removed location ${match.location.name}.`);
+}
+
+// Merges `remove` into `keep`: every person/relationship/household pointing at `remove`
+// gets repointed to `keep`, `remove` is deleted, and an optional third field lets you pick
+// the surviving name (e.g. when neither existing name is quite right).
+function cmdLocationMerge(raw) {
+  const [keepToken, removeToken, preferredName] = splitPipe(raw);
+  if (!keepToken || !removeToken) return statusMsg('Usage: /location merge keep | remove | [preferred name]');
+  const keepMatch = findLocation(keepToken);
+  if (keepMatch.error) return statusMsg(keepMatch.error);
+  const removeMatch = findLocation(removeToken);
+  if (removeMatch.error) return statusMsg(removeMatch.error);
+  const keep = keepMatch.location;
+  const remove = removeMatch.location;
+  if (keep.id === remove.id) return statusMsg('Cannot merge a location into itself.');
+
+  if (cleanText(preferredName)) keep.name = cleanText(preferredName);
+  if (remove.notes && remove.notes !== keep.notes) keep.notes = keep.notes ? keep.notes + '; ' + remove.notes : remove.notes;
+
+  db.people.forEach(person => {
+    if (person.birthLocationId === remove.id) person.birthLocationId = keep.id;
+    if (person.deathLocationId === remove.id) person.deathLocationId = keep.id;
+  });
+  db.relationships.forEach(rel => {
+    if (rel.locationId === remove.id) rel.locationId = keep.id;
+  });
+  db.households.forEach(h => {
+    if (h.locationId === remove.id) h.locationId = keep.id;
+  });
+
+  db.locations = db.locations.filter(loc => loc.id !== remove.id);
+  saveDB();
+  render();
+  statusMsg(`Merged ${remove.name} (${remove.id}) into ${keep.name} (${keep.id}).`);
+}
+
+function locationListText(query) {
+  const filtered = cleanText(query)
+    ? db.locations.filter(loc => loc.name.toLowerCase().includes(query.toLowerCase()) || loc.id.toLowerCase() === query.toLowerCase())
+    : db.locations.slice();
+  if (!filtered.length) return 'No matching locations.';
+  return filtered
+    .slice()
+    .sort((a, b) => a.name.localeCompare(b.name))
+    .map(loc => `${loc.id}  ${loc.name}${loc.notes ? '  — ' + loc.notes : ''}`)
+    .join('\n');
+}
+
+function handleLocationCommand(arg) {
+  const trimmed = cleanText(arg);
+  if (!trimmed || trimmed === 'list') return openOverlay('LOCATIONS', locationListText(''), false);
+  if (trimmed.startsWith('list ')) return openOverlay('LOCATIONS', locationListText(trimmed.slice(5)), false);
+  if (trimmed.startsWith('add ')) return cmdLocationAdd(trimmed.slice(4));
+  if (trimmed.startsWith('update ')) return cmdLocationUpdate(trimmed.slice(7));
+  if (trimmed.startsWith('remove ')) return cmdLocationRemove(trimmed.slice(7));
+  if (trimmed.startsWith('merge ')) return cmdLocationMerge(trimmed.slice(6));
+  statusMsg('Usage: /location add|update|remove|merge|list');
 }
 
 function handleAttrCommand(arg) {
@@ -891,14 +3766,15 @@ function cmdRelationshipAdd(raw) {
   if (date && !normalizedDate) return statusMsg('Relationship date must be YYYY-MM-DD.');
   const duplicate = db.relationships.find(rel => rel.type === canonical.type && rel.fromId === canonical.fromId && rel.toId === canonical.toId);
   if (duplicate) return statusMsg(`Duplicate relationship already exists (${duplicate.id}).`);
-  db.relationships.push(sanitizeRelationship({
+  const newRel = sanitizeRelationship({
     id: nextId('R', db.relationships),
     fromId: canonical.fromId,
     toId: canonical.toId,
     type: canonical.type,
     date: normalizedDate,
     note
-  }));
+  });
+  db.relationships.push(newRel);
   saveDB();
   render();
   statusMsg('Relationship added.');
@@ -906,14 +3782,92 @@ function cmdRelationshipAdd(raw) {
 
 function handleRelationshipCommand(arg) {
   const trimmed = cleanText(arg);
-  if (!trimmed || trimmed === 'list') {
-    const map = peopleMap();
-    const text = db.relationships.length
-      ? db.relationships.map(rel => `${rel.id}  ${relationshipLabel(rel, map).replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>')}`).join('\n')
-      : 'No relationships recorded.';
-    return openOverlay('RELATIONSHIPS', text, false);
-  }
+  if (trimmed === 'fill') return startRelFill();
   if (trimmed.startsWith('add ')) return cmdRelationshipAdd(trimmed.slice(4));
+  if (trimmed.startsWith('set ')) {
+    const rest = trimmed.slice(4).trim();
+    const spaceIdx = rest.indexOf(' ');
+    const keyword = spaceIdx === -1 ? rest : rest.slice(0, spaceIdx);
+    const personToken = spaceIdx === -1 ? '' : rest.slice(spaceIdx + 1).trim();
+    if (!keyword || !personToken) return statusMsg('Usage: /rel set <type> <person>  (e.g. /rel set father John)');
+    const focus = getFocusPerson();
+    if (!focus) return statusMsg('No focus person set.');
+    if (!REL_KEYWORDS.has(keyword.toLowerCase())) return statusMsg('Type must be: father, mother, son, daughter, brother, sister, spouse, partner.');
+    const match = findPerson(personToken);
+    if (match.error) return statusMsg(match.error);
+    const result = addRelForFocus(focus.id, keyword, match.person.id);
+    if (result.error) return statusMsg(result.error);
+    saveDB(); render();
+    return statusMsg('Linked ' + focus.name + ' ↔ ' + keyword + ' ↔ ' + match.person.name + '.');
+  }
+  if (trimmed === 'cleanup') {
+    const childParents = new Map();
+    db.relationships.forEach(r => {
+      if (r.type === 'parent') {
+        if (!childParents.has(r.toId)) childParents.set(r.toId, new Set());
+        childParents.get(r.toId).add(r.fromId);
+      }
+    });
+    function shareAParent(idA, idB) {
+      const pa = childParents.get(idA) || new Set();
+      const pb = childParents.get(idB) || new Set();
+      for (const p of pa) if (pb.has(p)) return true;
+      return false;
+    }
+    const before = db.relationships.length;
+    db.relationships = db.relationships.filter(r =>
+      r.type !== 'sibling' || !shareAParent(r.fromId, r.toId)
+    );
+    const removed = before - db.relationships.length;
+    if (!removed) return statusMsg('No inferrable sibling records to remove.');
+    saveDB(); render();
+    return statusMsg(`Removed ${removed} sibling record${removed === 1 ? '' : 's'} now inferrable from parents.`);
+  }
+  if (trimmed.startsWith('update ')) {
+    const parts = trimmed.slice(7).trim().split(/\s+/);
+    const id = parts[0];
+    const field = (parts[1] || '').toLowerCase();
+    const value = parts.slice(2).join(' ');
+    const rel = db.relationships.find(r => r.id.toLowerCase() === id.toLowerCase());
+    if (!rel) return statusMsg('Relationship not found: ' + id);
+
+    if (field === 'marriage') {
+      if (!value) return statusMsg('Usage: /rel update ' + id + ' marriage <date> [location]');
+      const spaceIdx = value.indexOf(' ');
+      const datePart = spaceIdx === -1 ? value : value.slice(0, spaceIdx);
+      const locationPart = spaceIdx === -1 ? '' : value.slice(spaceIdx + 1).trim();
+      const normalized = normalizeDate(datePart);
+      if (!normalized) return statusMsg('Date must be YYYY or YYYY-MM-DD.');
+      rel.date = normalized;
+      let locationName = '';
+      if (locationPart) {
+        const location = resolveOrCreateLocation(locationPart);
+        rel.locationId = location.id;
+        locationName = location.name;
+      }
+      saveDB(); render();
+      return statusMsg(`${id}: marriage → ${normalized}${locationName ? ' @ ' + locationName : ''}`);
+    }
+    if (field === 'location') {
+      if (!value) {
+        rel.locationId = '';
+        saveDB(); render();
+        return statusMsg(`${id}: location cleared.`);
+      }
+      const location = resolveOrCreateLocation(value);
+      rel.locationId = location.id;
+      saveDB(); render();
+      return statusMsg(`${id}: location → ${location.name}`);
+    }
+
+    const allowed = { date: 'date', enddate: 'endDate', end: 'endDate', divorce: 'endDate', note: 'note' };
+    const key = allowed[field];
+    if (!key) return statusMsg('Field must be: date, endDate, note, marriage, location.');
+    if ((key === 'date' || key === 'endDate') && value && !normalizeDate(value)) return statusMsg('Date must be YYYY-MM-DD.');
+    rel[key] = (key === 'date' || key === 'endDate') ? normalizeDate(value) : value;
+    saveDB(); render();
+    return statusMsg(`${id}: ${field} updated.`);
+  }
   if (trimmed.startsWith('remove ')) {
     const id = cleanText(trimmed.slice(7));
     const before = db.relationships.length;
@@ -923,7 +3877,7 @@ function handleRelationshipCommand(arg) {
     render();
     return statusMsg('Relationship removed: ' + id);
   }
-  statusMsg('Usage: /rel add|remove|list');
+  statusMsg('Usage: /rel add|set|update|remove|fill|cleanup');
 }
 
 function cmdEventAdd(raw) {
@@ -952,7 +3906,7 @@ function handleEventCommand(arg) {
     const map = peopleMap();
     const text = db.events.length
       ? db.events.map(event => {
-          const people = event.personIds.map(id => map.get(id)).filter(Boolean).map(person => person.name).join(', ');
+          const people = event.personIds.map(id => map.get(id)).filter(Boolean).map(p => nameLink(p)).join(', ');
           return `${event.id}  ${event.type.toUpperCase()}  ${event.date}  ${event.title}${people ? '  [' + people + ']' : ''}${event.note ? '  ' + event.note : ''}`;
         }).join('\n')
       : 'No events recorded.';
@@ -980,7 +3934,7 @@ function exportDataTxt() {
     ...db.people.map(person => `- ${person.id} | ${person.name} | ${formatLife(person)} | ${person.branch || '-'} | ${person.gender || '-'} | ${person.notes || '-'}`),
     '',
     'RELATIONSHIPS',
-    ...db.relationships.map(rel => `- ${rel.id} | ${relationshipLabel(rel, map).replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>')}`),
+    ...db.relationships.map(rel => `- ${rel.id} | ${relationshipLabel(rel, map).replace(/<[^>]+>/g, '').replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>')}`),
     '',
     'EVENTS',
     ...db.events.map(event => `- ${event.id} | ${event.type} | ${event.date} | ${event.title}`)
@@ -994,7 +3948,15 @@ function exportDataJson() {
     people: db.people,
     relationships: db.relationships,
     events: db.events,
-    focusPersonId: db.focusPersonId
+    locations: db.locations,
+    households: db.households,
+    householdLinks: db.householdLinks,
+    personIdentities: db.personIdentities,
+    dismissedHouseholdLinks: db.dismissedHouseholdLinks,
+    dismissedPersonLinks: db.dismissedPersonLinks,
+    dismissedTreeLinks: db.dismissedTreeLinks,
+    focusPersonId: db.focusPersonId,
+    focusHouseholdId: db.focusHouseholdId
   };
 }
 
@@ -1011,22 +3973,158 @@ function importData(obj) {
     people: obj.people.map(sanitizePerson),
     relationships: obj.relationships.map(sanitizeRelationship).filter(Boolean),
     events: obj.events.map(sanitizeEvent),
+    locations: Array.isArray(obj.locations) ? obj.locations.map(sanitizeLocation) : [],
+    households: Array.isArray(obj.households) ? obj.households.map(sanitizeHousehold) : [],
+    householdLinks: Array.isArray(obj.householdLinks) ? obj.householdLinks.map(sanitizeHouseholdLink).filter(Boolean) : [],
+    personIdentities: Array.isArray(obj.personIdentities) ? obj.personIdentities.map(sanitizePersonIdentity).filter(Boolean) : [],
+    dismissedHouseholdLinks: Array.isArray(obj.dismissedHouseholdLinks) ? obj.dismissedHouseholdLinks.filter(s => typeof s === 'string') : [],
+    dismissedPersonLinks: Array.isArray(obj.dismissedPersonLinks) ? obj.dismissedPersonLinks.filter(s => typeof s === 'string') : [],
+    dismissedTreeLinks: Array.isArray(obj.dismissedTreeLinks) ? obj.dismissedTreeLinks.filter(s => typeof s === 'string') : [],
     backlog: db.backlog,
     backlogArchive: db.backlogArchive,
     theme: db.theme,
-    focusPersonId: cleanText(obj.focusPersonId)
+    focusPersonId: cleanText(obj.focusPersonId),
+    focusHouseholdId: cleanText(obj.focusHouseholdId),
+    lifespanFilter: db.lifespanFilter
   };
   db = base;
   if (!db.people.some(person => person.id === db.focusPersonId)) db.focusPersonId = db.people[0] ? db.people[0].id : '';
+  if (!db.households.some(h => h.id === db.focusHouseholdId)) db.focusHouseholdId = db.households[0] ? db.households[0].id : '';
+}
+
+function exportGedcom() {
+  const MONTHS = ['JAN','FEB','MAR','APR','MAY','JUN','JUL','AUG','SEP','OCT','NOV','DEC'];
+  function gedDate(iso) {
+    if (!iso) return null;
+    const [y, m, d] = iso.split('-');
+    if (!y) return null;
+    const mi = parseInt(m, 10), di = parseInt(d, 10);
+    if (mi && di) return `${di} ${MONTHS[mi-1]} ${y}`;
+    if (mi) return `${MONTHS[mi-1]} ${y}`;
+    return y;
+  }
+
+  const lines = [];
+  const now = new Date();
+  lines.push('0 HEAD');
+  lines.push('1 SOUR life-line');
+  lines.push('2 NAME LIFE LINE');
+  lines.push('2 VERS 1.0');
+  lines.push(`1 DATE ${now.getDate()} ${MONTHS[now.getMonth()]} ${now.getFullYear()}`);
+  lines.push('1 GEDC');
+  lines.push('2 VERS 5.5.1');
+  lines.push('2 FORM LINEAGE-LINKED');
+  lines.push('1 CHAR UTF-8');
+
+  // Build family groups from spouse relationships + child-parent links
+  const famMap = new Map();
+  let famCounter = 0;
+  const famKey = ids => [...ids].sort().join('|');
+
+  function getOrCreateFam(parentIds, spouseRel) {
+    const key = famKey(parentIds);
+    if (!famMap.has(key)) famMap.set(key, { id: 'F' + (++famCounter), parentIds: [...parentIds], children: [], spouseRel: null });
+    const fam = famMap.get(key);
+    if (spouseRel && !fam.spouseRel) fam.spouseRel = spouseRel;
+    return fam;
+  }
+
+  db.relationships.forEach(rel => {
+    if (rel.type === 'spouse') getOrCreateFam([rel.fromId, rel.toId], rel);
+  });
+
+  const childToParents = new Map();
+  db.relationships.forEach(rel => {
+    if (rel.type === 'parent') {
+      if (!childToParents.has(rel.toId)) childToParents.set(rel.toId, []);
+      childToParents.get(rel.toId).push(rel.fromId);
+    }
+  });
+  childToParents.forEach((parentIds, childId) => getOrCreateFam(parentIds, null).children.push(childId));
+
+  // Person → family lookups
+  const personFamS = new Map();
+  const personFamC = new Map();
+  famMap.forEach(fam => {
+    fam.parentIds.forEach(pid => { if (!personFamS.has(pid)) personFamS.set(pid, []); personFamS.get(pid).push(fam.id); });
+    fam.children.forEach(cid => personFamC.set(cid, fam.id));
+  });
+
+  // INDI records
+  const pmap = peopleMap();
+  db.people.forEach(person => {
+    lines.push(`0 @${person.id}@ INDI`);
+    const parts = person.name.trim().split(/\s+/);
+    const surname = parts.length > 1 ? parts.pop() : '';
+    lines.push(`1 NAME ${parts.join(' ')}${surname ? ' /' + surname + '/' : ''}`);
+    const g = (person.gender || '').toLowerCase();
+    if (g === 'male' || g === 'm') lines.push('1 SEX M');
+    else if (g === 'female' || g === 'f') lines.push('1 SEX F');
+    const bd = gedDate(person.birthDate);
+    const birthLoc = db.locations.find(l => l.id === person.birthLocationId);
+    const deathLoc = db.locations.find(l => l.id === person.deathLocationId);
+    if (bd || birthLoc) {
+      lines.push('1 BIRT');
+      if (bd) lines.push('2 DATE ' + bd);
+      if (birthLoc) lines.push('2 PLAC ' + birthLoc.name);
+    }
+    if (person.deathDate || deathLoc) {
+      lines.push('1 DEAT Y');
+      const dd = gedDate(person.deathDate);
+      if (dd) lines.push('2 DATE ' + dd);
+      if (deathLoc) lines.push('2 PLAC ' + deathLoc.name);
+    }
+    if (person.branch) lines.push('1 _BRAN ' + person.branch);
+    if (person.notes) lines.push('1 NOTE ' + person.notes);
+    Object.entries(person.attributes || {}).forEach(([k, v]) => lines.push(`1 _ATTR ${k}: ${v}`));
+    (personFamS.get(person.id) || []).forEach(fid => lines.push('1 FAMS @' + fid + '@'));
+    const famc = personFamC.get(person.id);
+    if (famc) lines.push('1 FAMC @' + famc + '@');
+  });
+
+  // FAM records
+  famMap.forEach(fam => {
+    lines.push(`0 @${fam.id}@ FAM`);
+    const parents = fam.parentIds.map(id => pmap.get(id)).filter(Boolean);
+    let husb = null, wife = null, rest = [];
+    parents.forEach(p => {
+      const g = (p.gender || '').toLowerCase();
+      if (!husb && (g === 'male' || g === 'm')) husb = p;
+      else if (!wife && (g === 'female' || g === 'f')) wife = p;
+      else rest.push(p);
+    });
+    if (!husb && !wife) { husb = parents[0] || null; wife = parents[1] || null; }
+    else { if (!husb && rest.length) husb = rest.shift(); else if (!wife && rest.length) wife = rest.shift(); }
+    if (husb) lines.push('1 HUSB @' + husb.id + '@');
+    if (wife) lines.push('1 WIFE @' + wife.id + '@');
+    const rel = fam.spouseRel;
+    if (rel) {
+      const md = gedDate(rel.date);
+      const marriageLoc = db.locations.find(l => l.id === rel.locationId);
+      if (md || marriageLoc) {
+        lines.push('1 MARR');
+        if (md) lines.push('2 DATE ' + md);
+        if (marriageLoc) lines.push('2 PLAC ' + marriageLoc.name);
+      }
+      if (rel.endDate) { lines.push('1 DIV Y'); const dd = gedDate(rel.endDate); if (dd) lines.push('2 DATE ' + dd); }
+      if (rel.note) lines.push('1 NOTE ' + rel.note);
+    }
+    fam.children.forEach(cid => lines.push('1 CHIL @' + cid + '@'));
+  });
+
+  lines.push('0 TRLR');
+  return lines.join('\r\n');
 }
 
 function cmdExport(format) {
   const now = todayStr();
   const doTxt = !format || format === 'txt';
   const doJson = !format || format === 'json';
-  if (!doTxt && !doJson) return statusMsg('Usage: /export [txt|json]');
+  const doGed = format === 'ged' || format === 'gedcom';
+  if (!doTxt && !doJson && !doGed) return statusMsg('Usage: /export [txt|json|ged]');
   if (doTxt) downloadBlob(exportDataTxt(), `${EXPORT_SLUG}-${now}.txt`, 'text/plain');
   if (doJson) downloadBlob(JSON.stringify(exportDataJson(), null, 2), `${EXPORT_SLUG}-${now}.json`, 'application/json');
+  if (doGed) downloadBlob(exportGedcom(), `${EXPORT_SLUG}-${now}.ged`, 'text/plain');
   statusMsg('Exported' + (format ? ' as .' + format : ' txt + json'));
 }
 
@@ -1068,12 +4166,199 @@ function applyTheme(name) {
   statusMsg('Theme: ' + name.toUpperCase());
 }
 
+// ── Census workspace mode toggle ─────────────────────────────────────────────
+const CENSUS_TOP_PANELS_HTML = `
+  <div class="mini-panel">
+    <div id="census-focus-card" class="dim">No households yet. Use /household add to start.</div>
+  </div>
+  <div class="mini-panel">
+    <div id="census-stats" class="dim">No households yet.</div>
+  </div>
+`;
+
+const CENSUS_MAIN_PANEL_HTML = `
+  <div class="row-header">◈ HOUSEHOLD DIRECTORY</div>
+  <div class="filter-bar">
+    <input type="text" id="household-filter" class="filter-input" placeholder="filter by location, name, or year..." autocomplete="off" spellcheck="false">
+  </div>
+  <div id="household-list" class="dim">No households yet. Use /household add to start.</div>
+`;
+
+const CENSUS_SIDE_PANEL_HTML = `
+  <div class="tab-bar">
+    <span class="ctab-main active" data-ctab="household">HOUSEHOLD LINKS</span>
+    <span class="ctab-main" data-ctab="people">PEOPLE MATCHES</span>
+    <span class="ctab-main" data-ctab="tree">TREE LINKS</span>
+  </div>
+
+  <div id="ctab-pane-household" class="ctab-pane">
+    <div class="tab-bar sub-tab-bar">
+      <span class="ctab-sub active" data-csub="candidates">CANDIDATES</span>
+      <span class="ctab-sub" data-csub="confirmed">CONFIRMED</span>
+    </div>
+    <div id="ctab-pane-household-candidates" class="ctab-sub-pane">
+      <div id="candidate-links-panel" class="dim">No candidate links.</div>
+    </div>
+    <div id="ctab-pane-household-confirmed" class="ctab-sub-pane" style="display:none">
+      <div id="confirmed-links-panel" class="dim">No confirmed links.</div>
+    </div>
+  </div>
+
+  <div id="ctab-pane-people" class="ctab-pane" style="display:none">
+    <div class="tab-bar sub-tab-bar">
+      <span class="ctab-sub active" data-csub="candidates">CANDIDATES</span>
+      <span class="ctab-sub" data-csub="confirmed">CONFIRMED</span>
+    </div>
+    <div id="ctab-pane-people-candidates" class="ctab-sub-pane">
+      <div id="candidate-matches-panel" class="dim">No candidate person links.</div>
+    </div>
+    <div id="ctab-pane-people-confirmed" class="ctab-sub-pane" style="display:none">
+      <div id="confirmed-matches-panel" class="dim">No confirmed person links.</div>
+    </div>
+  </div>
+
+  <div id="ctab-pane-tree" class="ctab-pane" style="display:none">
+    <div class="tab-bar sub-tab-bar">
+      <span class="ctab-sub active" data-csub="candidates">CANDIDATES</span>
+      <span class="ctab-sub" data-csub="confirmed">CONFIRMED</span>
+    </div>
+    <div id="ctab-pane-tree-candidates" class="ctab-sub-pane">
+      <div id="candidate-treelinks-panel" class="dim">No candidate tree links.</div>
+    </div>
+    <div id="ctab-pane-tree-confirmed" class="ctab-sub-pane" style="display:none">
+      <div id="confirmed-treelinks-panel" class="dim">No confirmed tree links.</div>
+    </div>
+  </div>
+`;
+
+function toggleCensusMode(silent) {
+  const topPanels = document.querySelector('#top-row .top-panels');
+  const mainPanel = document.getElementById('main-panel');
+  const sidePanel = document.getElementById('side-panel');
+  if (viewMode === 'life') {
+    lifeTopPanelsHtml = topPanels.innerHTML;
+    lifeMainPanelHtml = mainPanel.innerHTML;
+    lifeSidePanelHtml = sidePanel.innerHTML;
+    topPanels.innerHTML = CENSUS_TOP_PANELS_HTML;
+    mainPanel.innerHTML = CENSUS_MAIN_PANEL_HTML;
+    sidePanel.innerHTML = CENSUS_SIDE_PANEL_HTML;
+    document.getElementById('household-filter').value = householdFilterText;
+    viewMode = 'census';
+  } else {
+    topPanels.innerHTML = lifeTopPanelsHtml;
+    mainPanel.innerHTML = lifeMainPanelHtml;
+    sidePanel.innerHTML = lifeSidePanelHtml;
+    viewMode = 'life';
+  }
+  db.viewMode = viewMode;
+  saveDB();
+  render();
+  if (silent) return;
+  input.focus();
+  statusMsg('Mode: ' + (viewMode === 'census' ? 'CENSUS' : 'LIFE LINE'));
+}
+
+document.addEventListener('click', event => {
+  if (event.target.closest('#lifespan-toggle')) return toggleLifespanFilter();
+  const editTarget = event.target.closest('[data-household-edit]');
+  if (editTarget) {
+    const household = db.households.find(h => h.id === editTarget.dataset.householdEdit);
+    if (household) openHouseholdDialog(household);
+    return;
+  }
+  const identityTarget = event.target.closest('[data-identity-view]');
+  if (identityTarget) {
+    showLinkedAppearances({ identityId: identityTarget.dataset.identityView });
+    return;
+  }
+  const treePersonTarget = event.target.closest('[data-tree-person-focus]');
+  if (treePersonTarget) {
+    focusTreeLinkedPerson(treePersonTarget.dataset.treePersonFocus);
+    return;
+  }
+  const censusMatchesTarget = event.target.closest('[data-census-matches-view]');
+  if (censusMatchesTarget) {
+    showLinkedAppearances({ personId: censusMatchesTarget.dataset.censusMatchesView });
+    return;
+  }
+  const censusHouseholdJumpTarget = event.target.closest('[data-census-household-jump]');
+  if (censusHouseholdJumpTarget) {
+    jumpToCensusHousehold(censusHouseholdJumpTarget.dataset.censusHouseholdJump);
+    return;
+  }
+  const locationViewTarget = event.target.closest('[data-location-view]');
+  if (locationViewTarget) {
+    showLocationUsages(locationViewTarget.dataset.locationView);
+    return;
+  }
+  const locationMergeFillTarget = event.target.closest('[data-location-merge-fill]');
+  if (locationMergeFillTarget) {
+    input.value = locationMergeFillTarget.dataset.locationMergeFill;
+    input.focus();
+    return;
+  }
+  const householdTarget = event.target.closest('[data-household-focus]');
+  if (householdTarget) {
+    db.focusHouseholdId = householdTarget.dataset.householdFocus;
+    saveDB();
+    renderCensusFocusCard();
+    document.getElementById('help-overlay').classList.remove('visible');
+    return;
+  }
+  const timelineHouseholdToggle = event.target.closest('[data-timeline-household-toggle]');
+  if (timelineHouseholdToggle) {
+    timelineShowHouseholds = !timelineShowHouseholds;
+    const wrap = timelineHouseholdToggle.closest('[data-timeline-depth]');
+    showTimeline(wrap ? wrap.dataset.timelineDepth : undefined);
+    return;
+  }
+  const target = event.target.closest('[data-person-focus]');
+  if (!target) return;
+  setFocus(target.dataset.personFocus, true);
+  const timelineWrap = target.closest('[data-timeline-depth]');
+  if (timelineWrap) {
+    showTimeline(timelineWrap.dataset.timelineDepth);
+    return;
+  }
+  document.getElementById('help-overlay').classList.remove('visible');
+});
+
 const input = document.getElementById('console-input');
+const cmdHistory = [];
+let historyIdx = -1;
+let historySaved = '';
+
 input.addEventListener('keydown', event => {
   if (event.key === 'Enter') {
     const cmd = input.value.trim();
     input.value = '';
-    if (cmd) handleConsoleCmd(cmd);
+    historyIdx = -1;
+    historySaved = '';
+    if (wizard) { wizardHandleInput(cmd); return; }
+    if (relFill) {
+      const answer = cmd.trim().toLowerCase();
+      if (answer === 'y' || answer === 'yes') relFillAdvance(true);
+      else if (answer === 'n' || answer === 'no' || answer === '') relFillAdvance(false);
+      else statusMsgPersistent('Please answer y or n. ' + relFillPromptText());
+      return;
+    }
+    if (!cmd) return;
+    if (cmdHistory[0] !== cmd) cmdHistory.unshift(cmd);
+    if (cmdHistory.length > 200) cmdHistory.pop();
+    handleConsoleCmd(cmd);
+  } else if (event.key === 'ArrowUp') {
+    event.preventDefault();
+    if (!cmdHistory.length) return;
+    if (historyIdx === -1) historySaved = input.value;
+    historyIdx = Math.min(historyIdx + 1, cmdHistory.length - 1);
+    input.value = cmdHistory[historyIdx];
+    input.setSelectionRange(input.value.length, input.value.length);
+  } else if (event.key === 'ArrowDown') {
+    event.preventDefault();
+    if (historyIdx === -1) return;
+    historyIdx--;
+    input.value = historyIdx === -1 ? historySaved : cmdHistory[historyIdx];
+    input.setSelectionRange(input.value.length, input.value.length);
   }
 });
 
@@ -1082,28 +4367,123 @@ function handleConsoleCmd(raw) {
   const cmd = parts[0].toLowerCase();
   const rest = raw.slice(cmd.length).trim();
   if (cmd === '/help') return showHelp();
+  if (cmd === '/add') return handleAddCommand(rest);
+  if (cmd === '/set') return handleSetCommand(rest);
+  if (cmd === '/ancestors' || cmd === '/anc') return showAncestors(parts[1]);
+  if (cmd === '/descendants' || cmd === '/desc') return showDescendants(parts[1]);
+  if (cmd === '/timeline' || cmd === '/tl') return showTimeline(parts[1]);
   if (cmd === '/theme') return applyTheme(parts[1] || '');
+  if (cmd === '/census') return toggleCensusMode();
+  if (cmd === '/lifespan') return cmdLifespan(parts[1] || '');
   if (cmd === '/backlog') return handleBacklog(rest);
   if (cmd === '/export') return cmdExport(parts[1] || '');
   if (cmd === '/import') return cmdImport();
   if (cmd === '/person') return handlePersonCommand(rest);
+  if (cmd === '/location') return handleLocationCommand(rest);
+  if (cmd === '/household') return handleHouseholdCommand(rest);
+  if (cmd === '/link') return handleLinkCommand(rest);
+  if (cmd === '/match') return handleMatchCommand(rest);
+  if (cmd === '/treelink') return handleTreeLinkCommand(rest);
   if (cmd === '/attr') return handleAttrCommand(rest);
   if (cmd === '/rel') return handleRelationshipCommand(rest);
   if (cmd === '/event') return handleEventCommand(rest);
   if (cmd === '/focus') return cmdPersonFocus(rest);
+  if (cmd === '/note') return cmdNote(rest);
+  const shortcut = cmd.match(/^\/(f|m|s|c)(\d*)$/);
+  if (shortcut) {
+    const kindMap = { f: 'father', m: 'mother', s: 'spouse', c: 'child' };
+    const index = shortcut[2] ? parseInt(shortcut[2], 10) : 1;
+    return cmdFocusRelative(kindMap[shortcut[1]], index);
+  }
   statusMsg('Unknown command: ' + cmd);
 }
 
 document.addEventListener('keydown', event => {
-  if (event.key === 'Escape') document.getElementById('help-overlay').classList.remove('visible');
+  if (event.altKey && event.key === 'ArrowLeft') { event.preventDefault(); goBack(); return; }
+  if (event.altKey && event.key === 'ArrowRight') { event.preventDefault(); goForward(); return; }
+  if (event.key === 'Escape') {
+    if (document.getElementById('household-overlay').classList.contains('visible')) {
+      closeHouseholdDialog();
+      return;
+    }
+    if (relFill) {
+      const remaining = relFill.candidates.length - relFill.index;
+      relFill = null;
+      document.getElementById('console-prompt').textContent = 'LIFELINE>';
+      statusMsg(`Cancelled (${remaining} suggestion${remaining === 1 ? '' : 's'} skipped).`);
+      return;
+    }
+    if (wizard) {
+      wizard = null;
+      document.getElementById('console-prompt').textContent = 'LIFELINE>';
+      statusMsg('Add cancelled.');
+      return;
+    }
+    document.getElementById('help-overlay').classList.remove('visible');
+  }
   if (document.getElementById('help-overlay').classList.contains('visible')) return;
-  if (document.activeElement !== input) input.focus();
+  const activeTag = document.activeElement.tagName;
+  if (document.activeElement !== input && activeTag !== 'INPUT' && activeTag !== 'SELECT' && activeTag !== 'TEXTAREA') input.focus();
 });
+
+function initTabs() {
+  document.addEventListener('click', event => {
+    const tab = event.target.closest('.tab');
+    if (!tab) return;
+    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('.tab-pane').forEach(p => p.style.display = 'none');
+    tab.classList.add('active');
+    document.getElementById('tab-' + tab.dataset.tab).style.display = '';
+    input.focus();
+  });
+}
+
+function initCensusTabs() {
+  document.addEventListener('click', event => {
+    const main = event.target.closest('.ctab-main');
+    if (main) {
+      document.querySelectorAll('.ctab-main').forEach(t => t.classList.remove('active'));
+      document.querySelectorAll('.ctab-pane').forEach(p => p.style.display = 'none');
+      main.classList.add('active');
+      document.getElementById('ctab-pane-' + main.dataset.ctab).style.display = '';
+      input.focus();
+      return;
+    }
+    const sub = event.target.closest('.ctab-sub');
+    if (!sub) return;
+    const parentPane = sub.closest('.ctab-pane');
+    parentPane.querySelectorAll('.ctab-sub').forEach(t => t.classList.remove('active'));
+    parentPane.querySelectorAll('.ctab-sub-pane').forEach(p => p.style.display = 'none');
+    sub.classList.add('active');
+    document.getElementById(parentPane.id + '-' + sub.dataset.csub).style.display = '';
+    input.focus();
+  });
+}
+
+function initPeopleFilterBar() {
+  document.addEventListener('input', event => {
+    if (event.target.id === 'people-filter') { peopleFilterText = event.target.value; renderPeople(); }
+    if (event.target.id === 'household-filter') { householdFilterText = event.target.value; renderHouseholdDirectory(); }
+  });
+  document.addEventListener('change', event => {
+    if (event.target.id === 'people-sort') { peopleSortKey = event.target.value; renderPeople(); }
+  });
+}
 
 function init() {
   db = loadDB();
   applyTheme(db.theme || 'legacy');
+  initTabs();
+  initCensusTabs();
+  initPeopleFilterBar();
+  lifespanFilterEnabled = db.lifespanFilter === true;
+  updateLifespanToggleUI();
+  if (db.focusPersonId) { focusHistory = [db.focusPersonId]; historyPos = 0; }
+  document.getElementById('nav-back').addEventListener('click', goBack);
+  document.getElementById('nav-fwd').addEventListener('click', goForward);
+  if (db.viewMode === 'census') toggleCensusMode(true);
   render();
+  updateNavArrows();
   document.getElementById('splash').style.display = 'none';
   input.focus();
 }

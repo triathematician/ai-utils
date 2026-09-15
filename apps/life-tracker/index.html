@@ -45,7 +45,7 @@
 <body class="bg-[#f8f9fa] text-[#1a1a1a] antialiased">
     <div id="root"></div>
 
-    <script type="text/babel">
+    <script type="text/jsx-source" id="app-source">
         const { useState, useEffect, useRef } = React;
 
         const EVENT_TYPES = [
@@ -476,6 +476,15 @@
 
         const root = ReactDOM.createRoot(document.getElementById('root'));
         root.render(<App />);
+    </script>
+    <script>
+        (function() {
+            const src = document.getElementById('app-source').textContent;
+            const compiled = Babel.transform(src, {
+                presets: [['react', { runtime: 'classic' }]]
+            }).code;
+            new Function(compiled)();
+        })();
     </script>
 </body>
 </html>

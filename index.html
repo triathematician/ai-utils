@@ -81,17 +81,29 @@ html, body {
   gap: 10px;
   flex-wrap: wrap;
 }
-.app-num    { color: var(--dim); min-width: 2ch; }
-.app-name   { color: var(--accent); font-weight: bold; }
+.app-line:hover { background: var(--muted); }
+.app-num    { color: var(--dim); display: inline-block; width: 4ch; }
+.app-name   { color: var(--accent); font-weight: bold; display: inline-block; width: 28ch; }
 .app-desc   { color: var(--fg); flex: 1; }
-.app-cat    { color: var(--dim); font-size: 0.82em; border: 1px solid var(--dim); padding: 0 4px; white-space: nowrap; }
-.app-date   { color: var(--dim); font-size: 0.82em; white-space: nowrap; }
-.app-stars  { color: var(--accent); white-space: nowrap; cursor: help; font-size: 0.9em; }
+.app-cat    { color: var(--dim); font-size: 0.82em; border: 1px solid var(--dim); padding: 0 4px; white-space: nowrap; display: inline-block; width: 14ch; box-sizing: border-box; }
+.app-date   { color: var(--dim); font-size: 0.82em; white-space: nowrap; display: inline-block; width: 11ch; }
+.app-stars  { color: var(--accent); white-space: nowrap; cursor: help; font-size: 0.9em; display: inline-block; width: 8ch; }
 .app-launch {
   color: var(--success);
   padding: 0 6px; cursor: pointer; white-space: nowrap; font-size: 0.9em;
+  display: inline-block; width: 11ch; box-sizing: border-box;
 }
 .app-launch:hover { background: var(--success); color: var(--bg); }
+
+.app-header {
+  letter-spacing: 1px;
+  border-bottom: 1px solid var(--dim); padding-bottom: 4px; margin-bottom: 4px;
+}
+.app-header:hover { background: none; }
+.app-header .app-num, .app-header .app-name, .app-header .app-cat,
+.app-header .app-date, .app-header .app-stars, .app-header .app-desc {
+  color: var(--dim); font-weight: normal; border: none; padding: 0; cursor: default;
+}
 
 #console-row {
   background: var(--muted); border-top: 1px solid var(--border);
@@ -163,7 +175,8 @@ const APPS = [
   { name: 'VOTE ANALYSIS', desc: 'US presidential election analytics — choropleth map, state-level results, trend charts, and electoral breakdowns (2008–2024)', category: 'apps-data', path: 'apps-data/vote-analysis/index.html', date: '2026-05-07', stars: 3 },
   { name: 'STRAVA DASH', desc: 'Personal activity dashboard — heatmap, pace frontier, records, route map, and activity table pulled live from Strava API', category: 'apps-data', path: 'apps/strava-dash/index.html', date: '2026-05-23', stars: 3 },
   { name: 'LIFE LINE', desc: 'Family tree terminal — people, attributes, dates, events, and core relationships', category: 'terminal-web', path: 'apps/life-line/index.html', date: '2026-06-09', stars: 3 },
-  { name: "MARAUDER'S MAP", desc: 'Drag-and-drop office seating tool — grid-based offices, staff roster with scores, and an occupancy report', category: 'design-canvas', path: 'apps/marauders-map/index.html', date: '2026-08-19', stars: 3 }
+  { name: "MARAUDER'S MAP", desc: 'Drag-and-drop office seating tool — grid-based offices, staff roster with scores, and an occupancy report', category: 'design-canvas', path: 'apps/marauders-map/index.html', date: '2026-08-19', stars: 3 },
+  { name: 'HOUSE FINDER', desc: 'House search tracker — listings, custom priorities, weighted scoring, and notes', category: 'terminal-web', path: 'apps/house-finder/index.html', date: '2026-08-26', stars: 3 }
 ];
 
 const STAR_CRITERIA = {
@@ -281,9 +294,24 @@ function showHelp() {
   scrollLog();
 }
 
+function appendHeaderLine() {
+  const div = document.createElement('div');
+  div.className = 'app-line app-header';
+  div.innerHTML =
+    `<span class="app-num">#</span>` +
+    `<span class="app-name">NAME</span>` +
+    `<span class="app-launch"></span>` +
+    `<span class="app-stars">RATING</span>` +
+    `<span class="app-date">CREATED</span>` +
+    `<span class="app-desc">DESCRIPTION</span>` +
+    `<span class="app-cat">TYPE</span>`;
+  log.appendChild(div);
+}
+
 function printList() {
   const prefs = loadPrefs();
   const list = sortedApps(prefs);
+  appendHeaderLine();
   list.forEach((app, i) => appendAppLine(app, i + 1, prefs));
   scrollLog();
 }
@@ -310,11 +338,11 @@ function appendAppLine(app, num, prefs) {
   div.innerHTML =
     `<span class="app-num">[${num}]</span>` +
     `<span class="app-name" role="button" tabindex="0" aria-label="${appLaunchLabel}" onclick="launchApp(${num})" onkeydown="handleLaunchKey(event, ${num})">${appName}</span>` +
-    `<span class="app-desc">${escHtml(app.desc)}</span>` +
-    `<span class="app-cat">${escHtml(app.category)}</span>` +
-    `<span class="app-date">${escHtml(app.date)}</span>` +
+    `<span class="app-launch" onclick="launchApp(${num})">[ LAUNCH ]</span>` +
     `<span class="app-stars" role="button" tabindex="0" aria-label="${starsAria}" title="${starsTitle}" onclick="cycleStars(${num})" onkeydown="handleStarsKey(event, ${num})">${stars}</span>` +
-    `<span class="app-launch" onclick="launchApp(${num})">[ LAUNCH ]</span>`;
+    `<span class="app-date">${escHtml(app.date)}</span>` +
+    `<span class="app-desc">${escHtml(app.desc)}</span>` +
+    `<span class="app-cat">${escHtml(app.category)}</span>`;
   log.appendChild(div);
 }
 
@@ -545,6 +573,7 @@ async function runBoot() {
   const prefs = loadPrefs();
   const list = sortedApps(prefs);
   appendLine(list.length + ' MODULES DETECTED:', 'log-ok');
+  appendHeaderLine();
 
   for (let i = 0; i < list.length; i++) {
     await delay(180);
