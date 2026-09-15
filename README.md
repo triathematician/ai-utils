@@ -31,6 +31,7 @@ ai-utils/
     staff-terminal/               ← STAFF TERMINAL: staff development, LDP goals, notes
     strategy-atlas/               ← STRATEGY ATLAS: strategic planning, goal groups, OKRs, RAG pulse tracking
     skill-port/                   ← SKILL-PORT: blueprint rail map for skill and project pathways
+    marauders-map/                ← MARAUDER'S MAP: drag-and-drop office seating assignment tool
     vault-terminal/               ← VAULT TERMINAL: monthly budget tracker — income, expenses, investments
     gear-terminal/                ← GEAR TERMINAL: gear tracker — bikes, cars, shoes, service dates, repairs
     ski-tracker/                  ← SKI TRACKER: ski trip tracker — dates, places, stats, and rollups
@@ -98,6 +99,7 @@ Precise, single-file visual layout and design tools with direct canvas interacti
 - `any-screen/index.html` — ANY SCREEN
 - `display-wall/display-wall.html` — DISPLAY WALL DESIGNER
 - `skill-port/index.html` — SKILL-PORT
+- `marauders-map/index.html` — MARAUDER'S MAP
 
 **To start a new design-canvas app:** copy `display-wall/display-wall.html`, strip to the skeleton (CSS vars, background texture, chrome), and build from there.
 

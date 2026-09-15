@@ -131,8 +131,20 @@ html, body {
    ═══════════════════════════════════════════════ */
 #app {
   display: grid;
-  grid-template-rows: 30vh 60vh 10vh;
+  grid-template-rows: 1fr 10vh;
   height: 100vh; width: 100vw;
+}
+#screen-area { overflow: hidden; position: relative; }
+#staff-screen {
+  display: grid;
+  grid-template-rows: 1fr 2fr;
+  height: 100%;
+}
+#projects-screen {
+  display: none;
+  flex-direction: column;
+  height: 100%;
+  overflow: hidden;
 }
 
 /* ═══════════════════════════════════════════════
@@ -512,6 +524,131 @@ html, body {
 .milestone-del { cursor: pointer; color: var(--dim); font-size: 0.8em; flex-shrink: 0; margin-left: 4px; }
 .milestone-del:hover { color: var(--accent); }
 .milestone-item:hover .milestone-text { color: var(--accent); }
+
+/* ═══════════════════════════════════════════════
+   PROJECT ALIGNMENT SCREEN
+   ═══════════════════════════════════════════════ */
+#proj-toolbar {
+  border-bottom: 1px solid var(--border);
+  padding: 8px 12px 6px;
+  display: flex; align-items: baseline; gap: 16px; flex-wrap: wrap;
+  flex-shrink: 0;
+}
+#proj-title { color: var(--accent); font-size: 0.9em; letter-spacing: 2px; }
+#proj-body {
+  display: grid; grid-template-columns: 68fr 32fr;
+  flex: 1; overflow: hidden;
+}
+#proj-list { padding: 8px 12px; overflow-y: auto; border-right: 1px solid var(--border); }
+#proj-list::-webkit-scrollbar { width: 3px; }
+#roster-panel { padding: 8px 12px; overflow-y: auto; }
+#roster-panel::-webkit-scrollbar { width: 3px; }
+
+.proj-card {
+  border: 1px solid var(--muted);
+  padding: 6px 10px; margin-bottom: 8px;
+}
+.proj-card.dragover { border-color: var(--accent); background: var(--muted); }
+.proj-card-head { display: flex; align-items: center; gap: 8px; }
+.proj-card-name { font-weight: 600; cursor: pointer; flex-shrink: 0; }
+.proj-card-name:hover { color: var(--accent); }
+.proj-card-sponsor { font-size: 0.8em; color: var(--dim); flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.proj-card-summary { font-size: 0.8em; color: var(--fg); flex-shrink: 0; white-space: nowrap; }
+.proj-card-summary.over { color: var(--accent); font-weight: 600; }
+.align-badge {
+  font-size: 0.68em; letter-spacing: 1px; padding: 1px 6px;
+  border: 1px solid currentColor; flex-shrink: 0; cursor: pointer;
+}
+.align-0, .align-1 { color: var(--scale-div-1); }
+.align-2 { color: var(--scale-div-2); }
+.align-3 { color: var(--scale-div-3); }
+.align-4, .align-5 { color: var(--scale-div-4); }
+.align-6 { color: var(--scale-div-5); }
+.proj-card-desc { font-size: 0.78em; color: var(--dim); margin-top: 3px; }
+.proj-chip-row {
+  display: flex; flex-wrap: wrap; gap: 5px; margin-top: 6px; min-height: 22px;
+  border-top: 1px dashed var(--muted); padding-top: 5px;
+}
+.proj-chip-row.empty-drop { color: var(--dim); font-size: 0.78em; font-style: italic; }
+.staff-chip {
+  display: flex; align-items: center; gap: 5px;
+  border: 1px solid var(--dim); padding: 1px 5px; font-size: 0.8em; cursor: pointer;
+}
+.staff-chip:hover { border-color: var(--accent); }
+.staff-chip.is-lead { border-color: var(--warn); }
+.staff-chip .pct { color: var(--accent); }
+.staff-chip .lead-tag { color: var(--warn); font-size: 0.85em; letter-spacing: 1px; }
+.staff-chip .x { color: var(--dim); cursor: pointer; }
+.staff-chip .x:hover { color: var(--accent); }
+.staff-chip {
+  position: relative;
+}
+.staff-chip.is-leaving {
+  border-style: dashed;
+  border-color: var(--dim);
+  color: var(--dim);
+}
+.staff-chip.is-leaving::before {
+  content: '';
+  position: absolute; inset: 0;
+  background: repeating-linear-gradient(
+    45deg, currentColor 0, currentColor 1px, transparent 1px, transparent 6px
+  );
+  opacity: 0.5;
+  pointer-events: none;
+}
+.staff-chip.is-leaving .pct { color: var(--dim); text-decoration: line-through; }
+.staff-chip .leaving-tag { color: var(--dim); font-size: 0.85em; letter-spacing: 1px; }
+
+.roster-card {
+  border: 1px solid var(--muted); padding: 4px 8px; margin-bottom: 5px;
+  cursor: grab; font-size: 0.85em;
+}
+.roster-card:hover { border-color: var(--accent); }
+.roster-card.dragging { opacity: 0.4; }
+.roster-card-name { font-weight: 600; }
+.roster-card-meta { font-size: 0.78em; color: var(--dim); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.roster-card-load { font-size: 0.78em; }
+.roster-card-load.over { color: var(--accent); font-weight: 600; }
+.pct-preset-btn {
+  background: transparent; border: 1px solid var(--border); color: var(--fg);
+  font-family: var(--font); font-size: 0.9em; padding: 3px 10px;
+  cursor: pointer; margin: 2px 4px 2px 0;
+}
+.pct-preset-btn:hover, .pct-preset-btn.active { background: var(--muted); border-color: var(--accent); color: var(--accent); }
+
+/* Staff list — grouped cards */
+.list-group-header {
+  font-size: 0.72em; letter-spacing: 2px; color: var(--accent);
+  margin: 12px 0 4px; padding-bottom: 3px; border-bottom: 1px solid var(--muted);
+}
+.list-group-header:first-child { margin-top: 0; }
+.list-card {
+  display: flex; align-items: center; gap: 10px;
+  border: 1px solid var(--muted); padding: 5px 10px; margin-bottom: 4px;
+  cursor: pointer;
+}
+.list-card:hover { border-color: var(--accent); }
+.list-card.active { border-color: var(--accent); }
+.list-card-marker { width: 12px; flex-shrink: 0; color: var(--accent); }
+.list-card-name {
+  font-weight: 600; flex: 1.2; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  color: var(--fg);
+}
+.list-card.active .list-card-name { color: var(--accent); }
+.list-card-meta {
+  flex: 2; font-size: 0.85em; color: var(--dim);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.list-card-action {
+  font-size: 0.7em; letter-spacing: 1px; color: var(--dim);
+  border: 1px solid var(--muted); padding: 2px 6px; flex-shrink: 0; cursor: pointer;
+}
+.list-card-action:hover { color: var(--accent); border-color: var(--accent); }
+.list-toggle-link {
+  font-size: 0.78em; letter-spacing: 1px; color: var(--dim); cursor: pointer;
+}
+.list-toggle-link:hover { color: var(--accent); }
 </style>
 </head>
 <body>
@@ -538,6 +675,8 @@ html, body {
 
 <!-- MAIN APP LAYOUT -->
 <div id="app">
+<div id="screen-area">
+<div id="staff-screen">
 
   <!-- TOP ROW — STAFF SUMMARY -->
   <div id="top-row">
@@ -576,6 +715,33 @@ html, body {
     </div>
 
   </div>
+
+</div>
+<!-- END staff-screen -->
+
+<!-- PROJECT ALIGNMENT SCREEN -->
+<div id="projects-screen">
+  <div id="proj-toolbar">
+    <span id="proj-title">◈ PROJECT STAFF ALIGNMENT</span>
+    <span class="list-toggle-link" id="proj-new-btn">[+ NEW PROJECT]</span>
+    <span class="list-toggle-link" id="proj-addstaff-btn">[+ ADD STAFF]</span>
+    <span class="list-toggle-link" id="proj-roster-btn">[IMPORT ROSTER]</span>
+    <span class="list-toggle-link" id="proj-fromstaff-btn">[FROM STAFF RECORDS]</span>
+    <span class="list-toggle-link" id="proj-export-btn">[EXPORT CSV]</span>
+    <span class="list-toggle-link" id="proj-back-btn">[← BACK TO STAFF]</span>
+  </div>
+  <div id="proj-body">
+    <div id="proj-list"></div>
+    <div id="roster-panel">
+      <div class="row-header">◈ STAFF ROSTER — drag onto a project to assign</div>
+      <div id="roster-list"></div>
+    </div>
+  </div>
+</div>
+<!-- END projects-screen -->
+
+</div>
+<!-- END screen-area -->
 
   <!-- CONSOLE ROW -->
   <div id="console-row">
@@ -616,6 +782,8 @@ const STORAGE_KEY = 'staff_terminal_db';
 const THEMES = ['legacy','solar','monk','space','synth','dos','notebook','engineering','winter'];
 const NOTE_TYPES = ['general','meeting','performance','concern','highlight','todo','role'];
 const MILESTONE_TYPES = ['achievement','promotion','certification','other'];
+const ALIGNMENT_LEVELS = ['Very Low', 'Low', 'Med-Low', 'Medium', 'Med-High', 'High', 'Very High'];
+const PCT_PRESETS = [0, 10, 15, 20, 25, 40, 50, 75, 100];
 const MILESTONE_ICONS = { achievement:'★', promotion:'▲', certification:'◆', other:'·' };
 const NOTE_TYPE_ABBR  = { general:'GEN', meeting:'MTG', performance:'PERF', concern:'⚠', highlight:'✦', todo:'TODO', role:'ROLE' };
 
@@ -639,6 +807,27 @@ function loadDB() {
   db.theme           = db.theme           || 'legacy';
   db.backlog         = db.backlog         || [];
   db.backlogArchive  = db.backlogArchive  || [];
+  db.paStaff         = db.paStaff         || [];
+  db.projects        = db.projects        || [];
+  db.paStaff.forEach(p => {
+    p.id             = p.id             || uid();
+    p.name           = p.name           || '';
+    p.level          = p.level          || '';
+    p.qualifications = p.qualifications || '';
+    p.expertise      = p.expertise      || '';
+    p.notes          = p.notes          || '';
+  });
+  db.projects.forEach(p => {
+    p.id             = p.id             || uid();
+    p.name           = p.name           || '';
+    p.sponsor        = p.sponsor        || '';
+    p.description    = p.description    || '';
+    p.alignment      = (typeof p.alignment === 'number') ? p.alignment : 3;
+    p.alignmentNotes = p.alignmentNotes || '';
+    p.notes          = p.notes          || '';
+    p.allocations    = p.allocations    || [];
+    p.allocations.forEach(a => { a.lead = a.lead || false; a.leaving = a.leaving || false; });
+  });
   // Migrate each staff member
   db.staff.forEach(s => {
     s.id               = s.id               || uid();
@@ -647,7 +836,10 @@ function loadDB() {
     s.team             = s.team             || '';
     s.manager          = s.manager          || '';
     s.startDate        = s.startDate        || '';
+    s.archived         = s.archived         || false;
     s.email            = s.email            || '';
+    s.profStart        = s.profStart        || '';
+    s.excludeFromStats = s.excludeFromStats || false;
     s.strengths        = s.strengths        || [];
     s.developmentAreas = s.developmentAreas || [];
     s.milestones       = s.milestones       || [];
@@ -701,6 +893,11 @@ function nowIso() {
   return new Date().toISOString();
 }
 
+function formatNoteDate(noteDate) {
+  if (!noteDate) return '';
+  return noteDate.includes('T') ? noteDate.slice(0, 10) : noteDate;
+}
+
 function formatNoteDateTime(noteDate) {
   if (!noteDate) return '';
   if (!noteDate.includes('T')) return noteDate;
@@ -741,6 +938,21 @@ function tenureStr(startDate) {
 
 function currentYear() {
   return new Date().getFullYear();
+}
+
+/* Fiscal year rolls over 10/1. Label = calendar year of the most recent Oct 1
+   (today counts if today IS Oct 1 or later that year). */
+function fiscalYearStartLabel(d) {
+  return d.getMonth() >= 9 ? d.getFullYear() : d.getFullYear() - 1;
+}
+
+/* profStart is the "0th" year: yrs of experience is 0 until the next 10/1,
+   then increments by 1 on every subsequent 10/1. */
+function yearsOfExperience(profStart) {
+  const ps = parseInt(profStart, 10);
+  if (!ps || isNaN(ps)) return null;
+  const yrs = fiscalYearStartLabel(new Date()) - ps;
+  return yrs < 0 ? 0 : yrs;
 }
 
 function getActiveStaff() {
@@ -826,7 +1038,7 @@ function renderTopRow() {
     nameEl.textContent = 'NO STAFF LOADED — use /new or /load [name]';
     metaEl.textContent = '';
     hdrEl.textContent = '◈ STAFF SUMMARY';
-    setHighlightCard('hc-note',       '◈ LAST NOTE',       '—', true);
+    setHighlightCard('hc-note',       '◈ LAST NOTES',      '—', true);
     setHighlightCard('hc-goals',      '◈ LDP GOALS',       '—', true);
     setHighlightCard('hc-milestones', '◈ MILESTONES',      '—', true);
     return;
@@ -837,7 +1049,9 @@ function renderTopRow() {
 
   const meta = [s.title, s.team, s.manager ? 'mgr: ' + s.manager : ''].filter(Boolean);
   const tenure = s.startDate ? ' | tenure: ' + tenureStr(s.startDate) : '';
-  metaEl.textContent = meta.join(' | ') + tenure;
+  const yoe = yearsOfExperience(s.profStart);
+  const exp = yoe !== null ? ' | exp: ' + yoe + 'yr' : '';
+  metaEl.textContent = meta.join(' | ') + tenure + exp;
 
   // Header: show LDP year + theme if present
   const yr = getViewYear();
@@ -846,16 +1060,27 @@ function renderTopRow() {
     ? `◈ STAFF SUMMARY — ${yr} LDP: "${ldp.theme || 'no theme'}"`
     : `◈ STAFF SUMMARY — ${yr} | no LDP (use /ldp to build one)`;
 
-  // Highlight cards
+  // Highlight cards — LAST NOTES: show up to 3 most recent
   const sortedNotes = [...s.notes].sort((a, b) => b.date.localeCompare(a.date));
-  if (sortedNotes.length) {
-    const n = sortedNotes[0];
-    const ds = daysSince(n.date);
-    const noteDateTime = formatNoteDateTime(n.date);
-    const snippet = n.text.length > 50 ? n.text.slice(0, 50) + '…' : n.text;
-    setHighlightCard('hc-note', `◈ LAST NOTE (${ds}d ago)`, `[${noteDateTime}] ${snippet}`, false);
+  const hcNote = document.getElementById('hc-note');
+  hcNote.querySelector('.hc-label').textContent = '◈ LAST NOTES';
+  const noteValue = hcNote.querySelector('.hc-value');
+  if (!sortedNotes.length) {
+    noteValue.textContent = 'no notes yet';
+    noteValue.className = 'hc-value dim';
   } else {
-    setHighlightCard('hc-note', '◈ LAST NOTE', 'no notes yet', true);
+    noteValue.className = 'hc-value hc-list';
+    noteValue.innerHTML = sortedNotes.slice(0, 3).map(n => {
+      const dateOnly = formatNoteDate(n.date);
+      const snippet = n.text.length > 50 ? n.text.slice(0, 50) + '…' : n.text;
+      return `<div class="hc-m-entry" data-noteid="${escHtml(n.id)}">` +
+        `<span class="hc-m-date">${escHtml(dateOnly)}</span>` +
+        `<span class="hc-m-text">${escHtml(snippet)}</span>` +
+        `</div>`;
+    }).join('');
+    noteValue.querySelectorAll('[data-noteid]').forEach(el => {
+      el.addEventListener('click', () => openNoteDialog(el.dataset.noteid));
+    });
   }
 
   const openGoals = ldp ? ldp.goals.filter(g => g.status === 'active').length : 0;
@@ -1103,10 +1328,10 @@ function renderSidePanel() {
     const div = document.createElement('div');
     div.className = 'note-item';
     const abbr = NOTE_TYPE_ABBR[n.noteType] || 'GEN';
-    const timeDisplay = formatNoteDateTime(n.date);
+    const dateDisplay = formatNoteDate(n.date);
     div.innerHTML = `
       <div class="note-header">
-        <span class="note-date">${escHtml(timeDisplay)}</span>
+        <span class="note-date">${escHtml(dateDisplay)}</span>
         <span class="note-type-badge nt-${escHtml(n.noteType)}">${escHtml(abbr)}</span>
       </div>
       <div class="note-text">${escHtml(n.text)}</div>`;
@@ -1178,8 +1403,8 @@ function advanceStaffSetup() {
     { ask: "3. What team are they on?",                                     key: 'team'             },
     { ask: "4. Who is their manager?",                                      key: 'manager'          },
     { ask: "5. When did they start? (YYYY-MM-DD, or ENTER to skip)",        key: 'startDate'        },
-    { ask: "6. What are their key strengths? (one per line, /done to save)",key: 'strengths',  list: true },
-    { ask: "7. What are their development areas? (one per line, /done)",    key: 'developmentAreas', list: true },
+    { ask: "6. What are their key strengths? (one per line, ENTER on blank to finish)",key: 'strengths',  list: true },
+    { ask: "7. What are their development areas? (one per line, ENTER on blank to finish)",    key: 'developmentAreas', list: true },
     { ask: "8. Any initial notes? (free text, or /skip)",                   key: '_note'            },
   ];
 
@@ -1238,17 +1463,15 @@ function handleStaffSetupInput(inp) {
   const ph = PHASES[s.phase];
 
   if (ph.list) {
-    if (low === '/done' || low === '/next') {
+    if (low === '/done' || low === '/next' || !inp.trim()) {
       bootLog('info', '  → Saved ' + s.draft[ph.key].length + ' item(s).');
       s.collectingList = null;
       s.phase++;
       advanceStaffSetup();
       return;
     }
-    if (inp.trim()) {
-      s.draft[ph.key].push(inp.trim());
-      bootLog('info', '  → Added: "' + inp.trim() + '"  (type /done when finished)');
-    }
+    s.draft[ph.key].push(inp.trim());
+    bootLog('info', '  → Added: "' + inp.trim() + '"  (ENTER to finish, or keep typing)');
     return;
   }
 
@@ -1560,15 +1783,27 @@ function handleConsoleCmd(raw) {
   if (cmd === '/theme')      { applyTheme(rest || null); return; }
   if (cmd === '/new')        { startStaffSetup(); return; }
   if (cmd === '/load' || cmd === '/find') { cmdLoad(rest); return; }
-  if (cmd === '/list')       { cmdList(); return; }
+  if (cmd === '/list')       { cmdList(rest); return; }
   if (cmd === '/note')       { cmdNote(rest); return; }
   if (cmd === '/milestone')  { cmdMilestone(rest); return; }
   if (cmd === '/goal')       { cmdGoal(rest); return; }
   if (cmd === '/ldp')        { cmdLdp(rest); return; }
   if (cmd === '/highlights') { startHighlights(); return; }
   if (cmd === '/export')     { cmdExport(); return; }
-  if (cmd === '/edit')       { cmdEdit(rest); return; }
+  if (cmd === '/edit')       { cmdEdit(); return; }
+  if (cmd === '/archive')    { cmdArchive(rest); return; }
+  if (cmd === '/unarchive')  { cmdUnarchive(rest); return; }
+  if (cmd === '/dedup')      { cmdDedup(); return; }
+  if (cmd === '/profstart')  { cmdProfStart(); return; }
+  if (cmd === '/stats')      { cmdStats(rest); return; }
   if (cmd === '/backlog')    { handleBacklog(rest); return; }
+  if (cmd === '/projects')   { showScreen('projects'); return; }
+  if (cmd === '/home')       { showScreen('staff'); return; }
+  if (cmd === '/pnew')       { openProjectDialog(null); return; }
+  if (cmd === '/paddstaff')  { openPaStaffDialog(null); return; }
+  if (cmd === '/proster')    { openImportRosterDialog(); return; }
+  if (cmd === '/pfromstaff') { openImportFromStaffDialog(); return; }
+  if (cmd === '/pexport')    { cmdExportProjects(); return; }
 
   statusMsg('Unknown: ' + cmd + ' — type /help');
 }
@@ -1577,8 +1812,14 @@ function handleConsoleCmd(raw) {
 function cmdLoad(name) {
   if (!name) { statusMsg('Usage: /load <name>'); return; }
   const matches = db.staff.filter(s =>
-    s.name.toLowerCase().includes(name.toLowerCase()));
-  if (!matches.length) { statusMsg('No staff found matching "' + name + '"'); return; }
+    !s.archived && s.name.toLowerCase().includes(name.toLowerCase()));
+  if (!matches.length) {
+    const inArchive = db.staff.some(s => s.archived && s.name.toLowerCase().includes(name.toLowerCase()));
+    statusMsg(inArchive
+      ? 'No active match for "' + name + '" — try /unarchive ' + name
+      : 'No staff found matching "' + name + '"');
+    return;
+  }
   if (matches.length > 1) {
     statusMsg('Multiple matches: ' + matches.map(s => s.name).join(', ') + ' — be more specific');
     return;
@@ -1591,26 +1832,487 @@ function cmdLoad(name) {
 }
 
 /* ─── /list ─── */
-function cmdList() {
-  if (!db.staff.length) { statusMsg('No staff members yet. Use /new.'); return; }
-  showOverlay('◈ STAFF LIST', () => {
-    const body = document.getElementById('help-body');
-    body.style.whiteSpace = 'normal';
-    body.innerHTML = db.staff.map((s, i) => {
-      const active = s.id === db.activeStaffId ? ' ◀' : '';
-      const tenure = s.startDate ? ' | ' + tenureStr(s.startDate) : '';
-      return `<div style="padding:2px 0;cursor:pointer;color:${s.id===db.activeStaffId?'var(--accent)':'var(--fg)'}" data-staff-id="${escHtml(s.id)}">
-        ${i+1}. ${escHtml(s.name)}${escHtml(active)} — ${escHtml(s.title || '—')} | ${escHtml(s.team || '—')}${escHtml(tenure)}
-      </div>`;
+let listSort = { field: 'name', dir: 1 };
+let listSearch = '';
+let listViewArchived = false;
+const LIST_SORT_FIELDS = ['name', 'title', 'team', 'manager', 'start', 'exp'];
+
+function sortedStaffList(archived) {
+  const { field, dir } = listSort;
+  const list = db.staff.filter(s => !!s.archived === !!archived);
+  list.sort((a, b) => {
+    if (field === 'exp') {
+      const av = yearsOfExperience(a.profStart);
+      const bv = yearsOfExperience(b.profStart);
+      if (av === null && bv === null) return 0;
+      if (av === null) return 1;
+      if (bv === null) return -1;
+      return (av - bv) * dir;
+    }
+    const av = (field === 'start' ? (a.startDate || '') : (a[field] || '')).toLowerCase();
+    const bv = (field === 'start' ? (b.startDate || '') : (b[field] || '')).toLowerCase();
+    if (!av && bv) return 1;
+    if (av && !bv) return -1;
+    return av.localeCompare(bv) * dir;
+  });
+  return list;
+}
+
+function cmdList(arg) {
+  arg = (arg || '').trim();
+
+  if (arg.toLowerCase() === 'archived') {
+    if (!db.staff.some(s => s.archived)) { statusMsg('No archived staff.'); return; }
+    listViewArchived = true;
+    listSearch = '';
+    showOverlay('◈ ARCHIVED STAFF', renderListDlg);
+    return;
+  }
+
+  if (arg) {
+    const field = arg.toLowerCase();
+    if (!LIST_SORT_FIELDS.includes(field)) {
+      statusMsg('Usage: /list [' + LIST_SORT_FIELDS.join('|') + '|archived]'); return;
+    }
+    if (listSort.field === field) listSort.dir *= -1;
+    else { listSort.field = field; listSort.dir = 1; }
+  }
+
+  if (!db.staff.some(s => !s.archived)) {
+    statusMsg('No active staff members. Use /new' +
+      (db.staff.some(s => s.archived) ? ', or /list archived to view archived staff.' : '.'));
+    return;
+  }
+
+  listViewArchived = false;
+  listSearch = '';
+  showOverlay('◈ STAFF LIST', renderListDlg);
+}
+
+function listGroupKey(s, field) {
+  if (field === 'name')  return (s.name || '').charAt(0).toUpperCase() || '—';
+  if (field === 'start') return s.startDate ? s.startDate.slice(0, 4) : '—';
+  if (field === 'exp') {
+    const yrs = yearsOfExperience(s.profStart);
+    return yrs === null ? '—' : String(yrs);
+  }
+  return s[field] || '—';
+}
+
+function listGroupLabel(key, field) {
+  if (key === '—') return 'UNSPECIFIED';
+  if (field === 'exp') return key + (key === '1' ? ' YR' : ' YRS');
+  return String(key).toUpperCase();
+}
+
+function listCardMeta(s, field) {
+  const parts = [];
+  if (field !== 'title')   parts.push(s.title || null);
+  if (field !== 'team')    parts.push(s.team || null);
+  if (field !== 'manager') parts.push(s.manager ? 'mgr: ' + s.manager : null);
+  if (field !== 'start')   parts.push(s.startDate ? s.startDate.slice(0, 4) : null);
+  if (field !== 'exp') {
+    const yrs = yearsOfExperience(s.profStart);
+    parts.push(yrs !== null ? yrs + 'yr exp' : null);
+  }
+  return parts.filter(Boolean).join(' · ') || '—';
+}
+
+function renderListDlg() {
+  const body = document.getElementById('help-body');
+  body.style.whiteSpace = 'normal';
+  document.getElementById('help-title').textContent = listViewArchived ? '◈ ARCHIVED STAFF' : '◈ STAFF LIST';
+
+  const field = listSort.field;
+  const arrow = f => listSort.field === f ? (listSort.dir === 1 ? ' ▲' : ' ▼') : '';
+  const archivedCount = db.staff.filter(s => s.archived).length;
+  const activeCount = db.staff.length - archivedCount;
+
+  const toggleHtml = listViewArchived
+    ? `<div style="margin-bottom:8px;"><span class="list-toggle-link" id="dlg-list-toggle">← BACK TO ACTIVE STAFF (${activeCount})</span></div>`
+    : (archivedCount
+        ? `<div style="margin-bottom:8px;"><span class="list-toggle-link" id="dlg-list-toggle">VIEW ARCHIVED STAFF (${archivedCount}) →</span></div>`
+        : '');
+
+  const searchHtml = `<input class="dlg-input" id="dlg-list-search" type="text"
+    placeholder="search staff…" value="${escHtml(listSearch)}" style="margin-bottom:8px;">`;
+
+  const sortBarHtml = `<div class="dlg-section" style="margin-top:0;margin-bottom:8px;">
+    <div class="dlg-label">GROUP / SORT BY</div>
+    <div>${LIST_SORT_FIELDS.map(f =>
+      `<button class="dlg-type-btn${listSort.field === f ? ' active' : ''}" data-sort="${escHtml(f)}">${escHtml(f.toUpperCase())}${escHtml(arrow(f))}</button>`
+    ).join('')}</div>
+  </div>`;
+
+  let list = sortedStaffList(listViewArchived);
+  const q = listSearch.trim().toLowerCase();
+  if (q) {
+    list = list.filter(s =>
+      (s.name || '').toLowerCase().includes(q) ||
+      (s.title || '').toLowerCase().includes(q) ||
+      (s.team || '').toLowerCase().includes(q) ||
+      (s.manager || '').toLowerCase().includes(q));
+  }
+
+  let groupsHtml;
+  if (!list.length) {
+    groupsHtml = `<div class="empty-msg">${listViewArchived ? 'No matching archived staff.' : 'No matching staff.'}</div>`;
+  } else {
+    // List is already sorted by the active field, so same-key items are contiguous.
+    const groups = [];
+    let cur = null;
+    list.forEach(s => {
+      const key = listGroupKey(s, field);
+      if (!cur || cur.key !== key) { cur = { key, items: [] }; groups.push(cur); }
+      cur.items.push(s);
+    });
+    groupsHtml = groups.map(g => {
+      const cards = g.items.map(s => {
+        const active = !listViewArchived && s.id === db.activeStaffId;
+        const actionAttr = listViewArchived
+          ? `data-restore="${escHtml(s.id)}"`
+          : `data-archive="${escHtml(s.id)}"`;
+        const actionLabel = listViewArchived ? 'RESTORE' : 'ARCHIVE';
+        return `<div class="list-card${active ? ' active' : ''}" data-staff-id="${escHtml(s.id)}">
+          <span class="list-card-marker">${active ? '◀' : ''}</span>
+          <span class="list-card-name">${escHtml(s.name)}</span>
+          <span class="list-card-meta">${escHtml(listCardMeta(s, field))}</span>
+          <span class="list-card-action" ${actionAttr}>${actionLabel}</span>
+        </div>`;
+      }).join('');
+      return `<div class="list-group-header">${escHtml(listGroupLabel(g.key, field))} (${g.items.length})</div>${cards}`;
     }).join('');
-    body.querySelectorAll('[data-staff-id]').forEach(el => {
-      el.addEventListener('click', () => {
-        db.activeStaffId = el.dataset.staffId;
-        viewingLdpYear = null;
-        saveDB(); render();
-        closeOverlay();
-        statusMsg('Loaded: ' + getActiveStaff()?.name);
-      });
+  }
+
+  body.innerHTML = toggleHtml + searchHtml + sortBarHtml + groupsHtml;
+
+  const toggleEl = document.getElementById('dlg-list-toggle');
+  if (toggleEl) {
+    toggleEl.addEventListener('click', () => {
+      listViewArchived = !listViewArchived;
+      listSearch = '';
+      renderListDlg();
+    });
+  }
+
+  const searchEl = document.getElementById('dlg-list-search');
+  searchEl.addEventListener('input', () => {
+    listSearch = searchEl.value;
+    renderListDlg();
+  });
+  searchEl.focus();
+  const caret = searchEl.value.length;
+  searchEl.setSelectionRange(caret, caret);
+
+  body.querySelectorAll('[data-sort]').forEach(el => {
+    el.addEventListener('click', () => {
+      const f = el.dataset.sort;
+      if (listSort.field === f) listSort.dir *= -1;
+      else { listSort.field = f; listSort.dir = 1; }
+      renderListDlg();
+    });
+  });
+  body.querySelectorAll('[data-archive]').forEach(el => {
+    el.addEventListener('click', e => {
+      e.stopPropagation();
+      archiveStaff(el.dataset.archive);
+      renderListDlg();
+    });
+  });
+  body.querySelectorAll('[data-restore]').forEach(el => {
+    el.addEventListener('click', e => {
+      e.stopPropagation();
+      unarchiveStaff(el.dataset.restore, true);
+      renderListDlg();
+    });
+  });
+  body.querySelectorAll('[data-staff-id]').forEach(el => {
+    el.addEventListener('click', e => {
+      if (e.target.closest('[data-archive],[data-restore]')) return;
+      if (listViewArchived) return;
+      db.activeStaffId = el.dataset.staffId;
+      viewingLdpYear = null;
+      saveDB(); render();
+      closeOverlay();
+      statusMsg('Loaded: ' + getActiveStaff()?.name);
+    });
+  });
+}
+
+/* ─── archive / unarchive ─── */
+function archiveStaff(id) {
+  const s = db.staff.find(x => x.id === id);
+  if (!s) return;
+  s.archived = true;
+  if (db.activeStaffId === id) {
+    const next = db.staff.find(x => !x.archived);
+    db.activeStaffId = next ? next.id : null;
+    viewingLdpYear = null;
+  }
+  saveDB();
+  render();
+  statusMsg('Archived: ' + s.name);
+}
+
+function unarchiveStaff(id, loadAfter) {
+  const s = db.staff.find(x => x.id === id);
+  if (!s) return;
+  s.archived = false;
+  if (loadAfter) {
+    db.activeStaffId = s.id;
+    viewingLdpYear = null;
+  }
+  saveDB();
+  render();
+  statusMsg('Restored: ' + s.name + (loadAfter ? ' (loaded)' : ''));
+}
+
+function cmdArchive(arg) {
+  arg = (arg || '').trim();
+  if (!arg) {
+    const s = getActiveStaff();
+    if (!s) { statusMsg('No staff loaded. Use /load <name> or /archive <name>.'); return; }
+    archiveStaff(s.id);
+    return;
+  }
+  const matches = db.staff.filter(s => !s.archived && s.name.toLowerCase().includes(arg.toLowerCase()));
+  if (!matches.length) { statusMsg('No active staff found matching "' + arg + '"'); return; }
+  if (matches.length > 1) {
+    statusMsg('Multiple matches: ' + matches.map(s => s.name).join(', ') + ' — be more specific');
+    return;
+  }
+  archiveStaff(matches[0].id);
+}
+
+function cmdUnarchive(arg) {
+  arg = (arg || '').trim();
+  if (!arg) { statusMsg('Usage: /unarchive <name>'); return; }
+  const matches = db.staff.filter(s => s.archived && s.name.toLowerCase().includes(arg.toLowerCase()));
+  if (!matches.length) { statusMsg('No archived staff found matching "' + arg + '"'); return; }
+  if (matches.length > 1) {
+    statusMsg('Multiple matches: ' + matches.map(s => s.name).join(', ') + ' — be more specific');
+    return;
+  }
+  unarchiveStaff(matches[0].id, true);
+}
+
+/* ─── /dedup ─── */
+function normStaffName(n) {
+  return (n || '').trim().toLowerCase().replace(/\s+/g, ' ');
+}
+
+function findDuplicateGroups() {
+  const map = new Map();
+  db.staff.forEach(s => {
+    const key = normStaffName(s.name);
+    if (!key) return;
+    if (!map.has(key)) map.set(key, []);
+    map.get(key).push(s);
+  });
+  return [...map.values()].filter(g => g.length > 1);
+}
+
+function mergeStaffInto(primary, others) {
+  others.forEach(o => {
+    if (!primary.title)     primary.title     = o.title;
+    if (!primary.team)      primary.team      = o.team;
+    if (!primary.manager)   primary.manager   = o.manager;
+    if (!primary.startDate) primary.startDate = o.startDate;
+    if (!primary.email)     primary.email     = o.email;
+    primary.strengths        = [...new Set([...primary.strengths, ...o.strengths])];
+    primary.developmentAreas = [...new Set([...primary.developmentAreas, ...o.developmentAreas])];
+    primary.milestones = [...primary.milestones, ...o.milestones];
+    primary.notes       = [...primary.notes, ...o.notes];
+    o.ldps.forEach(ldp => {
+      if (!primary.ldps.some(l => l.year === ldp.year)) primary.ldps.push(ldp);
+    });
+    if (!o.archived) primary.archived = false;
+    if (db.activeStaffId === o.id) db.activeStaffId = primary.id;
+  });
+  const removeIds = new Set(others.map(o => o.id));
+  db.staff = db.staff.filter(s => !removeIds.has(s.id));
+  saveDB();
+  render();
+  statusMsg('Merged ' + others.length + ' duplicate(s) into ' + primary.name + '.');
+}
+
+function cmdDedup() {
+  if (!findDuplicateGroups().length) { statusMsg('No duplicate staff found.'); return; }
+  showOverlay('◈ DUPLICATE STAFF', renderDedupDlg);
+}
+
+function renderDedupDlg() {
+  const body = document.getElementById('help-body');
+  body.style.whiteSpace = 'normal';
+
+  const groups = findDuplicateGroups();
+  if (!groups.length) {
+    body.innerHTML = '<div class="empty-msg">No duplicate staff found.</div>';
+    return;
+  }
+
+  body.innerHTML = `<div style="font-size:0.78em;color:var(--dim);margin-bottom:8px;">
+      Records with matching names — click KEEP THIS on the record you want to keep;
+      its notes, milestones and LDPs will absorb the others, which are then removed.
+    </div>` +
+    groups.map(g => {
+      const cards = g.map(s => {
+        const meta = [
+          s.title || '—',
+          s.team || '—',
+          s.manager ? 'mgr: ' + s.manager : null,
+          s.startDate ? s.startDate.slice(0, 4) : null,
+          s.archived ? 'ARCHIVED' : null,
+          s.notes.length + ' note(s)',
+          s.milestones.length + ' milestone(s)',
+          s.ldps.length + ' LDP(s)'
+        ].filter(Boolean).join(' · ');
+        return `<div class="list-card" data-dedup-id="${escHtml(s.id)}">
+          <span class="list-card-name">${escHtml(s.name)}</span>
+          <span class="list-card-meta">${escHtml(meta)}</span>
+          <span class="list-card-action" data-merge-into="${escHtml(s.id)}">KEEP THIS</span>
+        </div>`;
+      }).join('');
+      return `<div class="list-group-header">${escHtml(g[0].name).toUpperCase()} — ${g.length} RECORDS</div>${cards}`;
+    }).join('');
+
+  body.querySelectorAll('[data-merge-into]').forEach(el => {
+    el.addEventListener('click', () => {
+      const keepId = el.dataset.mergeInto;
+      const keep = db.staff.find(s => s.id === keepId);
+      if (!keep) return;
+      const key = normStaffName(keep.name);
+      const dupes = db.staff.filter(s => s.id !== keepId && normStaffName(s.name) === key);
+      if (!dupes.length) return;
+      mergeStaffInto(keep, dupes);
+      renderDedupDlg();
+    });
+  });
+}
+
+/* ─── /stats ─── */
+function groupCount(list, keyFn) {
+  const map = new Map();
+  list.forEach(s => {
+    const k = keyFn(s);
+    map.set(k, (map.get(k) || 0) + 1);
+  });
+  return [...map.entries()].sort((a, b) => b[1] - a[1]);
+}
+
+function computeStats() {
+  const included = db.staff.filter(s => !s.archived && !s.excludeFromStats);
+  const excluded = db.staff.filter(s => !s.archived && s.excludeFromStats);
+  const archived = db.staff.filter(s => s.archived);
+
+  const byTeam  = groupCount(included, s => s.team || 'Unspecified');
+  const byTitle = groupCount(included, s => s.title || 'Unspecified');
+
+  const expVals = included.map(s => yearsOfExperience(s.profStart)).filter(v => v !== null);
+  const avgExp = expVals.length ? expVals.reduce((a, b) => a + b, 0) / expVals.length : null;
+
+  const tenureVals = included.filter(s => s.startDate).map(s => daysSince(s.startDate) / 365);
+  const avgTenure = tenureVals.length ? tenureVals.reduce((a, b) => a + b, 0) / tenureVals.length : null;
+
+  const yr = currentYear();
+  const withLdpThisYear = included.filter(s => getLdpForYear(s, yr)).length;
+
+  let goalsActive = 0, goalsCompleted = 0, goalsDeferred = 0;
+  included.forEach(s => {
+    s.ldps.forEach(l => l.goals.forEach(g => {
+      if (g.status === 'active') goalsActive++;
+      else if (g.status === 'completed') goalsCompleted++;
+      else if (g.status === 'deferred') goalsDeferred++;
+    }));
+  });
+
+  const totalNotes      = included.reduce((sum, s) => sum + s.notes.length, 0);
+  const totalMilestones = included.reduce((sum, s) => sum + s.milestones.length, 0);
+
+  return {
+    included, excluded, archived, byTeam, byTitle, avgExp, avgTenure,
+    withLdpThisYear, goalsActive, goalsCompleted, goalsDeferred, totalNotes, totalMilestones
+  };
+}
+
+function cmdStats(arg) {
+  arg = (arg || '').trim();
+  const low = arg.toLowerCase();
+  if (low.startsWith('exclude ')) { cmdStatsExclude(arg.slice(8).trim()); return; }
+  if (low.startsWith('include ')) { cmdStatsInclude(arg.slice(8).trim()); return; }
+  if (!db.staff.length) { statusMsg('No staff members yet. Use /new.'); return; }
+  showOverlay('◈ STAFF STATS', renderStatsDlg);
+}
+
+function cmdStatsExclude(name) {
+  if (!name) { statusMsg('Usage: /stats exclude <name>'); return; }
+  const matches = db.staff.filter(s => !s.excludeFromStats && s.name.toLowerCase().includes(name.toLowerCase()));
+  if (!matches.length) { statusMsg('No matching staff found (or already excluded).'); return; }
+  if (matches.length > 1) {
+    statusMsg('Multiple matches: ' + matches.map(s => s.name).join(', ') + ' — be more specific');
+    return;
+  }
+  matches[0].excludeFromStats = true;
+  saveDB();
+  statusMsg('Excluded from stats: ' + matches[0].name);
+}
+
+function cmdStatsInclude(name) {
+  if (!name) { statusMsg('Usage: /stats include <name>'); return; }
+  const matches = db.staff.filter(s => s.excludeFromStats && s.name.toLowerCase().includes(name.toLowerCase()));
+  if (!matches.length) { statusMsg('No matching excluded staff found.'); return; }
+  if (matches.length > 1) {
+    statusMsg('Multiple matches: ' + matches.map(s => s.name).join(', ') + ' — be more specific');
+    return;
+  }
+  matches[0].excludeFromStats = false;
+  saveDB();
+  statusMsg('Re-included in stats: ' + matches[0].name);
+}
+
+function renderStatsDlg() {
+  const body = document.getElementById('help-body');
+  body.style.whiteSpace = 'normal';
+
+  const st = computeStats();
+  const section = (label, html) => `<div class="dlg-section"><div class="dlg-label">${escHtml(label)}</div>${html}</div>`;
+  const breakdownHtml = pairs => pairs.length
+    ? pairs.map(([k, c]) => `<div class="highlights-item">· ${escHtml(k)} — ${c}</div>`).join('')
+    : '<div class="empty-msg">No staff.</div>';
+
+  const overviewHtml = `<div>${st.included.length} included in stats
+    · ${st.excluded.length} excluded · ${st.archived.length} archived</div>`;
+  const expHtml    = st.avgExp    !== null ? st.avgExp.toFixed(1) + ' yr avg' : '—';
+  const tenureHtml = st.avgTenure !== null ? st.avgTenure.toFixed(1) + ' yr avg' : '—';
+  const ldpHtml    = `${st.withLdpThisYear} / ${st.included.length} have an LDP for ${currentYear()}`;
+  const goalsHtml  = `${st.goalsActive} active · ${st.goalsCompleted} completed · ${st.goalsDeferred} deferred`;
+  const notesHtml  = `${st.totalNotes} note(s) · ${st.totalMilestones} milestone(s)`;
+
+  const excludedHtml = st.excluded.length
+    ? st.excluded.map(s => `<div class="list-card">
+        <span class="list-card-name">${escHtml(s.name)}</span>
+        <span class="list-card-meta">${escHtml(s.title || '—')}</span>
+        <span class="list-card-action" data-stats-include="${escHtml(s.id)}">INCLUDE</span>
+      </div>`).join('')
+    : '<div class="empty-msg">None excluded.</div>';
+
+  body.innerHTML =
+    section('OVERVIEW', overviewHtml) +
+    section('BY TEAM', breakdownHtml(st.byTeam)) +
+    section('BY TITLE', breakdownHtml(st.byTitle)) +
+    section('EXPERIENCE', expHtml) +
+    section('TENURE', tenureHtml) +
+    section('LDP COVERAGE', ldpHtml) +
+    section('GOALS', goalsHtml) +
+    section('NOTES / MILESTONES', notesHtml) +
+    section('EXCLUDED FROM STATS',
+      `<div style="font-size:0.75em;color:var(--dim);margin-bottom:4px;">use /stats exclude &lt;name&gt; to hide someone from these counts</div>${excludedHtml}`);
+
+  body.querySelectorAll('[data-stats-include]').forEach(el => {
+    el.addEventListener('click', () => {
+      const s = db.staff.find(x => x.id === el.dataset.statsInclude);
+      if (s) { s.excludeFromStats = false; saveDB(); }
+      renderStatsDlg();
     });
   });
 }
@@ -1628,7 +2330,7 @@ function cmdNote(arg) {
       body.style.whiteSpace = 'normal';
       body.innerHTML = sorted.map(n => `
         <div style="padding:4px 0;border-bottom:1px solid var(--muted);">
-          <span style="color:var(--dim);font-size:0.85em;">${escHtml(formatNoteDateTime(n.date))}</span>
+          <span style="color:var(--dim);font-size:0.85em;">${escHtml(formatNoteDate(n.date))}</span>
           <span style="font-size:0.75em;margin-left:8px;border:1px solid currentColor;padding:0 3px;" class="nt-${escHtml(n.noteType)}">${escHtml(NOTE_TYPE_ABBR[n.noteType]||'GEN')}</span>
           <div style="margin-top:2px;">${escHtml(n.text)}</div>
         </div>`).join('');
@@ -2047,6 +2749,10 @@ function openProfileDialog() {
         <div>${escHtml(s.startDate || '—')}</div>
       </div>
       <div class="dlg-section">
+        <div class="dlg-label">PROF START / YEARS OF EXPERIENCE</div>
+        <div>${s.profStart ? escHtml(s.profStart) + ' — ' + yearsOfExperience(s.profStart) + 'yr experience' : '—'}</div>
+      </div>
+      <div class="dlg-section">
         <div class="dlg-label">STRENGTHS</div>
         <textarea class="dlg-textarea" id="dlg-strengths">${escHtml(s.strengths.join('\n'))}</textarea>
         <div style="font-size:0.75em;color:var(--dim);">one per line</div>
@@ -2160,6 +2866,7 @@ function cmdExport() {
     'MANAGER: ' + s.manager,
     'START:   ' + s.startDate,
     'EMAIL:   ' + s.email,
+    'PROF START: ' + s.profStart + (s.profStart ? ' (' + yearsOfExperience(s.profStart) + 'yr experience)' : ''),
     '',
     'STRENGTHS:',
     ...s.strengths.map(x => '  - ' + x),
@@ -2214,23 +2921,143 @@ function cmdExport() {
 }
 
 /* ─── /edit ─── */
-function cmdEdit(arg) {
+function cmdEdit() {
   const s = getActiveStaff();
-  if (!s) { statusMsg('No staff loaded.'); return; }
+  if (!s) { statusMsg('No staff loaded. Use /load <name>.'); return; }
+  openEditStaffDialog(s);
+}
 
-  const editFields = ['name','title','team','manager','email'];
-  for (const f of editFields) {
-    if (arg.startsWith(f + ' ')) {
-      const val = arg.slice(f.length + 1).trim();
-      if (!val) { statusMsg('Usage: /edit ' + f + ' <value>'); return; }
-      s[f] = val;
+function openEditStaffDialog(s) {
+  function renderEditDlg() {
+    const body = document.getElementById('help-body');
+    body.style.whiteSpace = 'normal';
+    body.innerHTML = `
+      <div class="dlg-section">
+        <div class="dlg-label">NAME</div>
+        <input class="dlg-input" id="dlg-e-name" type="text" value="${escHtml(s.name)}">
+      </div>
+      <div class="dlg-section">
+        <div class="dlg-label">TITLE</div>
+        <input class="dlg-input" id="dlg-e-title" type="text" value="${escHtml(s.title)}">
+      </div>
+      <div class="dlg-section">
+        <div class="dlg-label">TEAM</div>
+        <input class="dlg-input" id="dlg-e-team" type="text" value="${escHtml(s.team)}">
+      </div>
+      <div class="dlg-section">
+        <div class="dlg-label">MANAGER</div>
+        <input class="dlg-input" id="dlg-e-manager" type="text" value="${escHtml(s.manager)}">
+      </div>
+      <div class="dlg-section">
+        <div class="dlg-label">START DATE</div>
+        <input class="dlg-input" id="dlg-e-start" type="text" value="${escHtml(s.startDate)}" placeholder="YYYY-MM-DD">
+      </div>
+      <div class="dlg-section">
+        <div class="dlg-label">EMAIL</div>
+        <input class="dlg-input" id="dlg-e-email" type="text" value="${escHtml(s.email)}">
+      </div>
+      <div class="dlg-section">
+        <div class="dlg-label">PROF START (YEAR) — 0th year of professional experience</div>
+        <input class="dlg-input" id="dlg-e-profstart" type="text" value="${escHtml(s.profStart)}" placeholder="YYYY, e.g. 2018">
+        <div style="font-size:0.75em;color:var(--dim);">years of experience rolls over every 10/1 (fiscal year)</div>
+      </div>
+      <div class="dlg-section" style="margin-top:14px;">
+        <button class="dlg-btn dlg-btn-primary" id="dlg-e-save">Save</button>
+        <button class="dlg-btn" id="dlg-e-close">Cancel</button>
+      </div>`;
+
+    document.getElementById('dlg-e-save').addEventListener('click', () => {
+      const name       = document.getElementById('dlg-e-name').value.trim();
+      const start      = document.getElementById('dlg-e-start').value.trim();
+      const profStart  = document.getElementById('dlg-e-profstart').value.trim();
+      if (!name) { statusMsg('Name cannot be empty.'); return; }
+      if (start && (!/^\d{4}-\d{2}-\d{2}$/.test(start) || isNaN(new Date(start).getTime()))) {
+        statusMsg('Start date must be a valid YYYY-MM-DD date.'); return;
+      }
+      if (profStart && !/^\d{4}$/.test(profStart)) {
+        statusMsg('Prof start must be a 4-digit year.'); return;
+      }
+      s.name      = name;
+      s.title     = document.getElementById('dlg-e-title').value.trim();
+      s.team      = document.getElementById('dlg-e-team').value.trim();
+      s.manager   = document.getElementById('dlg-e-manager').value.trim();
+      s.startDate = start;
+      s.email     = document.getElementById('dlg-e-email').value.trim();
+      s.profStart = profStart;
       saveDB();
       render();
-      statusMsg('Updated ' + f + ': "' + val + '"');
+      closeOverlay();
+      statusMsg('Staff info updated.');
+    });
+    document.getElementById('dlg-e-close').addEventListener('click', closeOverlay);
+  }
+
+  showOverlay('◈ EDIT — ' + escHtml(s.name.toUpperCase()), renderEditDlg);
+}
+
+/* ─── /profstart (bulk edit) ─── */
+function cmdProfStart() {
+  if (!db.staff.some(s => !s.archived)) { statusMsg('No active staff members.'); return; }
+  showOverlay('◈ BULK EDIT — PROF START', renderProfStartDlg);
+}
+
+function renderProfStartDlg() {
+  const body = document.getElementById('help-body');
+  body.style.whiteSpace = 'normal';
+
+  const list = db.staff.filter(s => !s.archived).sort((a, b) => a.name.localeCompare(b.name));
+  const rows = list.map(s => `
+    <div style="display:flex;align-items:center;gap:10px;padding:3px 0;border-bottom:1px solid var(--muted);">
+      <span style="flex:1.3;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${escHtml(s.name)}</span>
+      <span style="flex:1;font-size:0.8em;color:var(--dim);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${escHtml(s.title || '—')}</span>
+      <input class="dlg-input" data-ps-id="${escHtml(s.id)}" type="text" value="${escHtml(s.profStart)}"
+        placeholder="YYYY" style="width:90px;flex-shrink:0;margin:0;">
+    </div>`).join('');
+
+  body.innerHTML = `
+    <div style="font-size:0.78em;color:var(--dim);margin-bottom:8px;">
+      Enter the prof-start year for each person (blank = not set). Press ENTER to jump to the next field.
+    </div>
+    <div>${rows}</div>
+    <div class="dlg-section" style="margin-top:14px;">
+      <button class="dlg-btn dlg-btn-primary" id="dlg-ps-save">Save All</button>
+      <button class="dlg-btn" id="dlg-ps-close">Cancel</button>
+    </div>`;
+
+  const inputs = [...body.querySelectorAll('[data-ps-id]')];
+  inputs.forEach((inp, idx) => {
+    inp.addEventListener('keydown', e => {
+      if (e.key !== 'Enter') return;
+      e.preventDefault();
+      const next = inputs[idx + 1];
+      if (next) { next.focus(); next.select(); }
+      else document.getElementById('dlg-ps-save').click();
+    });
+  });
+  if (inputs[0]) { inputs[0].focus(); inputs[0].select(); }
+
+  document.getElementById('dlg-ps-save').addEventListener('click', () => {
+    const bad = inputs.filter(inp => {
+      const v = inp.value.trim();
+      return v && !/^\d{4}$/.test(v);
+    });
+    if (bad.length) {
+      bad.forEach(inp => inp.style.borderColor = 'var(--accent)');
+      statusMsg(bad.length + ' invalid year value(s) — must be 4 digits or blank.');
       return;
     }
-  }
-  statusMsg('Usage: /edit name|title|team|manager|email <value>');
+    let changed = 0;
+    inputs.forEach(inp => {
+      const s = db.staff.find(x => x.id === inp.dataset.psId);
+      const v = inp.value.trim();
+      if (s && s.profStart !== v) { s.profStart = v; changed++; }
+    });
+    saveDB();
+    render();
+    closeOverlay();
+    statusMsg('Prof start updated for ' + changed + ' staff member(s).');
+  });
+  document.getElementById('dlg-ps-close').addEventListener('click', closeOverlay);
 }
 
 /* ═══════════════════════════════════════════════════════════════════
@@ -2245,7 +3072,22 @@ function showHelp() {
     '/new                     start Q&A walkthrough for a new staff member',
     '/load <name>             load staff member by name (partial match)',
     '/find <name>             alias for /load',
-    '/list                    list all staff members',
+    '/list                    list all staff, grouped by field (sortable, default: name)',
+    '/list <field>            group/sort by: name|title|team|manager|start|exp',
+    '/list archived           show archived staff',
+    '  → click a GROUP/SORT BY button in the list dialog to change grouping/reverse',
+    '  → use the search box in the list dialog to filter by name/title/team/manager',
+    '  → use the ARCHIVE / RESTORE link on a card, or the VIEW ARCHIVED toggle',
+    '',
+    '── ARCHIVING ───────────────────────────────────────────',
+    '/archive                 archive the currently loaded staff member',
+    '/archive <name>          archive a staff member by name (partial match)',
+    '/unarchive <name>        restore an archived staff member and load them',
+    '  archived staff are hidden from /list, /load, and auto-load',
+    '',
+    '/dedup                   find staff records with matching names and merge them',
+    '  → click KEEP THIS on the record to keep; notes/milestones/LDPs from the',
+    '    other record(s) are merged in, and the duplicates are removed',
     '',
     '── NOTES ───────────────────────────────────────────────',
     '/note <text>             add a timestamped note (uses current datetime)',
@@ -2278,11 +3120,17 @@ function showHelp() {
     '── PROFILE ─────────────────────────────────────────────',
     '/export                  download current staff data as .txt',
     '',
-    '/edit name <text>        edit name',
-    '/edit title <text>       edit title',
-    '/edit team <text>        edit team',
-    '/edit manager <text>     edit manager',
-    '/edit email <text>       edit email',
+    '/edit                    open a dialog to edit name, title, team, manager, start date, email, prof start',
+    '  prof start = 0th year of professional experience; years-of-experience',
+    '  auto-increments every 10/1 (fiscal year) and shows in the staff summary',
+    '/profstart               bulk-edit prof start for every active staff member at once',
+    '  → one row per person, ENTER jumps to the next field for fast entry',
+    '',
+    '── STATS ───────────────────────────────────────────────',
+    '/stats                   show a summary dialog: counts, breakdowns, LDP/goal/note stats',
+    '/stats exclude <name>    hide a staff member from stats (partial name match)',
+    '/stats include <name>    re-include a previously excluded staff member',
+    '  → excluded staff also show at the bottom of the /stats dialog with an INCLUDE link',
     '',
     '── STANDARD ───────────────────────────────────────────',
     '/backlog <text>          add backlog item',
@@ -2292,6 +3140,24 @@ function showHelp() {
     '/backlog archive         move done items to archive',
     '/backlog archive list    show archived batches',
     '/backlog export          download backlog as .txt',
+    '',
+    '── PROJECT ALIGNMENT ───────────────────────────────────',
+    '/projects                switch to the project staff-alignment screen',
+    '/home                    switch back to the staff screen',
+    '/pnew                    open the new-project dialog',
+    '/paddstaff               open the add-staff-to-roster dialog',
+    '/proster                 import a staff roster (paste names, one per line)',
+    '/pfromstaff              import staff from existing staff records (name + title)',
+    '/pexport                 download project alignment as CSV (project,sponsor,alignment,person,allocation,note)',
+    '  → note column flags Lead / Leaving',
+    '  → click a project name or alignment badge to edit the project',
+    '  → projects are sorted by alignment, highest first',
+    '  → drag a roster card onto a project to assign a % allocation',
+    '  → check "Mark as Lead" in the assign dialog to tag someone as project lead',
+    '  → check "Leaving this project" to flag reduced/departing allocation (shown hashed)',
+    '  → click an assigned staff chip to change their % or Lead status, or × to unassign',
+    '  → a staff member\'s roster card shows total % across all projects,',
+    '    highlighted if over 100%',
     '',
     '/theme [name]            switch theme  (legacy|solar|monk|space|synth|dos|notebook|engineering|winter)',
     '/help                    show this help',
@@ -2418,6 +3284,518 @@ function handleBacklog(arg) {
 }
 
 /* ═══════════════════════════════════════════════════════════════════
+   PROJECT ALIGNMENT
+   ═══════════════════════════════════════════════════════════════════ */
+let currentScreen = 'staff';
+let draggedStaffId = null;
+
+function showScreen(name) {
+  currentScreen = name;
+  document.getElementById('staff-screen').style.display = (name === 'staff') ? 'grid' : 'none';
+  document.getElementById('projects-screen').style.display = (name === 'projects') ? 'flex' : 'none';
+  document.getElementById('console-prompt').textContent = (name === 'projects') ? 'PROJ>' : 'STAFF>';
+  if (name === 'projects') renderProjects();
+  consoleInput.focus();
+}
+
+function alignClass(idx) { return 'align-' + Math.max(0, Math.min(6, idx)); }
+
+function totalAllocation(staffId) {
+  return db.projects.reduce((sum, p) => {
+    const a = p.allocations.find(x => x.staffId === staffId);
+    return sum + (a ? a.pct : 0);
+  }, 0);
+}
+
+function projectTotalPct(proj) {
+  return proj.allocations.reduce((sum, a) => sum + a.pct, 0);
+}
+
+/* ─── RENDER: PROJECTS SCREEN ─── */
+function renderProjects() {
+  renderRoster();
+  renderProjectList();
+}
+
+function renderRoster() {
+  const listEl = document.getElementById('roster-list');
+  listEl.innerHTML = '';
+  if (!db.paStaff.length) {
+    listEl.innerHTML = '<div class="empty-msg">No staff in roster. Use + ADD STAFF or IMPORT ROSTER.</div>';
+    return;
+  }
+  [...db.paStaff].sort((a, b) => a.name.localeCompare(b.name)).forEach(p => {
+    const total = totalAllocation(p.id);
+    const div = document.createElement('div');
+    div.className = 'roster-card';
+    div.draggable = true;
+    div.dataset.paId = p.id;
+    div.innerHTML = `
+      <div class="roster-card-name">${escHtml(p.name)}</div>
+      <div class="roster-card-meta">${escHtml(p.level || '—')}${p.expertise ? ' · ' + escHtml(p.expertise) : ''}</div>
+      <div class="roster-card-load${total > 100 ? ' over' : ''}">${total}% allocated${total > 100 ? ' ⚠ OVER' : ''}</div>`;
+    div.addEventListener('dragstart', e => {
+      draggedStaffId = p.id;
+      div.classList.add('dragging');
+      e.dataTransfer.effectAllowed = 'copy';
+      e.dataTransfer.setData('text/plain', p.id);
+    });
+    div.addEventListener('dragend', () => { div.classList.remove('dragging'); draggedStaffId = null; });
+    div.addEventListener('click', () => openPaStaffDialog(p));
+    listEl.appendChild(div);
+  });
+}
+
+function renderProjectList() {
+  const listEl = document.getElementById('proj-list');
+  listEl.innerHTML = '';
+  if (!db.projects.length) {
+    listEl.innerHTML = '<div class="empty-msg">No projects yet. Use + NEW PROJECT to add one.</div>';
+    return;
+  }
+  [...db.projects].sort((a, b) => b.alignment - a.alignment || projectTotalPct(b) - projectTotalPct(a)).forEach(proj => {
+    const card = document.createElement('div');
+    card.className = 'proj-card';
+    card.dataset.projId = proj.id;
+
+    const sortedAllocs = [...proj.allocations].sort((a, b) => (b.lead ? 1 : 0) - (a.lead ? 1 : 0));
+    const leadCount = proj.allocations.filter(a => a.lead).length;
+    const totalPct = projectTotalPct(proj);
+    const summaryHtml = proj.allocations.length
+      ? `<span class="proj-card-summary${totalPct > 100 ? ' over' : ''}">${leadCount ? '<span class="lead-tag">' + '★'.repeat(leadCount) + '</span> ' : ''}${totalPct}%</span>`
+      : '';
+    const chipsHtml = sortedAllocs.length
+      ? sortedAllocs.map(a => {
+          const staff = db.paStaff.find(s => s.id === a.staffId);
+          const name = staff ? staff.name : '(removed)';
+          return `<span class="staff-chip${a.lead ? ' is-lead' : ''}${a.leaving ? ' is-leaving' : ''}" data-chip-staff="${escHtml(a.staffId)}">
+            ${a.lead ? '<span class="lead-tag">★ LEAD</span>' : ''}
+            ${a.leaving ? '<span class="leaving-tag">LEAVING</span>' : ''}
+            <span class="chip-name">${escHtml(name)}</span>
+            <span class="pct">${a.pct}%</span>
+            <span class="x" data-remove-staff="${escHtml(a.staffId)}">×</span>
+          </span>`;
+        }).join('')
+      : '';
+
+    card.innerHTML = `
+      <div class="proj-card-head">
+        <span class="proj-card-name" data-edit-proj="${escHtml(proj.id)}">${escHtml(proj.name || '(untitled)')}</span>
+        <span class="proj-card-sponsor">${escHtml(proj.sponsor || '')}</span>
+        ${summaryHtml}
+        <span class="align-badge ${alignClass(proj.alignment)}" data-edit-proj="${escHtml(proj.id)}">${escHtml(ALIGNMENT_LEVELS[proj.alignment])}</span>
+      </div>
+      ${proj.description ? `<div class="proj-card-desc">${escHtml(proj.description)}</div>` : ''}
+      <div class="proj-chip-row${chipsHtml ? '' : ' empty-drop'}">${chipsHtml || 'drop staff here to assign'}</div>`;
+
+    addTooltip(card.querySelector('.align-badge'),
+      'Alignment: ' + ALIGNMENT_LEVELS[proj.alignment] + (proj.alignmentNotes ? '\n' + proj.alignmentNotes : ''));
+
+    card.querySelectorAll('[data-edit-proj]').forEach(el => {
+      el.addEventListener('click', () => openProjectDialog(db.projects.find(p => p.id === proj.id)));
+    });
+    card.querySelectorAll('[data-remove-staff]').forEach(el => {
+      el.addEventListener('click', e => {
+        e.stopPropagation();
+        removeAllocation(proj.id, el.dataset.removeStaff);
+      });
+    });
+    card.querySelectorAll('[data-chip-staff]').forEach(el => {
+      el.addEventListener('click', e => {
+        if (e.target.closest('[data-remove-staff]')) return;
+        const staffId = el.dataset.chipStaff;
+        const existing = proj.allocations.find(a => a.staffId === staffId);
+        openAssignDialog(proj.id, staffId, existing || null);
+      });
+    });
+
+    card.addEventListener('dragover', e => { e.preventDefault(); card.classList.add('dragover'); });
+    card.addEventListener('dragleave', () => card.classList.remove('dragover'));
+    card.addEventListener('drop', e => {
+      e.preventDefault();
+      card.classList.remove('dragover');
+      const staffId = e.dataTransfer.getData('text/plain') || draggedStaffId;
+      if (!staffId || !db.paStaff.find(s => s.id === staffId)) return;
+      const existing = proj.allocations.find(a => a.staffId === staffId);
+      openAssignDialog(proj.id, staffId, existing || null);
+    });
+
+    listEl.appendChild(card);
+  });
+}
+
+/* ─── ASSIGN % DIALOG ─── */
+function openAssignDialog(projectId, staffId, existingAlloc) {
+  const proj = db.projects.find(p => p.id === projectId);
+  const staff = db.paStaff.find(s => s.id === staffId);
+  if (!proj || !staff) return;
+  let chosen = existingAlloc ? existingAlloc.pct : null;
+  let leadChosen = existingAlloc ? !!existingAlloc.lead : false;
+  let leavingChosen = existingAlloc ? !!existingAlloc.leaving : false;
+
+  function renderDlg() {
+    const body = document.getElementById('help-body');
+    body.style.whiteSpace = 'normal';
+    const presetsHtml = PCT_PRESETS.map(v =>
+      `<button class="pct-preset-btn${chosen === v ? ' active' : ''}" data-pct="${v}">${v}%</button>`
+    ).join('');
+    body.innerHTML = `
+      <div class="dlg-section" style="margin-top:0;">
+        <div class="dlg-label">PRESET %</div>
+        <div>${presetsHtml}</div>
+      </div>
+      <div class="dlg-section">
+        <div class="dlg-label">CUSTOM %</div>
+        <input class="dlg-input" id="dlg-a-custom" type="number" min="0" max="100"
+          value="${chosen !== null ? chosen : ''}" placeholder="e.g. 60">
+      </div>
+      <div class="dlg-section">
+        <label style="display:flex;align-items:center;gap:6px;cursor:pointer;">
+          <input type="checkbox" id="dlg-a-lead" ${leadChosen ? 'checked' : ''}>
+          <span>Mark as Lead on this project</span>
+        </label>
+      </div>
+      <div class="dlg-section">
+        <label style="display:flex;align-items:center;gap:6px;cursor:pointer;">
+          <input type="checkbox" id="dlg-a-leaving" ${leavingChosen ? 'checked' : ''}>
+          <span>Leaving this project (reduced allocation)</span>
+        </label>
+      </div>
+      <div class="dlg-section" style="margin-top:14px;">
+        <button class="dlg-btn dlg-btn-primary" id="dlg-a-save">Assign</button>
+        ${existingAlloc ? '<button class="dlg-btn dlg-btn-danger" id="dlg-a-remove">Unassign</button>' : ''}
+        <button class="dlg-btn" id="dlg-a-close">Cancel</button>
+      </div>`;
+
+    body.querySelectorAll('[data-pct]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        chosen = parseInt(btn.dataset.pct, 10);
+        document.getElementById('dlg-a-custom').value = chosen;
+        renderDlg();
+      });
+    });
+    document.getElementById('dlg-a-custom').addEventListener('input', e => {
+      const v = parseInt(e.target.value, 10);
+      chosen = isNaN(v) ? null : v;
+    });
+    document.getElementById('dlg-a-lead').addEventListener('change', e => { leadChosen = e.target.checked; });
+    document.getElementById('dlg-a-leaving').addEventListener('change', e => { leavingChosen = e.target.checked; });
+    document.getElementById('dlg-a-save').addEventListener('click', () => {
+      const v = parseInt(document.getElementById('dlg-a-custom').value, 10);
+      if (isNaN(v) || v < 0) { statusMsg('Enter a valid percentage.'); return; }
+      const existing = proj.allocations.find(a => a.staffId === staffId);
+      if (existing) { existing.pct = v; existing.lead = leadChosen; existing.leaving = leavingChosen; }
+      else proj.allocations.push({ staffId, pct: v, lead: leadChosen, leaving: leavingChosen });
+      saveDB();
+      renderProjects();
+      closeOverlay();
+      const total = totalAllocation(staffId);
+      const tags = [leadChosen ? 'Lead' : '', leavingChosen ? 'Leaving' : ''].filter(Boolean).join(', ');
+      if (total > 100) statusMsg('⚠ ' + staff.name + ' is over-allocated: ' + total + '% across all projects');
+      else statusMsg(staff.name + ' assigned to ' + proj.name + ' at ' + v + '%' + (tags ? ' (' + tags + ')' : ''));
+    });
+    if (existingAlloc) {
+      document.getElementById('dlg-a-remove').addEventListener('click', () => {
+        removeAllocation(projectId, staffId);
+        closeOverlay();
+      });
+    }
+    document.getElementById('dlg-a-close').addEventListener('click', closeOverlay);
+  }
+
+  showOverlay('◈ ASSIGN — ' + escHtml(staff.name) + ' → ' + escHtml(proj.name), renderDlg);
+}
+
+function removeAllocation(projectId, staffId) {
+  const proj = db.projects.find(p => p.id === projectId);
+  if (!proj) return;
+  const idx = proj.allocations.findIndex(a => a.staffId === staffId);
+  if (idx < 0) return;
+  proj.allocations.splice(idx, 1);
+  saveDB();
+  renderProjects();
+  statusMsg('Unassigned.');
+}
+
+/* ─── PROJECT ADD/EDIT DIALOG ─── */
+function openProjectDialog(proj) {
+  const isNew = !proj;
+  const draft = proj ? proj : { id: null, name: '', sponsor: '', description: '', alignment: 3, alignmentNotes: '', notes: '' };
+
+  function renderDlg() {
+    const body = document.getElementById('help-body');
+    body.style.whiteSpace = 'normal';
+    const alignOptsHtml = ALIGNMENT_LEVELS.map((lvl, i) =>
+      `<option value="${i}"${draft.alignment === i ? ' selected' : ''}>${escHtml(lvl)}</option>`).join('');
+    body.innerHTML = `
+      <div class="dlg-section" style="margin-top:0;">
+        <div class="dlg-label">NAME</div>
+        <input class="dlg-input" id="dlg-p-name" type="text" value="${escHtml(draft.name)}">
+      </div>
+      <div class="dlg-section">
+        <div class="dlg-label">SPONSOR</div>
+        <input class="dlg-input" id="dlg-p-sponsor" type="text" value="${escHtml(draft.sponsor)}">
+      </div>
+      <div class="dlg-section">
+        <div class="dlg-label">DESCRIPTION</div>
+        <textarea class="dlg-textarea" id="dlg-p-desc">${escHtml(draft.description)}</textarea>
+      </div>
+      <div class="dlg-section">
+        <div class="dlg-label">ALIGNMENT</div>
+        <select class="dlg-input" id="dlg-p-align">${alignOptsHtml}</select>
+      </div>
+      <div class="dlg-section">
+        <div class="dlg-label">ALIGNMENT NOTES</div>
+        <textarea class="dlg-textarea" id="dlg-p-align-notes" style="min-height:50px;">${escHtml(draft.alignmentNotes)}</textarea>
+      </div>
+      <div class="dlg-section">
+        <div class="dlg-label">NOTES</div>
+        <textarea class="dlg-textarea" id="dlg-p-notes" style="min-height:50px;">${escHtml(draft.notes)}</textarea>
+      </div>
+      <div class="dlg-section" style="margin-top:14px;">
+        <button class="dlg-btn dlg-btn-primary" id="dlg-p-save">Save</button>
+        ${!isNew ? '<button class="dlg-btn dlg-btn-danger" id="dlg-p-delete">Delete</button>' : ''}
+        <button class="dlg-btn" id="dlg-p-close">Cancel</button>
+      </div>`;
+
+    document.getElementById('dlg-p-save').addEventListener('click', () => {
+      const name = document.getElementById('dlg-p-name').value.trim();
+      if (!name) { statusMsg('Project name cannot be empty.'); return; }
+      draft.name = name;
+      draft.sponsor = document.getElementById('dlg-p-sponsor').value.trim();
+      draft.description = document.getElementById('dlg-p-desc').value.trim();
+      draft.alignment = parseInt(document.getElementById('dlg-p-align').value, 10);
+      draft.alignmentNotes = document.getElementById('dlg-p-align-notes').value.trim();
+      draft.notes = document.getElementById('dlg-p-notes').value.trim();
+      if (isNew) {
+        draft.id = uid();
+        draft.allocations = [];
+        db.projects.push(draft);
+      }
+      saveDB();
+      renderProjects();
+      closeOverlay();
+      statusMsg((isNew ? 'Project created: ' : 'Project updated: ') + draft.name);
+    });
+    if (!isNew) {
+      document.getElementById('dlg-p-delete').addEventListener('click', () => {
+        db.projects = db.projects.filter(p => p.id !== draft.id);
+        saveDB();
+        renderProjects();
+        closeOverlay();
+        statusMsg('Project deleted: ' + draft.name);
+      });
+    }
+    document.getElementById('dlg-p-close').addEventListener('click', closeOverlay);
+  }
+
+  showOverlay(isNew ? '◈ NEW PROJECT' : '◈ EDIT PROJECT', renderDlg);
+}
+
+/* ─── PA-STAFF ADD/EDIT DIALOG ─── */
+function openPaStaffDialog(staff) {
+  const isNew = !staff;
+  const draft = staff ? staff : { id: null, name: '', level: '', qualifications: '', expertise: '', notes: '' };
+
+  function renderDlg() {
+    const body = document.getElementById('help-body');
+    body.style.whiteSpace = 'normal';
+    body.innerHTML = `
+      <div class="dlg-section" style="margin-top:0;">
+        <div class="dlg-label">NAME</div>
+        <input class="dlg-input" id="dlg-s-name" type="text" value="${escHtml(draft.name)}">
+      </div>
+      <div class="dlg-section">
+        <div class="dlg-label">LEVEL</div>
+        <input class="dlg-input" id="dlg-s-level" type="text" value="${escHtml(draft.level)}" placeholder="e.g. Senior, L5, Staff">
+      </div>
+      <div class="dlg-section">
+        <div class="dlg-label">QUALIFICATIONS</div>
+        <textarea class="dlg-textarea" id="dlg-s-qual" style="min-height:50px;">${escHtml(draft.qualifications)}</textarea>
+      </div>
+      <div class="dlg-section">
+        <div class="dlg-label">EXPERTISE</div>
+        <textarea class="dlg-textarea" id="dlg-s-exp" style="min-height:50px;">${escHtml(draft.expertise)}</textarea>
+      </div>
+      <div class="dlg-section">
+        <div class="dlg-label">NOTES</div>
+        <textarea class="dlg-textarea" id="dlg-s-notes" style="min-height:50px;">${escHtml(draft.notes)}</textarea>
+      </div>
+      <div class="dlg-section" style="margin-top:14px;">
+        <button class="dlg-btn dlg-btn-primary" id="dlg-s-save">Save</button>
+        ${!isNew ? '<button class="dlg-btn dlg-btn-danger" id="dlg-s-delete">Delete</button>' : ''}
+        <button class="dlg-btn" id="dlg-s-close">Cancel</button>
+      </div>`;
+
+    document.getElementById('dlg-s-save').addEventListener('click', () => {
+      const name = document.getElementById('dlg-s-name').value.trim();
+      if (!name) { statusMsg('Name cannot be empty.'); return; }
+      draft.name = name;
+      draft.level = document.getElementById('dlg-s-level').value.trim();
+      draft.qualifications = document.getElementById('dlg-s-qual').value.trim();
+      draft.expertise = document.getElementById('dlg-s-exp').value.trim();
+      draft.notes = document.getElementById('dlg-s-notes').value.trim();
+      if (isNew) {
+        draft.id = uid();
+        db.paStaff.push(draft);
+      }
+      saveDB();
+      renderProjects();
+      closeOverlay();
+      statusMsg((isNew ? 'Added to roster: ' : 'Updated: ') + draft.name);
+    });
+    if (!isNew) {
+      document.getElementById('dlg-s-delete').addEventListener('click', () => {
+        db.paStaff = db.paStaff.filter(s => s.id !== draft.id);
+        db.projects.forEach(p => { p.allocations = p.allocations.filter(a => a.staffId !== draft.id); });
+        saveDB();
+        renderProjects();
+        closeOverlay();
+        statusMsg('Removed from roster: ' + draft.name);
+      });
+    }
+    document.getElementById('dlg-s-close').addEventListener('click', closeOverlay);
+  }
+
+  showOverlay(isNew ? '◈ ADD STAFF' : '◈ EDIT STAFF', renderDlg);
+}
+
+/* ─── IMPORT ROSTER DIALOG ─── */
+function openImportRosterDialog() {
+  function renderDlg() {
+    const body = document.getElementById('help-body');
+    body.style.whiteSpace = 'normal';
+    body.innerHTML = `
+      <div class="dlg-section" style="margin-top:0;">
+        <div class="dlg-label">PASTE NAMES (one per line)</div>
+        <textarea class="dlg-textarea" id="dlg-r-names" style="min-height:180px;" placeholder="Jane Doe&#10;John Smith&#10;..."></textarea>
+      </div>
+      <div class="dlg-section" style="margin-top:14px;">
+        <button class="dlg-btn dlg-btn-primary" id="dlg-r-import">Import</button>
+        <button class="dlg-btn" id="dlg-r-close">Cancel</button>
+      </div>`;
+
+    document.getElementById('dlg-r-import').addEventListener('click', () => {
+      const raw = document.getElementById('dlg-r-names').value;
+      const names = raw.split('\n').map(s => s.trim()).filter(Boolean);
+      if (!names.length) { statusMsg('No names entered.'); return; }
+      const existing = new Set(db.paStaff.map(s => s.name.toLowerCase()));
+      let added = 0;
+      names.forEach(name => {
+        if (existing.has(name.toLowerCase())) return;
+        db.paStaff.push({ id: uid(), name, level: '', qualifications: '', expertise: '', notes: '' });
+        existing.add(name.toLowerCase());
+        added++;
+      });
+      saveDB();
+      renderProjects();
+      closeOverlay();
+      statusMsg('Imported ' + added + ' new staff member(s) (' + (names.length - added) + ' skipped as duplicates).');
+    });
+    document.getElementById('dlg-r-close').addEventListener('click', closeOverlay);
+  }
+
+  showOverlay('◈ IMPORT ROSTER', renderDlg);
+}
+
+/* ─── IMPORT FROM EXISTING STAFF RECORDS ─── */
+function openImportFromStaffDialog() {
+  const candidates = db.staff.filter(s => !s.archived);
+
+  function renderDlg() {
+    const body = document.getElementById('help-body');
+    body.style.whiteSpace = 'normal';
+    if (!candidates.length) {
+      body.innerHTML = `<div class="empty-msg">No active staff records to import from.</div>
+        <div class="dlg-section" style="margin-top:14px;"><button class="dlg-btn" id="dlg-fs-close">Close</button></div>`;
+      document.getElementById('dlg-fs-close').addEventListener('click', closeOverlay);
+      return;
+    }
+    const existingNames = new Set(db.paStaff.map(s => s.name.toLowerCase()));
+    const rowsHtml = candidates.map(s => {
+      const already = existingNames.has(s.name.toLowerCase());
+      return `<div style="display:flex;align-items:center;gap:8px;padding:3px 0;border-bottom:1px solid var(--muted);">
+        <input type="checkbox" data-fs-id="${escHtml(s.id)}" ${already ? 'disabled' : ''}>
+        <span style="flex:1.3;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;${already ? 'color:var(--dim);' : ''}">${escHtml(s.name)}</span>
+        <span style="flex:1;font-size:0.8em;color:var(--dim);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${escHtml(s.title || '—')}</span>
+        ${already ? '<span style="font-size:0.75em;color:var(--dim);">already in roster</span>' : ''}
+      </div>`;
+    }).join('');
+
+    body.innerHTML = `
+      <div style="font-size:0.78em;color:var(--dim);margin-bottom:8px;">
+        Select staff to copy into the project roster (name + title → level).
+      </div>
+      <div style="margin-bottom:8px;"><span class="list-toggle-link" id="dlg-fs-all">SELECT ALL</span></div>
+      <div>${rowsHtml}</div>
+      <div class="dlg-section" style="margin-top:14px;">
+        <button class="dlg-btn dlg-btn-primary" id="dlg-fs-import">Import Selected</button>
+        <button class="dlg-btn" id="dlg-fs-close">Cancel</button>
+      </div>`;
+
+    document.getElementById('dlg-fs-all').addEventListener('click', () => {
+      body.querySelectorAll('[data-fs-id]:not(:disabled)').forEach(cb => { cb.checked = true; });
+    });
+    document.getElementById('dlg-fs-import').addEventListener('click', () => {
+      const checked = [...body.querySelectorAll('[data-fs-id]:checked')];
+      if (!checked.length) { statusMsg('No staff selected.'); return; }
+      let added = 0;
+      checked.forEach(cb => {
+        const s = candidates.find(x => x.id === cb.dataset.fsId);
+        if (!s) return;
+        if (db.paStaff.some(p => p.name.toLowerCase() === s.name.toLowerCase())) return;
+        db.paStaff.push({ id: uid(), name: s.name, level: s.title || '', qualifications: '', expertise: '', notes: '' });
+        added++;
+      });
+      saveDB();
+      renderProjects();
+      closeOverlay();
+      statusMsg('Imported ' + added + ' staff member(s) from staff records.');
+    });
+    document.getElementById('dlg-fs-close').addEventListener('click', closeOverlay);
+  }
+
+  showOverlay('◈ IMPORT FROM STAFF RECORDS', renderDlg);
+}
+
+/* ─── /pexport ─── */
+function csvField(v) {
+  const s = String(v == null ? '' : v);
+  return /[",\r\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s;
+}
+
+function cmdExportProjects() {
+  if (!db.projects.length) { statusMsg('No projects to export.'); return; }
+
+  const rows = [['project', 'sponsor', 'alignment', 'person', 'allocation', 'note']];
+  [...db.projects].sort((a, b) => b.alignment - a.alignment || projectTotalPct(b) - projectTotalPct(a))
+    .forEach(proj => {
+      const alignLabel = ALIGNMENT_LEVELS[proj.alignment];
+      if (!proj.allocations.length) {
+        rows.push([proj.name, proj.sponsor, alignLabel, '', '', '']);
+        return;
+      }
+      [...proj.allocations].sort((a, b) => (b.lead ? 1 : 0) - (a.lead ? 1 : 0)).forEach(a => {
+        const staff = db.paStaff.find(s => s.id === a.staffId);
+        const name = staff ? staff.name : '(removed)';
+        const tags = [a.lead ? 'Lead' : '', a.leaving ? 'Leaving' : ''].filter(Boolean).join('; ');
+        rows.push([proj.name, proj.sponsor, alignLabel, name, a.pct + '%', tags]);
+      });
+    });
+
+  const csv = rows.map(r => r.map(csvField).join(',')).join('\r\n');
+  downloadBlob(csv, `project-alignment-${todayStr()}.csv`, 'text/csv');
+  statusMsg('Exported project alignment CSV.');
+}
+
+document.getElementById('proj-new-btn').addEventListener('click', () => openProjectDialog(null));
+document.getElementById('proj-addstaff-btn').addEventListener('click', () => openPaStaffDialog(null));
+document.getElementById('proj-roster-btn').addEventListener('click', () => openImportRosterDialog());
+document.getElementById('proj-fromstaff-btn').addEventListener('click', () => openImportFromStaffDialog());
+document.getElementById('proj-export-btn').addEventListener('click', () => cmdExportProjects());
+document.getElementById('proj-back-btn').addEventListener('click', () => showScreen('staff'));
+
+/* ═══════════════════════════════════════════════════════════════════
    KEYBOARD GLOBAL SHORTCUTS
    ═══════════════════════════════════════════════════════════════════ */
 document.addEventListener('keydown', e => {
@@ -2460,9 +3838,10 @@ function init() {
   loadDB();
   applyTheme(db.theme || 'legacy');
 
-  // Auto-load last active staff or first staff
-  if (!db.activeStaffId && db.staff.length > 0) {
-    db.activeStaffId = db.staff[0].id;
+  // Auto-load last active staff or first non-archived staff
+  if (!db.activeStaffId) {
+    const first = db.staff.find(s => !s.archived);
+    if (first) db.activeStaffId = first.id;
   }
 
   render();

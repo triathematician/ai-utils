@@ -1,0 +1,1046 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Marauder's Map</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600;700&family=Syne:wght@700;800&display=swap');
+
+  :root {
+    --bg:            #0a0b0e;
+    --surface:       #0f1116;
+    --surface2:      #161a22;
+    --border:        #1e2330;
+    --border-bright: #2e3650;
+    --accent:        #4af0c8;
+    --accent2:       #7b8cf0;
+    --accent3:       #f05c7b;
+    --warn:          #f0b84a;
+    --text:          #e8ecf5;
+    --text-dim:      #5a6380;
+    --text-dimmer:   #2e3450;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { width: 100%; height: 100%; overflow: hidden; }
+
+  body {
+    background: var(--bg); color: var(--text);
+    font-family: 'JetBrains Mono', monospace;
+    display: flex; flex-direction: column;
+    user-select: none;
+  }
+
+  body::before {
+    content: ''; position: fixed; inset: 0; pointer-events: none; z-index: 0;
+    background-image:
+      linear-gradient(rgba(74,240,200,0.012) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(74,240,200,0.012) 1px, transparent 1px);
+    background-size: 28px 28px;
+  }
+
+  /* ═══ TOPBAR ═══ */
+  #topbar {
+    display: flex; align-items: center; gap: 14px;
+    padding: 9px 16px; border-bottom: 1px solid var(--border);
+    position: relative; z-index: 2; flex-shrink: 0; flex-wrap: wrap;
+  }
+  .logo { font-family: 'Syne', sans-serif; font-size: 12px; font-weight: 800; letter-spacing: 0.25em; text-transform: uppercase; color: var(--accent); }
+  .sep { color: var(--text-dimmer); font-size: 9px; }
+  .field { display: flex; align-items: center; gap: 5px; }
+  .field label { font-size: 8px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--text-dim); }
+  input[type=number], input[type=text] {
+    background: var(--surface2); border: 1px solid var(--border-bright); color: var(--text);
+    font-family: 'JetBrains Mono', monospace; font-size: 10px; padding: 4px 6px; border-radius: 3px; width: 52px;
+  }
+  input[type=text].wide { width: 130px; }
+  input[type=number]:focus, input[type=text]:focus { outline: none; border-color: var(--accent); }
+  .btn {
+    background: transparent; border: 1px solid var(--border-bright); color: var(--text-dim);
+    font-family: 'JetBrains Mono', monospace; font-size: 9px; letter-spacing: 0.08em; text-transform: uppercase;
+    padding: 5px 11px; border-radius: 3px; cursor: pointer; transition: all .12s; white-space: nowrap;
+  }
+  .btn:hover { border-color: var(--accent); color: var(--accent); background: rgba(74,240,200,0.06); }
+  .btn.active { border-color: var(--accent); color: var(--accent); background: rgba(74,240,200,0.1); }
+  .btn.danger:hover { border-color: var(--accent3); color: var(--accent3); background: rgba(240,92,123,0.06); }
+  .btn.primary { border-color: var(--accent); color: var(--accent); }
+  .spacer { flex: 1; }
+
+  /* ═══ BODY LAYOUT ═══ */
+  #main { flex: 1; display: flex; min-height: 0; position: relative; z-index: 1; }
+
+  /* ═══ ROSTER PANEL ═══ */
+  #roster-panel {
+    width: 240px; flex-shrink: 0; border-right: 1px solid var(--border);
+    display: flex; flex-direction: column; background: var(--surface);
+  }
+  .panel-head {
+    padding: 9px 12px; border-bottom: 1px solid var(--border);
+    font-size: 9px; letter-spacing: 0.15em; text-transform: uppercase; color: var(--text-dim);
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  #roster-add {
+    padding: 8px 10px; border-bottom: 1px solid var(--border); display: flex; flex-direction: column; gap: 5px;
+  }
+  #roster-add .row { display: flex; gap: 5px; align-items: center; }
+  #roster-add input[type=text] { flex: 1; width: auto; }
+  #roster-add input[type=number] { width: 46px; }
+  input[type=color] {
+    width: 22px; height: 22px; border: 1px solid var(--border-bright); border-radius: 3px; padding: 0;
+    background: var(--surface2); cursor: pointer;
+  }
+  #roster-list { flex: 1; overflow-y: auto; padding: 6px; display: flex; flex-direction: column; gap: 4px; }
+  .person-chip {
+    display: flex; align-items: center; gap: 7px; padding: 5px 7px;
+    background: var(--surface2); border: 1px solid var(--border); border-radius: 4px;
+    cursor: grab; font-size: 10px;
+  }
+  .person-chip:hover { border-color: var(--border-bright); }
+  .person-chip.assigned { opacity: 0.45; }
+  .avatar {
+    width: 18px; height: 18px; border-radius: 50%; flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 8px; font-weight: 700; color: #0a0b0e;
+    box-shadow: 0 0 0 1px rgba(255,255,255,0.15);
+  }
+  .p-name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .p-score { font-size: 8px; color: var(--text-dim); }
+  .p-del { background: none; border: none; color: var(--text-dimmer); cursor: pointer; font-size: 11px; padding: 0 2px; line-height: 1; }
+  .p-del:hover { color: var(--accent3); }
+  #roster-import { padding: 8px 10px; border-top: 1px solid var(--border); }
+  #import-box { display: none; flex-direction: column; gap: 5px; padding: 8px 10px; border-top: 1px solid var(--border); }
+  #import-box textarea {
+    background: var(--surface2); border: 1px solid var(--border-bright); color: var(--text);
+    font-family: 'JetBrains Mono', monospace; font-size: 9px; padding: 6px; border-radius: 3px;
+    height: 70px; resize: vertical;
+  }
+  #import-box .hint2 { font-size: 8px; color: var(--text-dimmer); }
+
+  /* ═══ GRID AREA ═══ */
+  #grid-area {
+    flex: 1; display: flex; flex-direction: column; min-width: 0; position: relative;
+  }
+  #toolbar {
+    display: flex; align-items: center; gap: 7px; padding: 7px 12px; border-bottom: 1px solid var(--border);
+    flex-wrap: wrap;
+  }
+  #canvas-wrap { flex: 1; overflow: auto; display: flex; align-items: center; justify-content: center; padding: 20px; }
+  #grid {
+    display: grid; gap: 2px; background: var(--border); border: 1px solid var(--border-bright); border-radius: 4px; padding: 2px;
+    position: relative;
+  }
+  .cell {
+    background: var(--surface2); position: relative; border-radius: 2px; transition: background .08s;
+  }
+  .cell.hover-paint { outline: 1px solid var(--accent); outline-offset: -1px; }
+  .cell.occupied { cursor: pointer; }
+
+  .office-overlay {
+    position: relative; pointer-events: none; border-radius: 3px;
+    display: flex; flex-direction: column; padding: 2px 3px;
+  }
+  .office-overlay.selected { outline: 2px solid var(--accent); outline-offset: -2px; }
+  .office-label {
+    font-size: 8px; letter-spacing: 0.06em; color: rgba(255,255,255,0.85); font-weight: 600;
+    text-shadow: 0 1px 2px rgba(0,0,0,0.6); pointer-events: none; margin-bottom: 2px;
+  }
+  .avatars { display: grid; grid-template-columns: repeat(2, 1fr); gap: 1px; align-content: flex-start; justify-items: center; pointer-events: none; }
+  .avatars .avatar {
+    width: 13px; height: 13px; font-size: 6px;
+    pointer-events: auto; cursor: grab;
+  }
+  .office-warn { position: absolute; top: 2px; right: 3px; font-size: 9px; pointer-events: none; }
+
+  /* ═══ INSPECTOR ═══ */
+  #inspector {
+    width: 220px; flex-shrink: 0; border-left: 1px solid var(--border); background: var(--surface);
+    display: flex; flex-direction: column;
+  }
+  #inspector-body { padding: 10px 12px; display: flex; flex-direction: column; gap: 9px; overflow-y: auto; }
+  #inspector-empty { padding: 16px 12px; font-size: 9px; color: var(--text-dimmer); line-height: 1.6; }
+  .insp-field { display: flex; flex-direction: column; gap: 3px; }
+  .insp-field label { font-size: 8px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--text-dim); }
+  .insp-field input[type=text], .insp-field input[type=number] { width: 100%; }
+  .insp-row2 { display: flex; gap: 6px; }
+  .insp-row2 .insp-field { flex: 1; }
+  #insp-occupants { display: flex; flex-direction: column; gap: 4px; }
+  .occ-row { display: flex; align-items: center; gap: 6px; font-size: 9px; padding: 3px 5px; background: var(--surface2); border-radius: 3px; }
+  .occ-row .p-name { flex: 1; }
+
+  /* ═══ REPORT MODAL ═══ */
+  #report-overlay {
+    position: fixed; inset: 0; background: rgba(4,5,8,0.75); z-index: 500; display: none;
+    align-items: center; justify-content: center;
+  }
+  #report-overlay.show { display: flex; }
+  #report-panel {
+    width: min(920px, 92vw); max-height: 84vh; overflow-y: auto;
+    background: var(--surface); border: 1px solid var(--border-bright); border-radius: 8px;
+    box-shadow: 0 24px 60px rgba(0,0,0,0.7);
+  }
+  #report-head {
+    display: flex; align-items: center; justify-content: space-between; padding: 12px 16px;
+    border-bottom: 1px solid var(--border); position: sticky; top: 0; background: var(--surface);
+  }
+  #report-head .logo { font-size: 11px; }
+  table.report { width: 100%; border-collapse: collapse; font-size: 10px; }
+  table.report th {
+    text-align: left; padding: 7px 12px; font-size: 8px; letter-spacing: 0.1em; text-transform: uppercase;
+    color: var(--text-dim); border-bottom: 1px solid var(--border-bright);
+  }
+  table.report th.sortable { cursor: pointer; user-select: none; white-space: nowrap; }
+  table.report th.sortable:hover { color: var(--accent); }
+  table.report td { padding: 7px 12px; border-bottom: 1px solid var(--border); vertical-align: top; }
+  table.report tr:hover td { background: rgba(255,255,255,0.015); }
+  .tag { display: inline-block; font-size: 8px; padding: 1px 6px; border-radius: 8px; margin: 1px 3px 1px 0; letter-spacing: 0.04em; }
+  .tag.ok { background: rgba(74,240,200,0.1); color: var(--accent); }
+  .tag.warn { background: rgba(240,184,74,0.12); color: var(--warn); }
+  .tag.bad { background: rgba(240,92,123,0.12); color: var(--accent3); }
+  .occ-pill { display: inline-flex; align-items: center; gap: 4px; font-size: 9px; margin: 1px 4px 1px 0; }
+  #report-section-h { padding: 10px 16px 4px; font-size: 8px; letter-spacing: 0.15em; text-transform: uppercase; color: var(--text-dim); }
+  #report-unassigned { padding: 4px 16px 16px; font-size: 10px; display: flex; flex-wrap: wrap; gap: 6px; }
+
+  /* ═══ PERSON EDITOR POPOVER ═══ */
+  #person-editor {
+    position: fixed; z-index: 550; display: none;
+    background: var(--surface); border: 1px solid var(--border-bright); border-radius: 6px;
+    padding: 10px; box-shadow: 0 14px 36px rgba(0,0,0,0.7); width: 170px;
+  }
+  #person-editor.show { display: flex; flex-direction: column; gap: 7px; }
+  #person-editor .insp-field label { font-size: 8px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--text-dim); }
+  #person-editor input[type=text], #person-editor input[type=number] { width: 100%; }
+  #person-editor .pe-row { display: flex; gap: 6px; }
+  #person-editor .pe-row .btn { flex: 1; text-align: center; }
+
+  /* ═══ TOAST ═══ */
+  #toast {
+    position: fixed; bottom: 16px; left: 50%; transform: translateX(-50%) translateY(8px);
+    background: var(--surface); border: 1px solid var(--accent); color: var(--accent);
+    font-size: 10px; padding: 7px 16px; border-radius: 4px; letter-spacing: 0.05em;
+    opacity: 0; transition: opacity .2s, transform .2s; pointer-events: none; z-index: 600;
+    box-shadow: 0 8px 28px rgba(0,0,0,0.6);
+  }
+  #toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+  #hints { display: flex; gap: 12px; padding: 5px 12px; border-top: 1px solid var(--border); flex-wrap: wrap; }
+  .hint { font-size: 8px; color: var(--text-dimmer); letter-spacing: 0.03em; }
+  kbd {
+    background: var(--surface2); border: 1px solid var(--border-bright); border-radius: 2px;
+    padding: 1px 4px; font-size: 7px; color: var(--text-dim);
+  }
+
+  ::-webkit-scrollbar { width: 8px; height: 8px; }
+  ::-webkit-scrollbar-thumb { background: var(--border-bright); border-radius: 4px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+</style>
+</head>
+<body>
+
+<div id="topbar">
+  <span class="logo">Marauder's Map</span>
+  <span class="sep">·</span>
+  <div class="field">
+    <label>Rows</label>
+    <input type="number" id="in-rows" min="1" max="30" value="8">
+  </div>
+  <div class="field">
+    <label>Cols</label>
+    <input type="number" id="in-cols" min="1" max="30" value="10">
+  </div>
+  <button class="btn" id="btn-resize-grid">Apply Grid</button>
+  <span class="sep">·</span>
+  <div class="field">
+    <label>Share threshold</label>
+    <input type="number" id="in-threshold" min="0" value="7" style="width:38px">
+  </div>
+  <span class="spacer"></span>
+  <button class="btn primary" id="btn-report">Report</button>
+</div>
+
+<div id="main">
+
+  <!-- ═══ ROSTER ═══ -->
+  <div id="roster-panel">
+    <div class="panel-head">
+      <span>Roster</span>
+      <button class="btn" id="btn-toggle-import" style="padding:3px 8px;">Import</button>
+    </div>
+    <div id="roster-add">
+      <div class="row">
+        <input type="text" id="p-name" placeholder="Name">
+        <input type="color" id="p-color" value="#4af0c8">
+        <input type="number" id="p-score" placeholder="Score" value="5">
+      </div>
+      <button class="btn" id="btn-add-person">+ Add Person</button>
+    </div>
+    <div id="import-box">
+      <textarea id="import-text" placeholder="Paste roster: one per line — Name,Score,#colorHex (color optional)"></textarea>
+      <div class="hint2">Format: Name,Score[,#hexColor] — one per line</div>
+      <button class="btn" id="btn-do-import">Import Lines</button>
+    </div>
+    <div id="roster-list"></div>
+  </div>
+
+  <!-- ═══ GRID ═══ -->
+  <div id="grid-area">
+    <div id="toolbar">
+      <button class="btn" id="tool-new">+ New Office</button>
+      <button class="btn" id="tool-paint" data-tool="paint">Paint</button>
+      <button class="btn" id="tool-erase" data-tool="erase">Erase</button>
+      <button class="btn" id="tool-select" data-tool="select">Select</button>
+      <span class="sep">·</span>
+      <button class="btn danger" id="btn-clear-grid">Clear Grid</button>
+    </div>
+    <div id="canvas-wrap">
+      <div id="grid"></div>
+    </div>
+    <div id="hints">
+      <div class="hint"><kbd>New Office</kbd> then drag on grid to paint cells</div>
+      <div class="hint"><kbd>Select</kbd> then click an office to edit it</div>
+      <div class="hint">Drag roster names onto an office to assign</div>
+      <div class="hint">Drag an avatar off the grid to unassign</div>
+    </div>
+  </div>
+
+  <!-- ═══ INSPECTOR ═══ -->
+  <div id="inspector">
+    <div class="panel-head"><span>Office Inspector</span></div>
+    <div id="inspector-empty">Select an office (Select tool → click a cell) to edit its label, score capacity, and occupants.</div>
+    <div id="inspector-body" style="display:none;"></div>
+  </div>
+
+</div>
+
+<div id="report-overlay">
+  <div id="report-panel">
+    <div id="report-head">
+      <span class="logo">Occupancy Report</span>
+      <button class="btn" id="btn-close-report">Close ✕</button>
+    </div>
+    <div id="report-body"></div>
+  </div>
+</div>
+
+<div id="person-editor">
+  <div class="insp-field">
+    <label>Name</label>
+    <input type="text" id="pe-name">
+  </div>
+  <div class="insp-field">
+    <label>Score</label>
+    <input type="number" id="pe-score">
+  </div>
+  <div class="pe-row">
+    <button class="btn" id="pe-cancel">Cancel</button>
+    <button class="btn primary" id="pe-save">Save</button>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+// ══════════════════════════════════════════════════════════════════════════
+// STATE
+// ══════════════════════════════════════════════════════════════════════════
+const STORAGE_KEY = 'marauders-map-v1';
+const PALETTE = ['#4af0c8','#7b8cf0','#f0b84a','#f05c7b','#a3e635','#f97316','#38bdf8','#c084fc','#fb7185','#34d399'];
+const CAP_PER_CELL = 3; // default people-per-cell capacity
+const SCORE_CAP_PER_CELL = 10; // default score capacity per cell
+let paletteIdx = 0;
+
+let state = loadState() || {
+  rows: 8, cols: 10,
+  grid: makeEmptyGrid(8, 10),       // grid[r][c] = officeId | null
+  offices: {},                      // id -> {id,label,color,scoreCapacity}
+  roster: [],                       // {id,name,color,score}
+  assignments: {},                  // personId -> officeId
+  shareThreshold: 7,
+};
+
+function makeEmptyGrid(rows, cols) {
+  return Array.from({length: rows}, () => Array.from({length: cols}, () => null));
+}
+
+function loadState() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return null;
+    const s = JSON.parse(raw);
+    if (!s.grid || !s.offices || !s.roster) return null;
+    return s;
+  } catch { return null; }
+}
+function saveState() {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+}
+
+let selectedOfficeId = null;
+let currentTool = 'select'; // paint | erase | select
+
+document.getElementById('in-threshold').value = state.shareThreshold;
+
+// ══════════════════════════════════════════════════════════════════════════
+// UTIL
+// ══════════════════════════════════════════════════════════════════════════
+function uid(prefix) { return prefix + '_' + Math.random().toString(36).slice(2, 9); }
+function initials(name) {
+  return name.trim().split(/\s+/).map(w => w[0]).slice(0,2).join('').toUpperCase();
+}
+function contrastText(hex) {
+  const c = hex.replace('#','');
+  const r = parseInt(c.substr(0,2),16), g = parseInt(c.substr(2,2),16), b = parseInt(c.substr(4,2),16);
+  const yiq = (r*299+g*587+b*114)/1000;
+  return yiq >= 140 ? '#0a0b0e' : '#f5f7ff';
+}
+let toastT;
+function toast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.classList.add('show');
+  clearTimeout(toastT); toastT = setTimeout(() => t.classList.remove('show'), 2200);
+}
+
+function officeCells(officeId) {
+  const out = [];
+  for (let r=0;r<state.rows;r++) for (let c=0;c<state.cols;c++) if (state.grid[r][c] === officeId) out.push([r,c]);
+  return out;
+}
+function officeBBox(officeId) {
+  const cells = officeCells(officeId);
+  if (!cells.length) return null;
+  let minR=Infinity,maxR=-Infinity,minC=Infinity,maxC=-Infinity;
+  cells.forEach(([r,c]) => { minR=Math.min(minR,r); maxR=Math.max(maxR,r); minC=Math.min(minC,c); maxC=Math.max(maxC,c); });
+  return {minR,maxR,minC,maxC};
+}
+function officeCapacity(officeId) {
+  return officeCells(officeId).length * CAP_PER_CELL;
+}
+function officeScoreCapacity(office) {
+  if (office.scoreCapacity !== '' && office.scoreCapacity !== undefined && office.scoreCapacity !== null) return +office.scoreCapacity;
+  return officeCells(office.id).length * SCORE_CAP_PER_CELL;
+}
+function occupantsOf(officeId) {
+  return state.roster.filter(p => state.assignments[p.id] === officeId);
+}
+function personById(id) { return state.roster.find(p => p.id === id); }
+
+// ══════════════════════════════════════════════════════════════════════════
+// GRID RENDER
+// ══════════════════════════════════════════════════════════════════════════
+const CELL_PX = 42;
+const gridEl = document.getElementById('grid');
+
+function rebuildGridDom() {
+  gridEl.innerHTML = '';
+  gridEl.style.gridTemplateColumns = `repeat(${state.cols}, ${CELL_PX}px)`;
+  gridEl.style.gridTemplateRows = `repeat(${state.rows}, ${CELL_PX}px)`;
+
+  for (let r=0;r<state.rows;r++) {
+    for (let c=0;c<state.cols;c++) {
+      const cell = document.createElement('div');
+      cell.className = 'cell';
+      cell.dataset.r = r; cell.dataset.c = c;
+      cell.style.gridRow = r+1; cell.style.gridColumn = c+1;
+      gridEl.appendChild(cell);
+    }
+  }
+  attachGridEvents();
+  renderOfficeOverlays();
+}
+
+function renderOfficeOverlays() {
+  gridEl.querySelectorAll('.office-overlay').forEach(el => el.remove());
+  gridEl.querySelectorAll('.cell').forEach(el => {
+    el.style.background = 'var(--surface2)';
+    el.classList.remove('occupied');
+  });
+
+  Object.values(state.offices).forEach(office => {
+    const bbox = officeBBox(office.id);
+    if (!bbox) return;
+
+    // tint each cell belonging to this office
+    officeCells(office.id).forEach(([r,c]) => {
+      const cellEl = gridEl.querySelector(`.cell[data-r="${r}"][data-c="${c}"]`);
+      if (cellEl) {
+        cellEl.style.background = hexToRgba(office.color, office.shared ? 0.1 : 0.22);
+        cellEl.classList.add('occupied');
+      }
+    });
+
+    const overlay = document.createElement('div');
+    overlay.className = 'office-overlay' + (office.id === selectedOfficeId ? ' selected' : '');
+    overlay.style.gridRow = `${bbox.minR+1} / ${bbox.maxR+2}`;
+    overlay.style.gridColumn = `${bbox.minC+1} / ${bbox.maxC+2}`;
+    overlay.style.border = `1px ${office.shared ? 'dashed' : 'solid'} ${hexToRgba(office.color, 0.7)}`;
+
+    const label = document.createElement('div');
+    label.className = 'office-label';
+    label.textContent = office.label + (office.shared ? ' ⟳' : '');
+    if (office.shared) label.title = 'Shared space';
+    overlay.appendChild(label);
+
+    const avatars = document.createElement('div');
+    avatars.className = 'avatars';
+    const occ = occupantsOf(office.id);
+    occ.forEach(p => avatars.appendChild(makeAvatar(p, true)));
+    overlay.appendChild(avatars);
+
+    const warnCode = officeWarning(office, occ);
+    if (warnCode) {
+      const w = document.createElement('div');
+      w.className = 'office-warn';
+      w.textContent = warnCode === 'bad' ? '⚠' : '•';
+      w.style.color = warnCode === 'bad' ? 'var(--accent3)' : 'var(--warn)';
+      overlay.appendChild(w);
+    }
+
+    gridEl.appendChild(overlay);
+  });
+}
+
+function hexToRgba(hex, a) {
+  const c = hex.replace('#','');
+  const r = parseInt(c.substr(0,2),16), g = parseInt(c.substr(2,2),16), b = parseInt(c.substr(4,2),16);
+  return `rgba(${r},${g},${b},${a})`;
+}
+
+function makeAvatar(person, draggableOut) {
+  const av = document.createElement('div');
+  av.className = 'avatar';
+  av.style.background = person.color;
+  av.style.color = contrastText(person.color);
+  av.textContent = initials(person.name);
+  av.dataset.personId = person.id;
+  av.title = `${person.name} · score ${person.score}`;
+  if (draggableOut) {
+    av.draggable = true;
+    av.addEventListener('dragstart', e => {
+      e.dataTransfer.setData('text/plain', 'unassign:' + person.id);
+    });
+  }
+  av.addEventListener('click', e => {
+    e.stopPropagation();
+    openPersonEditor(person.id, e.clientX, e.clientY);
+  });
+  return av;
+}
+
+// ══════════════════════════════════════════════════════════════════════════
+// PERSON EDITOR POPOVER
+// ══════════════════════════════════════════════════════════════════════════
+let editingPersonId = null;
+const peEl = document.getElementById('person-editor');
+
+function openPersonEditor(personId, x, y) {
+  const person = personById(personId);
+  if (!person) return;
+  editingPersonId = personId;
+  document.getElementById('pe-name').value = person.name;
+  document.getElementById('pe-score').value = person.score;
+  peEl.classList.add('show');
+  const w = 170, h = 130;
+  const left = Math.min(x, window.innerWidth - w - 10);
+  const top = Math.min(y, window.innerHeight - h - 10);
+  peEl.style.left = Math.max(6, left) + 'px';
+  peEl.style.top = Math.max(6, top) + 'px';
+  document.getElementById('pe-name').focus();
+}
+function closePersonEditor() {
+  editingPersonId = null;
+  peEl.classList.remove('show');
+}
+document.getElementById('pe-cancel').addEventListener('click', closePersonEditor);
+document.getElementById('pe-save').addEventListener('click', () => {
+  const person = personById(editingPersonId);
+  if (!person) { closePersonEditor(); return; }
+  const name = document.getElementById('pe-name').value.trim();
+  const score = +document.getElementById('pe-score').value;
+  if (!name) { toast('Name cannot be empty'); return; }
+  person.name = name;
+  person.score = isNaN(score) ? person.score : score;
+  saveState(); renderRoster(); renderOfficeOverlays(); renderInspector();
+  closePersonEditor();
+});
+peEl.addEventListener('click', e => e.stopPropagation());
+peEl.addEventListener('keydown', e => {
+  if (e.key === 'Enter') document.getElementById('pe-save').click();
+  if (e.key === 'Escape') closePersonEditor();
+});
+document.addEventListener('click', () => { if (editingPersonId) closePersonEditor(); });
+
+// ══════════════════════════════════════════════════════════════════════════
+// WARNINGS
+// ══════════════════════════════════════════════════════════════════════════
+// returns null | 'warn' | 'bad'
+function officeWarning(office, occ) {
+  if (office.shared) return null;
+  occ = occ || occupantsOf(office.id);
+  const cap = officeCapacity(office.id);
+  const scoreCap = officeScoreCapacity(office);
+  const totalScore = occ.reduce((s,p) => s + p.score, 0);
+  let level = null;
+  if (occ.length > cap) level = 'bad';
+  if (totalScore > scoreCap) level = 'bad';
+  if (level !== 'bad' && occ.length > 1 && occ.some(p => p.score >= state.shareThreshold)) level = 'warn';
+  return level;
+}
+
+// ══════════════════════════════════════════════════════════════════════════
+// TOOLS / PAINTING
+// ══════════════════════════════════════════════════════════════════════════
+let painting = false;
+let paintAction = null; // 'paint' | 'erase'
+
+function setTool(tool) {
+  currentTool = tool;
+  document.querySelectorAll('#toolbar [data-tool]').forEach(b => b.classList.toggle('active', b.dataset.tool === tool));
+}
+setTool('select');
+
+document.getElementById('tool-paint').addEventListener('click', () => setTool('paint'));
+document.getElementById('tool-erase').addEventListener('click', () => setTool('erase'));
+document.getElementById('tool-select').addEventListener('click', () => setTool('select'));
+
+document.getElementById('tool-new').addEventListener('click', () => {
+  const id = uid('office');
+  const color = PALETTE[paletteIdx % PALETTE.length]; paletteIdx++;
+  state.offices[id] = { id, label: 'Office ' + (Object.keys(state.offices).length + 1), color, scoreCapacity: '', shared: false };
+  selectedOfficeId = id;
+  setTool('paint');
+  saveState(); renderOfficeOverlays(); renderInspector();
+  toast('New office created — drag on the grid to add cells');
+});
+
+document.getElementById('btn-clear-grid').addEventListener('click', () => {
+  if (!confirm('Clear the entire grid? This removes all offices and unassigns everyone.')) return;
+  state.grid = makeEmptyGrid(state.rows, state.cols);
+  state.offices = {};
+  state.assignments = {};
+  selectedOfficeId = null;
+  saveState(); renderOfficeOverlays(); renderInspector(); renderRoster();
+  toast('Grid cleared');
+});
+
+function attachGridEvents() {
+  gridEl.querySelectorAll('.cell').forEach(cell => {
+    cell.addEventListener('mousedown', e => {
+      if (e.button !== 0) return;
+      const r = +cell.dataset.r, c = +cell.dataset.c;
+      if (currentTool === 'paint') {
+        if (!selectedOfficeId) { toast('Click "New Office" first'); return; }
+        painting = true; paintAction = 'paint';
+        paintCell(r, c);
+      } else if (currentTool === 'erase') {
+        painting = true; paintAction = 'erase';
+        paintCell(r, c);
+      } else if (currentTool === 'select') {
+        const officeId = state.grid[r][c];
+        selectedOfficeId = officeId || null;
+        renderOfficeOverlays(); renderInspector();
+      }
+    });
+    cell.addEventListener('mouseenter', () => {
+      if (painting) {
+        const r = +cell.dataset.r, c = +cell.dataset.c;
+        paintCell(r, c);
+      }
+    });
+    cell.addEventListener('dragover', e => { e.preventDefault(); });
+    cell.addEventListener('drop', e => {
+      e.preventDefault();
+      const r = +cell.dataset.r, c = +cell.dataset.c;
+      const officeId = state.grid[r][c];
+      const data = e.dataTransfer.getData('text/plain');
+      if (!officeId) { toast('No office on this cell'); return; }
+      if (state.offices[officeId]?.shared) { toast('Shared space — cannot assign people'); return; }
+      if (data.startsWith('assign:')) {
+        const personId = data.slice(7);
+        state.assignments[personId] = officeId;
+        saveState(); renderOfficeOverlays(); renderRoster(); renderInspector();
+        toast('Assigned to ' + state.offices[officeId].label);
+      } else if (data.startsWith('unassign:')) {
+        const personId = data.slice(9);
+        state.assignments[personId] = officeId;
+        saveState(); renderOfficeOverlays(); renderRoster(); renderInspector();
+      }
+    });
+  });
+}
+
+function paintCell(r, c) {
+  if (paintAction === 'paint') {
+    if (state.grid[r][c] && state.grid[r][c] !== selectedOfficeId) return; // occupied by another office
+    state.grid[r][c] = selectedOfficeId;
+  } else if (paintAction === 'erase') {
+    const officeId = state.grid[r][c];
+    if (!officeId) return;
+    state.grid[r][c] = null;
+    // if office now has zero cells, drop it and unassign occupants
+    if (officeCells(officeId).length === 0) {
+      delete state.offices[officeId];
+      Object.keys(state.assignments).forEach(pid => { if (state.assignments[pid] === officeId) delete state.assignments[pid]; });
+      if (selectedOfficeId === officeId) selectedOfficeId = null;
+    }
+  }
+  saveState(); renderOfficeOverlays(); renderInspector(); renderRoster();
+}
+
+document.addEventListener('mouseup', () => { painting = false; paintAction = null; });
+
+// drop on the grid wrapper background (outside any office) => unassign
+document.getElementById('canvas-wrap').addEventListener('dragover', e => e.preventDefault());
+document.getElementById('canvas-wrap').addEventListener('drop', e => {
+  if (e.target.id !== 'canvas-wrap' && e.target.id !== 'grid') return;
+  const data = e.dataTransfer.getData('text/plain');
+  if (data.startsWith('unassign:')) {
+    const personId = data.slice(9);
+    delete state.assignments[personId];
+    saveState(); renderOfficeOverlays(); renderRoster();
+    toast('Unassigned');
+  }
+});
+
+// ══════════════════════════════════════════════════════════════════════════
+// GRID RESIZE
+// ══════════════════════════════════════════════════════════════════════════
+document.getElementById('btn-resize-grid').addEventListener('click', () => {
+  const rows = Math.max(1, Math.min(30, +document.getElementById('in-rows').value || 8));
+  const cols = Math.max(1, Math.min(30, +document.getElementById('in-cols').value || 8));
+  const newGrid = makeEmptyGrid(rows, cols);
+  for (let r=0;r<Math.min(rows, state.rows);r++)
+    for (let c=0;c<Math.min(cols, state.cols);c++)
+      newGrid[r][c] = state.grid[r][c];
+  // drop offices that lost all cells
+  const survivingIds = new Set();
+  for (let r=0;r<rows;r++) for (let c=0;c<cols;c++) if (newGrid[r][c]) survivingIds.add(newGrid[r][c]);
+  Object.keys(state.offices).forEach(id => { if (!survivingIds.has(id)) delete state.offices[id]; });
+  Object.keys(state.assignments).forEach(pid => {
+    if (!survivingIds.has(state.assignments[pid])) delete state.assignments[pid];
+  });
+  state.rows = rows; state.cols = cols; state.grid = newGrid;
+  if (selectedOfficeId && !survivingIds.has(selectedOfficeId)) selectedOfficeId = null;
+  saveState(); rebuildGridDom(); renderInspector(); renderRoster();
+  toast(`Grid resized to ${rows}×${cols}`);
+});
+
+document.getElementById('in-threshold').addEventListener('change', e => {
+  state.shareThreshold = +e.target.value || 0;
+  saveState(); renderOfficeOverlays();
+});
+
+// ══════════════════════════════════════════════════════════════════════════
+// INSPECTOR
+// ══════════════════════════════════════════════════════════════════════════
+function renderInspector() {
+  const empty = document.getElementById('inspector-empty');
+  const body = document.getElementById('inspector-body');
+  const office = selectedOfficeId ? state.offices[selectedOfficeId] : null;
+  if (!office) { empty.style.display = 'block'; body.style.display = 'none'; return; }
+  empty.style.display = 'none'; body.style.display = 'flex';
+
+  const cap = officeCapacity(office.id);
+  const occ = occupantsOf(office.id);
+
+  body.innerHTML = '';
+
+  const mk = (labelText, inputHtml) => {
+    const wrap = document.createElement('div'); wrap.className = 'insp-field';
+    const lbl = document.createElement('label'); lbl.textContent = labelText;
+    wrap.appendChild(lbl); wrap.insertAdjacentHTML('beforeend', inputHtml);
+    return wrap;
+  };
+
+  const labelField = mk('Label', `<input type="text" id="insp-label" value="${escapeHtml(office.label)}">`);
+  body.appendChild(labelField);
+
+  const colorRow = document.createElement('div'); colorRow.className = 'insp-field';
+  colorRow.innerHTML = `<label>Color</label>`;
+  const colorInput = document.createElement('input'); colorInput.type = 'color'; colorInput.value = office.color; colorInput.id = 'insp-color';
+  colorRow.appendChild(colorInput);
+  body.appendChild(colorRow);
+
+  const sharedRow = document.createElement('div'); sharedRow.className = 'insp-field';
+  sharedRow.style.cssText = 'flex-direction:row; align-items:center; gap:6px;';
+  const sharedCb = document.createElement('input'); sharedCb.type = 'checkbox'; sharedCb.id = 'insp-shared'; sharedCb.checked = !!office.shared;
+  sharedCb.style.cssText = 'width:auto; height:auto;';
+  const sharedLbl = document.createElement('label'); sharedLbl.textContent = 'Shared Space'; sharedLbl.setAttribute('for', 'insp-shared');
+  sharedLbl.style.cssText = 'text-transform:none; letter-spacing:normal; font-size:10px; color:var(--text);';
+  sharedRow.appendChild(sharedCb); sharedRow.appendChild(sharedLbl);
+  body.appendChild(sharedRow);
+
+  if (office.shared) {
+    const note = document.createElement('div');
+    note.style.cssText = 'font-size:9px; color:var(--text-dimmer); line-height:1.5;';
+    note.textContent = 'Shared spaces have no capacity/score tracking, cannot have people assigned, and are excluded from the report.';
+    body.appendChild(note);
+  } else {
+    const cellCount = officeCells(office.id).length;
+    const defaultScoreCap = cellCount * SCORE_CAP_PER_CELL;
+    const scoreCapField = mk('Score Capacity', `<input type="number" id="insp-score-cap" placeholder="${defaultScoreCap}" value="${office.scoreCapacity ?? ''}">`);
+    body.appendChild(scoreCapField);
+
+    const warnLevel = officeWarning(office, occ);
+    const warnTxt = warnLevel === 'bad' ? ' — ⚠ over capacity' : (warnLevel === 'warn' ? ' — high scorer sharing' : '');
+    const capInfo = document.createElement('div');
+    capInfo.className = 'insp-field';
+    capInfo.innerHTML = `<label>Capacity</label><div style="font-size:10px;color:var(--text-dim);">${occ.length} / ${cap} people (${cellCount} cell${cellCount===1?'':'s'} × ${CAP_PER_CELL})</div>`;
+    body.appendChild(capInfo);
+
+    const scoreInfo = document.createElement('div');
+    scoreInfo.className = 'insp-field';
+    const totalScore = occ.reduce((s,p) => s + p.score, 0);
+    scoreInfo.innerHTML = `<label>Score</label><div style="font-size:10px;color:var(--text-dim);">${totalScore} / ${officeScoreCapacity(office)}${warnTxt}</div>`;
+    body.appendChild(scoreInfo);
+
+    const occField = document.createElement('div'); occField.className = 'insp-field';
+    occField.innerHTML = `<label>Occupants</label>`;
+    const occList = document.createElement('div'); occList.id = 'insp-occupants';
+    if (!occ.length) {
+      const none = document.createElement('div'); none.style.cssText = 'font-size:9px;color:var(--text-dimmer);';
+      none.textContent = 'None — drag roster names here.';
+      occList.appendChild(none);
+    }
+    occ.forEach(p => {
+      const row = document.createElement('div'); row.className = 'occ-row';
+      row.appendChild(makeAvatar(p, false));
+      const nm = document.createElement('span'); nm.className = 'p-name'; nm.textContent = `${p.name} (${p.score})`;
+      row.appendChild(nm);
+      const del = document.createElement('button'); del.className = 'p-del'; del.textContent = '✕';
+      del.addEventListener('click', () => {
+        delete state.assignments[p.id];
+        saveState(); renderOfficeOverlays(); renderRoster(); renderInspector();
+      });
+      row.appendChild(del);
+      occList.appendChild(row);
+    });
+    occField.appendChild(occList);
+    body.appendChild(occField);
+  }
+
+  const delBtn = document.createElement('button');
+  delBtn.className = 'btn danger'; delBtn.textContent = 'Delete Office'; delBtn.style.marginTop = '4px';
+  delBtn.addEventListener('click', () => {
+    if (!confirm(`Delete "${office.label}"? Occupants will be unassigned.`)) return;
+    officeCells(office.id).forEach(([r,c]) => state.grid[r][c] = null);
+    delete state.offices[office.id];
+    Object.keys(state.assignments).forEach(pid => { if (state.assignments[pid] === office.id) delete state.assignments[pid]; });
+    selectedOfficeId = null;
+    saveState(); renderOfficeOverlays(); renderInspector(); renderRoster();
+    toast('Office deleted');
+  });
+  body.appendChild(delBtn);
+
+  document.getElementById('insp-label').addEventListener('change', e => {
+    office.label = e.target.value || office.label; saveState(); renderOfficeOverlays();
+  });
+  document.getElementById('insp-color').addEventListener('change', e => {
+    office.color = e.target.value; saveState(); renderOfficeOverlays();
+  });
+  document.getElementById('insp-shared').addEventListener('change', e => {
+    office.shared = e.target.checked;
+    if (office.shared) {
+      Object.keys(state.assignments).forEach(pid => { if (state.assignments[pid] === office.id) delete state.assignments[pid]; });
+    }
+    saveState(); renderOfficeOverlays(); renderInspector(); renderRoster();
+  });
+  document.getElementById('insp-score-cap')?.addEventListener('change', e => {
+    office.scoreCapacity = e.target.value === '' ? '' : +e.target.value; saveState(); renderOfficeOverlays(); renderInspector();
+  });
+}
+
+function escapeHtml(s) { return String(s).replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m])); }
+
+// ══════════════════════════════════════════════════════════════════════════
+// ROSTER
+// ══════════════════════════════════════════════════════════════════════════
+function renderRoster() {
+  const list = document.getElementById('roster-list');
+  list.innerHTML = '';
+  state.roster.slice().sort((a,b) => b.score - a.score).forEach(p => {
+    const assigned = !!state.assignments[p.id];
+    const chip = document.createElement('div');
+    chip.className = 'person-chip' + (assigned ? ' assigned' : '');
+    chip.draggable = true;
+    chip.addEventListener('dragstart', e => { e.dataTransfer.setData('text/plain', 'assign:' + p.id); });
+
+    chip.appendChild(makeAvatar(p, false));
+    const nm = document.createElement('span'); nm.className = 'p-name'; nm.textContent = p.name;
+    nm.style.cursor = 'pointer';
+    nm.addEventListener('click', e => { e.stopPropagation(); openPersonEditor(p.id, e.clientX, e.clientY); });
+    chip.appendChild(nm);
+    const sc = document.createElement('span'); sc.className = 'p-score'; sc.textContent = p.score;
+    chip.appendChild(sc);
+    if (assigned) {
+      const officeLabel = state.offices[state.assignments[p.id]]?.label || '?';
+      sc.title = 'In ' + officeLabel;
+    }
+    const del = document.createElement('button'); del.className = 'p-del'; del.textContent = '✕';
+    del.addEventListener('click', () => {
+      state.roster = state.roster.filter(x => x.id !== p.id);
+      delete state.assignments[p.id];
+      saveState(); renderRoster(); renderOfficeOverlays(); renderInspector();
+    });
+    chip.appendChild(del);
+    list.appendChild(chip);
+  });
+}
+
+document.getElementById('btn-add-person').addEventListener('click', () => {
+  const name = document.getElementById('p-name').value.trim();
+  if (!name) { toast('Enter a name'); return; }
+  const color = document.getElementById('p-color').value;
+  const score = +document.getElementById('p-score').value || 0;
+  state.roster.push({ id: uid('p'), name, color, score });
+  document.getElementById('p-name').value = '';
+  saveState(); renderRoster();
+});
+document.getElementById('p-name').addEventListener('keydown', e => { if (e.key === 'Enter') document.getElementById('btn-add-person').click(); });
+
+document.getElementById('btn-toggle-import').addEventListener('click', () => {
+  const box = document.getElementById('import-box');
+  box.style.display = box.style.display === 'flex' ? 'none' : 'flex';
+});
+document.getElementById('btn-do-import').addEventListener('click', () => {
+  const raw = document.getElementById('import-text').value;
+  const lines = raw.split('\n').map(l => l.trim()).filter(Boolean);
+  let added = 0;
+  lines.forEach(line => {
+    const parts = line.split(',').map(s => s.trim());
+    const name = parts[0]; if (!name) return;
+    const score = parts[1] !== undefined && parts[1] !== '' ? +parts[1] : 5;
+    const color = parts[2] && /^#[0-9a-fA-F]{6}$/.test(parts[2]) ? parts[2] : PALETTE[paletteIdx % PALETTE.length];
+    paletteIdx++;
+    state.roster.push({ id: uid('p'), name, color, score: isNaN(score) ? 5 : score });
+    added++;
+  });
+  document.getElementById('import-text').value = '';
+  saveState(); renderRoster();
+  toast(`Imported ${added} people`);
+});
+
+// ══════════════════════════════════════════════════════════════════════════
+// REPORT
+// ══════════════════════════════════════════════════════════════════════════
+document.getElementById('btn-report').addEventListener('click', () => {
+  renderReport();
+  document.getElementById('report-overlay').classList.add('show');
+});
+document.getElementById('btn-close-report').addEventListener('click', () => {
+  document.getElementById('report-overlay').classList.remove('show');
+});
+document.getElementById('report-overlay').addEventListener('click', e => {
+  if (e.target.id === 'report-overlay') e.currentTarget.classList.remove('show');
+});
+
+const REPORT_COLUMNS = [
+  { key: 'label',   label: 'Office' },
+  { key: 'occ',     label: 'Cells' },
+  { key: 'occNames',label: 'Occupants' },
+  { key: 'total',   label: 'Total Score' },
+  { key: 'scoreCap',label: 'Score Capacity' },
+  { key: 'delta',   label: 'Score Available' },
+  { key: 'status',  label: 'Status' },
+];
+let reportSort = { key: 'label', dir: 'asc' };
+const LEVEL_RANK = { bad: 2, warn: 1, null: 0 };
+
+function buildReportRows() {
+  return Object.values(state.offices).filter(office => !office.shared).map(office => {
+    const cap = officeCapacity(office.id);
+    const occ = occupantsOf(office.id);
+    const totalScore = occ.reduce((s,p) => s + p.score, 0);
+    const scoreCap = officeScoreCapacity(office);
+    const level = officeWarning(office, occ);
+    let tags = '';
+    if (occ.length > cap) tags += `<span class="tag bad">over capacity</span>`;
+    if (totalScore > scoreCap) tags += `<span class="tag bad">over score capacity</span>`;
+    if (level === 'warn') tags += `<span class="tag warn">high scorer sharing</span>`;
+    if (!tags) tags = `<span class="tag ok">ok</span>`;
+
+    return {
+      office, cap, occ, totalScore, scoreCap, delta: scoreCap - totalScore, tags, level,
+    };
+  });
+}
+
+function sortReportRows(rows) {
+  const { key, dir } = reportSort;
+  const mul = dir === 'asc' ? 1 : -1;
+  const sorted = rows.slice().sort((a, b) => {
+    let av, bv;
+    switch (key) {
+      case 'occ':      av = a.occ.length; bv = b.occ.length; break;
+      case 'occNames': av = a.occ.length; bv = b.occ.length; break;
+      case 'total':    av = a.totalScore; bv = b.totalScore; break;
+      case 'scoreCap': av = a.scoreCap; bv = b.scoreCap; break;
+      case 'delta':    av = a.delta; bv = b.delta; break;
+      case 'status':   av = LEVEL_RANK[a.level]; bv = LEVEL_RANK[b.level]; break;
+      case 'label':
+      default:         av = a.office.label.toLowerCase(); bv = b.office.label.toLowerCase();
+    }
+    if (av < bv) return -1 * mul;
+    if (av > bv) return 1 * mul;
+    return a.office.label.localeCompare(b.office.label);
+  });
+  return sorted;
+}
+
+function renderReport() {
+  const body = document.getElementById('report-body');
+  const rows = sortReportRows(buildReportRows());
+
+  const arrow = key => reportSort.key === key ? (reportSort.dir === 'asc' ? ' ▲' : ' ▼') : '';
+  let html = `<table class="report"><thead><tr>` +
+    REPORT_COLUMNS.map(c => `<th class="sortable" data-key="${c.key}">${c.label}${arrow(c.key)}</th>`).join('') +
+    `</tr></thead><tbody>`;
+
+  rows.forEach(({ office, cap, occ, totalScore, scoreCap, delta, tags }) => {
+    const occHtml = occ.length
+      ? occ.map(p => `<span class="occ-pill"><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${p.color};"></span>${escapeHtml(p.name)} (${p.score})</span>`).join(' ')
+      : '<span style="color:var(--text-dimmer);">empty</span>';
+    const deltaColor = delta < 0 ? 'var(--accent3)' : 'var(--text-dim)';
+
+    html += `<tr>
+      <td><span style="display:inline-block;width:8px;height:8px;border-radius:2px;background:${office.color};margin-right:5px;"></span>${escapeHtml(office.label)}</td>
+      <td>${occ.length} / ${cap}</td>
+      <td>${occHtml}</td>
+      <td>${totalScore}</td>
+      <td>${scoreCap}</td>
+      <td style="color:${deltaColor};">${delta > 0 ? '+' : ''}${delta}</td>
+      <td>${tags}</td>
+    </tr>`;
+  });
+  html += `</tbody></table>`;
+  if (!rows.length) html = `<div style="padding:20px 16px;color:var(--text-dimmer);font-size:11px;">No offices yet — use "New Office" on the grid.</div>`;
+
+  const unassigned = state.roster.filter(p => !state.assignments[p.id]);
+  html += `<div id="report-section-h">Unassigned (${unassigned.length})</div>`;
+  html += `<div id="report-unassigned">` + (unassigned.length
+    ? unassigned.map(p => `<span class="occ-pill"><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${p.color};"></span>${escapeHtml(p.name)} (${p.score})</span>`).join('')
+    : `<span style="color:var(--text-dimmer);">Everyone is assigned.</span>`) + `</div>`;
+
+  body.innerHTML = html;
+
+  body.querySelectorAll('th.sortable').forEach(th => {
+    th.addEventListener('click', () => {
+      const key = th.dataset.key;
+      if (reportSort.key === key) reportSort.dir = reportSort.dir === 'asc' ? 'desc' : 'asc';
+      else reportSort = { key, dir: 'asc' };
+      renderReport();
+    });
+  });
+}
+
+// ══════════════════════════════════════════════════════════════════════════
+// INIT
+// ══════════════════════════════════════════════════════════════════════════
+document.getElementById('in-rows').value = state.rows;
+document.getElementById('in-cols').value = state.cols;
+rebuildGridDom();
+renderRoster();
+renderInspector();
+
+</script>
+</body>
+</html>
