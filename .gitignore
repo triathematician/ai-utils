@@ -1,5 +1,6 @@
 # ── Kotlin / Gradle ──────────────────────────────────────────────────────────
 .gradle/
+.vscode/
 build/
 out/
 *.class
