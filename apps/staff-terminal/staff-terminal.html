@@ -140,7 +140,7 @@ html, body {
   grid-template-rows: 1fr 2fr;
   height: 100%;
 }
-#projects-screen {
+#projects-screen, #hiring-screen {
   display: none;
   flex-direction: column;
   height: 100%;
@@ -621,6 +621,52 @@ html, body {
 .roster-card-meta { font-size: 0.78em; color: var(--dim); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .roster-card-load { font-size: 0.78em; }
 .roster-card-load.over { color: var(--accent); font-weight: 600; }
+/* Hiring pipeline */
+#hire-toolbar {
+  border-bottom: 1px solid var(--border);
+  padding: 8px 12px 6px;
+  display: flex; align-items: baseline; gap: 16px; flex-wrap: wrap;
+  flex-shrink: 0;
+}
+#hire-title { color: var(--accent); font-size: 0.9em; letter-spacing: 2px; }
+#hire-filter {
+  background: transparent; border: 1px solid var(--border); color: var(--fg);
+  font-family: var(--font); font-size: 0.8em; padding: 1px 6px; width: 140px;
+}
+#hire-filter:focus { outline: none; border-color: var(--accent); }
+#hire-board {
+  display: grid; grid-template-columns: repeat(7, minmax(150px, 1fr));
+  flex: 1; overflow: auto; gap: 0;
+}
+.hire-col { border-right: 1px solid var(--muted); padding: 6px 8px; overflow-y: auto; min-width: 0; }
+.hire-col:last-child { border-right: none; }
+.hire-col.dragover { background: var(--muted); }
+.hire-col-head {
+  font-size: 0.72em; letter-spacing: 2px; color: var(--accent);
+  margin-bottom: 6px; padding-bottom: 3px; border-bottom: 1px solid var(--muted);
+  display: flex; justify-content: space-between;
+}
+.hire-col-head .count { color: var(--dim); }
+.hire-card {
+  border: 1px solid var(--muted); padding: 4px 8px; margin-bottom: 5px;
+  cursor: grab; font-size: 0.85em;
+}
+.hire-card:hover { border-color: var(--accent); }
+.hire-card.dragging { opacity: 0.4; }
+.hire-card.closed { color: var(--dim); }
+.hire-card-name { font-weight: 600; }
+.hire-card-meta { font-size: 0.78em; color: var(--dim); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.hire-card-foot { font-size: 0.75em; color: var(--dim); display: flex; justify-content: space-between; gap: 6px; }
+.hire-card-foot .stars { color: var(--warn); letter-spacing: 1px; }
+.hire-card { border-left-width: 4px; }
+.hire-tags { display: flex; flex-wrap: wrap; gap: 3px; margin-top: 3px; }
+.hire-tag { font-size: 0.7em; letter-spacing: 1px; padding: 0 5px; color: #000; }
+.hire-tag-toggle { cursor: pointer; opacity: 0.35; margin: 2px 4px 2px 0; display: inline-block; font-size: 0.8em; padding: 1px 8px; color: #000; }
+.hire-tag-toggle.on { opacity: 1; outline: 1px solid var(--fg); }
+.tag-row { display: flex; align-items: center; gap: 8px; margin-bottom: 5px; }
+.tag-row input[type=color] { width: 32px; height: 22px; padding: 0; border: 1px solid var(--border); background: transparent; }
+.hire-card-tag { font-size: 0.75em; letter-spacing: 1px; border: 1px solid currentColor; padding: 0 4px; }
+.hire-hist { font-size: 0.8em; color: var(--dim); margin: 0; padding-left: 14px; }
 .pct-preset-btn {
   background: transparent; border: 1px solid var(--border); color: var(--fg);
   font-family: var(--font); font-size: 0.9em; padding: 3px 10px;
@@ -752,6 +798,21 @@ html, body {
 </div>
 <!-- END projects-screen -->
 
+<!-- HIRING SCREEN -->
+<div id="hiring-screen">
+  <div id="hire-toolbar">
+    <span id="hire-title">◈ HIRING PIPELINE</span>
+    <span class="list-toggle-link" id="hire-new-btn">[+ NEW CANDIDATE]</span>
+    <span class="list-toggle-link" id="hire-tags-btn">[TAGS]</span>
+    <span class="list-toggle-link" id="hire-archive-btn">[ARCHIVED]</span>
+    <span class="list-toggle-link" id="hire-export-btn">[EXPORT CSV]</span>
+    <input id="hire-filter" type="text" placeholder="filter…">
+    <span class="list-toggle-link" id="hire-back-btn">[← BACK TO STAFF]</span>
+  </div>
+  <div id="hire-board"></div>
+</div>
+<!-- END hiring-screen -->
+
 </div>
 <!-- END screen-area -->
 
@@ -796,6 +857,19 @@ const NOTE_TYPES = ['general','meeting','performance','concern','highlight','tod
 const MILESTONE_TYPES = ['achievement','promotion','certification','other'];
 const ALIGNMENT_LEVELS = ['Very Low', 'Low', 'Med-Low', 'Medium', 'Med-High', 'High', 'Very High'];
 const PCT_PRESETS = [0, 10, 15, 20, 25, 40, 50, 75, 100];
+const HIRE_STAGES = [
+  { id: 'applied',   label: 'APPLIED' },
+  { id: 'screen',    label: 'SCREEN' },
+  { id: 'interview', label: 'INTERVIEW' },
+  { id: 'final',     label: 'FINAL' },
+  { id: 'offer',     label: 'OFFER' },
+  { id: 'hired',     label: 'HIRED' },
+];
+const HIRE_CLOSED = [
+  { id: 'rejected',  label: 'REJECTED' },
+  { id: 'withdrawn', label: 'WITHDRAWN' },
+];
+const HIRE_ALL = [...HIRE_STAGES, ...HIRE_CLOSED];
 const MILESTONE_ICONS = { achievement:'★', promotion:'▲', certification:'◆', other:'·' };
 const NOTE_TYPE_ABBR  = { general:'GEN', meeting:'MTG', performance:'PERF', concern:'⚠', highlight:'✦', todo:'TODO', role:'ROLE' };
 
@@ -823,6 +897,24 @@ function loadDB() {
   db.backlogArchive  = db.backlogArchive  || [];
   db.paStaff         = db.paStaff         || [];
   db.projects        = db.projects        || [];
+  db.candidates      = db.candidates      || [];
+  db.hireTags        = db.hireTags        || [];
+  db.hireTags.forEach(t => { t.id = t.id || uid(); t.label = t.label || ''; t.color = t.color || '#888888'; });
+  db.candidates.forEach(c => {
+    c.id      = c.id      || uid();
+    c.name    = c.name    || '';
+    c.role    = c.role    || '';
+    c.source  = c.source  || '';
+    if (c.quality == null) c.quality = c.rating || 0;   // old single rating becomes quality
+    c.fit     = c.fit     || 0;
+    c.tags    = c.tags    || [];
+    c.archived = c.archived || false;
+    delete c.email; delete c.rating;
+    c.notes   = c.notes   || '';
+    c.stage   = HIRE_ALL.some(s => s.id === c.stage) ? c.stage : 'applied';
+    c.added   = c.added   || todayStr();
+    c.history = c.history || [{ stage: c.stage, date: c.added }];
+  });
   db.checklists      = db.checklists      || [];
   db.checklists.forEach(c => {
     c.id       = c.id       || uid();
@@ -1850,6 +1942,11 @@ function handleConsoleCmd(raw) {
   if (cmd === '/checklist')  { cmdChecklist(rest); return; }
   if (cmd === '/projects')   { showScreen('projects'); return; }
   if (cmd === '/home')       { showScreen('staff'); return; }
+  if (cmd === '/hiring')     { showScreen('hiring'); return; }
+  if (cmd === '/cnew')       { openCandidateDialog(null); return; }
+  if (cmd === '/ctags')      { openHireTagsDialog(); return; }
+  if (cmd === '/carchived')  { openHireArchiveDialog(); return; }
+  if (cmd === '/cexport')    { cmdExportCandidates(); return; }
   if (cmd === '/pnew')       { openProjectDialog(null); return; }
   if (cmd === '/paddstaff')  { openPaStaffDialog(null); return; }
   if (cmd === '/proster')    { openImportRosterDialog(); return; }
@@ -3527,6 +3624,20 @@ function showHelp() {
     '  → a staff member\'s roster card shows total % across all projects,',
     '    highlighted if over 100%',
     '',
+    '── HIRING ──────────────────────────────────────────────',
+    '/hiring                  switch to the hiring pipeline screen',
+    '/cnew                    open the new-candidate dialog',
+    '/ctags                   manage candidate tags (label + color)',
+    '/carchived               list archived candidates, restore or delete them',
+    '/cexport                 download candidates as CSV (with stage history)',
+    '  → stages: Applied → Screen → Interview → Final → Offer → Hired',
+    '  → rejected / withdrawn candidates collect in the last column',
+    '  → drag a candidate card to another column to move them through the workflow',
+    '  → click a card to edit details, quality/fit scores (1-5), tags, notes, and see stage history',
+    '  → tags show as colored chips on cards; the first tag also colors the card edge',
+    '  → Archive (in the candidate dialog) hides a candidate from the board; restore via [ARCHIVED]',
+    '  → the filter box matches name, role, source, and notes',
+    '',
     '/theme [name]            switch theme  (legacy|solar|monk|space|synth|dos|notebook|engineering|winter)',
     '/help                    show this help',
   ].join('\n');
@@ -3661,8 +3772,11 @@ function showScreen(name) {
   currentScreen = name;
   document.getElementById('staff-screen').style.display = (name === 'staff') ? 'grid' : 'none';
   document.getElementById('projects-screen').style.display = (name === 'projects') ? 'flex' : 'none';
-  document.getElementById('console-prompt').textContent = (name === 'projects') ? 'PROJ>' : 'STAFF>';
+  document.getElementById('hiring-screen').style.display = (name === 'hiring') ? 'flex' : 'none';
+  document.getElementById('console-prompt').textContent =
+    (name === 'projects') ? 'PROJ>' : (name === 'hiring') ? 'HIRE>' : 'STAFF>';
   if (name === 'projects') renderProjects();
+  if (name === 'hiring') renderHiring();
   consoleInput.focus();
 }
 
@@ -4155,6 +4269,333 @@ function cmdExportProjects() {
   downloadBlob(csv, `project-alignment-${todayStr()}.csv`, 'text/csv');
   statusMsg('Exported project alignment CSV.');
 }
+
+/* ═══════════════════════════════════════════════════════════════════
+   HIRING PIPELINE
+   ═══════════════════════════════════════════════════════════════════ */
+let draggedCandId = null;
+
+function hireLabel(id) {
+  const s = HIRE_ALL.find(x => x.id === id);
+  return s ? s.label : id.toUpperCase();
+}
+
+function tagById(id) { return db.hireTags.find(t => t.id === id); }
+
+/* Black or white text, whichever contrasts better with the tag color (WCAG relative luminance) */
+function tagTextColor(hex) {
+  const m = /^#?([0-9a-f]{6})$/i.exec(hex || '');
+  if (!m) return '#000';
+  const lin = i => {
+    const v = parseInt(m[1].slice(i, i + 2), 16) / 255;
+    return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4);
+  };
+  const L = 0.2126 * lin(0) + 0.7152 * lin(2) + 0.0722 * lin(4);
+  return L > 0.179 ? '#000' : '#fff';
+}
+
+function tagStyle(t) {
+  return `background:${escHtml(t.color)};color:${tagTextColor(t.color)}`;
+}
+
+function tagChip(t) {
+  return `<span class="hire-tag" style="${tagStyle(t)}">${escHtml(t.label)}</span>`;
+}
+
+function scoreStars(n) { return n ? '★'.repeat(n) + '☆'.repeat(5 - n) : '—'; }
+
+function moveCandidate(c, stage) {
+  if (c.stage === stage) return;
+  c.stage = stage;
+  c.history.push({ stage, date: todayStr() });
+  saveDB();
+  renderHiring();
+  statusMsg(c.name + ' → ' + hireLabel(stage));
+}
+
+function renderHiring() {
+  const board = document.getElementById('hire-board');
+  const q = document.getElementById('hire-filter').value.trim().toLowerCase();
+  board.innerHTML = '';
+  const cols = [...HIRE_STAGES, { id: 'closed', label: 'CLOSED' }];
+  cols.forEach(col => {
+    const isClosed = col.id === 'closed';
+    const cands = db.candidates.filter(c =>
+      !c.archived &&
+      (isClosed ? HIRE_CLOSED.some(s => s.id === c.stage) : c.stage === col.id) &&
+      (!q || [c.name, c.role, c.source, c.notes, ...c.tags.map(id => (tagById(id) || {}).label)].join(' ').toLowerCase().includes(q)));
+    const colEl = document.createElement('div');
+    colEl.className = 'hire-col';
+    colEl.innerHTML = `<div class="hire-col-head"><span>${col.label}</span><span class="count">${cands.length}</span></div>`;
+    cands.forEach(c => {
+      const card = document.createElement('div');
+      card.className = 'hire-card' + (isClosed ? ' closed' : '');
+      card.draggable = true;
+      const days = daysSince(c.history[c.history.length - 1].date);
+      const tags = c.tags.map(tagById).filter(Boolean);
+      if (tags.length) card.style.borderLeftColor = tags[0].color;
+      card.innerHTML = `
+        <div class="hire-card-name">${escHtml(c.name)}${isClosed ? ` <span class="hire-card-tag">${hireLabel(c.stage)}</span>` : ''}</div>
+        <div class="hire-card-meta">${escHtml(c.role || '—')}${c.source ? ' · ' + escHtml(c.source) : ''}</div>
+        ${tags.length ? `<div class="hire-tags">${tags.map(tagChip).join('')}</div>` : ''}
+        <div class="hire-card-foot"><span class="stars" title="quality / fit">Q${scoreStars(c.quality)} F${scoreStars(c.fit)}</span><span>${days == null ? '' : days + 'd'}</span></div>`;
+      card.addEventListener('dragstart', e => {
+        draggedCandId = c.id;
+        card.classList.add('dragging');
+        e.dataTransfer.effectAllowed = 'move';
+        e.dataTransfer.setData('text/plain', c.id);
+      });
+      card.addEventListener('dragend', () => { card.classList.remove('dragging'); draggedCandId = null; });
+      card.addEventListener('click', () => openCandidateDialog(c));
+      colEl.appendChild(card);
+    });
+    colEl.addEventListener('dragover', e => { e.preventDefault(); colEl.classList.add('dragover'); });
+    colEl.addEventListener('dragleave', e => { if (!colEl.contains(e.relatedTarget)) colEl.classList.remove('dragover'); });
+    colEl.addEventListener('drop', e => {
+      e.preventDefault();
+      colEl.classList.remove('dragover');
+      const c = db.candidates.find(x => x.id === (e.dataTransfer.getData('text/plain') || draggedCandId));
+      if (!c) return;
+      // Dropping on CLOSED keeps an already-closed status, otherwise means rejected
+      if (isClosed) moveCandidate(c, HIRE_CLOSED.some(s => s.id === c.stage) ? c.stage : 'rejected');
+      else moveCandidate(c, col.id);
+    });
+    board.appendChild(colEl);
+  });
+}
+
+function openCandidateDialog(cand) {
+  const isNew = !cand;
+  const draft = cand ? cand : { id: null, name: '', role: '', source: '', quality: 0, fit: 0, tags: [], notes: '', stage: 'applied' };
+  let quality = draft.quality, fit = draft.fit;
+  let tagIds = [...draft.tags];
+
+  function renderDlg() {
+    const body = document.getElementById('help-body');
+    body.style.whiteSpace = 'normal';
+    const stageOpts = HIRE_ALL.map(s =>
+      `<option value="${s.id}"${draft.stage === s.id ? ' selected' : ''}>${s.label}</option>`).join('');
+    const scoreBtns = (key, cur) => [1, 2, 3, 4, 5].map(n =>
+      `<button class="pct-preset-btn${cur === n ? ' active' : ''}" data-score="${key}" data-val="${n}">${n}</button>`).join('')
+      + `<button class="pct-preset-btn" data-score="${key}" data-val="0">clear</button>`;
+    const tagToggles = db.hireTags.length
+      ? db.hireTags.map(t => `<span class="hire-tag-toggle${tagIds.includes(t.id) ? ' on' : ''}" data-tag="${t.id}" style="${tagStyle(t)}">${escHtml(t.label)}</span>`).join('')
+      : '<span style="color:var(--dim);font-size:0.8em;">No tags yet — use [TAGS] on the pipeline toolbar.</span>';
+    const hist = !isNew
+      ? `<div class="dlg-section"><div class="dlg-label">HISTORY</div><ul class="hire-hist">${
+          draft.history.map(h => `<li>${escHtml(h.date)} — ${hireLabel(h.stage)}</li>`).join('')}</ul></div>`
+      : '';
+    body.innerHTML = `
+      <div class="dlg-section" style="margin-top:0;">
+        <div class="dlg-label">NAME</div>
+        <input class="dlg-input" id="dlg-c-name" type="text" value="${escHtml(draft.name)}">
+      </div>
+      <div class="dlg-section">
+        <div class="dlg-label">ROLE APPLIED FOR</div>
+        <input class="dlg-input" id="dlg-c-role" type="text" value="${escHtml(draft.role)}">
+      </div>
+      <div class="dlg-section">
+        <div class="dlg-label">SOURCE</div>
+        <input class="dlg-input" id="dlg-c-source" type="text" value="${escHtml(draft.source)}" placeholder="e.g. referral, LinkedIn, recruiter">
+      </div>
+      <div class="dlg-section">
+        <div class="dlg-label">STAGE</div>
+        <select class="dlg-input" id="dlg-c-stage">${stageOpts}</select>
+      </div>
+      <div class="dlg-section">
+        <div class="dlg-label">QUALITY (1–5)</div>
+        <div>${scoreBtns('quality', quality)}</div>
+      </div>
+      <div class="dlg-section">
+        <div class="dlg-label">FIT (1–5)</div>
+        <div>${scoreBtns('fit', fit)}</div>
+      </div>
+      <div class="dlg-section">
+        <div class="dlg-label">TAGS</div>
+        <div>${tagToggles}</div>
+      </div>
+      <div class="dlg-section">
+        <div class="dlg-label">NOTES</div>
+        <textarea class="dlg-textarea" id="dlg-c-notes" style="min-height:70px;">${escHtml(draft.notes)}</textarea>
+      </div>
+      ${hist}
+      <div class="dlg-section" style="margin-top:14px;">
+        <button class="dlg-btn dlg-btn-primary" id="dlg-c-save">Save</button>
+        ${!isNew ? '<button class="dlg-btn" id="dlg-c-archive">Archive</button><button class="dlg-btn dlg-btn-danger" id="dlg-c-delete">Delete</button>' : ''}
+        <button class="dlg-btn" id="dlg-c-close">Cancel</button>
+      </div>`;
+
+    // Re-rendering would drop unsaved typing, so score/tag controls only toggle classes
+    body.querySelectorAll('[data-score]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const val = parseInt(btn.dataset.val, 10);
+        if (btn.dataset.score === 'quality') quality = val; else fit = val;
+        body.querySelectorAll(`[data-score="${btn.dataset.score}"]`).forEach(b =>
+          b.classList.toggle('active', val > 0 && parseInt(b.dataset.val, 10) === val));
+      });
+    });
+    body.querySelectorAll('[data-tag]').forEach(el => {
+      el.addEventListener('click', () => {
+        const id = el.dataset.tag;
+        tagIds = tagIds.includes(id) ? tagIds.filter(x => x !== id) : [...tagIds, id];
+        el.classList.toggle('on', tagIds.includes(id));
+      });
+    });
+    document.getElementById('dlg-c-save').addEventListener('click', () => {
+      const name = document.getElementById('dlg-c-name').value.trim();
+      if (!name) { statusMsg('Name cannot be empty.'); return; }
+      const stage = document.getElementById('dlg-c-stage').value;
+      draft.name   = name;
+      draft.role   = document.getElementById('dlg-c-role').value.trim();
+      draft.source = document.getElementById('dlg-c-source').value.trim();
+      draft.notes  = document.getElementById('dlg-c-notes').value.trim();
+      draft.quality = quality;
+      draft.fit = fit;
+      draft.tags = tagIds;
+      if (isNew) {
+        draft.id = uid();
+        draft.added = todayStr();
+        draft.archived = false;
+        draft.stage = stage;
+        draft.history = [{ stage, date: draft.added }];
+        db.candidates.push(draft);
+      } else if (stage !== draft.stage) {
+        draft.stage = stage;
+        draft.history.push({ stage, date: todayStr() });
+      }
+      saveDB();
+      renderHiring();
+      closeOverlay();
+      statusMsg((isNew ? 'Added candidate: ' : 'Updated: ') + draft.name);
+    });
+    if (!isNew) {
+      document.getElementById('dlg-c-archive').addEventListener('click', () => {
+        draft.archived = true;
+        saveDB();
+        renderHiring();
+        closeOverlay();
+        statusMsg('Archived: ' + draft.name);
+      });
+      document.getElementById('dlg-c-delete').addEventListener('click', () => {
+        db.candidates = db.candidates.filter(c => c.id !== draft.id);
+        saveDB();
+        renderHiring();
+        closeOverlay();
+        statusMsg('Deleted candidate: ' + draft.name);
+      });
+    }
+    document.getElementById('dlg-c-close').addEventListener('click', closeOverlay);
+  }
+
+  showOverlay(isNew ? '◈ NEW CANDIDATE' : '◈ EDIT CANDIDATE', renderDlg);
+}
+
+function openHireTagsDialog() {
+  function renderDlg() {
+    const body = document.getElementById('help-body');
+    body.style.whiteSpace = 'normal';
+    const rows = db.hireTags.map(t => `
+      <div class="tag-row" data-tid="${t.id}">
+        <input type="color" value="${escHtml(t.color)}" data-tcolor>
+        <input class="dlg-input" type="text" value="${escHtml(t.label)}" data-tlabel style="flex:1;">
+        <button class="dlg-btn dlg-btn-danger" data-tdel>×</button>
+      </div>`).join('');
+    body.innerHTML = `
+      <div class="dlg-section" style="margin-top:0;">
+        <div class="dlg-label">TAGS — label + color, assign them to candidates in the candidate dialog</div>
+        ${rows || '<div style="color:var(--dim);font-size:0.8em;">No tags yet.</div>'}
+      </div>
+      <div class="dlg-section">
+        <div class="dlg-label">NEW TAG</div>
+        <div class="tag-row">
+          <input type="color" id="dlg-t-color" value="#e0a030">
+          <input class="dlg-input" type="text" id="dlg-t-label" placeholder="label" style="flex:1;">
+          <button class="dlg-btn" id="dlg-t-add">Add</button>
+        </div>
+      </div>
+      <div class="dlg-section" style="margin-top:14px;">
+        <button class="dlg-btn dlg-btn-primary" id="dlg-t-done">Done</button>
+      </div>`;
+    const commit = () => { saveDB(); renderHiring(); };
+    body.querySelectorAll('[data-tid]').forEach(row => {
+      const t = tagById(row.dataset.tid);
+      row.querySelector('[data-tcolor]').addEventListener('input', e => { t.color = e.target.value; commit(); });
+      row.querySelector('[data-tlabel]').addEventListener('change', e => {
+        const v = e.target.value.trim();
+        if (v) { t.label = v; commit(); } else e.target.value = t.label;
+      });
+      row.querySelector('[data-tdel]').addEventListener('click', () => {
+        db.hireTags = db.hireTags.filter(x => x.id !== t.id);
+        db.candidates.forEach(c => { c.tags = c.tags.filter(id => id !== t.id); });
+        commit(); renderDlg();
+      });
+    });
+    const add = () => {
+      const label = document.getElementById('dlg-t-label').value.trim();
+      if (!label) { statusMsg('Tag needs a label.'); return; }
+      db.hireTags.push({ id: uid(), label, color: document.getElementById('dlg-t-color').value });
+      commit(); renderDlg();
+    };
+    document.getElementById('dlg-t-add').addEventListener('click', add);
+    document.getElementById('dlg-t-label').addEventListener('keydown', e => { if (e.key === 'Enter') add(); });
+    document.getElementById('dlg-t-done').addEventListener('click', closeOverlay);
+  }
+  showOverlay('◈ CANDIDATE TAGS', renderDlg);
+}
+
+function openHireArchiveDialog() {
+  function renderDlg() {
+    const body = document.getElementById('help-body');
+    body.style.whiteSpace = 'normal';
+    const arch = db.candidates.filter(c => c.archived);
+    const rows = arch.map(c => `
+      <div class="tag-row">
+        <span style="flex:1;"><b>${escHtml(c.name)}</b>
+          <span style="color:var(--dim);font-size:0.8em;">${escHtml(c.role || '—')} · ${hireLabel(c.stage)}</span></span>
+        <button class="dlg-btn" data-restore="${c.id}">Restore</button>
+        <button class="dlg-btn dlg-btn-danger" data-del="${c.id}">Delete</button>
+      </div>`).join('');
+    body.innerHTML = `
+      <div class="dlg-section" style="margin-top:0;">
+        ${rows || '<div style="color:var(--dim);">No archived candidates.</div>'}
+      </div>
+      <div class="dlg-section" style="margin-top:14px;">
+        <button class="dlg-btn" id="dlg-ar-close">Close</button>
+      </div>`;
+    body.querySelectorAll('[data-restore]').forEach(b => b.addEventListener('click', () => {
+      const c = db.candidates.find(x => x.id === b.dataset.restore);
+      c.archived = false;
+      saveDB(); renderHiring(); renderDlg();
+      statusMsg('Restored: ' + c.name);
+    }));
+    body.querySelectorAll('[data-del]').forEach(b => b.addEventListener('click', () => {
+      db.candidates = db.candidates.filter(x => x.id !== b.dataset.del);
+      saveDB(); renderDlg();
+    }));
+    document.getElementById('dlg-ar-close').addEventListener('click', closeOverlay);
+  }
+  showOverlay('◈ ARCHIVED CANDIDATES', renderDlg);
+}
+
+function cmdExportCandidates() {
+  if (!db.candidates.length) { statusMsg('No candidates to export.'); return; }
+  const rows = [['name', 'role', 'source', 'stage', 'quality', 'fit', 'tags', 'archived', 'added', 'notes', 'history']];
+  db.candidates.forEach(c => rows.push([
+    c.name, c.role, c.source, hireLabel(c.stage), c.quality || '', c.fit || '',
+    c.tags.map(id => (tagById(id) || {}).label).filter(Boolean).join('; '), c.archived ? 'yes' : '', c.added, c.notes,
+    c.history.map(h => h.date + ' ' + hireLabel(h.stage)).join('; ')
+  ]));
+  const csv = rows.map(r => r.map(csvField).join(',')).join('\r\n');
+  downloadBlob(csv, `candidates-${todayStr()}.csv`, 'text/csv');
+  statusMsg('Exported candidates CSV.');
+}
+
+document.getElementById('hire-new-btn').addEventListener('click', () => openCandidateDialog(null));
+document.getElementById('hire-tags-btn').addEventListener('click', () => openHireTagsDialog());
+document.getElementById('hire-archive-btn').addEventListener('click', () => openHireArchiveDialog());
+document.getElementById('hire-export-btn').addEventListener('click', () => cmdExportCandidates());
+document.getElementById('hire-back-btn').addEventListener('click', () => showScreen('staff'));
+document.getElementById('hire-filter').addEventListener('input', () => renderHiring());
 
 document.getElementById('proj-new-btn').addEventListener('click', () => openProjectDialog(null));
 document.getElementById('proj-addstaff-btn').addEventListener('click', () => openPaStaffDialog(null));
