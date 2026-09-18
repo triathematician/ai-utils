@@ -183,6 +183,17 @@ html, body {
   overflow: hidden;
   text-overflow: ellipsis;
 }
+#staff-checklists {
+  font-size: 0.78em;
+  margin-top: 2px;
+}
+#staff-checklists a, .staff-checklist-link {
+  color: var(--accent);
+  cursor: pointer;
+  text-decoration: none;
+  margin-right: 12px;
+}
+#staff-checklists a:hover, .staff-checklist-link:hover { text-decoration: underline; }
 #staff-highlights {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
@@ -683,6 +694,7 @@ html, body {
     <div class="row-header" id="top-header">◈ STAFF SUMMARY</div>
     <div id="staff-name" class="empty">NO STAFF LOADED — use /new or /load [name]</div>
     <div id="staff-meta"></div>
+    <div id="staff-checklists"></div>
     <div id="staff-highlights">
       <div class="highlight-card" id="hc-note">
         <span class="hc-label">◈ LAST NOTE</span>
@@ -793,6 +805,8 @@ const NOTE_TYPE_ABBR  = { general:'GEN', meeting:'MTG', performance:'PERF', conc
 let db = {};
 let activeNoteType = 'general';
 let viewingLdpYear = null;   // null = current year
+let activeChecklistId = null;
+let checklistDialogIdx = 0;
 
 /* ═══════════════════════════════════════════════════════════════════
    STORAGE
@@ -809,6 +823,16 @@ function loadDB() {
   db.backlogArchive  = db.backlogArchive  || [];
   db.paStaff         = db.paStaff         || [];
   db.projects        = db.projects        || [];
+  db.checklists      = db.checklists      || [];
+  db.checklists.forEach(c => {
+    c.id       = c.id       || uid();
+    c.year     = c.year     || currentYear();
+    c.name     = c.name     || '';
+    c.items    = c.items    || [];
+    c.staffIds = c.staffIds || [];
+    c.progress = c.progress || {};
+    c.items.forEach(it => { it.id = it.id || uid(); });
+  });
   db.paStaff.forEach(p => {
     p.id             = p.id             || uid();
     p.name           = p.name           || '';
@@ -1038,6 +1062,7 @@ function renderTopRow() {
     nameEl.textContent = 'NO STAFF LOADED — use /new or /load [name]';
     metaEl.textContent = '';
     hdrEl.textContent = '◈ STAFF SUMMARY';
+    document.getElementById('staff-checklists').innerHTML = '';
     setHighlightCard('hc-note',       '◈ LAST NOTES',      '—', true);
     setHighlightCard('hc-goals',      '◈ LDP GOALS',       '—', true);
     setHighlightCard('hc-milestones', '◈ MILESTONES',      '—', true);
@@ -1052,6 +1077,30 @@ function renderTopRow() {
   const yoe = yearsOfExperience(s.profStart);
   const exp = yoe !== null ? ' | exp: ' + yoe + 'yr' : '';
   metaEl.textContent = meta.join(' | ') + tenure + exp;
+
+  // Checklist links — any checklist this staff member is tagged on
+  const clEl = document.getElementById('staff-checklists');
+  const taggedChecklists = db.checklists.filter(c => c.staffIds.includes(s.id));
+  if (!taggedChecklists.length) {
+    clEl.innerHTML = '';
+  } else {
+    clEl.innerHTML = taggedChecklists
+      .sort((a, b) => b.year - a.year)
+      .map(c => {
+        const prog = c.progress[s.id] || {};
+        const done = c.items.filter(it => prog[it.id]).length;
+        return `<span class="staff-checklist-link" data-checklist-id="${escHtml(c.id)}">◈ ${escHtml(c.name)} (${done}/${c.items.length})</span>`;
+      }).join('');
+    clEl.querySelectorAll('[data-checklist-id]').forEach(el => {
+      el.addEventListener('click', () => {
+        const c = db.checklists.find(x => x.id === el.dataset.checklistId);
+        if (!c) return;
+        activeChecklistId = c.id;
+        const idx = c.staffIds.indexOf(s.id);
+        openChecklistDialog(c.id, idx >= 0 ? idx : 0);
+      });
+    });
+  }
 
   // Header: show LDP year + theme if present
   const yr = getViewYear();
@@ -1743,6 +1792,7 @@ document.getElementById('boot-input').addEventListener('keydown', e => {
   if (walkState.seq === 'STAFF_SETUP')  { handleStaffSetupInput(inp); return; }
   if (walkState.seq === 'LDP_BUILDER')  { handleLdpBuilderInput(inp); return; }
   if (walkState.seq === 'HIGHLIGHTS')   { handleHighlightsInput(inp); return; }
+  if (walkState.seq === 'CHECKLIST_BUILDER') { handleChecklistBuilderInput(inp); return; }
 });
 
 /* ═══════════════════════════════════════════════════════════════════
@@ -1797,6 +1847,7 @@ function handleConsoleCmd(raw) {
   if (cmd === '/profstart')  { cmdProfStart(); return; }
   if (cmd === '/stats')      { cmdStats(rest); return; }
   if (cmd === '/backlog')    { handleBacklog(rest); return; }
+  if (cmd === '/checklist')  { cmdChecklist(rest); return; }
   if (cmd === '/projects')   { showScreen('projects'); return; }
   if (cmd === '/home')       { showScreen('staff'); return; }
   if (cmd === '/pnew')       { openProjectDialog(null); return; }
@@ -2851,6 +2902,310 @@ function showLdpView(s, ldp) {
   });
 }
 
+/* ═══════════════════════════════════════════════════════════════════
+   CHECKLISTS (/checklist) — season-level item × staff coverage
+   ═══════════════════════════════════════════════════════════════════ */
+function cmdChecklist(arg) {
+  const parts = (arg || '').trim().split(/\s+/);
+  const sub   = parts[0] || '';
+  const rest  = parts.slice(1).join(' ');
+
+  if (!arg) { showChecklistList(); return; }
+  if (sub === 'new')    { startChecklistBuilder(rest); return; }
+  if (sub === 'items')  { addChecklistItem(rest); return; }
+  if (sub === 'staff')  { addChecklistStaff(rest); return; }
+  if (sub === 'go')     { openChecklistByName(rest); return; }
+  if (sub === 'delete') { deleteChecklist(rest); return; }
+  if (sub === 'list')   { showChecklistList(); return; }
+  if (sub === 'summary') { openChecklistSummaryByName(rest); return; }
+
+  statusMsg('Usage: /checklist  |  /checklist new <name>  |  /checklist go <name>  |  /checklist summary <name>  |  /checklist items <text>  |  /checklist staff <name>  |  /checklist delete <name>');
+}
+
+function getActiveChecklist() {
+  return db.checklists.find(c => c.id === activeChecklistId) || null;
+}
+
+function findChecklistByName(name) {
+  if (!name) return getActiveChecklist();
+  const matches = db.checklists.filter(c => c.name.toLowerCase().includes(name.toLowerCase()));
+  if (!matches.length) { statusMsg('No checklist found matching "' + name + '"'); return null; }
+  if (matches.length > 1) { statusMsg('Multiple matches: ' + matches.map(c => c.name).join(', ') + ' — be more specific'); return null; }
+  return matches[0];
+}
+
+/* ─── /checklist new ─── */
+function startChecklistBuilder(name) {
+  if (!name) { statusMsg('Usage: /checklist new <name>'); return; }
+
+  walkState = {
+    seq: 'CHECKLIST_BUILDER',
+    phase: 0,
+    draft: { name: name, year: currentYear(), items: [], staffIds: [] }
+  };
+  clearBootLog();
+  showBootOverlay();
+  bootLog('sep', '════════════════════════════════════════════════════');
+  bootLog('sys', 'CHECKLIST BUILDER — ' + name);
+  bootLog('sep', '════════════════════════════════════════════════════');
+  advanceChecklistBuilder();
+}
+
+function advanceChecklistBuilder() {
+  const w = walkState;
+
+  if (w.phase === 0) {
+    bootLog('ask', '1. What year/season is this checklist for? (default: ' + currentYear() + ')');
+    return;
+  }
+  if (w.phase === 1) {
+    bootLog('sep', '──────────────────────────────────────────────────');
+    bootLog('ask', '2. Add a checklist item (or /done to finish):');
+    return;
+  }
+  if (w.phase === 2) {
+    bootLog('sep', '──────────────────────────────────────────────────');
+    bootLog('ask', '3. Tag a staff member by name (or /done to finish):');
+    return;
+  }
+
+  // Save checklist
+  const checklist = {
+    id: uid(),
+    year: w.draft.year,
+    name: w.draft.name,
+    items: w.draft.items,
+    staffIds: w.draft.staffIds,
+    progress: {}
+  };
+  db.checklists.push(checklist);
+  activeChecklistId = checklist.id;
+  checklistDialogIdx = 0;
+  saveDB();
+  bootLog('info', '✓ Checklist saved: ' + checklist.items.length + ' item(s), ' + checklist.staffIds.length + ' staff for ' + checklist.year + '.');
+  bootLog('sep', '════════════════════════════════════════════════════');
+  setTimeout(() => {
+    hideBootOverlay();
+    render();
+    if (checklist.staffIds.length) openChecklistDialog(checklist.id, 0);
+  }, 900);
+}
+
+function handleChecklistBuilderInput(inp) {
+  const w = walkState;
+  const low = inp.toLowerCase().trim();
+  bootLog('ans', '> ' + (inp || '(skip)'));
+
+  if (w.phase === 0) {
+    const yr = parseInt(inp.trim());
+    w.draft.year = (!isNaN(yr) && yr > 2000 && yr < 2100) ? yr : currentYear();
+    bootLog('info', '  → Year: ' + w.draft.year);
+    w.phase = 1; advanceChecklistBuilder(); return;
+  }
+
+  if (w.phase === 1) {
+    if (low === '/done' || low === '/next') {
+      w.phase = 2; advanceChecklistBuilder(); return;
+    }
+    if (!inp.trim()) { bootLog('warn', '  Enter an item or /done to finish.'); return; }
+    w.draft.items.push({ id: uid(), text: inp.trim() });
+    bootLog('info', '  → Item: "' + inp.trim() + '"');
+    return;
+  }
+
+  if (w.phase === 2) {
+    if (low === '/done' || low === '/next') {
+      w.phase = 3; advanceChecklistBuilder(); return;
+    }
+    if (!inp.trim()) { bootLog('warn', '  Enter a name or /done to finish.'); return; }
+    const matches = db.staff.filter(s => !s.archived && s.name.toLowerCase().includes(inp.trim().toLowerCase()));
+    if (!matches.length) { bootLog('warn', '  No staff found matching "' + inp.trim() + '"'); return; }
+    if (matches.length > 1) { bootLog('warn', '  Multiple matches: ' + matches.map(s => s.name).join(', ') + ' — be more specific'); return; }
+    if (w.draft.staffIds.includes(matches[0].id)) { bootLog('warn', '  ' + matches[0].name + ' already tagged.'); return; }
+    w.draft.staffIds.push(matches[0].id);
+    bootLog('info', '  → Tagged: ' + matches[0].name);
+    return;
+  }
+}
+
+/* ─── /checklist items / staff — append to active checklist ─── */
+function addChecklistItem(text) {
+  const c = getActiveChecklist();
+  if (!c) { statusMsg('No active checklist. Use /checklist new <name> or /checklist go <name>.'); return; }
+  if (!text) { statusMsg('Usage: /checklist items <text>'); return; }
+  c.items.push({ id: uid(), text: text });
+  saveDB();
+  statusMsg('Item added to "' + c.name + '": "' + text + '"');
+}
+
+function addChecklistStaff(name) {
+  const c = getActiveChecklist();
+  if (!c) { statusMsg('No active checklist. Use /checklist new <name> or /checklist go <name>.'); return; }
+  if (!name) { statusMsg('Usage: /checklist staff <name>'); return; }
+  const matches = db.staff.filter(s => !s.archived && s.name.toLowerCase().includes(name.toLowerCase()));
+  if (!matches.length) { statusMsg('No staff found matching "' + name + '"'); return; }
+  if (matches.length > 1) { statusMsg('Multiple matches: ' + matches.map(s => s.name).join(', ') + ' — be more specific'); return; }
+  if (c.staffIds.includes(matches[0].id)) { statusMsg(matches[0].name + ' already tagged.'); return; }
+  c.staffIds.push(matches[0].id);
+  saveDB();
+  statusMsg('Tagged ' + matches[0].name + ' to "' + c.name + '"');
+}
+
+/* ─── /checklist  (list) ─── */
+function showChecklistList() {
+  if (!db.checklists.length) { statusMsg('No checklists yet. Use /checklist new <name>.'); return; }
+  showOverlay('◈ CHECKLISTS', () => {
+    const body = document.getElementById('help-body');
+    body.style.whiteSpace = 'normal';
+    body.innerHTML = [...db.checklists].sort((a, b) => b.year - a.year).map(c => {
+      const doneStaff = c.staffIds.filter(sid => c.items.length && c.items.every(it => c.progress[sid] && c.progress[sid][it.id])).length;
+      return `<div class="list-card" data-checklist-id="${escHtml(c.id)}" style="cursor:pointer;padding:6px 0;border-bottom:1px solid var(--muted);">
+        <span style="color:var(--accent);">${escHtml(c.name)}</span>
+        <span style="color:var(--dim);font-size:0.82em;"> — ${c.year} — ${c.items.length} item(s), ${doneStaff}/${c.staffIds.length} staff fully covered</span>
+        <span data-checklist-summary="${escHtml(c.id)}" style="float:right;color:var(--dim);font-size:0.8em;cursor:pointer;margin-left:10px;">[SUMMARY]</span>
+        <span data-checklist-del="${escHtml(c.id)}" style="float:right;color:var(--dim);font-size:0.8em;cursor:pointer;">[DELETE]</span>
+      </div>`;
+    }).join('');
+    body.querySelectorAll('[data-checklist-id]').forEach(el => {
+      el.addEventListener('click', e => {
+        if (e.target.closest('[data-checklist-del]') || e.target.closest('[data-checklist-summary]')) return;
+        const id = el.dataset.checklistId;
+        activeChecklistId = id;
+        checklistDialogIdx = 0;
+        openChecklistDialog(id, 0);
+      });
+    });
+    body.querySelectorAll('[data-checklist-summary]').forEach(el => {
+      el.addEventListener('click', e => {
+        e.stopPropagation();
+        activeChecklistId = el.dataset.checklistSummary;
+        showChecklistSummary(el.dataset.checklistSummary);
+      });
+    });
+    body.querySelectorAll('[data-checklist-del]').forEach(el => {
+      el.addEventListener('click', e => {
+        e.stopPropagation();
+        const id = el.dataset.checklistDel;
+        db.checklists = db.checklists.filter(x => x.id !== id);
+        if (activeChecklistId === id) activeChecklistId = null;
+        saveDB();
+        showChecklistList();
+      });
+    });
+  });
+}
+
+function openChecklistSummaryByName(name) {
+  const c = findChecklistByName(name);
+  if (!c) return;
+  activeChecklistId = c.id;
+  showChecklistSummary(c.id);
+}
+
+function showChecklistSummary(checklistId) {
+  const c = db.checklists.find(x => x.id === checklistId);
+  if (!c) return;
+  const n = c.staffIds.length;
+
+  showOverlay(`◈ ${c.name.toUpperCase()} — SUMMARY (${n} staff)`, () => {
+    const body = document.getElementById('help-body');
+    body.style.whiteSpace = 'normal';
+
+    if (!n || !c.items.length) {
+      body.innerHTML = `<div style="color:var(--dim);">Add items and tag staff to see coverage here.</div>`;
+      return;
+    }
+
+    body.innerHTML = c.items.map(it => {
+      const doneCount = c.staffIds.filter(sid => c.progress[sid] && c.progress[sid][it.id]).length;
+      const pct = Math.round((doneCount / n) * 100);
+      return `<div style="padding:6px 0;">
+        <div style="display:flex;justify-content:space-between;font-size:0.85em;margin-bottom:3px;">
+          <span>${escHtml(it.text)}</span>
+          <span style="color:var(--dim);">${doneCount}/${n} (${pct}%)</span>
+        </div>
+        <div style="background:var(--muted);height:8px;width:100%;">
+          <div style="background:var(--accent);height:8px;width:${pct}%;"></div>
+        </div>
+      </div>`;
+    }).join('') + `
+      <div style="margin-top:12px;border-top:1px solid var(--muted);padding-top:8px;">
+        <span class="staff-checklist-link" data-open-dialog="1">◈ OPEN PER-STAFF VIEW</span>
+      </div>`;
+
+    const openLink = body.querySelector('[data-open-dialog]');
+    if (openLink) openLink.addEventListener('click', () => openChecklistDialog(c.id, 0));
+  });
+}
+
+function openChecklistByName(name) {
+  const c = findChecklistByName(name);
+  if (!c) return;
+  activeChecklistId = c.id;
+  checklistDialogIdx = 0;
+  openChecklistDialog(c.id, 0);
+}
+
+function deleteChecklist(name) {
+  const c = findChecklistByName(name);
+  if (!c) return;
+  db.checklists = db.checklists.filter(x => x.id !== c.id);
+  if (activeChecklistId === c.id) activeChecklistId = null;
+  saveDB();
+  statusMsg('Deleted checklist "' + c.name + '"');
+}
+
+/* ─── per-staff rotating dialog ─── */
+function openChecklistDialog(checklistId, idx) {
+  const c = db.checklists.find(x => x.id === checklistId);
+  if (!c) return;
+  if (!c.staffIds.length) { statusMsg('No staff tagged on "' + c.name + '". Use /checklist staff <name>.'); return; }
+  if (!c.items.length) { statusMsg('No items on "' + c.name + '". Use /checklist items <text>.'); return; }
+
+  const n = c.staffIds.length;
+  checklistDialogIdx = ((idx % n) + n) % n;
+  const staffId = c.staffIds[checklistDialogIdx];
+  const staff = db.staff.find(s => s.id === staffId);
+  const staffName = staff ? staff.name : '(deleted staff)';
+
+  c.progress[staffId] = c.progress[staffId] || {};
+  const doneCount = c.items.filter(it => c.progress[staffId][it.id]).length;
+
+  showOverlay(`◈ ${c.name.toUpperCase()} — ${staffName} (${checklistDialogIdx + 1}/${n})`, () => {
+    const body = document.getElementById('help-body');
+    body.style.whiteSpace = 'normal';
+    body.innerHTML = `
+      <div style="color:var(--dim);font-size:0.82em;margin-bottom:8px;">${doneCount}/${c.items.length} items done</div>
+      ${c.items.map(it => {
+        const done = !!c.progress[staffId][it.id];
+        return `<div style="padding:3px 0">
+          <span data-item-id="${escHtml(it.id)}" style="cursor:pointer;user-select:none;color:var(--accent)">${done ? '[x]' : '[ ]'}</span>
+          ${escHtml(it.text)}
+        </div>`;
+      }).join('')}
+      <div style="margin-top:12px;border-top:1px solid var(--muted);padding-top:8px;display:flex;justify-content:space-between;">
+        <span data-nav="prev" style="cursor:pointer;color:var(--dim);">◂ PREV</span>
+        <span data-nav="summary" style="cursor:pointer;color:var(--dim);">[SUMMARY]</span>
+        <span data-nav="next" style="cursor:pointer;color:var(--dim);">NEXT ▸</span>
+      </div>`;
+
+    body.querySelectorAll('[data-item-id]').forEach(el => {
+      el.addEventListener('click', () => {
+        const itemId = el.dataset.itemId;
+        c.progress[staffId][itemId] = !c.progress[staffId][itemId];
+        saveDB();
+        openChecklistDialog(checklistId, checklistDialogIdx);
+      });
+    });
+    const prevEl = body.querySelector('[data-nav="prev"]');
+    const nextEl = body.querySelector('[data-nav="next"]');
+    const summaryEl = body.querySelector('[data-nav="summary"]');
+    if (prevEl) prevEl.addEventListener('click', () => openChecklistDialog(checklistId, checklistDialogIdx - 1));
+    if (nextEl) nextEl.addEventListener('click', () => openChecklistDialog(checklistId, checklistDialogIdx + 1));
+    if (summaryEl) summaryEl.addEventListener('click', () => showChecklistSummary(checklistId));
+  });
+}
+
 /* ─── /export ─── */
 function cmdExport() {
   const s = getActiveStaff();
@@ -3131,6 +3486,19 @@ function showHelp() {
     '/stats exclude <name>    hide a staff member from stats (partial name match)',
     '/stats include <name>    re-include a previously excluded staff member',
     '  → excluded staff also show at the bottom of the /stats dialog with an INCLUDE link',
+    '',
+    '── CHECKLISTS ──────────────────────────────────────────',
+    '/checklist                    list checklists, click one to open the coverage dialog',
+    '/checklist new <name>         start checklist builder walkthrough (year, items, tagged staff)',
+    '/checklist go <name>          jump straight to a checklist\'s per-staff dialog',
+    '/checklist summary <name>     show % completion bars per item, across all tagged staff',
+    '/checklist items <text>       add an item to the active checklist',
+    '/checklist staff <name>       tag a staff member to the active checklist',
+    '/checklist delete <name>      delete a checklist',
+    '  → the dialog shows one staff member at a time with checkable items;',
+    '    use PREV/NEXT to rotate through everyone tagged for that season',
+    '  → [SUMMARY] link (in the list or the dialog) shows completion bars per item',
+    '  → tagged staff show a ◈ checklist link with count under their name on the staff page',
     '',
     '── STANDARD ───────────────────────────────────────────',
     '/backlog <text>          add backlog item',
