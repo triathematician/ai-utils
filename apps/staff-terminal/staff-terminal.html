@@ -140,7 +140,7 @@ html, body {
   grid-template-rows: 1fr 2fr;
   height: 100%;
 }
-#projects-screen, #hiring-screen {
+#projects-screen, #hiring-screen, #staffing-screen {
   display: none;
   flex-direction: column;
   height: 100%;
@@ -183,10 +183,11 @@ html, body {
   overflow: hidden;
   text-overflow: ellipsis;
 }
-#staff-checklists {
+#staff-checklists, #staff-sheet-links {
   font-size: 0.78em;
   margin-top: 2px;
 }
+#staff-sheet-links:empty, #staff-checklists:empty { display: none; }
 #staff-checklists a, .staff-checklist-link {
   color: var(--accent);
   cursor: pointer;
@@ -520,6 +521,7 @@ html, body {
 .action-text.done { text-decoration: line-through; color: var(--dim); }
 .action-del { cursor: pointer; color: var(--dim); flex-shrink: 0; font-size: 0.8em; }
 .action-del:hover { color: var(--accent); }
+.armed { background: var(--accent) !important; color: var(--bg) !important; border-color: var(--accent) !important; }
 .profile-section {
   font-size: 0.78em; padding: 4px 0 6px; border-bottom: 1px solid var(--muted);
   margin-bottom: 6px; cursor: pointer;
@@ -706,6 +708,64 @@ html, body {
   font-size: 0.78em; letter-spacing: 1px; color: var(--dim); cursor: pointer;
 }
 .list-toggle-link:hover { color: var(--accent); }
+
+/* ═══════════════════════════════════════════════
+   STAFFING SHEETS SCREEN
+   ═══════════════════════════════════════════════ */
+#sheet-toolbar {
+  border-bottom: 1px solid var(--border);
+  padding: 8px 12px 6px;
+  display: flex; align-items: baseline; gap: 16px; flex-wrap: wrap;
+  flex-shrink: 0;
+}
+#sheet-title { color: var(--accent); font-size: 0.9em; letter-spacing: 2px; }
+#sheet-filter {
+  background: transparent; border: 1px solid var(--border); color: var(--fg);
+  font-family: var(--font); font-size: 0.8em; padding: 1px 6px; width: 140px;
+}
+#sheet-filter:focus { outline: none; border-color: var(--accent); }
+#sheet-tabs { padding: 6px 12px 0; flex-shrink: 0; }
+#sheet-hint { font-size: 0.7em; color: var(--dim); padding: 2px 12px 4px; flex-shrink: 0; }
+#sheet-body { flex: 1; overflow: auto; padding: 0 12px 8px; }
+.sheet-table { border-collapse: separate; border-spacing: 0; font-size: 0.72em; }
+.sheet-table th, .sheet-table td {
+  border-bottom: 1px solid var(--muted); border-right: 1px solid var(--muted);
+  padding: 2px 6px; white-space: nowrap; max-width: 260px;
+  overflow: hidden; text-overflow: ellipsis; text-align: left; vertical-align: top;
+}
+.sheet-table th {
+  position: sticky; top: 0; z-index: 2; background: var(--bg);
+  color: var(--dim); letter-spacing: 1px; cursor: pointer; font-weight: 400;
+  border-bottom: 1px solid var(--border);
+}
+.sheet-table th:hover { color: var(--accent); }
+.sheet-table th.tagged { color: var(--accent); }
+.sheet-table th:first-child, .sheet-table td:first-child {
+  position: sticky; left: 0; z-index: 1; background: var(--bg); font-weight: 600;
+}
+.sheet-table th:first-child { z-index: 3; cursor: default; }
+.sheet-table tbody tr { cursor: pointer; }
+.sheet-table tbody tr:hover td { color: var(--accent); }
+.sheet-table tr.hl td { background: var(--muted); }
+.sheet-table td.unlinked { color: var(--warn); }
+.match-table { width: 100%; border-collapse: collapse; font-size: 0.82em; }
+.match-table td { padding: 2px 6px; border-bottom: 1px solid var(--muted); vertical-align: middle; }
+.match-table select { width: 100%; }
+.match-status { font-size: 0.8em; letter-spacing: 1px; white-space: nowrap; }
+.match-status.ok { color: var(--success); }
+.match-status.similar { color: var(--warn); }
+.match-status.new { color: var(--cat-5); }
+.match-status.skip { color: var(--dim); }
+.match-status.dupe { color: var(--accent); }
+.kv-row { display: flex; gap: 10px; padding: 2px 0; border-bottom: 1px solid var(--muted); font-size: 0.85em; }
+.kv-key { flex: 0 0 34%; color: var(--dim); }
+.kv-key.tagged { color: var(--accent); }
+.kv-val { flex: 1; white-space: pre-wrap; word-break: break-word; }
+.staffing-notes {
+  font-size: 0.78em; padding: 4px 0 6px; border-bottom: 1px solid var(--muted); margin-bottom: 6px;
+}
+.staffing-notes .kv-row { font-size: 1em; padding: 1px 0; }
+.staffing-notes .kv-key { flex-basis: 45%; }
 </style>
 </head>
 <body>
@@ -741,6 +801,7 @@ html, body {
     <div id="staff-name" class="empty">NO STAFF LOADED — use /new or /load [name]</div>
     <div id="staff-meta"></div>
     <div id="staff-checklists"></div>
+    <div id="staff-sheet-links"></div>
     <div id="staff-highlights">
       <div class="highlight-card" id="hc-note">
         <span class="hc-label">◈ LAST NOTE</span>
@@ -812,6 +873,22 @@ html, body {
   <div id="hire-board"></div>
 </div>
 <!-- END hiring-screen -->
+
+<!-- STAFFING SHEETS SCREEN -->
+<div id="staffing-screen">
+  <div id="sheet-toolbar">
+    <span id="sheet-title">◈ STAFFING SHEETS</span>
+    <span class="list-toggle-link" id="sheet-import-btn">[+ IMPORT SHEET]</span>
+    <span class="list-toggle-link" id="sheet-copy-btn">[COPY TO STAFF RECORDS]</span>
+    <span class="list-toggle-link" id="sheet-delete-btn">[DELETE SHEET]</span>
+    <input id="sheet-filter" type="text" placeholder="filter…">
+    <span class="list-toggle-link" id="sheet-back-btn">[← BACK TO STAFF]</span>
+  </div>
+  <div id="sheet-tabs"></div>
+  <div id="sheet-hint"></div>
+  <div id="sheet-body"></div>
+</div>
+<!-- END staffing-screen -->
 
 </div>
 <!-- END screen-area -->
@@ -915,6 +992,17 @@ function loadDB() {
     c.added   = c.added   || todayStr();
     c.history = c.history || [{ stage: c.stage, date: c.added }];
   });
+  db.staffingSheets  = db.staffingSheets  || [];
+  db.staffingTags    = db.staffingTags    || [];   // normalized column names shown in Staffing Notes
+  db.staffingSheets.forEach(sh => {
+    sh.id         = sh.id         || uid();
+    sh.label      = sh.label      || '';
+    sh.importedAt = sh.importedAt || nowIso();
+    sh.columns    = sh.columns    || [];
+    sh.nameCol    = sh.nameCol    || sh.columns[0] || '';
+    sh.rows       = sh.rows       || [];
+    sh.rows.forEach(r => { r.staffId = r.staffId || null; r.values = r.values || {}; });
+  });
   db.checklists      = db.checklists      || [];
   db.checklists.forEach(c => {
     c.id       = c.id       || uid();
@@ -1001,8 +1089,24 @@ function uid() {
   return Date.now() + '_' + Math.random().toString(36).slice(2, 7);
 }
 
+/* Local calendar date (YYYY-MM-DD) — toISOString() would give the UTC date,
+   which is already "tomorrow" on US evenings. */
+function localDateStr(d) {
+  return [
+    d.getFullYear(),
+    String(d.getMonth() + 1).padStart(2, '0'),
+    String(d.getDate()).padStart(2, '0')
+  ].join('-');
+}
+
 function todayStr() {
-  return new Date().toISOString().slice(0, 10);
+  return localDateStr(new Date());
+}
+
+/* Parse a date string; date-only strings are treated as local midnight, not UTC */
+function parseLocalDate(dateStr) {
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(dateStr);
+  return m ? new Date(+m[1], +m[2] - 1, +m[3]) : new Date(dateStr);
 }
 
 function nowIso() {
@@ -1039,7 +1143,7 @@ function escHtml(s) {
 
 function daysSince(dateStr) {
   if (!dateStr) return null;
-  const diff = Date.now() - new Date(dateStr).getTime();
+  const diff = Date.now() - parseLocalDate(dateStr).getTime();
   return Math.floor(diff / 86400000);
 }
 
@@ -1084,6 +1188,24 @@ function getViewYear() {
   return viewingLdpYear || currentYear();
 }
 
+/* Two-click delete: first click arms the control (label → prompt), a second
+   click within 3s runs onConfirm; otherwise it quietly disarms. */
+function armConfirm(el, onConfirm, prompt) {
+  el.addEventListener('click', e => {
+    e.stopPropagation();
+    if (el.dataset.armed) { onConfirm(); return; }
+    const orig = el.textContent;
+    el.dataset.armed = '1';
+    el.textContent = prompt || 'CONFIRM?';
+    el.classList.add('armed');
+    setTimeout(() => {
+      delete el.dataset.armed;
+      el.textContent = orig;
+      el.classList.remove('armed');
+    }, 3000);
+  });
+}
+
 function downloadBlob(content, filename, type) {
   const a = document.createElement('a');
   a.href = URL.createObjectURL(new Blob([content], { type }));
@@ -1095,9 +1217,11 @@ function downloadBlob(content, filename, type) {
 /* ═══════════════════════════════════════════════════════════════════
    STATUS BAR
    ═══════════════════════════════════════════════════════════════════ */
+let statusTimer = null;
 function statusMsg(msg) {
   document.getElementById('console-status').textContent = msg;
-  setTimeout(updateStatus, 3000);
+  clearTimeout(statusTimer);
+  statusTimer = setTimeout(updateStatus, 3000);
 }
 
 function updateStatus() {
@@ -1155,6 +1279,7 @@ function renderTopRow() {
     metaEl.textContent = '';
     hdrEl.textContent = '◈ STAFF SUMMARY';
     document.getElementById('staff-checklists').innerHTML = '';
+    document.getElementById('staff-sheet-links').innerHTML = '';
     setHighlightCard('hc-note',       '◈ LAST NOTES',      '—', true);
     setHighlightCard('hc-goals',      '◈ LDP GOALS',       '—', true);
     setHighlightCard('hc-milestones', '◈ MILESTONES',      '—', true);
@@ -1193,6 +1318,20 @@ function renderTopRow() {
       });
     });
   }
+
+  // Staffing sheet links — one per imported sheet this person appears in
+  const shEl = document.getElementById('staff-sheet-links');
+  const sheetRows = sheetsForStaff(s.id);
+  shEl.innerHTML = sheetRows.length
+    ? '<span style="color:var(--dim);">STAFFING:</span> ' + sheetRows.map(({ sheet }) =>
+        `<span class="staff-checklist-link" data-sheet-id="${escHtml(sheet.id)}">▤ ${escHtml(sheet.label)}</span>`).join('')
+    : '';
+  shEl.querySelectorAll('[data-sheet-id]').forEach(el => {
+    el.addEventListener('click', () => {
+      const hit = sheetRows.find(x => x.sheet.id === el.dataset.sheetId);
+      if (hit) openSheetRowDialog(hit.sheet, hit.row);
+    });
+  });
 
   // Header: show LDP year + theme if present
   const yr = getViewYear();
@@ -1431,6 +1570,23 @@ function renderSidePanel() {
   const s = getActiveStaff();
   const listEl = document.getElementById('notes-list');
   listEl.innerHTML = '';
+
+  // Staffing Notes — tagged columns from the most recent sheet this person is in
+  const latest = s ? sheetsForStaff(s.id)[0] : null;
+  const taggedCols = latest ? latest.sheet.columns.filter(isStaffingTagged) : [];
+  if (latest && taggedCols.length) {
+    const div = document.createElement('div');
+    div.className = 'staffing-notes';
+    div.innerHTML = `<div class="profile-label">◈ STAFFING NOTES (${escHtml(latest.sheet.label)})</div>` +
+      taggedCols.map(col => {
+        const v = latest.row.values[col] || '';
+        return `<div class="kv-row"><span class="kv-key">${escHtml(col)}</span>` +
+          `<span class="kv-val"${v ? '' : ' style="color:var(--dim);"'}>${escHtml(v || '—')}</span></div>`;
+      }).join('');
+    div.style.cursor = 'pointer';
+    div.addEventListener('click', () => openSheetRowDialog(latest.sheet, latest.row));
+    listEl.appendChild(div);
+  }
 
   // Profile section at top
   if (s && (s.strengths.length || s.developmentAreas.length)) {
@@ -1921,7 +2077,9 @@ function handleConsoleCmd(raw) {
   const cmd   = parts[0].toLowerCase();
   const rest  = parts.slice(1).join(' ');
 
-  if (cmd === '/help')       { showHelp(); return; }
+  if (cmd === '/help')       { showHelp(rest); return; }
+  if (cmd === '/backup')     { cmdBackup(); return; }
+  if (cmd === '/restore')    { cmdRestore(); return; }
   if (cmd === '/theme')      { applyTheme(rest || null); return; }
   if (cmd === '/new')        { startStaffSetup(); return; }
   if (cmd === '/load' || cmd === '/find') { cmdLoad(rest); return; }
@@ -1943,6 +2101,7 @@ function handleConsoleCmd(raw) {
   if (cmd === '/projects')   { showScreen('projects'); return; }
   if (cmd === '/home')       { showScreen('staff'); return; }
   if (cmd === '/hiring')     { showScreen('hiring'); return; }
+  if (cmd === '/staffing')   { cmdStaffing(rest); return; }
   if (cmd === '/cnew')       { openCandidateDialog(null); return; }
   if (cmd === '/ctags')      { openHireTagsDialog(); return; }
   if (cmd === '/carchived')  { openHireArchiveDialog(); return; }
@@ -2267,13 +2426,33 @@ function mergeStaffInto(primary, others) {
     if (!primary.manager)   primary.manager   = o.manager;
     if (!primary.startDate) primary.startDate = o.startDate;
     if (!primary.email)     primary.email     = o.email;
+    if (!primary.profStart) primary.profStart = o.profStart;
     primary.strengths        = [...new Set([...primary.strengths, ...o.strengths])];
     primary.developmentAreas = [...new Set([...primary.developmentAreas, ...o.developmentAreas])];
     primary.milestones = [...primary.milestones, ...o.milestones];
     primary.notes       = [...primary.notes, ...o.notes];
     o.ldps.forEach(ldp => {
-      if (!primary.ldps.some(l => l.year === ldp.year)) primary.ldps.push(ldp);
+      const mine = primary.ldps.find(l => l.year === ldp.year);
+      if (!mine) { primary.ldps.push(ldp); return; }
+      // Same year on both records — combine rather than drop the duplicate's plan
+      if (!mine.theme) mine.theme = ldp.theme;
+      const haveGoal = new Set(mine.goals.map(g => g.text.trim().toLowerCase()));
+      ldp.goals.forEach(g => { if (!haveGoal.has(g.text.trim().toLowerCase())) mine.goals.push(g); });
+      ['contributions', 'goalsAchieved', 'actions'].forEach(k => {
+        mine.highlights[k] = [...new Set([...(mine.highlights[k] || []), ...(ldp.highlights[k] || [])])];
+      });
     });
+    // Re-point checklist tags/progress at the kept record
+    db.checklists.forEach(c => {
+      if (!c.staffIds.includes(o.id)) return;
+      c.staffIds = c.staffIds.filter(id => id !== o.id);
+      if (!c.staffIds.includes(primary.id)) c.staffIds.push(primary.id);
+      const theirs = c.progress[o.id] || {};
+      const mine = c.progress[primary.id] = c.progress[primary.id] || {};
+      Object.keys(theirs).forEach(itemId => { if (theirs[itemId]) mine[itemId] = true; });
+      delete c.progress[o.id];
+    });
+    db.staffingSheets.forEach(sh => sh.rows.forEach(r => { if (r.staffId === o.id) r.staffId = primary.id; }));
     if (!o.archived) primary.archived = false;
     if (db.activeStaffId === o.id) db.activeStaffId = primary.id;
   });
@@ -2301,7 +2480,8 @@ function renderDedupDlg() {
 
   body.innerHTML = `<div style="font-size:0.78em;color:var(--dim);margin-bottom:8px;">
       Records with matching names — click KEEP THIS on the record you want to keep;
-      its notes, milestones and LDPs will absorb the others, which are then removed.
+      its notes, milestones, LDPs and checklist progress will absorb the others,
+      which are then removed. Same-year LDPs are combined.
     </div>` +
     groups.map(g => {
       const cards = g.map(s => {
@@ -2325,7 +2505,7 @@ function renderDedupDlg() {
     }).join('');
 
   body.querySelectorAll('[data-merge-into]').forEach(el => {
-    el.addEventListener('click', () => {
+    armConfirm(el, () => {
       const keepId = el.dataset.mergeInto;
       const keep = db.staff.find(s => s.id === keepId);
       if (!keep) return;
@@ -2334,7 +2514,7 @@ function renderDedupDlg() {
       if (!dupes.length) return;
       mergeStaffInto(keep, dupes);
       renderDedupDlg();
-    });
+    }, 'MERGE OTHERS INTO THIS?');
   });
 }
 
@@ -2669,10 +2849,10 @@ function openMilestoneDialog(id) {
       statusMsg('Milestone updated.');
     });
 
-    document.getElementById('dlg-m-del').addEventListener('click', () => {
+    armConfirm(document.getElementById('dlg-m-del'), () => {
       deleteMilestone(id);
       closeOverlay();
-    });
+    }, 'Click again to delete');
     document.getElementById('dlg-m-close').addEventListener('click', closeOverlay);
   }
 
@@ -2785,18 +2965,18 @@ function openGoalDialog(goalId) {
     });
 
     // Delete
-    document.getElementById('dlg-goal-delete').addEventListener('click', () => {
+    armConfirm(document.getElementById('dlg-goal-delete'), () => {
       ldp.goals = ldp.goals.filter(x => x.id !== goalId);
       saveDB();
       render();
       closeOverlay();
       statusMsg('Goal deleted.');
-    });
+    }, 'Click again to delete');
 
     document.getElementById('dlg-goal-close').addEventListener('click', closeOverlay);
   }
 
-  showOverlay('◈ GOAL — ' + escHtml(g.text.slice(0, 40)) + (g.text.length > 40 ? '…' : ''), renderGoalDlg);
+  showOverlay('◈ GOAL — ' + g.text.slice(0, 40) + (g.text.length > 40 ? '…' : ''), renderGoalDlg);
 }
 
 /* ─── openNoteDialog ─── */
@@ -2854,13 +3034,13 @@ function openNoteDialog(noteId) {
     });
 
     // Delete
-    document.getElementById('dlg-note-delete').addEventListener('click', () => {
+    armConfirm(document.getElementById('dlg-note-delete'), () => {
       s.notes = s.notes.filter(x => x.id !== noteId);
       saveDB();
       render();
       closeOverlay();
       statusMsg('Note deleted.');
-    });
+    }, 'Click again to delete');
 
     document.getElementById('dlg-note-close').addEventListener('click', closeOverlay);
   }
@@ -2872,7 +3052,7 @@ function openNoteDialog(noteId) {
 function openProfileDialog() {
   const s = getActiveStaff();
   if (!s) return;
-  showOverlay('◈ PROFILE — ' + escHtml(s.name.toUpperCase()), () => {
+  showOverlay('◈ PROFILE — ' + s.name.toUpperCase(), () => {
     const body = document.getElementById('help-body');
     body.style.whiteSpace = 'normal';
     body.innerHTML = `
@@ -3180,14 +3360,14 @@ function showChecklistList() {
       });
     });
     body.querySelectorAll('[data-checklist-del]').forEach(el => {
-      el.addEventListener('click', e => {
-        e.stopPropagation();
+      armConfirm(el, () => {
         const id = el.dataset.checklistDel;
         db.checklists = db.checklists.filter(x => x.id !== id);
         if (activeChecklistId === id) activeChecklistId = null;
         saveDB();
-        showChecklistList();
-      });
+        renderTopRow();
+        if (db.checklists.length) showChecklistList(); else closeOverlay();
+      }, '[CONFIRM DELETE?]');
     });
   });
 }
@@ -3202,37 +3382,58 @@ function openChecklistSummaryByName(name) {
 function showChecklistSummary(checklistId) {
   const c = db.checklists.find(x => x.id === checklistId);
   if (!c) return;
-  const n = c.staffIds.length;
-
-  showOverlay(`◈ ${c.name.toUpperCase()} — SUMMARY (${n} staff)`, () => {
+  const renderSummary = () => {
+    const n = c.staffIds.length;
+    document.getElementById('help-title').textContent = `◈ ${c.name.toUpperCase()} — SUMMARY (${n} staff)`;
     const body = document.getElementById('help-body');
     body.style.whiteSpace = 'normal';
 
-    if (!n || !c.items.length) {
-      body.innerHTML = `<div style="color:var(--dim);">Add items and tag staff to see coverage here.</div>`;
-      return;
-    }
+    const itemsHtml = c.items.length
+      ? c.items.map(it => {
+          const doneCount = c.staffIds.filter(sid => c.progress[sid] && c.progress[sid][it.id]).length;
+          const pct = n ? Math.round((doneCount / n) * 100) : 0;
+          return `<div style="padding:6px 0;">
+            <div style="display:flex;justify-content:space-between;gap:8px;font-size:0.85em;margin-bottom:3px;">
+              <span style="flex:1;">${escHtml(it.text)}</span>
+              <span style="color:var(--dim);">${doneCount}/${n} (${pct}%)</span>
+              <span class="action-del" data-rm-item="${escHtml(it.id)}" title="remove item">×</span>
+            </div>
+            <div style="background:var(--muted);height:8px;width:100%;">
+              <div style="background:var(--accent);height:8px;width:${pct}%;"></div>
+            </div>
+          </div>`;
+        }).join('')
+      : `<div style="color:var(--dim);">No items — use /checklist items &lt;text&gt;.</div>`;
 
-    body.innerHTML = c.items.map(it => {
-      const doneCount = c.staffIds.filter(sid => c.progress[sid] && c.progress[sid][it.id]).length;
-      const pct = Math.round((doneCount / n) * 100);
-      return `<div style="padding:6px 0;">
-        <div style="display:flex;justify-content:space-between;font-size:0.85em;margin-bottom:3px;">
-          <span>${escHtml(it.text)}</span>
-          <span style="color:var(--dim);">${doneCount}/${n} (${pct}%)</span>
-        </div>
-        <div style="background:var(--muted);height:8px;width:100%;">
-          <div style="background:var(--accent);height:8px;width:${pct}%;"></div>
-        </div>
-      </div>`;
-    }).join('') + `
-      <div style="margin-top:12px;border-top:1px solid var(--muted);padding-top:8px;">
+    const staffHtml = n
+      ? c.staffIds.map(sid => {
+          const st = db.staff.find(s => s.id === sid);
+          const done = c.items.filter(it => c.progress[sid] && c.progress[sid][it.id]).length;
+          return `<span class="dlg-type-btn" style="cursor:default;">${escHtml(st ? st.name : '(deleted staff)')} ${done}/${c.items.length}
+            <span class="action-del" data-rm-staff="${escHtml(sid)}" title="untag" style="cursor:pointer;">×</span></span>`;
+        }).join('')
+      : `<span style="color:var(--dim);">No staff tagged — use /checklist staff &lt;name&gt;.</span>`;
+
+    body.innerHTML = `
+      <div class="dlg-label">ITEMS</div>
+      ${itemsHtml}
+      <div class="dlg-section" style="margin-top:12px;">
+        <div class="dlg-label">TAGGED STAFF</div>
+        <div>${staffHtml}</div>
+      </div>
+      ${n && c.items.length ? `<div style="margin-top:12px;border-top:1px solid var(--muted);padding-top:8px;">
         <span class="staff-checklist-link" data-open-dialog="1">◈ OPEN PER-STAFF VIEW</span>
-      </div>`;
+      </div>` : ''}`;
 
+    body.querySelectorAll('[data-rm-item]').forEach(el =>
+      armConfirm(el, () => { removeChecklistItem(c, el.dataset.rmItem); renderSummary(); }, 'remove?'));
+    body.querySelectorAll('[data-rm-staff]').forEach(el =>
+      armConfirm(el, () => { untagChecklistStaff(c, el.dataset.rmStaff); renderSummary(); }, 'untag?'));
     const openLink = body.querySelector('[data-open-dialog]');
     if (openLink) openLink.addEventListener('click', () => openChecklistDialog(c.id, 0));
-  });
+  };
+
+  showOverlay(`◈ ${c.name.toUpperCase()} — SUMMARY`, renderSummary);
 }
 
 function openChecklistByName(name) {
@@ -3249,7 +3450,22 @@ function deleteChecklist(name) {
   db.checklists = db.checklists.filter(x => x.id !== c.id);
   if (activeChecklistId === c.id) activeChecklistId = null;
   saveDB();
+  renderTopRow();
   statusMsg('Deleted checklist "' + c.name + '"');
+}
+
+function removeChecklistItem(c, itemId) {
+  c.items = c.items.filter(it => it.id !== itemId);
+  Object.values(c.progress).forEach(p => { delete p[itemId]; });
+  saveDB();
+  renderTopRow();
+}
+
+function untagChecklistStaff(c, staffId) {
+  c.staffIds = c.staffIds.filter(id => id !== staffId);
+  delete c.progress[staffId];
+  saveDB();
+  renderTopRow();
 }
 
 /* ─── per-staff rotating dialog ─── */
@@ -3291,6 +3507,7 @@ function openChecklistDialog(checklistId, idx) {
         const itemId = el.dataset.itemId;
         c.progress[staffId][itemId] = !c.progress[staffId][itemId];
         saveDB();
+        renderTopRow();
         openChecklistDialog(checklistId, checklistDialogIdx);
       });
     });
@@ -3300,6 +3517,87 @@ function openChecklistDialog(checklistId, idx) {
     if (prevEl) prevEl.addEventListener('click', () => openChecklistDialog(checklistId, checklistDialogIdx - 1));
     if (nextEl) nextEl.addEventListener('click', () => openChecklistDialog(checklistId, checklistDialogIdx + 1));
     if (summaryEl) summaryEl.addEventListener('click', () => showChecklistSummary(checklistId));
+  });
+}
+
+/* ─── /backup & /restore — whole database as JSON ─── */
+function cmdBackup() {
+  const json = JSON.stringify({ app: 'staff-terminal', exported: nowIso(), db }, null, 2);
+  downloadBlob(json, `staff-terminal-backup-${todayStr()}.json`, 'application/json');
+  statusMsg('Backup downloaded (' + db.staff.length + ' staff, ' + db.projects.length + ' projects, ' + db.candidates.length + ' candidates).');
+}
+
+function cmdRestore() {
+  const input = document.createElement('input');
+  input.type = 'file';
+  input.accept = '.json,application/json';
+  input.addEventListener('change', () => {
+    const file = input.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      let data;
+      try {
+        const parsed = JSON.parse(reader.result);
+        data = parsed && parsed.db ? parsed.db : parsed;   // accept wrapped or raw db
+      } catch (e) { statusMsg('Restore failed: not valid JSON.'); return; }
+      if (!data || typeof data !== 'object' || !Array.isArray(data.staff)) {
+        statusMsg('Restore failed: file is not a staff-terminal backup.'); return;
+      }
+      openRestoreDialog(file.name, data);
+    };
+    reader.readAsText(file);
+  });
+  input.click();
+}
+
+function openRestoreDialog(fileName, data) {
+  const count = k => Array.isArray(data[k]) ? data[k].length : 0;
+  const rows = [
+    ['Staff', db.staff.length, count('staff')],
+    ['Projects', db.projects.length, count('projects')],
+    ['Project roster', db.paStaff.length, count('paStaff')],
+    ['Candidates', db.candidates.length, count('candidates')],
+    ['Checklists', db.checklists.length, count('checklists')],
+    ['Backlog items', db.backlog.length, count('backlog')],
+  ];
+  showOverlay('◈ RESTORE FROM BACKUP', () => {
+    const body = document.getElementById('help-body');
+    body.style.whiteSpace = 'normal';
+    body.innerHTML = `
+      <div style="font-size:0.85em;margin-bottom:8px;">File: <span style="color:var(--accent);">${escHtml(fileName)}</span></div>
+      <table style="font-size:0.85em;border-collapse:collapse;">
+        <tr style="color:var(--dim);"><td style="padding-right:24px;"></td><td style="padding-right:24px;">CURRENT</td><td>IN BACKUP</td></tr>
+        ${rows.map(r => `<tr><td style="padding-right:24px;">${r[0]}</td><td>${r[1]}</td><td>${r[2]}</td></tr>`).join('')}
+      </table>
+      <div style="font-size:0.8em;color:var(--warn);margin-top:10px;">
+        Restoring REPLACES everything currently stored. Back up the current data first if you might want it.
+      </div>
+      <div class="dlg-section" style="margin-top:14px;">
+        <button class="dlg-btn" id="dlg-rs-backup">Backup current first</button>
+        <button class="dlg-btn dlg-btn-danger" id="dlg-rs-go">Replace all data</button>
+        <button class="dlg-btn" id="dlg-rs-close">Cancel</button>
+      </div>`;
+    document.getElementById('dlg-rs-backup').addEventListener('click', cmdBackup);
+    armConfirm(document.getElementById('dlg-rs-go'), () => {
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+      } catch (e) { statusMsg('Restore failed: ' + e.message); return; }
+      loadDB();   // re-runs migrations on the restored data
+      applyTheme(db.theme);
+      activeChecklistId = null;
+      viewingLdpYear = null;
+      if (!db.staff.some(s => s.id === db.activeStaffId)) {
+        const first = db.staff.find(s => !s.archived);
+        db.activeStaffId = first ? first.id : null;
+      }
+      saveDB();
+      closeOverlay();
+      showScreen(currentScreen);
+      render();
+      statusMsg('Restored ' + db.staff.length + ' staff from ' + fileName);
+    }, 'Click again to replace everything');
+    document.getElementById('dlg-rs-close').addEventListener('click', closeOverlay);
   });
 }
 
@@ -3444,7 +3742,7 @@ function openEditStaffDialog(s) {
     document.getElementById('dlg-e-close').addEventListener('click', closeOverlay);
   }
 
-  showOverlay('◈ EDIT — ' + escHtml(s.name.toUpperCase()), renderEditDlg);
+  showOverlay('◈ EDIT — ' + s.name.toUpperCase(), renderEditDlg);
 }
 
 /* ─── /profstart (bulk edit) ─── */
@@ -3515,136 +3813,211 @@ function renderProfStartDlg() {
 /* ═══════════════════════════════════════════════════════════════════
    HELP OVERLAY
    ═══════════════════════════════════════════════════════════════════ */
-function showHelp() {
-  document.getElementById('help-title').textContent = '◈ STAFF TERMINAL — COMMANDS';
-  const body = document.getElementById('help-body');
-  body.style.whiteSpace = 'pre';
-  body.textContent = [
-    '── STAFF RECORDS ───────────────────────────────────────',
+const HELP_TOPICS = [
+  { id: 'basics', label: 'BASICS', lines: [
+    '── SCREENS ─────────────────────────────────────────────',
+    '/home                    staff screen (summary, LDP goals, notes)',
+    '/projects                project staff-alignment screen',
+    '/hiring                  hiring pipeline screen',
+    '/staffing                imported staffing spreadsheets screen',
+    '',
+    '── CONSOLE ─────────────────────────────────────────────',
+    '/help                    show this help',
+    '/help <topic>            jump to a topic: ' + 'basics|staff|notes|ldp|checklists|stats|staffing|projects|hiring|backlog|data',
+    '↑ / ↓                    recall previous commands',
+    'ESC                      close any dialog or walkthrough',
+    '/theme [name]            switch theme (random if no name)',
+    '  themes: legacy|solar|monk|space|synth|dos|notebook|engineering|winter',
+    '',
+    '── CONVENTIONS ─────────────────────────────────────────',
+    '  → names match partially: /load jan finds "Jane Doe" (must be unique)',
+    '  → deletes and merges ask for a second click within 3s to confirm',
+    '  → all data lives in this browser — use /backup regularly (see DATA)',
+  ]},
+  { id: 'staff', label: 'STAFF', lines: [
+    '── FINDING STAFF ───────────────────────────────────────',
     '/new                     start Q&A walkthrough for a new staff member',
-    '/load <name>             load staff member by name (partial match)',
-    '/find <name>             alias for /load',
-    '/list                    list all staff, grouped by field (sortable, default: name)',
+    '/load <name>             load staff member by name  (alias: /find)',
+    '/list                    list all staff, grouped by field (default: name)',
     '/list <field>            group/sort by: name|title|team|manager|start|exp',
     '/list archived           show archived staff',
-    '  → click a GROUP/SORT BY button in the list dialog to change grouping/reverse',
-    '  → use the search box in the list dialog to filter by name/title/team/manager',
-    '  → use the ARCHIVE / RESTORE link on a card, or the VIEW ARCHIVED toggle',
+    '  → in the list: GROUP/SORT BY buttons (click again to reverse), search box,',
+    '    ARCHIVE / RESTORE link on each card, VIEW ARCHIVED toggle',
     '',
-    '── ARCHIVING ───────────────────────────────────────────',
-    '/archive                 archive the currently loaded staff member',
-    '/archive <name>          archive a staff member by name (partial match)',
+    '── EDITING ─────────────────────────────────────────────',
+    '/edit                    edit name, title, team, manager, start date, email, prof start',
+    '/profstart               bulk-edit prof start for every active staff member',
+    '  → prof start = 0th year of professional experience; years-of-experience',
+    '    increments every 10/1 (fiscal year) and shows in the staff summary',
+    '  → click the PROFILE block (notes panel) to edit strengths / growth areas',
+    '',
+    '── ARCHIVING & CLEANUP ─────────────────────────────────',
+    '/archive [name]          archive the loaded staff member, or one by name',
     '/unarchive <name>        restore an archived staff member and load them',
-    '  archived staff are hidden from /list, /load, and auto-load',
-    '',
-    '/dedup                   find staff records with matching names and merge them',
-    '  → click KEEP THIS on the record to keep; notes/milestones/LDPs from the',
-    '    other record(s) are merged in, and the duplicates are removed',
-    '',
+    '  → archived staff are hidden from /list, /load and auto-load',
+    '/dedup                   find records with matching names and merge them',
+    '  → KEEP THIS on the record to keep; the others\' notes, milestones, LDPs',
+    '    and checklist progress are merged in (same-year LDPs are combined)',
+  ]},
+  { id: 'notes', label: 'NOTES', lines: [
     '── NOTES ───────────────────────────────────────────────',
-    '/note <text>             add a timestamped note (uses current datetime)',
-    '/note [type:] <text>     inline type prefix: /note meeting: team sync',
-    '/note list               show all notes in overlay',
-    '/note type <type>        set default type: general|meeting|performance|concern|highlight|todo|role',
-    '  → click any note to view/edit/delete it',
+    '/note <text>             add a timestamped note',
+    '/note <type>: <text>     with a type, e.g. /note meeting: team sync',
+    '/note list               show all notes in a dialog',
+    '/note type <type>        set the default type',
+    '  types: general|meeting|performance|concern|highlight|todo|role',
+    '  → click any note to view / edit / delete it',
     '',
     '── MILESTONES ──────────────────────────────────────────',
-    '/milestone <text>        add a milestone (default type: achievement)',
+    '/milestone <text>        add a milestone dated today (type: achievement)',
     '/milestone [YYYY-MM-DD] [type:] <text>',
     '  e.g. /milestone 2025-01-15 promotion: promoted to senior',
     '  types: achievement|promotion|certification|other',
-    '  → click any milestone to view/delete it',
-    '',
-    '── GOALS & LDP ─────────────────────────────────────────',
-    '/goal <text>             quick-add an LDP goal to the current year',
-    '/goal done <n>           mark goal #n as completed',
-    '/goal defer <n>          mark goal #n as deferred',
+    '  → click any milestone to edit / delete it',
+  ]},
+  { id: 'ldp', label: 'GOALS & LDP', lines: [
+    '── GOALS ───────────────────────────────────────────────',
+    '/goal <text>             quick-add an LDP goal to the viewed year',
+    '/goal done <n>           mark goal #n completed',
+    '/goal defer <n>          mark goal #n deferred',
     '/goal reopen <n>         re-open goal #n',
-    '  → click goal status icon to cycle status',
-    '  → click goal text to open edit dialog (edit, add actions, delete)',
+    '  → click a goal\'s status icon to cycle active → completed → deferred',
+    '  → click the goal text to edit it, its target date and its actions',
     '',
-    '/ldp                     start LDP builder walkthrough for current staff',
-    '/ldp view                show current LDP in overlay',
-    '/ldp year <year>         switch to viewing LDP for a specific year',
-    '',
-    '/highlights              start yearly highlights walkthrough',
-    '',
-    '── PROFILE ─────────────────────────────────────────────',
-    '/export                  download current staff data as .txt',
-    '',
-    '/edit                    open a dialog to edit name, title, team, manager, start date, email, prof start',
-    '  prof start = 0th year of professional experience; years-of-experience',
-    '  auto-increments every 10/1 (fiscal year) and shows in the staff summary',
-    '/profstart               bulk-edit prof start for every active staff member at once',
-    '  → one row per person, ENTER jumps to the next field for fast entry',
-    '',
-    '── STATS ───────────────────────────────────────────────',
-    '/stats                   show a summary dialog: counts, breakdowns, LDP/goal/note stats',
-    '/stats exclude <name>    hide a staff member from stats (partial name match)',
-    '/stats include <name>    re-include a previously excluded staff member',
-    '  → excluded staff also show at the bottom of the /stats dialog with an INCLUDE link',
-    '',
-    '── CHECKLISTS ──────────────────────────────────────────',
-    '/checklist                    list checklists, click one to open the coverage dialog',
-    '/checklist new <name>         start checklist builder walkthrough (year, items, tagged staff)',
-    '/checklist go <name>          jump straight to a checklist\'s per-staff dialog',
-    '/checklist summary <name>     show % completion bars per item, across all tagged staff',
+    '── LDP ─────────────────────────────────────────────────',
+    '/ldp                     LDP builder walkthrough for the loaded staff member',
+    '/ldp view                show the viewed year\'s LDP in a dialog',
+    '/ldp year <year>         switch the viewed year (or click a year tab)',
+    '/highlights              yearly highlights walkthrough',
+  ]},
+  { id: 'checklists', label: 'CHECKLISTS', lines: [
+    '/checklist                    list checklists; click one to open it',
+    '/checklist new <name>         builder walkthrough (year, items, tagged staff)',
+    '/checklist go <name>          open a checklist\'s per-staff view',
+    '/checklist summary <name>     completion bars per item across tagged staff',
     '/checklist items <text>       add an item to the active checklist',
-    '/checklist staff <name>       tag a staff member to the active checklist',
+    '/checklist staff <name>       tag a staff member on the active checklist',
     '/checklist delete <name>      delete a checklist',
-    '  → the dialog shows one staff member at a time with checkable items;',
-    '    use PREV/NEXT to rotate through everyone tagged for that season',
-    '  → [SUMMARY] link (in the list or the dialog) shows completion bars per item',
-    '  → tagged staff show a ◈ checklist link with count under their name on the staff page',
+    '  → the per-staff view shows one person at a time; PREV / NEXT rotates',
+    '  → in the SUMMARY view, × removes an item or untags a staff member',
+    '  → tagged staff show a ◈ link with their progress under their name',
+  ]},
+  { id: 'stats', label: 'STATS', lines: [
+    '/stats                   counts, breakdowns, LDP / goal / note stats',
+    '/stats exclude <name>    hide a staff member from stats',
+    '/stats include <name>    re-include an excluded staff member',
+    '  → excluded staff are listed at the bottom of /stats with an INCLUDE link',
+  ]},
+  { id: 'staffing', label: 'STAFFING', lines: [
+    '── COMMANDS ────────────────────────────────────────────',
+    '/staffing                switch to the staffing sheets screen',
+    '/staffing import         paste (from Excel) or pick a CSV/TSV, label it (e.g. FY2026)',
+    '/staffing copy           copy chosen sheet columns into staff records',
     '',
-    '── STANDARD ───────────────────────────────────────────',
-    '/backlog <text>          add backlog item',
-    '/backlog list            show backlog',
-    '/backlog done <n>        toggle item done',
-    '/backlog delete <n>      delete item',
-    '/backlog archive         move done items to archive',
-    '/backlog archive list    show archived batches',
-    '/backlog export          download backlog as .txt',
+    '── IMPORTING ───────────────────────────────────────────',
+    '  → columns come from the header row — nothing is preset',
+    '  → the name column is auto-detected (changeable); "Last, First" and',
+    '    "First Last" both match. Similar names are never linked automatically —',
+    '    pick the person, + new staff record, or leave unlinked',
+    '  → importing a label that already exists replaces that sheet',
     '',
-    '── PROJECT ALIGNMENT ───────────────────────────────────',
-    '/projects                switch to the project staff-alignment screen',
-    '/home                    switch back to the staff screen',
-    '/pnew                    open the new-project dialog',
-    '/paddstaff               open the add-staff-to-roster dialog',
-    '/proster                 import a staff roster (paste names, one per line)',
-    '/pfromstaff              import staff from existing staff records (name + title)',
-    '/pexport                 download project alignment as CSV (project,sponsor,alignment,person,allocation,note)',
-    '  → note column flags Lead / Leaving',
-    '  → click a project name or alignment badge to edit the project',
-    '  → projects are sorted by alignment, highest first',
+    '── ON THE SCREEN ───────────────────────────────────────',
+    '  → one tab per sheet, newest first; filter box searches every cell',
+    '  → click a column header to ★ tag it — tagged columns show in STAFFING',
+    '    NOTES on the staff page, from the person\'s most recent sheet only',
+    '  → click a row for all its values and to change which staff record it links to',
+    '  → COPY TO STAFF RECORDS: map columns → fields on the fly',
+    '    (e.g. Classification → Title, Hire Date → Start date), review, apply',
+    '  → the staff page shows ▤ links to every sheet the person appears in',
+  ]},
+  { id: 'projects', label: 'PROJECTS', lines: [
+    '── COMMANDS ────────────────────────────────────────────',
+    '/projects                switch to the project alignment screen',
+    '/pnew                    new project',
+    '/paddstaff               add a person to the project roster',
+    '/proster                 import a roster (paste names, one per line)',
+    '/pfromstaff              import from staff records (name + title → level)',
+    '/pexport                 download CSV: project, sponsor, alignment, person, allocation, note',
+    '',
+    '── ON THE SCREEN ───────────────────────────────────────',
     '  → drag a roster card onto a project to assign a % allocation',
-    '  → check "Mark as Lead" in the assign dialog to tag someone as project lead',
-    '  → check "Leaving this project" to flag reduced/departing allocation (shown hashed)',
-    '  → click an assigned staff chip to change their % or Lead status, or × to unassign',
-    '  → a staff member\'s roster card shows total % across all projects,',
-    '    highlighted if over 100%',
-    '',
-    '── HIRING ──────────────────────────────────────────────',
+    '  → click an assigned chip to change % / Lead / Leaving, or × to unassign',
+    '  → click a project name or alignment badge to edit the project',
+    '  → projects sort by alignment, highest first',
+    '  → roster cards show each person\'s total %, flagged when over 100%',
+    '  → the roster is separate from staff records — edits don\'t sync between them',
+  ]},
+  { id: 'hiring', label: 'HIRING', lines: [
+    '── COMMANDS ────────────────────────────────────────────',
     '/hiring                  switch to the hiring pipeline screen',
-    '/cnew                    open the new-candidate dialog',
+    '/cnew                    new candidate',
     '/ctags                   manage candidate tags (label + color)',
-    '/carchived               list archived candidates, restore or delete them',
-    '/cexport                 download candidates as CSV (with stage history)',
-    '  → stages: Applied → Screen → Interview → Final → Offer → Hired',
-    '  → rejected / withdrawn candidates collect in the last column',
-    '  → drag a candidate card to another column to move them through the workflow',
-    '  → click a card to edit details, quality/fit scores (1-5), tags, notes, and see stage history',
-    '  → tags show as colored chips on cards; the first tag also colors the card edge',
-    '  → Archive (in the candidate dialog) hides a candidate from the board; restore via [ARCHIVED]',
-    '  → the filter box matches name, role, source, and notes',
+    '/carchived               archived candidates — restore or delete',
+    '/cexport                 download candidates CSV (with stage history)',
     '',
-    '/theme [name]            switch theme  (legacy|solar|monk|space|synth|dos|notebook|engineering|winter)',
-    '/help                    show this help',
-  ].join('\n');
+    '── ON THE SCREEN ───────────────────────────────────────',
+    '  → stages: Applied → Screen → Interview → Final → Offer → Hired;',
+    '    rejected / withdrawn collect in the CLOSED column',
+    '  → drag a card between columns to move a candidate',
+    '  → click a card to edit details, quality / fit (1-5), tags, notes, history',
+    '  → the first tag colors the card edge',
+    '  → Archive (in the candidate dialog) hides a candidate from the board',
+    '  → the filter box matches name, role, source, notes and tags',
+  ]},
+  { id: 'backlog', label: 'BACKLOG', lines: [
+    '/backlog <text>          add a backlog item',
+    '/backlog list            show the backlog (click [ ] to toggle, copy to clipboard)',
+    '/backlog done <n>        toggle item #n done',
+    '/backlog delete <n>      delete item #n',
+    '/backlog archive         move done items to the archive',
+    '/backlog archive list    show archived batches',
+    '/backlog export          download the backlog as .txt',
+  ]},
+  { id: 'data', label: 'DATA', lines: [
+    '── BACKUP ──────────────────────────────────────────────',
+    '/backup                  download EVERYTHING (staff, projects, hiring, checklists,',
+    '                         backlog, settings) as one .json file',
+    '/restore                 load a /backup file — replaces all current data',
+    '  → everything is stored only in this browser\'s localStorage; clearing site',
+    '    data or switching browsers loses it unless you have a backup',
+    '',
+    '── EXPORTS ─────────────────────────────────────────────',
+    '/export                  loaded staff member\'s record as .txt',
+    '/pexport                 project alignment as .csv',
+    '/cexport                 candidates as .csv',
+    '/backlog export          backlog as .txt',
+  ]},
+];
+let helpTopic = null;
 
-  const overlay = document.getElementById('help-overlay');
-  overlay.classList.add('visible');
-  overlay.onclick = e => { if (e.target === overlay) closeOverlay(); };
+function showHelp(arg) {
+  const q = (arg || '').trim().toLowerCase();
+  if (q) {
+    const t = HELP_TOPICS.find(t => t.id.startsWith(q) || t.label.toLowerCase().startsWith(q));
+    if (!t) { statusMsg('No help topic "' + q + '" — try: ' + HELP_TOPICS.map(t => t.id).join(', ')); return; }
+    helpTopic = t.id;
+  } else if (currentScreen === 'projects' || currentScreen === 'hiring' || currentScreen === 'staffing') {
+    helpTopic = currentScreen;
+  } else if (!helpTopic) {
+    helpTopic = 'basics';
+  }
+
+  const renderHelp = () => {
+    const topic = HELP_TOPICS.find(t => t.id === helpTopic) || HELP_TOPICS[0];
+    document.getElementById('help-title').textContent = '◈ STAFF TERMINAL — HELP — ' + topic.label;
+    const body = document.getElementById('help-body');
+    body.style.whiteSpace = 'normal';
+    body.innerHTML = `
+      <div style="margin-bottom:8px;">${HELP_TOPICS.map(t =>
+        `<button class="dlg-type-btn${t.id === topic.id ? ' active' : ''}" data-help-topic="${t.id}">${escHtml(t.label)}</button>`
+      ).join('')}</div>
+      <div style="white-space:pre;overflow-x:auto;">${escHtml(topic.lines.join('\n'))}</div>`;
+    body.querySelectorAll('[data-help-topic]').forEach(btn => {
+      btn.addEventListener('click', () => { helpTopic = btn.dataset.helpTopic; renderHelp(); });
+    });
+  };
+
+  showOverlay('◈ STAFF TERMINAL — HELP', renderHelp);
 }
 
 function showOverlay(title, fn) {
@@ -3773,10 +4146,12 @@ function showScreen(name) {
   document.getElementById('staff-screen').style.display = (name === 'staff') ? 'grid' : 'none';
   document.getElementById('projects-screen').style.display = (name === 'projects') ? 'flex' : 'none';
   document.getElementById('hiring-screen').style.display = (name === 'hiring') ? 'flex' : 'none';
+  document.getElementById('staffing-screen').style.display = (name === 'staffing') ? 'flex' : 'none';
   document.getElementById('console-prompt').textContent =
-    (name === 'projects') ? 'PROJ>' : (name === 'hiring') ? 'HIRE>' : 'STAFF>';
+    (name === 'projects') ? 'PROJ>' : (name === 'hiring') ? 'HIRE>' : (name === 'staffing') ? 'SHEET>' : 'STAFF>';
   if (name === 'projects') renderProjects();
   if (name === 'hiring') renderHiring();
+  if (name === 'staffing') renderStaffing();
   consoleInput.focus();
 }
 
@@ -3985,7 +4360,7 @@ function openAssignDialog(projectId, staffId, existingAlloc) {
     document.getElementById('dlg-a-close').addEventListener('click', closeOverlay);
   }
 
-  showOverlay('◈ ASSIGN — ' + escHtml(staff.name) + ' → ' + escHtml(proj.name), renderDlg);
+  showOverlay('◈ ASSIGN — ' + staff.name + ' → ' + proj.name, renderDlg);
 }
 
 function removeAllocation(projectId, staffId) {
@@ -4060,13 +4435,13 @@ function openProjectDialog(proj) {
       statusMsg((isNew ? 'Project created: ' : 'Project updated: ') + draft.name);
     });
     if (!isNew) {
-      document.getElementById('dlg-p-delete').addEventListener('click', () => {
+      armConfirm(document.getElementById('dlg-p-delete'), () => {
         db.projects = db.projects.filter(p => p.id !== draft.id);
         saveDB();
         renderProjects();
         closeOverlay();
         statusMsg('Project deleted: ' + draft.name);
-      });
+      }, 'Click again to delete');
     }
     document.getElementById('dlg-p-close').addEventListener('click', closeOverlay);
   }
@@ -4127,14 +4502,14 @@ function openPaStaffDialog(staff) {
       statusMsg((isNew ? 'Added to roster: ' : 'Updated: ') + draft.name);
     });
     if (!isNew) {
-      document.getElementById('dlg-s-delete').addEventListener('click', () => {
+      armConfirm(document.getElementById('dlg-s-delete'), () => {
         db.paStaff = db.paStaff.filter(s => s.id !== draft.id);
         db.projects.forEach(p => { p.allocations = p.allocations.filter(a => a.staffId !== draft.id); });
         saveDB();
         renderProjects();
         closeOverlay();
         statusMsg('Removed from roster: ' + draft.name);
-      });
+      }, 'Click again — also removes their allocations');
     }
     document.getElementById('dlg-s-close').addEventListener('click', closeOverlay);
   }
@@ -4476,13 +4851,13 @@ function openCandidateDialog(cand) {
         closeOverlay();
         statusMsg('Archived: ' + draft.name);
       });
-      document.getElementById('dlg-c-delete').addEventListener('click', () => {
+      armConfirm(document.getElementById('dlg-c-delete'), () => {
         db.candidates = db.candidates.filter(c => c.id !== draft.id);
         saveDB();
         renderHiring();
         closeOverlay();
         statusMsg('Deleted candidate: ' + draft.name);
-      });
+      }, 'Click again to delete');
     }
     document.getElementById('dlg-c-close').addEventListener('click', closeOverlay);
   }
@@ -4524,11 +4899,11 @@ function openHireTagsDialog() {
         const v = e.target.value.trim();
         if (v) { t.label = v; commit(); } else e.target.value = t.label;
       });
-      row.querySelector('[data-tdel]').addEventListener('click', () => {
+      armConfirm(row.querySelector('[data-tdel]'), () => {
         db.hireTags = db.hireTags.filter(x => x.id !== t.id);
         db.candidates.forEach(c => { c.tags = c.tags.filter(id => id !== t.id); });
         commit(); renderDlg();
-      });
+      }, 'delete?');
     });
     const add = () => {
       const label = document.getElementById('dlg-t-label').value.trim();
@@ -4568,10 +4943,10 @@ function openHireArchiveDialog() {
       saveDB(); renderHiring(); renderDlg();
       statusMsg('Restored: ' + c.name);
     }));
-    body.querySelectorAll('[data-del]').forEach(b => b.addEventListener('click', () => {
+    body.querySelectorAll('[data-del]').forEach(b => armConfirm(b, () => {
       db.candidates = db.candidates.filter(x => x.id !== b.dataset.del);
       saveDB(); renderDlg();
-    }));
+    }, 'Click again'));
     document.getElementById('dlg-ar-close').addEventListener('click', closeOverlay);
   }
   showOverlay('◈ ARCHIVED CANDIDATES', renderDlg);
@@ -4605,6 +4980,676 @@ document.getElementById('proj-export-btn').addEventListener('click', () => cmdEx
 document.getElementById('proj-back-btn').addEventListener('click', () => showScreen('staff'));
 
 /* ═══════════════════════════════════════════════════════════════════
+   STAFFING SHEETS — pasted/imported yearly spreadsheets. Columns come from
+   the header row (no preset schema); only the name column is special, and is
+   used to link each row to a staff record.
+   ═══════════════════════════════════════════════════════════════════ */
+let activeSheetId = null;
+let sheetHighlightStaffId = null;
+
+const SHEET_CORE_FIELDS = [
+  { id: 'title',     label: 'Title' },
+  { id: 'team',      label: 'Team' },
+  { id: 'manager',   label: 'Manager' },
+  { id: 'startDate', label: 'Start date' },
+  { id: 'email',     label: 'Email' },
+  { id: 'profStart', label: 'Prof start (year)' },
+];
+
+function sheetsSorted() {
+  return [...db.staffingSheets].sort((a, b) => b.importedAt.localeCompare(a.importedAt));
+}
+
+/* Every sheet row linked to this staff member, most recent sheet first */
+function sheetsForStaff(staffId) {
+  return sheetsSorted()
+    .map(sheet => ({ sheet, row: sheet.rows.find(r => r.staffId === staffId) }))
+    .filter(x => x.row);
+}
+
+function getActiveSheet() {
+  return db.staffingSheets.find(sh => sh.id === activeSheetId) || sheetsSorted()[0] || null;
+}
+
+function normColName(c) { return String(c || '').trim().toLowerCase().replace(/\s+/g, ' '); }
+function isStaffingTagged(col) { return db.staffingTags.includes(normColName(col)); }
+function toggleStaffingTag(col) {
+  const k = normColName(col);
+  db.staffingTags = isStaffingTagged(col) ? db.staffingTags.filter(t => t !== k) : [...db.staffingTags, k];
+  saveDB();
+}
+
+function newStaffRecord(name) {
+  return {
+    id: uid(), name, title: '', team: '', manager: '', startDate: '', archived: false,
+    email: '', profStart: '', excludeFromStats: false, strengths: [], developmentAreas: [],
+    milestones: [], notes: [], ldps: []
+  };
+}
+
+/* ─── parsing ─── */
+/* CSV or TSV (Excel copy/paste gives TSV). Handles quoted fields with
+   embedded delimiters, quotes and newlines. */
+function parseDelimited(text) {
+  const firstLine = text.split(/\r?\n/).find(l => l.trim()) || '';
+  const delim = firstLine.includes('\t') ? '\t' : ',';
+  const rows = [];
+  let row = [], field = '', inQ = false;
+  for (let i = 0; i < text.length; i++) {
+    const ch = text[i];
+    if (inQ) {
+      if (ch === '"') {
+        if (text[i + 1] === '"') { field += '"'; i++; } else inQ = false;
+      } else field += ch;
+    } else if (ch === '"' && field === '') inQ = true;
+    else if (ch === delim) { row.push(field); field = ''; }
+    else if (ch === '\n') { row.push(field); rows.push(row); row = []; field = ''; }
+    else if (ch !== '\r') field += ch;
+  }
+  if (field !== '' || row.length) { row.push(field); rows.push(row); }
+  return rows
+    .map(r => r.map(v => v.replace(/\r\n?/g, '\n').trim()))
+    .filter(r => r.some(v => v));
+}
+
+function buildSheetData(text) {
+  const rows = parseDelimited(text);
+  if (rows.length < 2) return null;
+  const seen = {};
+  const columns = rows[0].map((h, i) => {
+    let name = h || 'Column ' + (i + 1);
+    const k = normColName(name);
+    seen[k] = (seen[k] || 0) + 1;
+    if (seen[k] > 1) name += ' (' + seen[k] + ')';
+    return name;
+  });
+  const data = rows.slice(1).map(r => {
+    const values = {};
+    columns.forEach((c, i) => { values[c] = r[i] || ''; });
+    return values;
+  });
+  return { columns, data };
+}
+
+function guessNameColumn(columns) {
+  return columns.find(c => normColName(c) === 'name')
+      || columns.find(c => normColName(c).includes('name'))
+      || columns[0];
+}
+
+/* ─── name matching ─── */
+/* "Last, First M." and "First M. Last" both normalize to "first m last" */
+function flipLastFirst(n) {
+  const s = String(n || '').trim();
+  const m = /^([^,]+),\s*(.+)$/.exec(s);
+  return m ? m[2].trim() + ' ' + m[1].trim() : s;
+}
+
+function nameKey(n) {
+  return flipLastFirst(n).toLowerCase()
+    .replace(/[.'’]/g, '')
+    .replace(/[^a-z0-9\- ]/g, ' ')
+    .replace(/\s+/g, ' ').trim();
+}
+
+function firstLastKey(key) {
+  const t = key.split(' ');
+  return t.length > 1 ? t[0] + ' ' + t[t.length - 1] : key;
+}
+
+function levenshtein(a, b) {
+  const prev = Array.from({ length: b.length + 1 }, (_, j) => j);
+  for (let i = 1; i <= a.length; i++) {
+    let diag = prev[0];
+    prev[0] = i;
+    for (let j = 1; j <= b.length; j++) {
+      const tmp = prev[j];
+      prev[j] = Math.min(prev[j] + 1, prev[j - 1] + 1, diag + (a[i - 1] === b[j - 1] ? 0 : 1));
+      diag = tmp;
+    }
+  }
+  return prev[b.length];
+}
+
+function nameSimilarity(a, b) {
+  if (!a || !b) return 0;
+  let score = 1 - levenshtein(a, b) / Math.max(a.length, b.length);
+  if (firstLastKey(a) === firstLastKey(b)) score = Math.max(score, 0.95);   // middle name/initial differs
+  const ta = a.split(' '), tb = b.split(' ');
+  const fa = ta[0], fb = tb[0];
+  if (ta[ta.length - 1] === tb[tb.length - 1] && fa.length >= 2 && fb.length >= 2 &&
+      (fa.startsWith(fb) || fb.startsWith(fa))) score = Math.max(score, 0.9);   // Chris / Christopher
+  return score;
+}
+
+/* → { status: 'ok'|'similar'|'new'|'blank', staffId?, suggestions: [staffId] } */
+function matchSheetName(raw) {
+  const key = nameKey(raw);
+  if (!key) return { status: 'blank', suggestions: [] };
+  const exact = db.staff.filter(s => nameKey(s.name) === key);
+  if (exact.length === 1) return { status: 'ok', staffId: exact[0].id, suggestions: [] };
+  if (exact.length > 1) return { status: 'similar', suggestions: exact.map(s => s.id) };
+  const scored = db.staff
+    .map(s => ({ id: s.id, score: nameSimilarity(key, nameKey(s.name)) }))
+    .filter(x => x.score >= 0.75)
+    .sort((a, b) => b.score - a.score)
+    .slice(0, 3);
+  return scored.length
+    ? { status: 'similar', suggestions: scored.map(x => x.id) }
+    : { status: 'new', suggestions: [] };
+}
+
+/* Options for "link this row to…" selects. target: '' | 'none' | 'new' | staffId */
+function staffLinkOptions(target, suggestions, newName, includeChoose) {
+  const byId = id => db.staff.find(s => s.id === id);
+  const label = s => s.name + (s.archived ? ' (archived)' : '');
+  const opt = (v, text) => `<option value="${escHtml(v)}"${v === target ? ' selected' : ''}>${escHtml(text)}</option>`;
+  const others = [...db.staff].filter(s => !suggestions.includes(s.id)).sort((a, b) => a.name.localeCompare(b.name));
+  return (includeChoose ? opt('', '— choose —') : '') +
+    opt('none', '— leave unlinked —') +
+    (newName ? opt('new', '+ new staff record: ' + newName) : '') +
+    suggestions.map(id => byId(id)).filter(Boolean).map(s => opt(s.id, '≈ ' + label(s))).join('') +
+    (others.length ? '<option disabled>──────────</option>' : '') +
+    others.map(s => opt(s.id, label(s))).join('');
+}
+
+/* ─── /staffing ─── */
+function cmdStaffing(arg) {
+  const sub = (arg || '').trim().toLowerCase();
+  if (!sub) { showScreen('staffing'); return; }
+  if (sub === 'import') { showScreen('staffing'); openSheetImportDialog(); return; }
+  if (sub === 'copy') {
+    const sh = getActiveSheet();
+    if (!sh) { statusMsg('No staffing sheets yet — /staffing import'); return; }
+    showScreen('staffing'); openSheetCopyDialog(sh); return;
+  }
+  statusMsg('Usage: /staffing  |  /staffing import  |  /staffing copy');
+}
+
+/* ─── STAFFING SCREEN ─── */
+function renderStaffing() {
+  const tabsEl = document.getElementById('sheet-tabs');
+  const hintEl = document.getElementById('sheet-hint');
+  const bodyEl = document.getElementById('sheet-body');
+  const sheets = sheetsSorted();
+  const sheet = getActiveSheet();
+  if (sheet) activeSheetId = sheet.id;
+
+  if (!sheet) {
+    tabsEl.innerHTML = '';
+    hintEl.textContent = '';
+    bodyEl.innerHTML = '<div class="empty-msg">No staffing sheets yet. Use [+ IMPORT SHEET] or /staffing import to paste a spreadsheet.</div>';
+    return;
+  }
+
+  tabsEl.innerHTML = sheets.map(sh =>
+    `<button class="dlg-type-btn${sh.id === sheet.id ? ' active' : ''}" data-sheet-tab="${escHtml(sh.id)}">${escHtml(sh.label)} (${sh.rows.length})</button>`
+  ).join('');
+  tabsEl.querySelectorAll('[data-sheet-tab]').forEach(btn => btn.addEventListener('click', () => {
+    activeSheetId = btn.dataset.sheetTab;
+    sheetHighlightStaffId = null;
+    renderStaffing();
+  }));
+
+  const unlinked = sheet.rows.filter(r => !r.staffId).length;
+  hintEl.textContent = '★ = shown in STAFFING NOTES on the staff page (click a column header to toggle) · click a row for details'
+    + (unlinked ? ` · ${unlinked} unlinked row(s) shown in orange` : '');
+
+  const cols = [sheet.nameCol, ...sheet.columns.filter(c => c !== sheet.nameCol)];
+  const q = document.getElementById('sheet-filter').value.trim().toLowerCase();
+  const rows = sheet.rows.filter(r => !q || cols.some(c => (r.values[c] || '').toLowerCase().includes(q)));
+
+  bodyEl.innerHTML = `<table class="sheet-table">
+    <thead><tr>${cols.map((c, i) => i === 0
+      ? `<th>${escHtml(c)}</th>`
+      : `<th class="${isStaffingTagged(c) ? 'tagged' : ''}" data-col="${escHtml(c)}" title="${escHtml(c)} — click to ${isStaffingTagged(c) ? 'hide from' : 'show on'} staff page">${isStaffingTagged(c) ? '★ ' : ''}${escHtml(c)}</th>`
+    ).join('')}</tr></thead>
+    <tbody>${rows.map(r => {
+      const idx = sheet.rows.indexOf(r);
+      const hl = sheetHighlightStaffId && r.staffId === sheetHighlightStaffId;
+      return `<tr data-row-idx="${idx}"${hl ? ' class="hl"' : ''}>${cols.map((c, i) => {
+        const v = r.values[c] || '';
+        const cls = i === 0 && !r.staffId ? ' class="unlinked"' : '';
+        return `<td${cls} title="${escHtml(v)}">${escHtml(v.replace(/\n/g, ' ⏎ '))}</td>`;
+      }).join('')}</tr>`;
+    }).join('')}</tbody></table>
+    ${rows.length ? '' : '<div class="empty-msg">No rows match the filter.</div>'}`;
+
+  bodyEl.querySelectorAll('th[data-col]').forEach(th => th.addEventListener('click', () => {
+    toggleStaffingTag(th.dataset.col);
+    renderStaffing();
+    render();
+  }));
+  bodyEl.querySelectorAll('tr[data-row-idx]').forEach(tr => tr.addEventListener('click', () => {
+    openSheetRowDialog(sheet, sheet.rows[+tr.dataset.rowIdx]);
+  }));
+  const hlRow = bodyEl.querySelector('tr.hl');
+  if (hlRow) hlRow.scrollIntoView({ block: 'center' });
+}
+
+/* ─── ROW DETAIL DIALOG (from the staffing tab or the staff page) ─── */
+function openSheetRowDialog(sheet, row) {
+  const rowName = () => row.values[sheet.nameCol] || '(no name)';
+
+  function renderDlg() {
+    const body = document.getElementById('help-body');
+    body.style.whiteSpace = 'normal';
+    document.getElementById('help-title').textContent = `◈ ${sheet.label} — ${rowName()}`;
+    const staff = db.staff.find(s => s.id === row.staffId);
+    const target = staff ? staff.id : 'none';
+    const suggestions = staff ? [] : matchSheetName(rowName()).suggestions;
+    const cols = [sheet.nameCol, ...sheet.columns.filter(c => c !== sheet.nameCol)];
+
+    body.innerHTML = `
+      <div class="dlg-section" style="margin-top:0;">
+        <div class="dlg-label">LINKED STAFF RECORD</div>
+        <div style="display:flex;gap:8px;align-items:center;">
+          <select class="dlg-input" id="dlg-sr-link" style="flex:1;">${staffLinkOptions(target, suggestions, flipLastFirst(rowName()), false)}</select>
+          ${staff ? '<button class="dlg-btn" id="dlg-sr-load">Open staff page</button>' : ''}
+        </div>
+      </div>
+      <div class="dlg-section">
+        ${cols.map(c => `<div class="kv-row">
+          <span class="kv-key${isStaffingTagged(c) ? ' tagged' : ''}">${isStaffingTagged(c) ? '★ ' : ''}${escHtml(c)}</span>
+          <span class="kv-val"${row.values[c] ? '' : ' style="color:var(--dim);"'}>${escHtml(row.values[c] || '—')}</span>
+        </div>`).join('')}
+      </div>
+      <div class="dlg-section" style="margin-top:14px;">
+        ${currentScreen !== 'staffing' ? '<button class="dlg-btn" id="dlg-sr-tab">Open in staffing tab</button>' : ''}
+        <button class="dlg-btn" id="dlg-sr-close">Close</button>
+      </div>`;
+
+    document.getElementById('dlg-sr-link').addEventListener('change', e => {
+      const v = e.target.value;
+      if (v === 'new') {
+        const s = newStaffRecord(flipLastFirst(rowName()));
+        db.staff.push(s);
+        row.staffId = s.id;
+        statusMsg('Created staff record: ' + s.name);
+      } else {
+        row.staffId = v === 'none' ? null : v;
+      }
+      saveDB();
+      render();
+      if (currentScreen === 'staffing') renderStaffing();
+      renderDlg();
+    });
+    const loadBtn = document.getElementById('dlg-sr-load');
+    if (loadBtn) loadBtn.addEventListener('click', () => {
+      db.activeStaffId = staff.id;
+      viewingLdpYear = null;
+      if (staff.archived) statusMsg(staff.name + ' is archived — /unarchive to restore');
+      saveDB();
+      closeOverlay();
+      showScreen('staff');
+      render();
+    });
+    const tabBtn = document.getElementById('dlg-sr-tab');
+    if (tabBtn) tabBtn.addEventListener('click', () => {
+      activeSheetId = sheet.id;
+      sheetHighlightStaffId = row.staffId;
+      document.getElementById('sheet-filter').value = '';
+      closeOverlay();
+      showScreen('staffing');
+    });
+    document.getElementById('dlg-sr-close').addEventListener('click', closeOverlay);
+  }
+
+  showOverlay('◈ ' + sheet.label, renderDlg);
+}
+
+/* ─── IMPORT DIALOG: paste/file → match names → save ─── */
+function openSheetImportDialog() {
+  const st = { step: 1, label: '', text: '', data: null, nameCol: '', decisions: [], onlyAttention: false };
+
+  function computeMatches() {
+    st.decisions = st.data.data.map(values => {
+      const m = matchSheetName(values[st.nameCol]);
+      const target = m.status === 'ok' ? m.staffId : m.status === 'new' ? 'new' : m.status === 'blank' ? 'none' : '';
+      return { status: m.status, suggestions: m.suggestions, target };
+    });
+  }
+
+  function statusOf(d, dupeIds) {
+    if (d.target === '')     return ['similar', 'SIMILAR — CHOOSE'];
+    if (d.target === 'none') return ['skip', 'UNLINKED'];
+    if (d.target === 'new')  return ['new', 'NEW RECORD'];
+    if (dupeIds.has(d.target)) return ['dupe', 'DUPLICATE LINK'];
+    return ['ok', d.status === 'ok' ? 'MATCHED' : 'LINKED'];
+  }
+
+  function renderStep1() {
+    const body = document.getElementById('help-body');
+    body.style.whiteSpace = 'normal';
+    document.getElementById('help-title').textContent = '◈ IMPORT STAFFING SHEET — 1. DATA';
+    body.innerHTML = `
+      <div class="dlg-section" style="margin-top:0;">
+        <div class="dlg-label">SHEET LABEL (e.g. FY2026)</div>
+        <input class="dlg-input" id="dlg-si-label" type="text" value="${escHtml(st.label)}" placeholder="FY2026">
+      </div>
+      <div class="dlg-section">
+        <div class="dlg-label">PASTE CELLS FROM EXCEL (tabs) OR CSV — FIRST ROW MUST BE THE HEADERS</div>
+        <textarea class="dlg-textarea" id="dlg-si-text" style="min-height:200px;white-space:pre;font-size:0.8em;"
+          placeholder="Name&#9;Branch&#9;Group&#9;…&#10;Doe, Jane&#9;…">${escHtml(st.text)}</textarea>
+        <div style="margin-top:4px;">
+          <span class="list-toggle-link" id="dlg-si-file">[CHOOSE CSV / TSV FILE…]</span>
+          <span style="font-size:0.72em;color:var(--dim);margin-left:8px;">.xlsx isn't readable here — save as CSV, or just copy/paste the cells</span>
+        </div>
+      </div>
+      <div class="dlg-section" style="margin-top:14px;">
+        <button class="dlg-btn dlg-btn-primary" id="dlg-si-next">Next: match names →</button>
+        <button class="dlg-btn" id="dlg-si-close">Cancel</button>
+      </div>`;
+
+    const labelEl = document.getElementById('dlg-si-label');
+    const textEl = document.getElementById('dlg-si-text');
+    labelEl.addEventListener('input', () => { st.label = labelEl.value; });
+    textEl.addEventListener('input', () => { st.text = textEl.value; });
+    if (!st.label) labelEl.focus();
+
+    document.getElementById('dlg-si-file').addEventListener('click', () => {
+      const input = document.createElement('input');
+      input.type = 'file';
+      input.accept = '.csv,.tsv,.txt,text/csv,text/tab-separated-values,text/plain';
+      input.addEventListener('change', () => {
+        const file = input.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = () => {
+          st.text = String(reader.result).replace(/^﻿/, '');   // strip Excel's BOM
+          if (!st.label) st.label = file.name.replace(/\.[^.]+$/, '');
+          renderStep1();
+        };
+        reader.readAsText(file);
+      });
+      input.click();
+    });
+
+    document.getElementById('dlg-si-next').addEventListener('click', () => {
+      st.label = labelEl.value.trim();
+      st.text = textEl.value;
+      if (!st.label) { statusMsg('Give the sheet a label, e.g. FY2026.'); labelEl.focus(); return; }
+      const data = buildSheetData(st.text);
+      if (!data) { statusMsg('Need a header row plus at least one data row.'); return; }
+      const prevCols = st.data ? st.data.columns.join('\u0001') : '';
+      st.data = data;
+      if (!st.nameCol || prevCols !== data.columns.join('\u0001')) st.nameCol = guessNameColumn(data.columns);
+      computeMatches();
+      st.step = 2;
+      renderStep2();
+    });
+    document.getElementById('dlg-si-close').addEventListener('click', closeOverlay);
+  }
+
+  function renderStep2() {
+    const body = document.getElementById('help-body');
+    const scroll = body.scrollTop;
+    body.style.whiteSpace = 'normal';
+    document.getElementById('help-title').textContent = `◈ IMPORT STAFFING SHEET — 2. MATCH NAMES (${st.label})`;
+
+    const counts = {};
+    st.decisions.forEach(d => { if (d.target && d.target !== 'none' && d.target !== 'new') counts[d.target] = (counts[d.target] || 0) + 1; });
+    const dupeIds = new Set(Object.keys(counts).filter(id => counts[id] > 1));
+    const tally = { ok: 0, similar: 0, new: 0, skip: 0, dupe: 0 };
+    const statuses = st.decisions.map(d => { const s = statusOf(d, dupeIds); tally[s[0]]++; return s; });
+    const unresolved = tally.similar;
+    const replacing = db.staffingSheets.find(sh => normColName(sh.label) === normColName(st.label));
+
+    const rowsHtml = st.data.data.map((values, i) => {
+      const d = st.decisions[i];
+      const [cls, text] = statuses[i];
+      if (st.onlyAttention && (cls === 'ok' || (cls === 'skip' && d.status === 'blank'))) return '';
+      const raw = values[st.nameCol] || '';
+      return `<tr>
+        <td style="width:30%;">${escHtml(raw || '(blank)')}</td>
+        <td style="width:20%;"><span class="match-status ${cls}">${text}</span></td>
+        <td><select class="dlg-input" data-dec="${i}" style="margin:0;">${staffLinkOptions(d.target, d.suggestions, raw ? flipLastFirst(raw) : '', d.target === '')}</select></td>
+      </tr>`;
+    }).join('');
+
+    body.innerHTML = `
+      <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin-bottom:6px;">
+        <span class="dlg-label" style="margin:0;">NAME COLUMN</span>
+        <select class="dlg-input" id="dlg-si-namecol" style="width:auto;margin:0;">${st.data.columns.map(c =>
+          `<option value="${escHtml(c)}"${c === st.nameCol ? ' selected' : ''}>${escHtml(c)}</option>`).join('')}</select>
+        <span style="font-size:0.78em;color:var(--dim);">${st.data.data.length} rows · ${st.data.columns.length} columns</span>
+      </div>
+      <div style="font-size:0.78em;margin-bottom:6px;">
+        <span class="match-status ok">${tally.ok} MATCHED</span> ·
+        <span class="match-status similar">${tally.similar} NEED A DECISION</span> ·
+        <span class="match-status new">${tally.new} NEW</span> ·
+        <span class="match-status skip">${tally.skip} UNLINKED</span>
+        ${tally.dupe ? ` · <span class="match-status dupe">${tally.dupe} LINKED TO THE SAME PERSON</span>` : ''}
+        <span class="list-toggle-link" id="dlg-si-filter" style="margin-left:12px;">${st.onlyAttention ? '[SHOW ALL ROWS]' : '[SHOW ONLY ROWS NEEDING ATTENTION]'}</span>
+      </div>
+      <table class="match-table"><tbody>${rowsHtml || '<tr><td class="empty-msg">Nothing needs attention.</td></tr>'}</tbody></table>
+      <div class="dlg-section" style="margin-top:14px;">
+        <button class="dlg-btn" id="dlg-si-back">← Back</button>
+        <button class="dlg-btn dlg-btn-primary" id="dlg-si-go">${replacing ? 'Replace sheet ' + escHtml(replacing.label) : 'Import ' + st.data.data.length + ' rows'}</button>
+        <button class="dlg-btn" id="dlg-si-close">Cancel</button>
+        ${unresolved ? `<span style="font-size:0.78em;color:var(--warn);">${unresolved} similar name(s) need a decision first</span>` : ''}
+      </div>`;
+    body.scrollTop = scroll;
+
+    document.getElementById('dlg-si-namecol').addEventListener('change', e => {
+      st.nameCol = e.target.value;
+      computeMatches();
+      renderStep2();
+    });
+    document.getElementById('dlg-si-filter').addEventListener('click', () => { st.onlyAttention = !st.onlyAttention; renderStep2(); });
+    body.querySelectorAll('[data-dec]').forEach(sel => sel.addEventListener('change', () => {
+      st.decisions[+sel.dataset.dec].target = sel.value;
+      renderStep2();
+    }));
+    document.getElementById('dlg-si-back').addEventListener('click', () => { st.step = 1; renderStep1(); });
+    document.getElementById('dlg-si-close').addEventListener('click', closeOverlay);
+
+    const goBtn = document.getElementById('dlg-si-go');
+    const commit = () => {
+      if (unresolved) { statusMsg(unresolved + ' similar name(s) still need a decision.'); return; }
+      commitSheetImport(st, replacing);
+    };
+    if (replacing && !unresolved) armConfirm(goBtn, commit, 'Click again to replace ' + replacing.label);
+    else goBtn.addEventListener('click', commit);
+  }
+
+  showOverlay('◈ IMPORT STAFFING SHEET', renderStep1);
+}
+
+function commitSheetImport(st, replacing) {
+  let created = 0;
+  const rows = st.data.data.map((values, i) => {
+    const d = st.decisions[i];
+    let staffId = null;
+    if (d.target === 'new') {
+      const s = newStaffRecord(flipLastFirst(values[st.nameCol]));
+      db.staff.push(s);
+      staffId = s.id;
+      created++;
+    } else if (d.target && d.target !== 'none') {
+      staffId = d.target;
+    }
+    return { staffId, values };
+  });
+  const sheet = {
+    id: uid(), label: st.label, importedAt: nowIso(),
+    columns: st.data.columns, nameCol: st.nameCol, rows
+  };
+  if (replacing) db.staffingSheets = db.staffingSheets.filter(sh => sh.id !== replacing.id);
+  db.staffingSheets.push(sheet);
+  if (!db.activeStaffId) {
+    const first = db.staff.find(s => !s.archived);
+    if (first) db.activeStaffId = first.id;
+  }
+  saveDB();
+  activeSheetId = sheet.id;
+  sheetHighlightStaffId = null;
+  closeOverlay();
+  showScreen('staffing');
+  render();
+  const linked = rows.filter(r => r.staffId).length;
+  statusMsg(`${replacing ? 'Replaced' : 'Imported'} ${sheet.label}: ${rows.length} rows, ${linked} linked, ${created} new staff record(s).`);
+}
+
+/* ─── COPY TO STAFF RECORDS: pick column → field mappings, preview, apply ─── */
+/* Returns the normalized value, or null if it can't be read as that field */
+function normalizeCoreValue(field, raw) {
+  if (field === 'profStart') {
+    const m = /\b(19|20)\d{2}\b/.exec(raw);
+    return m ? m[0] : null;
+  }
+  if (field === 'startDate') {
+    if (/^\d{4}-\d{2}-\d{2}$/.test(raw)) return raw;
+    let m = /^(\d{1,2})\/(\d{1,2})\/(\d{2}|\d{4})$/.exec(raw);   // US m/d/y
+    if (m) {
+      const y = m[3].length === 2 ? (+m[3] > 50 ? '19' : '20') + m[3] : m[3];
+      return `${y}-${m[1].padStart(2, '0')}-${m[2].padStart(2, '0')}`;
+    }
+    if (/^\d{5}$/.test(raw)) {   // Excel date serial number
+      return localDateStr(new Date(1899, 11, 30 + +raw));
+    }
+    const d = new Date(raw);
+    return isNaN(d.getTime()) ? null : localDateStr(d);
+  }
+  return raw;
+}
+
+function openSheetCopyDialog(sheet) {
+  const colFor = saved => sheet.columns.find(c => normColName(c) === normColName(saved));
+  let mappings = (db.staffingCopyMap || [])
+    .map(m => ({ col: colFor(m.col) || '', field: m.field }))
+    .filter(m => m.col);
+  if (!mappings.length) mappings = [{ col: '', field: '' }];
+  let changes = [];
+
+  function renderMap() {
+    const body = document.getElementById('help-body');
+    body.style.whiteSpace = 'normal';
+    document.getElementById('help-title').textContent = `◈ COPY ${sheet.label} → STAFF RECORDS — 1. MAPPING`;
+    const colOpts = cur => `<option value="">— sheet column —</option>` + sheet.columns
+      .filter(c => c !== sheet.nameCol)
+      .map(c => `<option value="${escHtml(c)}"${c === cur ? ' selected' : ''}>${escHtml(c)}</option>`).join('');
+    const fieldOpts = cur => `<option value="">— staff field —</option>` + SHEET_CORE_FIELDS
+      .map(f => `<option value="${f.id}"${f.id === cur ? ' selected' : ''}>${escHtml(f.label)}</option>`).join('');
+    body.innerHTML = `
+      <div style="font-size:0.78em;color:var(--dim);margin-bottom:8px;">
+        Choose which sheet columns feed which staff fields. Only linked rows are copied, and blank cells never overwrite anything.
+        You'll review every change before it is applied.
+      </div>
+      ${mappings.map((m, i) => `<div class="tag-row">
+        <select class="dlg-input" data-map-col="${i}" style="flex:1;margin:0;">${colOpts(m.col)}</select>
+        <span>→</span>
+        <select class="dlg-input" data-map-field="${i}" style="flex:1;margin:0;">${fieldOpts(m.field)}</select>
+        <span class="action-del" data-map-del="${i}">×</span>
+      </div>`).join('')}
+      <span class="list-toggle-link" id="dlg-sc-add">[+ ADD MAPPING]</span>
+      <div class="dlg-section" style="margin-top:14px;">
+        <button class="dlg-btn dlg-btn-primary" id="dlg-sc-preview">Preview changes →</button>
+        <button class="dlg-btn" id="dlg-sc-close">Cancel</button>
+      </div>`;
+    body.querySelectorAll('[data-map-col]').forEach(el => el.addEventListener('change', () => { mappings[+el.dataset.mapCol].col = el.value; }));
+    body.querySelectorAll('[data-map-field]').forEach(el => el.addEventListener('change', () => { mappings[+el.dataset.mapField].field = el.value; }));
+    body.querySelectorAll('[data-map-del]').forEach(el => el.addEventListener('click', () => {
+      mappings.splice(+el.dataset.mapDel, 1);
+      if (!mappings.length) mappings.push({ col: '', field: '' });
+      renderMap();
+    }));
+    document.getElementById('dlg-sc-add').addEventListener('click', () => { mappings.push({ col: '', field: '' }); renderMap(); });
+    document.getElementById('dlg-sc-close').addEventListener('click', closeOverlay);
+    document.getElementById('dlg-sc-preview').addEventListener('click', () => {
+      const valid = mappings.filter(m => m.col && m.field);
+      if (!valid.length) { statusMsg('Pick at least one column → field mapping.'); return; }
+      const fields = valid.map(m => m.field);
+      if (new Set(fields).size !== fields.length) { statusMsg('Each staff field can only be mapped once.'); return; }
+      db.staffingCopyMap = valid;
+      saveDB();
+      changes = [];
+      sheet.rows.forEach(r => {
+        const staff = db.staff.find(s => s.id === r.staffId);
+        if (!staff) return;
+        valid.forEach(m => {
+          const raw = (r.values[m.col] || '').trim();
+          if (!raw) return;
+          const to = normalizeCoreValue(m.field, raw);
+          const from = staff[m.field] || '';
+          if (to !== null && to === from) return;
+          changes.push({ staff, field: m.field, from, to, raw, invalid: to === null, checked: to !== null });
+        });
+      });
+      renderPreview();
+    });
+  }
+
+  function renderPreview() {
+    const body = document.getElementById('help-body');
+    body.style.whiteSpace = 'normal';
+    document.getElementById('help-title').textContent = `◈ COPY ${sheet.label} → STAFF RECORDS — 2. REVIEW`;
+    const fieldLabel = id => (SHEET_CORE_FIELDS.find(f => f.id === id) || {}).label || id;
+    const unlinked = sheet.rows.filter(r => !r.staffId).length;
+    const n = changes.filter(c => c.checked).length;
+    body.innerHTML = `
+      <div style="font-size:0.78em;color:var(--dim);margin-bottom:6px;">
+        ${changes.length} difference(s) found${unlinked ? ` · ${unlinked} unlinked row(s) skipped` : ''} ·
+        <span style="color:var(--warn);">orange</span> = overwrites an existing value ·
+        <span class="list-toggle-link" id="dlg-sc-all">[ALL]</span> <span class="list-toggle-link" id="dlg-sc-none">[NONE]</span>
+      </div>
+      ${changes.length ? `<table class="match-table"><tbody>${changes.map((c, i) => `<tr${c.invalid ? ' style="color:var(--dim);"' : ''}>
+        <td style="width:24px;"><input type="checkbox" data-chg="${i}"${c.checked ? ' checked' : ''}${c.invalid ? ' disabled' : ''}></td>
+        <td style="width:28%;">${escHtml(c.staff.name)}</td>
+        <td style="width:16%;color:var(--dim);">${escHtml(fieldLabel(c.field))}</td>
+        <td${c.from && !c.invalid ? ' style="color:var(--warn);"' : ''}>${escHtml(c.from || '(empty)')} → ${c.invalid
+          ? `<span style="color:var(--accent);">can't read "${escHtml(c.raw)}"</span>`
+          : escHtml(c.to)}</td>
+      </tr>`).join('')}</tbody></table>` : '<div class="empty-msg">Staff records already match the sheet — nothing to copy.</div>'}
+      <div class="dlg-section" style="margin-top:14px;">
+        <button class="dlg-btn" id="dlg-sc-back">← Back</button>
+        ${changes.length ? `<button class="dlg-btn dlg-btn-primary" id="dlg-sc-apply">Apply ${n} change(s)</button>` : ''}
+        <button class="dlg-btn" id="dlg-sc-close">Close</button>
+      </div>`;
+    body.querySelectorAll('[data-chg]').forEach(cb => cb.addEventListener('change', () => {
+      changes[+cb.dataset.chg].checked = cb.checked;
+      renderPreview();
+    }));
+    const setAll = v => { changes.forEach(c => { if (!c.invalid) c.checked = v; }); renderPreview(); };
+    document.getElementById('dlg-sc-all').addEventListener('click', () => setAll(true));
+    document.getElementById('dlg-sc-none').addEventListener('click', () => setAll(false));
+    document.getElementById('dlg-sc-back').addEventListener('click', renderMap);
+    document.getElementById('dlg-sc-close').addEventListener('click', closeOverlay);
+    const applyBtn = document.getElementById('dlg-sc-apply');
+    if (applyBtn) applyBtn.addEventListener('click', () => {
+      const todo = changes.filter(c => c.checked);
+      if (!todo.length) { statusMsg('No changes selected.'); return; }
+      todo.forEach(c => { c.staff[c.field] = c.to; });
+      saveDB();
+      render();
+      closeOverlay();
+      statusMsg('Applied ' + todo.length + ' change(s) to ' + new Set(todo.map(c => c.staff.id)).size + ' staff record(s).');
+    });
+  }
+
+  showOverlay('◈ COPY TO STAFF RECORDS', renderMap);
+}
+
+document.getElementById('sheet-import-btn').addEventListener('click', () => openSheetImportDialog());
+document.getElementById('sheet-copy-btn').addEventListener('click', () => {
+  const sh = getActiveSheet();
+  if (!sh) { statusMsg('No staffing sheets yet — import one first.'); return; }
+  openSheetCopyDialog(sh);
+});
+armConfirm(document.getElementById('sheet-delete-btn'), () => {
+  const sh = getActiveSheet();
+  if (!sh) { statusMsg('No sheet to delete.'); return; }
+  db.staffingSheets = db.staffingSheets.filter(x => x.id !== sh.id);
+  activeSheetId = null;
+  saveDB();
+  renderStaffing();
+  render();
+  statusMsg('Deleted sheet ' + sh.label + ' (staff records untouched).');
+}, '[CLICK AGAIN TO DELETE THIS SHEET]');
+document.getElementById('sheet-filter').addEventListener('input', () => renderStaffing());
+document.getElementById('sheet-back-btn').addEventListener('click', () => showScreen('staff'));
+
+/* ═══════════════════════════════════════════════════════════════════
    KEYBOARD GLOBAL SHORTCUTS
    ═══════════════════════════════════════════════════════════════════ */
 document.addEventListener('keydown', e => {
@@ -4618,9 +5663,13 @@ document.addEventListener('keydown', e => {
   }
 
   // Keep focus in console when overlay is hidden and boot is hidden
+  // Keep typing landing in the console — unless an overlay is up or the user
+  // is already in some other text field (e.g. the hiring filter box)
   const helpVisible = document.getElementById('help-overlay').classList.contains('visible');
-  const bootVisible = document.getElementById('boot-overlay').style.display !== 'none';
-  if (!helpVisible && !bootVisible && document.activeElement !== consoleInput) {
+  const bootVisible = document.getElementById('boot-overlay').style.display === 'flex';
+  const ae = document.activeElement;
+  const inField = ae && (ae.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(ae.tagName));
+  if (!helpVisible && !bootVisible && !inField && !e.ctrlKey && !e.metaKey && !e.altKey) {
     consoleInput.focus();
   }
 });
