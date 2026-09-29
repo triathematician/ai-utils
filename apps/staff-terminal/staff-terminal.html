@@ -1043,6 +1043,7 @@ function loadDB() {
     s.archived         = s.archived         || false;
     s.email            = s.email            || '';
     s.profStart        = s.profStart        || '';
+    s.degree           = s.degree           || '';
     s.excludeFromStats = s.excludeFromStats || false;
     s.strengths        = s.strengths        || [];
     s.developmentAreas = s.developmentAreas || [];
@@ -2427,6 +2428,7 @@ function mergeStaffInto(primary, others) {
     if (!primary.startDate) primary.startDate = o.startDate;
     if (!primary.email)     primary.email     = o.email;
     if (!primary.profStart) primary.profStart = o.profStart;
+    if (!primary.degree)    primary.degree    = o.degree;
     primary.strengths        = [...new Set([...primary.strengths, ...o.strengths])];
     primary.developmentAreas = [...new Set([...primary.developmentAreas, ...o.developmentAreas])];
     primary.milestones = [...primary.milestones, ...o.milestones];
@@ -3081,6 +3083,10 @@ function openProfileDialog() {
         <div>${s.profStart ? escHtml(s.profStart) + ' — ' + yearsOfExperience(s.profStart) + 'yr experience' : '—'}</div>
       </div>
       <div class="dlg-section">
+        <div class="dlg-label">DEGREE</div>
+        <div>${escHtml(s.degree || '—')}</div>
+      </div>
+      <div class="dlg-section">
         <div class="dlg-label">STRENGTHS</div>
         <textarea class="dlg-textarea" id="dlg-strengths">${escHtml(s.strengths.join('\n'))}</textarea>
         <div style="font-size:0.75em;color:var(--dim);">one per line</div>
@@ -3617,6 +3623,7 @@ function cmdExport() {
     'START:   ' + s.startDate,
     'EMAIL:   ' + s.email,
     'PROF START: ' + s.profStart + (s.profStart ? ' (' + yearsOfExperience(s.profStart) + 'yr experience)' : ''),
+    'DEGREE:  ' + s.degree,
     '',
     'STRENGTHS:',
     ...s.strengths.map(x => '  - ' + x),
@@ -3711,6 +3718,10 @@ function openEditStaffDialog(s) {
         <input class="dlg-input" id="dlg-e-profstart" type="text" value="${escHtml(s.profStart)}" placeholder="YYYY, e.g. 2018">
         <div style="font-size:0.75em;color:var(--dim);">years of experience rolls over every 10/1 (fiscal year)</div>
       </div>
+      <div class="dlg-section">
+        <div class="dlg-label">DEGREE</div>
+        <input class="dlg-input" id="dlg-e-degree" type="text" value="${escHtml(s.degree)}" placeholder="e.g. PhD Physics">
+      </div>
       <div class="dlg-section" style="margin-top:14px;">
         <button class="dlg-btn dlg-btn-primary" id="dlg-e-save">Save</button>
         <button class="dlg-btn" id="dlg-e-close">Cancel</button>
@@ -3734,6 +3745,7 @@ function openEditStaffDialog(s) {
       s.startDate = start;
       s.email     = document.getElementById('dlg-e-email').value.trim();
       s.profStart = profStart;
+      s.degree    = document.getElementById('dlg-e-degree').value.trim();
       saveDB();
       render();
       closeOverlay();
@@ -3928,6 +3940,11 @@ const HELP_TOPICS = [
     '  → click a row for all its values and to change which staff record it links to',
     '  → COPY TO STAFF RECORDS: map columns → fields on the fly',
     '    (e.g. Classification → Title, Hire Date → Start date), review, apply',
+    '  → its LIST COLUMNS split numbered / bulleted cells into items:',
+    '      accomplishments → LDP highlights or highlight notes',
+    '      goals → LDP goals for the chosen year',
+    '      actions → action N (or Na, Nb…) goes on goal N',
+    '    each item gets a prefix like [FY26 Import]; items already there are skipped',
     '  → the staff page shows ▤ links to every sheet the person appears in',
   ]},
   { id: 'projects', label: 'PROJECTS', lines: [
@@ -4994,6 +5011,7 @@ const SHEET_CORE_FIELDS = [
   { id: 'startDate', label: 'Start date' },
   { id: 'email',     label: 'Email' },
   { id: 'profStart', label: 'Prof start (year)' },
+  { id: 'degree',    label: 'Degree' },
 ];
 
 function sheetsSorted() {
@@ -5022,7 +5040,7 @@ function toggleStaffingTag(col) {
 function newStaffRecord(name) {
   return {
     id: uid(), name, title: '', team: '', manager: '', startDate: '', archived: false,
-    email: '', profStart: '', excludeFromStats: false, strengths: [], developmentAreas: [],
+    email: '', profStart: '', degree: '', excludeFromStats: false, strengths: [], developmentAreas: [],
     milestones: [], notes: [], ldps: []
   };
 }
@@ -5514,13 +5532,131 @@ function normalizeCoreValue(field, raw) {
   return raw;
 }
 
+/* Split a numbered/bulleted cell into items: [{ num, letter, text }].
+   "1." "1)" "(1)" "#1" start numbered items, "1a." "1.a)" "a." (after a
+   number) start lettered sub-items, "-" "•" "*" start bullets. Unmarked
+   lines continue the previous item; if nothing is marked, every line is
+   its own item. */
+function parseListItems(text) {
+  const lines = String(text || '').split('\n').map(l => l.trim()).filter(Boolean);
+  const markers = [
+    [/^\(?(\d+)\s*[.)]?\s*\(?([a-z])[.)]\s+(.*)$/i, m => ({ num: +m[1], letter: m[2].toLowerCase(), text: m[3] })],
+    [/^\(?(\d+)[.)]\s+(.*)$/,                        m => ({ num: +m[1], letter: '', text: m[2] })],
+    [/^#(\d+)[.):]?\s+(.*)$/,                        m => ({ num: +m[1], letter: '', text: m[2] })],
+    [/^[-•*·▪◦]\s+(.*)$/,                            m => ({ num: null, letter: '', text: m[1] })],
+  ];
+  const lettered = /^\(?([a-z])[.)]\s+(.*)$/i;
+  const parseLine = (l, lastNum) => {
+    for (const [re, fn] of markers) { const m = re.exec(l); if (m) return fn(m); }
+    const m = lastNum != null && lettered.exec(l);
+    return m ? { num: lastNum, letter: m[1].toLowerCase(), text: m[2] } : null;
+  };
+  let lastNum = null;
+  const anyMarked = lines.some(l => { const it = parseLine(l, lastNum); if (it) lastNum = it.num; return !!it; });
+  if (!anyMarked) return lines.map(l => ({ num: null, letter: '', text: l }));
+  const items = [];
+  lastNum = null;
+  lines.forEach(l => {
+    const it = parseLine(l, lastNum);
+    if (it) { items.push(it); if (it.num != null) lastNum = it.num; }
+    else if (items.length) items[items.length - 1].text += ' ' + l;
+    else items.push({ num: null, letter: '', text: l });
+  });
+  return items.filter(it => it.text.trim());
+}
+
+/* Compare text ignoring an "[… Import]" prefix, case and spacing */
+function listItemKey(t) {
+  return String(t || '').replace(/^\[[^\]]*import\]\s*/i, '').trim().toLowerCase().replace(/\s+/g, ' ');
+}
+
+function sheetYear(label) {
+  let m = /(\d{4})/.exec(label);
+  if (m) return +m[1];
+  m = /FY\s*'?(\d{2})\b/i.exec(label);
+  return m ? 2000 + +m[1] : currentYear();
+}
+
 function openSheetCopyDialog(sheet) {
   const colFor = saved => sheet.columns.find(c => normColName(c) === normColName(saved));
   let mappings = (db.staffingCopyMap || [])
     .map(m => ({ col: colFor(m.col) || '', field: m.field }))
     .filter(m => m.col);
   if (!mappings.length) mappings = [{ col: '', field: '' }];
+  const savedLists = db.staffingListMap || {};
+  const year = sheetYear(sheet.label);
+  const lists = {
+    accCol:     colFor(savedLists.accCol) || '',
+    accDest:    savedLists.accDest || 'ldp',
+    goalsCol:   colFor(savedLists.goalsCol) || '',
+    actionsCol: colFor(savedLists.actionsCol) || '',
+    year,
+    prefix:     `[FY${String(year).slice(2)} Import]`,
+  };
   let changes = [];
+  let plans = [];
+
+  function buildPlans() {
+    const pre = t => (lists.prefix ? lists.prefix + ' ' : '') + t;
+    plans = [];
+    sheet.rows.forEach(r => {
+      const staff = db.staff.find(s => s.id === r.staffId);
+      if (!staff) return;
+      const ldp = getLdpForYear(staff, lists.year);
+
+      // Accomplishments → LDP contributions or highlight notes
+      const haveHl = new Set((lists.accDest === 'notes'
+        ? staff.notes.map(n => n.text)
+        : (ldp ? ldp.highlights.contributions : [])).map(listItemKey));
+      const hl = [];
+      if (lists.accCol) parseListItems(r.values[lists.accCol]).forEach(it => {
+        const k = listItemKey(it.text);
+        if (!haveHl.has(k)) { haveHl.add(k); hl.push(pre(it.text)); }
+      });
+
+      // Goals + actions, paired by number (action N / Na / Nb … → goal N)
+      const gItems = lists.goalsCol ? parseListItems(r.values[lists.goalsCol]) : [];
+      const aItems = lists.actionsCol ? parseListItems(r.values[lists.actionsCol]) : [];
+      const gNums = gItems.map((g, i) => g.num != null ? g.num : i + 1);
+      const aNum = (a, i) => a.num != null ? a.num : i + 1;
+      const goals = [];
+      gItems.forEach((g, gi) => {
+        const acts = aItems.filter((a, ai) => aNum(a, ai) === gNums[gi]).map(a => a.text);
+        const existing = ldp && ldp.goals.find(x => listItemKey(x.text) === listItemKey(g.text));
+        const haveActs = new Set((existing ? existing.actions.map(a => a.text) : []).map(listItemKey));
+        const newActs = [];
+        acts.forEach(a => { const k = listItemKey(a); if (!haveActs.has(k)) { haveActs.add(k); newActs.push(pre(a)); } });
+        if (!existing) goals.push({ text: pre(g.text), actions: newActs, existing: null });
+        else if (newActs.length) goals.push({ text: existing.text, actions: newActs, existing });
+      });
+      const orphans = aItems.filter((a, ai) => !gNums.includes(aNum(a, ai))).map(a => a.text);
+
+      const nGoals = goals.filter(g => !g.existing).length;
+      const nActs = goals.reduce((n, g) => n + g.actions.length, 0);
+      if (hl.length || goals.length || orphans.length) {
+        plans.push({ staff, hl, goals, orphans, nGoals, nActs, checked: !!(hl.length || goals.length) });
+      }
+    });
+  }
+
+  function applyPlan(p) {
+    let ldp = getLdpForYear(p.staff, lists.year);
+    const needLdp = p.goals.length || (p.hl.length && lists.accDest === 'ldp');
+    if (!ldp && needLdp) {
+      ldp = { id: uid(), year: lists.year, theme: '', goals: [], highlights: { contributions: [], goalsAchieved: [], actions: [] } };
+      p.staff.ldps.push(ldp);
+    }
+    if (lists.accDest === 'notes') {
+      p.hl.forEach(t => p.staff.notes.push({ id: uid(), date: nowIso(), text: t, noteType: 'highlight' }));
+    } else {
+      ldp && ldp.highlights.contributions.push(...p.hl);
+    }
+    p.goals.forEach(g => {
+      const actions = g.actions.map(text => ({ text, done: false }));
+      if (g.existing) g.existing.actions.push(...actions);
+      else ldp.goals.push({ id: uid(), text: g.text, actions, status: 'active', targetDate: '' });
+    });
+  }
 
   function renderMap() {
     const body = document.getElementById('help-body');
@@ -5543,6 +5679,37 @@ function openSheetCopyDialog(sheet) {
         <span class="action-del" data-map-del="${i}">×</span>
       </div>`).join('')}
       <span class="list-toggle-link" id="dlg-sc-add">[+ ADD MAPPING]</span>
+      <div class="dlg-section" style="margin-top:14px;border-top:1px solid var(--muted);padding-top:8px;">
+        <div class="dlg-label">LIST COLUMNS — numbered / bulleted cells, split into one item per line (optional)</div>
+        <div class="tag-row">
+          <span style="flex:0 0 150px;font-size:0.85em;">Accomplishments</span>
+          <select class="dlg-input" data-list="accCol" style="flex:1;margin:0;">${colOpts(lists.accCol)}</select>
+          <span>→</span>
+          <select class="dlg-input" data-list="accDest" style="flex:1;margin:0;">
+            <option value="ldp"${lists.accDest === 'ldp' ? ' selected' : ''}>LDP highlights (contributions)</option>
+            <option value="notes"${lists.accDest === 'notes' ? ' selected' : ''}>Notes (type: highlight)</option>
+          </select>
+        </div>
+        <div class="tag-row">
+          <span style="flex:0 0 150px;font-size:0.85em;">Goals</span>
+          <select class="dlg-input" data-list="goalsCol" style="flex:1;margin:0;">${colOpts(lists.goalsCol)}</select>
+          <span>→</span><span style="flex:1;font-size:0.85em;color:var(--dim);">LDP goals</span>
+        </div>
+        <div class="tag-row">
+          <span style="flex:0 0 150px;font-size:0.85em;">Actions</span>
+          <select class="dlg-input" data-list="actionsCol" style="flex:1;margin:0;">${colOpts(lists.actionsCol)}</select>
+          <span>→</span><span style="flex:1;font-size:0.85em;color:var(--dim);">actions on the goal with the same number (1, 1a, 1b…)</span>
+        </div>
+        <div class="tag-row">
+          <span style="flex:0 0 150px;font-size:0.85em;">LDP year</span>
+          <input class="dlg-input" id="dlg-sc-year" type="text" value="${lists.year}" style="flex:0 0 90px;margin:0;">
+          <span style="font-size:0.85em;margin-left:12px;">Prefix</span>
+          <input class="dlg-input" id="dlg-sc-prefix" type="text" value="${escHtml(lists.prefix)}" style="flex:1;margin:0;">
+        </div>
+        <div style="font-size:0.72em;color:var(--dim);">
+          Items already present (ignoring the prefix) are skipped, so re-running this never adds duplicates.
+        </div>
+      </div>
       <div class="dlg-section" style="margin-top:14px;">
         <button class="dlg-btn dlg-btn-primary" id="dlg-sc-preview">Preview changes →</button>
         <button class="dlg-btn" id="dlg-sc-close">Cancel</button>
@@ -5554,15 +5721,25 @@ function openSheetCopyDialog(sheet) {
       if (!mappings.length) mappings.push({ col: '', field: '' });
       renderMap();
     }));
+    body.querySelectorAll('[data-list]').forEach(el => el.addEventListener('change', () => { lists[el.dataset.list] = el.value; }));
+    document.getElementById('dlg-sc-year').addEventListener('input', e => { lists.year = parseInt(e.target.value, 10) || lists.year; });
+    document.getElementById('dlg-sc-prefix').addEventListener('input', e => { lists.prefix = e.target.value.trim(); });
     document.getElementById('dlg-sc-add').addEventListener('click', () => { mappings.push({ col: '', field: '' }); renderMap(); });
     document.getElementById('dlg-sc-close').addEventListener('click', closeOverlay);
     document.getElementById('dlg-sc-preview').addEventListener('click', () => {
       const valid = mappings.filter(m => m.col && m.field);
-      if (!valid.length) { statusMsg('Pick at least one column → field mapping.'); return; }
+      const anyList = lists.accCol || lists.goalsCol || lists.actionsCol;
+      if (!valid.length && !anyList) { statusMsg('Pick a column → field mapping or a list column.'); return; }
       const fields = valid.map(m => m.field);
       if (new Set(fields).size !== fields.length) { statusMsg('Each staff field can only be mapped once.'); return; }
+      const yr = parseInt(document.getElementById('dlg-sc-year').value, 10);
+      if (anyList && !(yr > 2000 && yr < 2100)) { statusMsg('LDP year must be a 4-digit year.'); return; }
+      lists.year = yr || lists.year;
+      lists.prefix = document.getElementById('dlg-sc-prefix').value.trim();
       db.staffingCopyMap = valid;
+      db.staffingListMap = { accCol: lists.accCol, accDest: lists.accDest, goalsCol: lists.goalsCol, actionsCol: lists.actionsCol };
       saveDB();
+      buildPlans();
       changes = [];
       sheet.rows.forEach(r => {
         const staff = db.staff.find(s => s.id === r.staffId);
@@ -5587,30 +5764,62 @@ function openSheetCopyDialog(sheet) {
     const fieldLabel = id => (SHEET_CORE_FIELDS.find(f => f.id === id) || {}).label || id;
     const unlinked = sheet.rows.filter(r => !r.staffId).length;
     const n = changes.filter(c => c.checked).length;
-    body.innerHTML = `
-      <div style="font-size:0.78em;color:var(--dim);margin-bottom:6px;">
-        ${changes.length} difference(s) found${unlinked ? ` · ${unlinked} unlinked row(s) skipped` : ''} ·
-        <span style="color:var(--warn);">orange</span> = overwrites an existing value ·
-        <span class="list-toggle-link" id="dlg-sc-all">[ALL]</span> <span class="list-toggle-link" id="dlg-sc-none">[NONE]</span>
-      </div>
-      ${changes.length ? `<table class="match-table"><tbody>${changes.map((c, i) => `<tr${c.invalid ? ' style="color:var(--dim);"' : ''}>
+    const np = plans.filter(p => p.checked).length;
+    const anyList = lists.accCol || lists.goalsCol || lists.actionsCol;
+    const accWhere = lists.accDest === 'notes' ? 'notes' : 'highlights';
+    const planSummary = p => [
+      p.nGoals ? `+${p.nGoals} goal(s)` : '',
+      p.nActs ? `+${p.nActs} action(s)` : '',
+      p.hl.length ? `+${p.hl.length} ${accWhere}` : '',
+      p.orphans.length ? `<span style="color:var(--accent);">⚠ ${p.orphans.length} action(s) with no matching goal</span>` : '',
+    ].filter(Boolean).join(' · ');
+    const planDetail = p => `<ul class="hire-hist">` +
+      p.goals.map(g => `<li>${g.existing ? '<span style="color:var(--dim);">(existing goal)</span> ' : 'GOAL: '}${escHtml(g.text)}` +
+        (g.actions.length ? `<ul class="hire-hist">${g.actions.map(a => `<li>${escHtml(a)}</li>`).join('')}</ul>` : '') + '</li>').join('') +
+      p.hl.map(t => `<li>${accWhere.toUpperCase()}: ${escHtml(t)}</li>`).join('') +
+      p.orphans.map(t => `<li style="color:var(--accent);">not imported (no matching goal): ${escHtml(t)}</li>`).join('') +
+      `</ul>`;
+    const fieldsHtml = changes.length ? `<table class="match-table"><tbody>${changes.map((c, i) => `<tr${c.invalid ? ' style="color:var(--dim);"' : ''}>
         <td style="width:24px;"><input type="checkbox" data-chg="${i}"${c.checked ? ' checked' : ''}${c.invalid ? ' disabled' : ''}></td>
         <td style="width:28%;">${escHtml(c.staff.name)}</td>
         <td style="width:16%;color:var(--dim);">${escHtml(fieldLabel(c.field))}</td>
         <td${c.from && !c.invalid ? ' style="color:var(--warn);"' : ''}>${escHtml(c.from || '(empty)')} → ${c.invalid
           ? `<span style="color:var(--accent);">can't read "${escHtml(c.raw)}"</span>`
           : escHtml(c.to)}</td>
-      </tr>`).join('')}</tbody></table>` : '<div class="empty-msg">Staff records already match the sheet — nothing to copy.</div>'}
+      </tr>`).join('')}</tbody></table>` : '<div class="empty-msg">Staff fields already match the sheet — nothing to copy.</div>';
+    const plansHtml = plans.length ? `<table class="match-table"><tbody>${plans.map((p, i) => `<tr>
+        <td style="width:24px;vertical-align:top;"><input type="checkbox" data-plan="${i}"${p.checked ? ' checked' : ''}${p.hl.length || p.goals.length ? '' : ' disabled'}></td>
+        <td style="width:28%;vertical-align:top;">${escHtml(p.staff.name)}</td>
+        <td><details><summary style="cursor:pointer;">${planSummary(p)}</summary>${planDetail(p)}</details></td>
+      </tr>`).join('')}</tbody></table>` : '<div class="empty-msg">Nothing new to import from the list columns.</div>';
+
+    body.innerHTML = `
+      <div style="font-size:0.78em;color:var(--dim);margin-bottom:6px;">
+        ${unlinked ? `${unlinked} unlinked row(s) skipped · ` : ''}<span style="color:var(--warn);">orange</span> = overwrites an existing value ·
+        <span class="list-toggle-link" id="dlg-sc-all">[ALL]</span> <span class="list-toggle-link" id="dlg-sc-none">[NONE]</span>
+      </div>
+      ${changes.length || !anyList ? `<div class="dlg-label">STAFF FIELDS — ${changes.length} difference(s)</div>${fieldsHtml}` : ''}
+      ${anyList ? `<div class="dlg-label" style="margin-top:10px;">LISTS → ${lists.year} LDP${lists.accDest === 'notes' ? ' / NOTES' : ''} — ${plans.length} staff · click a line to see the items</div>${plansHtml}` : ''}
       <div class="dlg-section" style="margin-top:14px;">
         <button class="dlg-btn" id="dlg-sc-back">← Back</button>
-        ${changes.length ? `<button class="dlg-btn dlg-btn-primary" id="dlg-sc-apply">Apply ${n} change(s)</button>` : ''}
+        ${n + np ? `<button class="dlg-btn dlg-btn-primary" id="dlg-sc-apply">Apply ${[n ? n + ' field change(s)' : '', np ? 'lists for ' + np + ' staff' : ''].filter(Boolean).join(' + ')}</button>` : ''}
         <button class="dlg-btn" id="dlg-sc-close">Close</button>
       </div>`;
+    const keepOpen = () => [...body.querySelectorAll('details')].map(d => d.open);
+    const rerender = () => { const open = keepOpen(); renderPreview(); body.querySelectorAll('details').forEach((d, i) => { d.open = !!open[i]; }); };
     body.querySelectorAll('[data-chg]').forEach(cb => cb.addEventListener('change', () => {
       changes[+cb.dataset.chg].checked = cb.checked;
-      renderPreview();
+      rerender();
     }));
-    const setAll = v => { changes.forEach(c => { if (!c.invalid) c.checked = v; }); renderPreview(); };
+    body.querySelectorAll('[data-plan]').forEach(cb => cb.addEventListener('change', () => {
+      plans[+cb.dataset.plan].checked = cb.checked;
+      rerender();
+    }));
+    const setAll = v => {
+      changes.forEach(c => { if (!c.invalid) c.checked = v; });
+      plans.forEach(p => { if (p.hl.length || p.goals.length) p.checked = v; });
+      rerender();
+    };
     document.getElementById('dlg-sc-all').addEventListener('click', () => setAll(true));
     document.getElementById('dlg-sc-none').addEventListener('click', () => setAll(false));
     document.getElementById('dlg-sc-back').addEventListener('click', renderMap);
@@ -5618,12 +5827,17 @@ function openSheetCopyDialog(sheet) {
     const applyBtn = document.getElementById('dlg-sc-apply');
     if (applyBtn) applyBtn.addEventListener('click', () => {
       const todo = changes.filter(c => c.checked);
-      if (!todo.length) { statusMsg('No changes selected.'); return; }
+      const todoPlans = plans.filter(p => p.checked);
+      if (!todo.length && !todoPlans.length) { statusMsg('Nothing selected.'); return; }
       todo.forEach(c => { c.staff[c.field] = c.to; });
+      todoPlans.forEach(applyPlan);
       saveDB();
       render();
       closeOverlay();
-      statusMsg('Applied ' + todo.length + ' change(s) to ' + new Set(todo.map(c => c.staff.id)).size + ' staff record(s).');
+      const people = new Set([...todo.map(c => c.staff.id), ...todoPlans.map(p => p.staff.id)]).size;
+      statusMsg(`Applied ${todo.length} field change(s)` +
+        (todoPlans.length ? ` + ${todoPlans.reduce((a, p) => a + p.nGoals, 0)} goals, ${todoPlans.reduce((a, p) => a + p.nActs, 0)} actions, ${todoPlans.reduce((a, p) => a + p.hl.length, 0)} ${accWhere}` : '') +
+        ` for ${people} staff.`);
     });
   }
 
