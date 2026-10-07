@@ -130,3 +130,7 @@ Not every app needs a category. If an app has a unique design feel, just build i
 1. Build the app as a single HTML file in its own subdirectory
 2. Add an entry to the `APPS` array in `index.html`
 3. If it follows a design category, add it to the relevant section above
+
+## License and data
+
+Code is MIT licensed (see `LICENSE`). Bundled third-party data is covered by its own terms; see `data/ATTRIBUTION.md`.
