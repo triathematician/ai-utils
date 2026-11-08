@@ -140,12 +140,34 @@ html, body {
   grid-template-rows: 1fr 2fr;
   height: 100%;
 }
-#projects-screen, #hiring-screen, #staffing-screen {
+#projects-screen, #hiring-screen, #staffing-screen, #leadership-screen {
   display: none;
   flex-direction: column;
   height: 100%;
   overflow: hidden;
 }
+#leadership-screen { gap: 0; }
+#leadership-toolbar { display:flex; align-items:center; gap:14px; padding:8px 12px; border-bottom:1px solid var(--border); flex-wrap:wrap; }
+#leadership-title { color:var(--accent); letter-spacing:2px; margin-right:auto; }
+#leadership-body { display:grid; grid-template-columns: minmax(180px, .8fr) minmax(0, 2fr); gap:12px; padding:12px; overflow:auto; min-height:0; }
+#leadership-categories { border-right:1px solid var(--muted); padding-right:12px; }
+.lead-category { border:1px solid var(--muted); padding:8px; margin-bottom:8px; cursor:pointer; }
+.lead-category.active, .lead-category:hover { border-color:var(--accent); color:var(--accent); }
+.lead-category-count { float:right; color:var(--dim); }
+.lead-role-group { border:1px solid var(--muted); margin-bottom:12px; }
+.lead-role-group[draggable="true"] { cursor:grab; }
+.lead-role-group[draggable="true"]:active, .lead-assignment[draggable="true"]:active { cursor:grabbing; }
+.lead-role-group.lead-drag-over, .lead-assignment.lead-drag-over { border-color:var(--accent); }
+.lead-role-head { padding:6px 8px; border-bottom:1px solid var(--muted); color:var(--accent); display:flex; gap:8px; align-items:center; }
+.lead-role-head small { color:var(--dim); margin-left:auto; }
+.lead-assignment { display:grid; grid-template-columns: 1fr 110px 110px auto; gap:10px; align-items:center; padding:7px 8px; border-bottom:1px solid var(--muted); }
+.lead-assignment:last-child { border-bottom:0; }
+.lead-person { color:var(--fg); cursor:pointer; }
+.lead-person:hover { color:var(--accent); text-decoration:underline; }
+.lead-dates { color:var(--dim); font-size:.82em; }
+.lead-status { font-size:.76em; color:var(--success); }
+.lead-status.ended { color:var(--dim); }
+.lead-empty { color:var(--dim); padding:18px 8px; }
 
 /* ═══════════════════════════════════════════════
    TOP ROW — STAFF SUMMARY
@@ -187,6 +209,8 @@ html, body {
   font-size: 0.78em;
   margin-top: 2px;
 }
+#staff-leadership-links { font-size:0.78em; margin-top:2px; }
+#staff-leadership-links:empty { display:none; }
 #staff-sheet-links:empty, #staff-checklists:empty { display: none; }
 #staff-checklists a, .staff-checklist-link {
   color: var(--accent);
@@ -400,6 +424,13 @@ html, body {
   align-items: center; justify-content: center;
 }
 #help-overlay.visible { display: flex; }
+#help-overlay .overlay-box {
+  height: 80vh;
+  min-height: 480px;
+}
+@media (max-height:600px) {
+  #help-overlay .overlay-box { height: 92vh; min-height: 0; }
+}
 .overlay-box {
   background: var(--bg); border: 1px solid var(--border);
   padding: 16px 20px; min-width: 640px; max-width: min(90vw, 960px);
@@ -511,6 +542,9 @@ html, body {
   cursor: pointer; margin-right: 4px; margin-bottom: 4px;
 }
 .dlg-type-btn.active { border-color: var(--accent); color: var(--accent); }
+.help-topic-tabs { display:grid; grid-template-columns:repeat(5, minmax(0, 1fr)); gap:4px; margin-bottom:8px; align-items:stretch; }
+.help-topic-tabs .dlg-type-btn { height:34px; width:100%; margin:0; line-height:1; white-space:nowrap; }
+@media (max-width:700px) { .help-topic-tabs { grid-template-columns:repeat(3, minmax(0, 1fr)); } }
 .action-item {
   display: flex; align-items: center; gap: 6px; padding: 2px 0;
   font-size: 0.85em;
@@ -802,6 +836,7 @@ html, body {
     <div id="staff-meta"></div>
     <div id="staff-checklists"></div>
     <div id="staff-sheet-links"></div>
+    <div id="staff-leadership-links"></div>
     <div id="staff-highlights">
       <div class="highlight-card" id="hc-note">
         <span class="hc-label">◈ LAST NOTE</span>
@@ -889,6 +924,23 @@ html, body {
   <div id="sheet-body"></div>
 </div>
 <!-- END staffing-screen -->
+
+<!-- LEADERSHIP SCREEN -->
+<div id="leadership-screen">
+  <div id="leadership-toolbar">
+    <span id="leadership-title">◈ LEADERSHIP ROSTER</span>
+    <span class="list-toggle-link" id="lead-new-category">[+ CATEGORY]</span>
+    <span class="list-toggle-link" id="lead-new-role">[+ ROLE]</span>
+    <span class="list-toggle-link" id="lead-new-assignment">[+ ADD PERSON]</span>
+    <span class="list-toggle-link" id="lead-ended-toggle">[SHOW ENDED]</span>
+    <span class="list-toggle-link" id="lead-back-btn">[← BACK TO STAFF]</span>
+  </div>
+  <div id="leadership-body">
+    <div id="leadership-categories"></div>
+    <div id="leadership-roles"></div>
+  </div>
+</div>
+<!-- END leadership-screen -->
 
 </div>
 <!-- END screen-area -->
@@ -994,6 +1046,13 @@ function loadDB() {
   });
   db.staffingSheets  = db.staffingSheets  || [];
   db.staffingTags    = db.staffingTags    || [];   // normalized column names shown in Staffing Notes
+  db.leadership      = db.leadership      || { categories: [], roles: [], assignments: [] };
+  db.leadership.categories = db.leadership.categories || [];
+  db.leadership.roles = db.leadership.roles || [];
+  db.leadership.assignments = db.leadership.assignments || [];
+  db.leadership.categories.forEach(c => { c.id = c.id || uid(); c.name = c.name || 'Uncategorized'; });
+  db.leadership.roles.forEach(r => { r.id = r.id || uid(); r.name = r.name || ''; r.categoryId = r.categoryId || (db.leadership.categories[0] || {}).id || ''; });
+  db.leadership.assignments.forEach(a => { a.id = a.id || uid(); a.startDate = a.startDate || ''; a.endDate = a.endDate || ''; a.staffId = a.staffId || ''; a.roleId = a.roleId || ''; a.rotational = !!a.rotational; a.descriptor = a.descriptor || ''; });
   db.staffingSheets.forEach(sh => {
     sh.id         = sh.id         || uid();
     sh.label      = sh.label      || '';
@@ -1281,6 +1340,7 @@ function renderTopRow() {
     hdrEl.textContent = '◈ STAFF SUMMARY';
     document.getElementById('staff-checklists').innerHTML = '';
     document.getElementById('staff-sheet-links').innerHTML = '';
+    document.getElementById('staff-leadership-links').innerHTML = '';
     setHighlightCard('hc-note',       '◈ LAST NOTES',      '—', true);
     setHighlightCard('hc-goals',      '◈ LDP GOALS',       '—', true);
     setHighlightCard('hc-milestones', '◈ MILESTONES',      '—', true);
@@ -1331,6 +1391,25 @@ function renderTopRow() {
     el.addEventListener('click', () => {
       const hit = sheetRows.find(x => x.sheet.id === el.dataset.sheetId);
       if (hit) openSheetRowDialog(hit.sheet, hit.row);
+    });
+  });
+
+  // Leadership assignments — linked back to the leadership roster
+  const leadEl = document.getElementById('staff-leadership-links');
+  const leadAssignments = (db.leadership && db.leadership.assignments || [])
+    .filter(a => a.staffId === s.id)
+    .sort((a,b) => (b.startDate || '').localeCompare(a.startDate || ''));
+  leadEl.innerHTML = leadAssignments.length
+    ? '<span style="color:var(--dim);">LEADERSHIP:</span> ' + leadAssignments.map(a => {
+        const role = (db.leadership.roles || []).find(r => r.id === a.roleId);
+        return `<span class="staff-checklist-link" data-leadership-id="${escHtml(a.id)}">◈ ${escHtml(role ? role.name : 'unknown role')}${a.rotational ? ' [ROTATIONAL]' : ''}${a.descriptor ? ' · ' + escHtml(a.descriptor) : ''} (${escHtml(a.startDate || '—')} → ${escHtml(a.endDate || 'present')})</span>`;
+      }).join('')
+    : '';
+  leadEl.querySelectorAll('[data-leadership-id]').forEach(el => {
+    el.addEventListener('click', () => {
+      const a = leadAssignments.find(x => x.id === el.dataset.leadershipId);
+      leadershipCategoryId = a ? ((db.leadership.roles.find(r => r.id === a.roleId) || {}).categoryId || 'all') : 'all';
+      showScreen('leadership');
     });
   });
 
@@ -2103,6 +2182,7 @@ function handleConsoleCmd(raw) {
   if (cmd === '/home')       { showScreen('staff'); return; }
   if (cmd === '/hiring')     { showScreen('hiring'); return; }
   if (cmd === '/staffing')   { cmdStaffing(rest); return; }
+  if (cmd === '/leadership' || cmd === '/leaders') { cmdLeadership(rest); return; }
   if (cmd === '/cnew')       { openCandidateDialog(null); return; }
   if (cmd === '/ctags')      { openHireTagsDialog(); return; }
   if (cmd === '/carchived')  { openHireArchiveDialog(); return; }
@@ -3832,6 +3912,7 @@ const HELP_TOPICS = [
     '/projects                project staff-alignment screen',
     '/hiring                  hiring pipeline screen',
     '/staffing                imported staffing spreadsheets screen',
+    '/leadership              leadership roles, categories, and dated transitions',
     '',
     '── CONSOLE ─────────────────────────────────────────────',
     '/help                    show this help',
@@ -3981,6 +4062,25 @@ const HELP_TOPICS = [
     '  → Archive (in the candidate dialog) hides a candidate from the board',
     '  → the filter box matches name, role, source, notes and tags',
   ]},
+  { id: 'leadership', label: 'LEADERSHIP', lines: [
+    '── COMMANDS ────────────────────────────────────────────────────────────────',
+    '/leadership              open the leadership roster screen (alias: /leaders)',
+    '/leadership category add [name]',
+    '/leadership category update [name]',
+    '/leadership category remove [name]',
+    '/leadership role add|update|remove [name]',
+    '/leadership assignment add|update|remove [staff name]',
+    '',
+    '── WORKFLOW ────────────────────────────────────────────────────────────────',
+    '  → [+ CATEGORY] creates a grouping such as Executive, Department, or Program',
+    '  → [+ ROLE] adds a role and assigns it to a category',
+    '  → [+ ADD PERSON] assigns an active staff record to a role',
+    '  → each assignment has a start date and optional end date',
+    '  → add a new assignment when someone transitions to another role; history is retained',
+    '  → active assignments show ACTIVE; assignments with past end dates show ENDED',
+    '  → click a dated assignment to edit its start/end dates',
+    '  → select a category on the left to filter the roster',
+  ]},
   { id: 'backlog', label: 'BACKLOG', lines: [
     '/backlog <text>          add a backlog item',
     '/backlog list            show the backlog (click [ ] to toggle, copy to clipboard)',
@@ -4013,7 +4113,7 @@ function showHelp(arg) {
     const t = HELP_TOPICS.find(t => t.id.startsWith(q) || t.label.toLowerCase().startsWith(q));
     if (!t) { statusMsg('No help topic "' + q + '" — try: ' + HELP_TOPICS.map(t => t.id).join(', ')); return; }
     helpTopic = t.id;
-  } else if (currentScreen === 'projects' || currentScreen === 'hiring' || currentScreen === 'staffing') {
+  } else if (currentScreen === 'projects' || currentScreen === 'hiring' || currentScreen === 'staffing' || currentScreen === 'leadership') {
     helpTopic = currentScreen;
   } else if (!helpTopic) {
     helpTopic = 'basics';
@@ -4025,7 +4125,7 @@ function showHelp(arg) {
     const body = document.getElementById('help-body');
     body.style.whiteSpace = 'normal';
     body.innerHTML = `
-      <div style="margin-bottom:8px;">${HELP_TOPICS.map(t =>
+      <div class="help-topic-tabs">${HELP_TOPICS.map(t =>
         `<button class="dlg-type-btn${t.id === topic.id ? ' active' : ''}" data-help-topic="${t.id}">${escHtml(t.label)}</button>`
       ).join('')}</div>
       <div style="white-space:pre;overflow-x:auto;">${escHtml(topic.lines.join('\n'))}</div>`;
@@ -4164,11 +4264,13 @@ function showScreen(name) {
   document.getElementById('projects-screen').style.display = (name === 'projects') ? 'flex' : 'none';
   document.getElementById('hiring-screen').style.display = (name === 'hiring') ? 'flex' : 'none';
   document.getElementById('staffing-screen').style.display = (name === 'staffing') ? 'flex' : 'none';
+  document.getElementById('leadership-screen').style.display = (name === 'leadership') ? 'flex' : 'none';
   document.getElementById('console-prompt').textContent =
-    (name === 'projects') ? 'PROJ>' : (name === 'hiring') ? 'HIRE>' : (name === 'staffing') ? 'SHEET>' : 'STAFF>';
+    (name === 'projects') ? 'PROJ>' : (name === 'hiring') ? 'HIRE>' : (name === 'staffing') ? 'SHEET>' : (name === 'leadership') ? 'LEAD>' : 'STAFF>';
   if (name === 'projects') renderProjects();
   if (name === 'hiring') renderHiring();
   if (name === 'staffing') renderStaffing();
+  if (name === 'leadership') renderLeadership();
   consoleInput.focus();
 }
 
@@ -4704,6 +4806,65 @@ function moveCandidate(c, stage) {
   renderHiring();
   statusMsg(c.name + ' → ' + hireLabel(stage));
 }
+
+/* Leadership roster: categories contain roles, and assignments carry effective dates. */
+let leadershipCategoryId = 'all';
+let showEndedLeadership = false;
+let draggedLeadershipRoleId = null;
+let draggedLeadershipAssignmentId = null;
+function cmdLeadership(rest) {
+  const p=rest.trim().split(/\s+/), entity=p[0]||''; if(!entity){showScreen('leadership');return;}
+  const action=p[1]||'', value=p.slice(2).join(' ');
+  if(entity==='category'||entity==='categories') return cmdLeadershipCategory(action,value);
+  if(entity==='role'||entity==='roles') return cmdLeadershipRole(action,value);
+  if(entity==='assignment'||entity==='assignments'||entity==='person') return cmdLeadershipAssignment(action,value);
+  statusMsg('Usage: /leadership category|role|assignment add|update|remove');
+}
+function cmdLeadershipCategory(action,value){
+  if(action==='add'){const n=value||prompt('Category name:');if(n&&n.trim()){db.leadership.categories.push({id:uid(),name:n.trim()});saveDB();statusMsg('Leadership category added.');}}
+  else if(action==='update'){const q=value||prompt('Category to update:');const c=db.leadership.categories.find(x=>x.name.toLowerCase()===String(q).toLowerCase()||x.id===q);if(!c){statusMsg('Category not found.');return;}const n=prompt('New category name:',c.name);if(n&&n.trim()){c.name=n.trim();saveDB();statusMsg('Leadership category updated.');}}
+  else if(action==='remove'||action==='delete'){const q=value||prompt('Category to remove:');const c=db.leadership.categories.find(x=>x.name.toLowerCase()===String(q).toLowerCase()||x.id===q);if(!c){statusMsg('Category not found.');return;}if(db.leadership.roles.some(r=>r.categoryId===c.id)){statusMsg('Remove or reassign its roles first.');return;}db.leadership.categories=db.leadership.categories.filter(x=>x.id!==c.id);saveDB();renderLeadership();statusMsg('Leadership category removed.');}
+  else statusMsg('Usage: /leadership category add|update|remove [name]');
+  if(currentScreen==='leadership')renderLeadership();
+}
+function cmdLeadershipRole(action,value){
+  if(action==='add'){const n=value||prompt('Role name:');if(!n||!n.trim())return;const q=prompt('Category name:',db.leadership.categories[0]&&db.leadership.categories[0].name),c=db.leadership.categories.find(x=>x.name.toLowerCase()===String(q).toLowerCase()||x.id===q);if(!c){statusMsg('Category not found.');return;}db.leadership.roles.push({id:uid(),name:n.trim(),categoryId:c.id});saveDB();statusMsg('Leadership role added.');}
+  else if(action==='update'){const q=value||prompt('Role to update:');const r=db.leadership.roles.find(x=>x.name.toLowerCase()===String(q).toLowerCase()||x.id===q);if(!r){statusMsg('Role not found.');return;}const n=prompt('New role name:',r.name);if(n&&n.trim())r.name=n.trim();const cQ=prompt('Category name:',(db.leadership.categories.find(x=>x.id===r.categoryId)||{}).name||'');const c=db.leadership.categories.find(x=>x.name.toLowerCase()===String(cQ).toLowerCase()||x.id===cQ);if(c)r.categoryId=c.id;saveDB();statusMsg('Leadership role updated.');}
+  else if(action==='remove'||action==='delete'){const q=value||prompt('Role to remove:');const r=db.leadership.roles.find(x=>x.name.toLowerCase()===String(q).toLowerCase()||x.id===q);if(!r){statusMsg('Role not found.');return;}if(db.leadership.assignments.some(a=>a.roleId===r.id)){statusMsg('Remove its assignments first.');return;}db.leadership.roles=db.leadership.roles.filter(x=>x.id!==r.id);saveDB();statusMsg('Leadership role removed.');}
+  else statusMsg('Usage: /leadership role add|update|remove [name]');
+  if(currentScreen==='leadership')renderLeadership();
+}
+function cmdLeadershipAssignment(action,value){
+  if(action==='add'){addLeadershipAssignment();return;}
+  const q=value||prompt('Assignment staff name:');const a=db.leadership.assignments.find(x=>(db.staff.find(s=>s.id===x.staffId)||{}).name.toLowerCase()===String(q).toLowerCase()||x.id===q);if(!a){statusMsg('Assignment not found. Use the assignment id or exact staff name.');return;}
+  if(action==='update'){editLeadershipAssignment(a);return;}
+  if(action==='remove'||action==='delete'){db.leadership.assignments=db.leadership.assignments.filter(x=>x.id!==a.id);saveDB();if(currentScreen==='leadership')renderLeadership();statusMsg('Leadership assignment removed.');return;}
+  statusMsg('Usage: /leadership assignment add|update|remove [staff name]');
+}
+function renderLeadership() {
+  const cats=document.getElementById('leadership-categories'), roles=document.getElementById('leadership-roles'), l=db.leadership;
+  cats.innerHTML='<div class="lead-category '+(leadershipCategoryId==='all'?'active':'')+'" data-cat="all">ALL CATEGORIES <span class="lead-category-count">'+l.assignments.length+'</span></div>';
+  l.categories.forEach(c=>{const n=l.roles.filter(r=>r.categoryId===c.id).reduce((x,r)=>x+l.assignments.filter(a=>a.roleId===r.id).length,0);cats.innerHTML+='<div class="lead-category '+(leadershipCategoryId===c.id?'active':'')+'" data-cat="'+c.id+'">'+escHtml(c.name)+'<span class="lead-category-count">'+n+'</span></div>';});
+  cats.querySelectorAll('[data-cat]').forEach(e=>e.addEventListener('click',()=>{leadershipCategoryId=e.dataset.cat;renderLeadership();}));
+  const visible=l.roles.filter(r=>leadershipCategoryId==='all'||r.categoryId===leadershipCategoryId); roles.innerHTML=visible.length?'':'<div class="lead-empty">No leadership roles yet. Add a category, then define a role.</div>';
+  visible.forEach(r=>{const c=l.categories.find(x=>x.id===r.categoryId), as=l.assignments.filter(a=>a.roleId===r.id&& (showEndedLeadership || !(a.endDate&&a.endDate<todayStr())));if(!as.length)return;const g=document.createElement('div');g.className='lead-role-group';g.draggable=true;g.dataset.roleId=r.id;g.innerHTML='<div class="lead-role-head"><span>'+escHtml(r.name)+'</span><small>'+escHtml(c?c.name:'Uncategorized')+' · '+as.length+' assignment(s)</small></div>';g.addEventListener('dragstart',e=>{draggedLeadershipRoleId=r.id;e.dataTransfer.setData('text/leadership-role',r.id);});g.addEventListener('dragover',e=>{if(draggedLeadershipRoleId&&draggedLeadershipRoleId!==r.id){e.preventDefault();g.classList.add('lead-drag-over');}});g.addEventListener('dragleave',()=>g.classList.remove('lead-drag-over'));g.addEventListener('drop',e=>{e.preventDefault();g.classList.remove('lead-drag-over');if(!draggedLeadershipRoleId||draggedLeadershipRoleId===r.id)return;const from=l.roles.findIndex(x=>x.id===draggedLeadershipRoleId),to=l.roles.findIndex(x=>x.id===r.id);if(from>=0&&to>=0){const moved=l.roles.splice(from,1)[0];l.roles.splice(to,0,moved);saveDB();renderLeadership();}draggedLeadershipRoleId=null;});as.forEach(a=>{const p=db.staff.find(s=>s.id===a.staffId),ended=a.endDate&&a.endDate<todayStr(),row=document.createElement('div');row.className='lead-assignment';row.draggable=true;row.dataset.assignmentId=a.id;row.innerHTML='<span class="lead-person">'+escHtml(p?p.name:'Unknown staff')+'</span><span class="lead-dates">'+escHtml(a.startDate||'—')+'</span><span class="lead-dates">'+escHtml(a.endDate||'present')+'</span><span class="lead-status '+(ended?'ended':'')+'">'+(ended?'ENDED':'ACTIVE')+(a.rotational?' · ROTATIONAL':'')+(a.descriptor?' · '+escHtml(a.descriptor):'')+' · <u>edit</u></span>';row.addEventListener('dragstart',e=>{e.stopPropagation();draggedLeadershipAssignmentId=a.id;e.dataTransfer.setData('text/leadership-assignment',a.id);});row.addEventListener('dragover',e=>{if(draggedLeadershipAssignmentId&&draggedLeadershipAssignmentId!==a.id){e.preventDefault();row.classList.add('lead-drag-over');}});row.addEventListener('dragleave',()=>row.classList.remove('lead-drag-over'));row.addEventListener('drop',e=>{e.preventDefault();e.stopPropagation();row.classList.remove('lead-drag-over');if(!draggedLeadershipAssignmentId||draggedLeadershipAssignmentId===a.id)return;const from=l.assignments.findIndex(x=>x.id===draggedLeadershipAssignmentId),to=l.assignments.findIndex(x=>x.id===a.id);if(from>=0&&to>=0){const moved=l.assignments.splice(from,1)[0];l.assignments.splice(to,0,moved);saveDB();renderLeadership();}draggedLeadershipAssignmentId=null;});if(p)row.querySelector('.lead-person').addEventListener('click',()=>{db.activeStaffId=p.id;viewingLdpYear=null;saveDB();showScreen('staff');render();statusMsg('Loaded: '+p.name);});row.querySelector('.lead-status').addEventListener('click',()=>editLeadershipAssignment(a));g.appendChild(row);});roles.appendChild(g);});
+}
+function addLeadershipCategory(){const n=prompt('Category name:');if(!n||!n.trim())return;db.leadership.categories.push({id:uid(),name:n.trim()});saveDB();renderLeadership();}
+function addLeadershipRole(){if(!db.leadership.categories.length){statusMsg('Create a leadership category first.');return;}const n=prompt('Role name:');if(!n||!n.trim())return;const c=prompt('Category name:',db.leadership.categories[0].name),cat=db.leadership.categories.find(x=>x.name.toLowerCase()===String(c).toLowerCase())||db.leadership.categories[0];db.leadership.roles.push({id:uid(),name:n.trim(),categoryId:cat.id});saveDB();renderLeadership();}
+function addLeadershipAssignment(){if(!db.staff.length||!db.leadership.roles.length){statusMsg('Add staff and a leadership role first.');return;}openLeadershipAssignmentDialog(null);}
+function editLeadershipAssignment(a){openLeadershipAssignmentDialog(a);}
+function openLeadershipAssignmentDialog(existing){
+  const a=existing||{id:null,staffId:'',roleId:'',startDate:todayStr(),endDate:'',rotational:false,descriptor:''};
+  showOverlay(a.id?'◈ EDIT LEADERSHIP ASSIGNMENT':'◈ NEW LEADERSHIP ASSIGNMENT',()=>{
+    const staff=db.staff.filter(s=>!s.archived).sort((x,y)=>x.name.localeCompare(y.name));
+    const roles=db.leadership.roles.slice().sort((x,y)=>x.name.localeCompare(y.name));
+    document.getElementById('help-body').innerHTML=`<div class="dlg-section"><div class="dlg-label">STAFF MEMBER</div><select id="lead-dlg-staff" class="dlg-input">${staff.map(s=>`<option value="${escHtml(s.id)}" ${s.id===a.staffId?'selected':''}>${escHtml(s.name)}</option>`).join('')}</select></div><div class="dlg-section"><div class="dlg-label">ROLE</div><select id="lead-dlg-role" class="dlg-input">${roles.map(r=>`<option value="${escHtml(r.id)}" ${r.id===a.roleId?'selected':''}>${escHtml(r.name)}</option>`).join('')}</select></div><div class="dlg-section"><div class="dlg-label">DATES</div><div style="display:flex;gap:8px"><input id="lead-dlg-start" class="dlg-input" type="date" value="${escHtml(a.startDate)}"><input id="lead-dlg-end" class="dlg-input" type="date" value="${escHtml(a.endDate)}"></div></div><div class="dlg-section"><label><input id="lead-dlg-rotational" type="checkbox" ${a.rotational?'checked':''}> ROTATIONAL ASSIGNMENT</label></div><div class="dlg-section"><div class="dlg-label">DESCRIPTOR</div><input id="lead-dlg-descriptor" class="dlg-input" placeholder="e.g. interim coverage, FY2027 rotation" value="${escHtml(a.descriptor)}"></div><div class="dlg-section" style="display:flex;gap:8px"><button id="lead-dlg-save" class="dlg-btn">[SAVE]</button>${a.id?'<button id="lead-dlg-delete" class="dlg-btn">[REMOVE]</button>':''}<button id="lead-dlg-cancel" class="dlg-btn">[CANCEL]</button></div>`;
+    document.getElementById('lead-dlg-save').onclick=()=>{a.staffId=document.getElementById('lead-dlg-staff').value;a.roleId=document.getElementById('lead-dlg-role').value;a.startDate=document.getElementById('lead-dlg-start').value;a.endDate=document.getElementById('lead-dlg-end').value;a.rotational=document.getElementById('lead-dlg-rotational').checked;a.descriptor=document.getElementById('lead-dlg-descriptor').value.trim();if(!a.staffId||!a.roleId||!a.startDate){statusMsg('Staff, role, and start date are required.');return;}if(a.endDate&&a.endDate<a.startDate){statusMsg('End date must be on or after start date.');return;}if(!a.id){a.id=uid();db.leadership.assignments.push(a);}saveDB();closeOverlay();renderLeadership();statusMsg('Leadership assignment saved.');};
+    if(a.id)document.getElementById('lead-dlg-delete').onclick=()=>{db.leadership.assignments=db.leadership.assignments.filter(x=>x.id!==a.id);saveDB();closeOverlay();renderLeadership();statusMsg('Leadership assignment removed.');};
+    document.getElementById('lead-dlg-cancel').onclick=closeOverlay;
+  });
+}
+document.getElementById('lead-new-category').addEventListener('click',addLeadershipCategory);document.getElementById('lead-new-role').addEventListener('click',addLeadershipRole);document.getElementById('lead-new-assignment').addEventListener('click',addLeadershipAssignment);document.getElementById('lead-ended-toggle').addEventListener('click',()=>{showEndedLeadership=!showEndedLeadership;document.getElementById('lead-ended-toggle').textContent=showEndedLeadership?'[HIDE ENDED]':'[SHOW ENDED]';renderLeadership();});document.getElementById('lead-back-btn').addEventListener('click',()=>showScreen('staff'));
 
 function renderHiring() {
   const board = document.getElementById('hire-board');
